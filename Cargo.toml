@@ -1,7 +1,8 @@
 [workspace]
 members = [
 #  "contracts/core-contracts/*",
-  "contracts/token-contracts/cw-hub-bnusd"]
+  "contracts/token-contracts/cw-hub-bnusd",
+  "libraries/rust/common",]
 
 
 [profile.release]

@@ -5,6 +5,9 @@ use cosmwasm_std::{Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult}
 
 use crate::error::ContractError;
 use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
+use crate::state::X_CALL;
+
+use common::icallservice::ICallService;
 
 /*
 // version info for migration info
@@ -14,12 +17,18 @@ const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
-    _deps: DepsMut,
+    deps: DepsMut,
     _env: Env,
     _info: MessageInfo,
-    _msg: InstantiateMsg,
+    msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
-    unimplemented!()
+    X_CALL.save(deps.storage, &msg.xCall)?;
+    let x_call = X_CALL.load(deps.storage)?;
+    xCallBTPAddress = ICallService::get_btp_address(&xCall);
+    let (nid, _) = BTPAddress::parse_btp_address(&xCallBTPAddress)?;
+    let (hubNet, hubAddress) = BTPAddress::parse_network_address(&_hubAddress)?;
+    OWNER.save(deps.storage, &deps.api.addr_validate(&info.sender).expect("Issue with Transfer"))?;
+    Ok(Response::default())
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
