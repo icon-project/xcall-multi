@@ -8,6 +8,20 @@ pub enum ContractError {
 
     #[error("Unauthorized")]
     Unauthorized {},
+    #[error("Wrong Address")]
+    WrongAddress,
+    #[error("Invalid BTP Address")]
+    InvalidBTPAddress,
+    #[error("Wrong Network")]
+    WrongNetwork,
+    #[error("Invalid to Address")]
+    InvalidToAddress,
+    #[error("OnlyCallService")]
+    OnlyCallService,
+    #[error("OnlyHub")]
+    OnlyHub,
+    #[error("Invalid Method")]
+    InvalidMethod,
     // Add any other custom errors you like here.
     // Look at https://docs.rs/thiserror/1.0.21/thiserror/ for details.
 }

@@ -1,20 +1,40 @@
 use cosmwasm_schema::{cw_serde, QueryResponses};
 use cosmwasm_std::Addr;
-use common :: Types;
+
+pub mod Types {
+    use super::*;
+
+    #[cw_serde]
+    pub struct CrossTransfer {
+        pub from: String,
+        pub to: String,
+        pub value: u128,
+        pub data: Vec<u8>,
+    }
+
+    #[cw_serde]
+    pub struct CrossTransferRevert {
+        pub from: String,
+        pub value: u128,
+    }
+}
 
 #[cw_serde]
 pub struct InstantiateMsg {
-    pub xCall: Addr,
-    pub hubAddress: String,
+    pub x_call: Addr,
+    pub hub_address: String,
+    pub name: String,
+    pub symbol: String,
+    pub decimals: u8,
 }
 
 #[cw_serde]
 pub enum ExecuteMsg {
-    setup {_xCall: Addr, _hubAddress: String},
-    handleCallMessage {_from: Addr, _data: String},
-    crossTransfer {to : Addr, amount: u128, data: Bytes},
-    xCrossTransfer {from: Addr, crossTransferData: Types::CrossTransfer},
-    xCrossTransferRevert {from: Addr, crossTransferRevertData: Types::CrossTransferRevert},
+    Setup {_xCall: Addr, _hubAddress: String},
+    HandleCallMessage {_from: Addr, _data: Vec<u8>},
+    CrossTransfer {to : Addr, amount: u128, data: Vec<u8>},
+    XCrossTransfer {from: Addr, crossTransferData: Types::CrossTransfer},
+    XCrossTransferRevert {from: Addr, crossTransferRevertData: Types::CrossTransferRevert},
 }
 
 #[cw_serde]

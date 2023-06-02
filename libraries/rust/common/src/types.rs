@@ -1,4 +1,4 @@
-pub mod types {
+pub mod Types {
     pub struct CrossTransfer {
         pub from: String,
         pub to: String,

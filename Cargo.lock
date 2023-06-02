@@ -78,8 +78,10 @@ name = "common"
 version = "0.1.0"
 dependencies = [
  "bytes",
+ "cosmwasm-std",
  "cw20",
  "hex",
+ "rlp",
  "rlp-derive",
  "rustc-hex",
  "serde",
@@ -221,6 +223,8 @@ dependencies = [
 name = "cw-hub-bnusd"
 version = "0.1.0"
 dependencies = [
+ "bytes",
+ "common",
  "cosmwasm-schema",
  "cosmwasm-std",
  "cosmwasm-storage",
@@ -228,6 +232,7 @@ dependencies = [
  "cw-storage-plus",
  "cw2",
  "cw20",
+ "cw20-base",
  "schemars",
  "serde",
  "thiserror",
@@ -307,10 +312,11 @@ dependencies = [
 [[package]]
 name = "cw20-base"
 version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "afcd279230b08ed8afd8be5828221622bd5b9ce25d0b01d58bad626c6ce0169c"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
- "cw-multi-test",
  "cw-storage-plus",
  "cw-utils",
  "cw2",
@@ -613,6 +619,16 @@ dependencies = [
  "crypto-bigint",
  "hmac",
  "zeroize",
+]
+
+[[package]]
+name = "rlp"
+version = "0.5.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bb919243f34364b6bd2fc10ef797edbfa75f33c252e7998527479c6d6b47e1ec"
+dependencies = [
+ "bytes",
+ "rustc-hex",
 ]
 
 [[package]]

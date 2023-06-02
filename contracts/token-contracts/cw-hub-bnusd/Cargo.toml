@@ -38,6 +38,10 @@ schemars = "0.8.12"
 serde = { version = "1.0.163", default-features = false, features = ["derive"] }
 thiserror = { version = "1.0.40" }
 cw20 = { version = "1.0.1", default-features = false }
+cw20-base = { version = "1.0.1", features = ["library"] }
+bytes = "1.0"
+common = { path = "../../../libraries/rust/common" }
+
 
 [dev-dependencies]
 cw-multi-test = "0.16.2"
