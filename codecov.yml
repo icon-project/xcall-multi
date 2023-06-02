@@ -1,0 +1,22 @@
+comment:
+  behavior: default
+  layout: "reach, diff, flags, files"
+
+ignore:
+
+coverage:
+  precision: 2
+  range: "50...100"
+  round: down
+  status:
+    project:
+      default:
+        threshold: 2%
+    patch:
+      default:
+        target: 80%
+        threshold: 2%
+        base: auto
+    changes: false
+github_checks:
+  annotations: true
