@@ -29,14 +29,25 @@ optimize = """docker run --rm -v "$(pwd)":/code \
 """
 
 [dependencies]
-cosmwasm-schema = "1.1.3"
-cosmwasm-std = "1.1.3"
-cosmwasm-storage = "1.1.3"
+cosmwasm-schema = "1.2.6"
+cosmwasm-std = "1.2.6"
+cosmwasm-storage = "1.2.6"
 cw-storage-plus = "1.0.1"
 cw2 = "1.0.1"
-schemars = "0.8.10"
-serde = { version = "1.0.145", default-features = false, features = ["derive"] }
-thiserror = { version = "1.0.31" }
+schemars = "0.8.12"
+serde = { version = "1.0.163", default-features = false, features = ["derive"] }
+thiserror = { version = "1.0.40" }
 
 [dev-dependencies]
 cw-multi-test = "0.16.2"
+
+[profile.release]
+# Do not perform backtrace for panic on release builds.
+panic = 'abort'
+# Perform optimizations on all codegen units.
+codegen-units = 1
+# Optimize for size.
+opt-level = 'z' # or 'z' to optimize "aggressively" for size
+# Enable link time optimization.
+lto = true
+strip = true
