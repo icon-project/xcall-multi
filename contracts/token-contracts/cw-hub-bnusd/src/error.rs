@@ -22,6 +22,13 @@ pub enum ContractError {
     OnlyHub,
     #[error("Invalid Method")]
     InvalidMethod,
+    #[error("Invalid Reply")]
+    InvalidReply,
+    #[error("Invalid Reply Data")]
+    MintError,
+    #[error("Invalid Reply Data")]
+    InvalidData,
+
     // Add any other custom errors you like here.
     // Look at https://docs.rs/thiserror/1.0.21/thiserror/ for details.
 }

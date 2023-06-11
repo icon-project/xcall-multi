@@ -67,3 +67,28 @@ impl BTPAddress {
         format!("{:?}{}{:?}{}", BTPAddress::PREFIX, network, BTPAddress::DELIMITER, account)
     }
 }
+
+mod tests{
+    #[test]
+    fn test_parse_btp_address() {
+        let btp_address = "btp://0x38.bsc/0x034AaDE86BF402F023Aa17E5725fABC4ab9E9798";
+        let (network, account) = super::BTPAddress::parse_btp_address(btp_address).unwrap();
+        assert_eq!(network, "0x38.bsc");
+        assert_eq!(account, "0x034AaDE86BF402F023Aa17E5725fABC4ab9E9798");
+    }
+
+    #[test]
+    fn test_parse_network_address() {
+        let btp_address = "btp://0x38.bsc/0x034AaDE86BF402F023Aa17E5725fABC4ab9E9798";
+        let (network, account) = super::BTPAddress::parse_network_address(btp_address).unwrap();
+        assert_eq!(network, "btp:");
+        assert_eq!(account, "/0x38.bsc/0x034AaDE86BF402F023Aa17E5725fABC4ab9E9798");
+    }
+
+    #[test]
+    fn test_network_address() {
+        let btp_address = "btp://0x38.bsc/0x034AaDE86BF402F023Aa17E5725fABC4ab9E9798";
+        let network = super::BTPAddress::network_address(btp_address).unwrap();
+        assert_eq!(network, "0x38.bsc");
+    }
+}
