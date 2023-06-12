@@ -2,7 +2,9 @@
 members = [
 #  "contracts/core-contracts/*",
   "contracts/token-contracts/cw-hub-bnusd",
-  "contracts/core-contracts/cw-asset-manager"]
+  "contracts/core-contracts/cw-asset-manager",
+  "contracts/cw-common",
+  ]
 
 
 [profile.release]
