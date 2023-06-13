@@ -4,7 +4,7 @@ use cosmwasm_std::{
     Binary, Deps, DepsMut, Env, MessageInfo, Reply, Response, StdResult, Uint128,
 };
 // use cw2::set_contract_version;
-use crate::constants::REPLY_MSG_SUCCESS;
+use crate::constants::{REPLY_MSG_SUCCESS, X_CROSS_TRANSFER, X_CROSS_TRANSFER_REVERT};
 use crate::error::ContractError;
 use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg, XCallMsg};
 use crate::state::{HUB_ADDRESS, HUB_NET, NID, OWNER, X_CALL, X_CALL_BTP_ADDRESS};
@@ -164,12 +164,12 @@ mod execute {
                 let method = &decoded_data[0];
 
                 match method.as_str() {
-                    "xCrossTransfer" => {
+                    X_CROSS_TRANSFER => {
                         let cross_transfer_data: CrossTransfer =
                             rlpdecode_struct::decode_cross_transfer(&decoded_data);
                         x_cross_transfer(deps, _env, info, from, cross_transfer_data)?;
                     }
-                    "xCrossTransferRevert" => {
+                    X_CROSS_TRANSFER_REVERT => {
                         let cross_transfer_revert_data: CrossTransferRevert =
                             rlpdecode_struct::decode_cross_transfer_revert(&decoded_data);
                         x_cross_transfer_revert(
