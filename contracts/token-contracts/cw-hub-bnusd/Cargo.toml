@@ -41,6 +41,7 @@ cw20 = { version = "1.0.1", default-features = false }
 cw20-base = { version = "1.0.1", features = ["library"] }
 bytes = "1.0"
 common = { path = "../../../libraries/rust/common" }
+cw-common = { path = "../../cw-common" }
 hex = "0.4.3"
 
 

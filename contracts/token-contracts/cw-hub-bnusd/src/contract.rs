@@ -1,16 +1,16 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    Binary, Deps, DepsMut, Env, MessageInfo, Reply, Response, StdResult, Uint128,
+    Binary, Deps, DepsMut, Env, MessageInfo, Reply, Response, StdResult, Uint128, QueryRequest, WasmQuery, to_binary, Empty
 };
 // use cw2::set_contract_version;
 use crate::constants::{REPLY_MSG_SUCCESS, X_CROSS_TRANSFER, X_CROSS_TRANSFER_REVERT};
 use crate::error::ContractError;
-use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg, XCallMsg};
-use crate::state::{HUB_ADDRESS, HUB_NET, NID, OWNER, X_CALL, X_CALL_BTP_ADDRESS};
+use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg, XCallMsg, XCallQuery};
+use crate::state::{HUB_ADDRESS, HUB_NET, NID, OWNER, X_CALL, X_CALL_BTP_ADDRESS, TEST};
 use bytes::Bytes;
 
-use common::btpAddress::BTPAddress;
+use cw_common::networkAddress::NetworkAddress;
 use cw20_base::contract::{execute_burn, execute_mint};
 use cw20_base::state::{MinterData, TokenInfo, TOKEN_INFO};
 
@@ -55,11 +55,21 @@ pub fn instantiate(
         return Err(ContractError::Std(xcall.err().unwrap()));
     }
     let _x_call = &msg.x_call;
-    // xCallBTPAddress = ICallService::get_btp_address(&x_call, _env)?;
-    let (nid, _) = BTPAddress::parse_btp_address(&"aaa")?;
-    let (hub_net, hub_address) = BTPAddress::parse_network_address(&msg.hub_address)?;
+    let query_message = XCallQuery::GetNetworkAddress { x_call: _x_call.to_string() };
 
-    X_CALL_BTP_ADDRESS.save(deps.storage, &"sss".to_string())?;
+    let query: QueryRequest<Empty> = QueryRequest::Wasm(WasmQuery::Smart {
+        contract_addr: _x_call.to_string(),
+        msg: to_binary(&query_message).map_err(ContractError::Std)?,
+    });
+
+    let response: Vec<u8> = deps.querier.query(&query).map_err(ContractError::Std)?;
+
+    let x_call_btp_address = String::from_utf8(response).unwrap();
+    // xCallBTPAddress = ICallService::get_btp_address(&x_call, _env)?;
+    let (nid, _) = NetworkAddress::parse_btp_address(&x_call_btp_address)?;
+    let (hub_net, hub_address) = NetworkAddress::parse_network_address(&msg.hub_address)?;
+
+    X_CALL_BTP_ADDRESS.save(deps.storage, &x_call_btp_address.to_string())?;
     NID.save(deps.storage, &nid.to_string())?;
     HUB_ADDRESS.save(deps.storage, &hub_address.to_string())?;
     HUB_NET.save(deps.storage, &hub_net.to_string())?;
@@ -118,12 +128,15 @@ mod reply {
         _env: Env,
         _msg: Reply,
     ) -> Result<Response, ContractError> {
+        
+       
         Ok(Response::default())
     }
 }
 
 mod execute {
-    use cosmwasm_std::{to_binary, CosmosMsg, SubMsg};
+    use cosmwasm_std::{to_binary, CosmosMsg, SubMsg, QueryRequest, WasmQuery, Empty};
+
 
     use super::*;
 
@@ -137,11 +150,22 @@ mod execute {
         deps.api.addr_validate(&x_call).expect("ContractError::InvalidToAddress");
         X_CALL.save(deps.storage, &x_call)?;
         //Network address call remaining
-        // xCallBTPAddress = ICallService::get_btp_address(&x_call, _env)?;
-        let (nid, _) = BTPAddress::parse_btp_address(&"xCallBTPAddress")?;
-        let (hub_net, hub_address) = BTPAddress::parse_network_address(&hub_address)?;
+        let query_message = XCallQuery::GetNetworkAddress {
+            x_call: x_call.to_string(),
+        };
 
-        X_CALL_BTP_ADDRESS.save(deps.storage, &"xCallBTPAddress".to_string())?;
+        let query: QueryRequest<Empty> = QueryRequest::Wasm(WasmQuery::Smart {
+            contract_addr: x_call,
+            msg: to_binary(&query_message).map_err(ContractError::Std)?,
+        });
+
+        let response: Vec<u8> = deps.querier.query(&query).map_err(ContractError::Std)?;
+        let x_call_btp_address = String::from_utf8(response).unwrap();
+        // xCallBTPAddress = ICallService::get_btp_address(&x_call, _env)?;
+        let (nid, _) = NetworkAddress::parse_btp_address(&x_call_btp_address)?;
+        let (hub_net, hub_address) = NetworkAddress::parse_network_address(&hub_address)?;
+
+        X_CALL_BTP_ADDRESS.save(deps.storage, &x_call_btp_address)?;
         NID.save(deps.storage, &nid.to_string())?;
         HUB_ADDRESS.save(deps.storage, &hub_address.to_string())?;
         HUB_NET.save(deps.storage, &hub_net.to_string())?;
@@ -206,7 +230,7 @@ mod execute {
         let hub_net: String = HUB_NET.load(deps.storage)?;
         let hub_address: String = HUB_ADDRESS.load(deps.storage)?;
 
-        let from = BTPAddress::btp_address(&nid, &info.sender.to_string());
+        let from = NetworkAddress::btp_address(&nid, &info.sender.to_string());
 
         let _call_data = CrossTransfer {
             from: from.clone(),
@@ -220,7 +244,7 @@ mod execute {
             value: amount,
         };
 
-        let _hub_btp_address = BTPAddress::btp_address(&hub_net, &hub_address);
+        let _hub_btp_address = NetworkAddress::btp_address(&hub_net, &hub_address);
 
         let call_message = XCallMsg::SendCallMessage {
             to: _hub_btp_address,
@@ -233,6 +257,7 @@ mod execute {
             msg: to_binary(&call_message)?,
             funds,
         });
+
         let sub_message = SubMsg::reply_always(wasm_execute_message, REPLY_MSG_SUCCESS);
         let _result = execute_burn(deps, env, info, amount.into());
         match _result {
@@ -260,13 +285,13 @@ mod execute {
         let hub_net: String = HUB_NET.load(deps.storage)?;
         let hub_address: String = HUB_ADDRESS.load(deps.storage)?;
 
-        let btp_address = BTPAddress::btp_address(&hub_net, &hub_address);
+        let btp_address = NetworkAddress::btp_address(&hub_net, &hub_address);
 
         if from != btp_address {
             return Err(ContractError::Unauthorized {});
         }
 
-        let (net, account) = BTPAddress::parse_network_address(&cross_transfer_data.to)?;
+        let (net, account) = NetworkAddress::parse_network_address(&cross_transfer_data.to)?;
         if net != nid {
             return Err(ContractError::WrongNetwork);
         }
@@ -294,7 +319,7 @@ mod execute {
             return Err(ContractError::OnlyCallService);
         }
 
-        let (net, account) = BTPAddress::parse_network_address(&cross_transfer_revert_data.from)?;
+        let (net, account) = NetworkAddress::parse_network_address(&cross_transfer_revert_data.from)?;
         if net != nid {
             return Err(ContractError::InvalidBTPAddress);
         }

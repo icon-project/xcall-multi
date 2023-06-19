@@ -220,6 +220,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "cw-common"
+version = "0.1.0"
+dependencies = [
+ "bytes",
+ "cosmwasm-std",
+ "cw20",
+ "hex",
+ "rlp",
+ "rlp-derive",
+ "rustc-hex",
+ "serde",
+]
+
+[[package]]
 name = "cw-hub-bnusd"
 version = "0.1.0"
 dependencies = [
@@ -228,6 +242,7 @@ dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
  "cosmwasm-storage",
+ "cw-common",
  "cw-multi-test",
  "cw-storage-plus",
  "cw2",

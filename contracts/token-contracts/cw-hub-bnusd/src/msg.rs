@@ -38,8 +38,22 @@ pub enum ExecuteMsg {
 }
 
 #[cw_serde]
+struct NetworkAddress {
+    address: String,
+}
+
+#[cw_serde]
 #[derive(QueryResponses)]
 pub enum QueryMsg {}
+
+#[cw_serde]
+#[derive(QueryResponses)]
+pub enum XCallQuery {
+    #[returns(NetworkAddress)]
+    GetNetworkAddress {
+        x_call: String,
+    },
+}
 
 #[cw_serde]
 pub enum XCallMsg {

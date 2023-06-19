@@ -8,6 +8,8 @@ pub const CROSS_CHAIN_SUPPLY: &'static str = "cross_chain_supply";
 pub const CROSSCHAINSUPPLY: Map<&String,u128> = Map::new(CROSS_CHAIN_SUPPLY);
 pub const CONNECTEDCHAINS: Item<Vec<String>> = Item::new(CONNECTED_CHAINS);
 
+pub const TEST: Map<&Addr,Map<&Addr,u128>> = Map::new("test");
+
 
 // pub const NAME: Item<String> = Item::new("name");
 // pub const SYMBOL: Item<String> = Item::new("symbol");
