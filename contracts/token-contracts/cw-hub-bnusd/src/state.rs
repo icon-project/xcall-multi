@@ -1,9 +1,9 @@
 use cosmwasm_std::Addr;
 use cw_storage_plus::{Item, Map};
 
-pub const CONNECTED_CHAINS: &'static str = "connected_chains";
-pub const SPOKE_CONTRACTS: &'static str = "spoke_contract";
-pub const CROSS_CHAIN_SUPPLY: &'static str = "cross_chain_supply";
+pub const CONNECTED_CHAINS: &str = "connected_chains";
+pub const SPOKE_CONTRACTS: &str = "spoke_contract";
+pub const CROSS_CHAIN_SUPPLY: &str = "cross_chain_supply";
 
 pub const CROSSCHAINSUPPLY: Map<&String, u128> = Map::new(CROSS_CHAIN_SUPPLY);
 pub const CONNECTEDCHAINS: Item<Vec<String>> = Item::new(CONNECTED_CHAINS);

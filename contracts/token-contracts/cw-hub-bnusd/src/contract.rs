@@ -18,7 +18,7 @@ use cw_common::network_address::NetworkAddress;
 
 use common::rlp::{DecoderError, Rlp};
 
-use cw_common::types::types::{CrossTransfer, CrossTransferRevert};
+use cw_common::data_types::types::{CrossTransfer, CrossTransferRevert};
 
 /*
 // version info for migration info
@@ -242,12 +242,12 @@ mod execute {
         let hub_net: String = HUB_NET.load(deps.storage)?;
         let hub_address: String = HUB_ADDRESS.load(deps.storage)?;
 
-        let from = NetworkAddress::btp_address(&nid, &info.sender.to_string());
+        let from = NetworkAddress::btp_address(&nid, info.sender.as_ref());
 
         let _call_data = CrossTransfer {
             from: from.clone(),
-            to: to.to_string().clone(),
-            value: amount.clone(),
+            to,
+            value: amount,
             data: data.to_vec(),
         };
 
@@ -312,7 +312,7 @@ mod execute {
 
         let _to = deps
             .api
-            .addr_validate(&account)
+            .addr_validate(account)
             .expect("ContractError::InvalidToAddress");
 
         let res = execute_mint(
@@ -352,7 +352,7 @@ mod execute {
 
         let _to = deps
             .api
-            .addr_validate(&account)
+            .addr_validate(account)
             .expect("ContractError::InvalidToAddress");
 
         let res = execute_mint(
@@ -370,7 +370,7 @@ mod execute {
 
 mod rlpdecode_struct {
     use super::*;
-    pub fn decode_cross_transfer(ls: &Vec<String>) -> CrossTransfer {
+    pub fn decode_cross_transfer(ls: &[String]) -> CrossTransfer {
         CrossTransfer {
             from: ls[1].clone(),
             to: ls[2].clone(),
@@ -379,9 +379,9 @@ mod rlpdecode_struct {
         }
     }
 
-    pub fn decode_cross_transfer_revert(ls: &Vec<String>) -> CrossTransferRevert {
+    pub fn decode_cross_transfer_revert(ls: &[String]) -> CrossTransferRevert {
         CrossTransferRevert {
-            from: ls[1].clone().into(),
+            from: ls[1].clone(),
             value: ls[2].parse::<u128>().unwrap_or_default(),
         }
     }

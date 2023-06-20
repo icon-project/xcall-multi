@@ -1,6 +1,6 @@
 use cosmwasm_schema::{cw_serde, QueryResponses};
 
-use crate::types::types;
+use crate::data_types::types;
 
 pub const X_CROSS_TRANSFER: &str = "XCrossTransfer";
 pub const X_CROSS_TRANSFER_REVERT: &str = "XCrossTransferRevert";
