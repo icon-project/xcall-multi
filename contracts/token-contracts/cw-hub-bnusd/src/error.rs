@@ -30,7 +30,6 @@ pub enum ContractError {
     InvalidData,
     #[error("Address Not Found")]
     AddressNotFound,
-
     // Add any other custom errors you like here.
     // Look at https://docs.rs/thiserror/1.0.21/thiserror/ for details.
 }

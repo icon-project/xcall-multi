@@ -1,5 +1,5 @@
-use common::rlp::{RlpStream};
-use cosmwasm_schema::{cw_serde};
+use common::rlp::RlpStream;
+use cosmwasm_schema::cw_serde;
 
 pub mod types {
     use super::*;
@@ -48,4 +48,3 @@ impl types::CrossTransferRevert {
         encoded
     }
 }
- 

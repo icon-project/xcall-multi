@@ -1,6 +1,5 @@
 use cosmwasm_schema::{cw_serde, QueryResponses};
 
-
 #[cw_serde]
 struct NetworkAddress {
     address: String,
@@ -10,9 +9,7 @@ struct NetworkAddress {
 #[derive(QueryResponses)]
 pub enum XCallQuery {
     #[returns(NetworkAddress)]
-    GetNetworkAddress {
-        x_call: String,
-    },
+    GetNetworkAddress { x_call: String },
 }
 
 #[cw_serde]

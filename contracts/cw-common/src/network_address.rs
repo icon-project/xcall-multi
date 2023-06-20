@@ -29,11 +29,8 @@ impl NetworkAddress {
 
     fn _validate(_str: &str) -> StdResult<usize> {
         let bytes = _str.as_bytes();
-        print!("{:?}", bytes);
         for (i, &byte) in bytes.iter().enumerate() {
-            print!("aa {:?},{} {} \n", byte,i, NetworkAddress::DELIMITER[0]);
             if i < 6 {
-                print!("bb {:?},{} \n", byte,NetworkAddress::PREFIX[i]);
                 if byte != NetworkAddress::PREFIX[i] {
                     return Err(StdError::generic_err(NetworkAddress::REVERT));
                 }
@@ -67,11 +64,17 @@ impl NetworkAddress {
     }
 
     pub fn btp_address(network: &str, account: &str) -> String {
-        format!("{:?}{}{:?}{}", NetworkAddress::PREFIX, network, NetworkAddress::DELIMITER, account)
+        format!(
+            "{:?}{}{:?}{}",
+            NetworkAddress::PREFIX,
+            network,
+            NetworkAddress::DELIMITER,
+            account
+        )
     }
 }
 
-mod tests{
+mod tests {
     #[test]
     fn test_parse_btp_address() {
         let btp_address = "btp://0x38.bsc/0x034AaDE86BF402F023Aa17E5725fABC4ab9E9798";
@@ -85,7 +88,10 @@ mod tests{
         let btp_address = "btp://0x38.bsc/0x034AaDE86BF402F023Aa17E5725fABC4ab9E9798";
         let (network, account) = super::NetworkAddress::parse_network_address(btp_address).unwrap();
         assert_eq!(network, "btp:");
-        assert_eq!(account, "/0x38.bsc/0x034AaDE86BF402F023Aa17E5725fABC4ab9E9798");
+        assert_eq!(
+            account,
+            "/0x38.bsc/0x034AaDE86BF402F023Aa17E5725fABC4ab9E9798"
+        );
     }
 
     #[test]

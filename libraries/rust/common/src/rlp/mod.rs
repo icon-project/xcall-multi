@@ -1,4 +1,3 @@
-
 #![allow(unused)]
 // Copyright 2020 Parity Technologies
 //

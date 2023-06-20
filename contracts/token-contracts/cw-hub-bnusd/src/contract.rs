@@ -1,19 +1,20 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    Binary, Deps, DepsMut, Env, MessageInfo, Reply, Response, StdResult, Uint128, QueryRequest, WasmQuery, to_binary, Empty
+    to_binary, Binary, Deps, DepsMut, Empty, Env, MessageInfo, QueryRequest, Reply, Response,
+    StdResult, Uint128, WasmQuery,
 };
 // use cw2::set_contract_version;
 use crate::constants::{REPLY_MSG_SUCCESS, X_CROSS_TRANSFER, X_CROSS_TRANSFER_REVERT};
 use crate::error::ContractError;
-use cw_common::hub_token_msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
-use cw_common::x_call_msg::{XCallMsg, XCallQuery};
 use crate::state::{HUB_ADDRESS, HUB_NET, NID, OWNER, X_CALL, X_CALL_BTP_ADDRESS};
 use bytes::Bytes;
+use cw_common::hub_token_msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
+use cw_common::x_call_msg::{XCallMsg, XCallQuery};
 
-use cw_common::network_address::NetworkAddress;
 use cw20_base::contract::{execute_burn, execute_mint};
 use cw20_base::state::{MinterData, TokenInfo, TOKEN_INFO};
+use cw_common::network_address::NetworkAddress;
 
 use common::rlp::{DecoderError, Rlp};
 
@@ -50,13 +51,17 @@ pub fn instantiate(
     if save_token.is_err() {
         return Err(ContractError::Std(save_token.err().unwrap()));
     }
-    deps.api.addr_validate(&msg.x_call).expect("ContractError::InvalidToAddress");
-    let xcall=X_CALL.save(deps.storage, &msg.x_call);
+    deps.api
+        .addr_validate(&msg.x_call)
+        .expect("ContractError::InvalidToAddress");
+    let xcall = X_CALL.save(deps.storage, &msg.x_call);
     if xcall.is_err() {
         return Err(ContractError::Std(xcall.err().unwrap()));
     }
     let _x_call = &msg.x_call;
-    let query_message = XCallQuery::GetNetworkAddress { x_call: _x_call.to_string() };
+    let query_message = XCallQuery::GetNetworkAddress {
+        x_call: _x_call.to_string(),
+    };
 
     let query: QueryRequest<Empty> = QueryRequest::Wasm(WasmQuery::Smart {
         contract_addr: _x_call.to_string(),
@@ -66,7 +71,7 @@ pub fn instantiate(
     let x_call_btp_address: String = deps.querier.query(&query).map_err(ContractError::Std)?;
 
     if x_call_btp_address.is_empty() {
-        return Err(ContractError::AddressNotFound); 
+        return Err(ContractError::AddressNotFound);
     }
 
     let (nid, _) = NetworkAddress::parse_btp_address(&x_call_btp_address)?;
@@ -131,15 +136,12 @@ mod reply {
         _env: Env,
         _msg: Reply,
     ) -> Result<Response, ContractError> {
-        
-       
         Ok(Response::default())
     }
 }
 
 mod execute {
-    use cosmwasm_std::{to_binary, CosmosMsg, SubMsg, QueryRequest, WasmQuery, Empty};
-
+    use cosmwasm_std::{to_binary, CosmosMsg, Empty, QueryRequest, SubMsg, WasmQuery};
 
     use super::*;
 
@@ -150,7 +152,9 @@ mod execute {
         x_call: String,
         hub_address: String,
     ) -> Result<Response, ContractError> {
-        deps.api.addr_validate(&x_call).expect("ContractError::InvalidToAddress");
+        deps.api
+            .addr_validate(&x_call)
+            .expect("ContractError::InvalidToAddress");
         X_CALL.save(deps.storage, &x_call)?;
         //Network address call remaining
         let query_message = XCallQuery::GetNetworkAddress {
@@ -164,7 +168,7 @@ mod execute {
 
         let x_call_btp_address: String = deps.querier.query(&query).map_err(ContractError::Std)?;
         if x_call_btp_address.is_empty() {
-            return Err(ContractError::AddressNotFound); 
+            return Err(ContractError::AddressNotFound);
         }
         let (nid, _) = NetworkAddress::parse_btp_address(&x_call_btp_address)?;
         let (hub_net, hub_address) = NetworkAddress::parse_network_address(&hub_address)?;
@@ -184,7 +188,9 @@ mod execute {
         from: String,
         data: Vec<u8>,
     ) -> Result<Response, ContractError> {
-        deps.api.addr_validate(&from).expect("ContractError::InvalidToAddress");
+        deps.api
+            .addr_validate(&from)
+            .expect("ContractError::InvalidToAddress");
         let rlp: Rlp = Rlp::new(&data);
         let data: Result<Vec<String>, DecoderError> = rlp.as_list();
         match data {
@@ -228,7 +234,9 @@ mod execute {
         data: Bytes,
     ) -> Result<Response, ContractError> {
         use super::*;
-        deps.api.addr_validate(&to).expect("ContractError::InvalidToAddress");
+        deps.api
+            .addr_validate(&to)
+            .expect("ContractError::InvalidToAddress");
         let funds = info.funds.clone();
         let nid = NID.load(deps.storage)?;
         let hub_net: String = HUB_NET.load(deps.storage)?;
@@ -284,7 +292,9 @@ mod execute {
         from: String,
         cross_transfer_data: CrossTransfer,
     ) -> Result<Response, ContractError> {
-        deps.api.addr_validate(&from).expect("ContractError::InvalidToAddress");
+        deps.api
+            .addr_validate(&from)
+            .expect("ContractError::InvalidToAddress");
         let nid = NID.load(deps.storage)?;
         let hub_net: String = HUB_NET.load(deps.storage)?;
         let hub_address: String = HUB_ADDRESS.load(deps.storage)?;
@@ -300,10 +310,19 @@ mod execute {
             return Err(ContractError::WrongNetwork);
         }
 
-        let _to = deps.api.addr_validate(&account).expect("ContractError::InvalidToAddress");
+        let _to = deps
+            .api
+            .addr_validate(&account)
+            .expect("ContractError::InvalidToAddress");
 
-        let res = execute_mint(deps, env, info, account.to_string(), cross_transfer_data.value.into())
-            .expect("Fail to mint");
+        let res = execute_mint(
+            deps,
+            env,
+            info,
+            account.to_string(),
+            cross_transfer_data.value.into(),
+        )
+        .expect("Fail to mint");
 
         Ok(res)
     }
@@ -315,7 +334,9 @@ mod execute {
         from: String,
         cross_transfer_revert_data: CrossTransferRevert,
     ) -> Result<Response, ContractError> {
-        deps.api.addr_validate(&from).expect("ContractError::InvalidToAddress");
+        deps.api
+            .addr_validate(&from)
+            .expect("ContractError::InvalidToAddress");
         let nid = NID.load(deps.storage)?;
         let x_call_btp_address = X_CALL_BTP_ADDRESS.load(deps.storage)?;
 
@@ -323,16 +344,25 @@ mod execute {
             return Err(ContractError::OnlyCallService);
         }
 
-        let (net, account) = NetworkAddress::parse_network_address(&cross_transfer_revert_data.from)?;
+        let (net, account) =
+            NetworkAddress::parse_network_address(&cross_transfer_revert_data.from)?;
         if net != nid {
             return Err(ContractError::InvalidBTPAddress);
         }
 
-        let _to = deps.api.addr_validate(&account).expect("ContractError::InvalidToAddress");
-    
+        let _to = deps
+            .api
+            .addr_validate(&account)
+            .expect("ContractError::InvalidToAddress");
 
-        let res = execute_mint(deps, env, info, account.to_string(), cross_transfer_revert_data.value.into())
-            .expect("Fail to mint");
+        let res = execute_mint(
+            deps,
+            env,
+            info,
+            account.to_string(),
+            cross_transfer_revert_data.value.into(),
+        )
+        .expect("Fail to mint");
 
         Ok(res)
     }
