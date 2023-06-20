@@ -9,7 +9,7 @@ impl NetworkAddress {
 
     pub fn parse_btp_address(_str: &str) -> StdResult<(&str, &str)> {
         let offset = NetworkAddress::_validate(_str)?;
-        let network_address = &_str[6.._str.len()];
+        let network_address = &_str[6..offset];
         let account_address = &_str[offset + 1..];
         Ok((network_address, account_address))
     }
@@ -29,8 +29,11 @@ impl NetworkAddress {
 
     fn _validate(_str: &str) -> StdResult<usize> {
         let bytes = _str.as_bytes();
+        print!("{:?}", bytes);
         for (i, &byte) in bytes.iter().enumerate() {
+            print!("aa {:?},{} {} \n", byte,i, NetworkAddress::DELIMITER[0]);
             if i < 6 {
+                print!("bb {:?},{} \n", byte,NetworkAddress::PREFIX[i]);
                 if byte != NetworkAddress::PREFIX[i] {
                     return Err(StdError::generic_err(NetworkAddress::REVERT));
                 }

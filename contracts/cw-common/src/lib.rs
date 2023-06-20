@@ -1,1 +1,1 @@
-pub mod networkAddress;
+pub mod network_address;

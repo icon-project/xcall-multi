@@ -7,10 +7,10 @@ use cosmwasm_std::{
 use crate::constants::{REPLY_MSG_SUCCESS, X_CROSS_TRANSFER, X_CROSS_TRANSFER_REVERT};
 use crate::error::ContractError;
 use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg, XCallMsg, XCallQuery};
-use crate::state::{HUB_ADDRESS, HUB_NET, NID, OWNER, X_CALL, X_CALL_BTP_ADDRESS, TEST};
+use crate::state::{HUB_ADDRESS, HUB_NET, NID, OWNER, X_CALL, X_CALL_BTP_ADDRESS};
 use bytes::Bytes;
 
-use cw_common::networkAddress::NetworkAddress;
+use cw_common::network_address::NetworkAddress;
 use cw20_base::contract::{execute_burn, execute_mint};
 use cw20_base::state::{MinterData, TokenInfo, TOKEN_INFO};
 
@@ -62,10 +62,12 @@ pub fn instantiate(
         msg: to_binary(&query_message).map_err(ContractError::Std)?,
     });
 
-    let response: Vec<u8> = deps.querier.query(&query).map_err(ContractError::Std)?;
+    let x_call_btp_address: String = deps.querier.query(&query).map_err(ContractError::Std)?;
 
-    let x_call_btp_address = String::from_utf8(response).unwrap();
-    // xCallBTPAddress = ICallService::get_btp_address(&x_call, _env)?;
+    if x_call_btp_address.is_empty() {
+        return Err(ContractError::AddressNotFound); 
+    }
+
     let (nid, _) = NetworkAddress::parse_btp_address(&x_call_btp_address)?;
     let (hub_net, hub_address) = NetworkAddress::parse_network_address(&msg.hub_address)?;
 
@@ -159,9 +161,10 @@ mod execute {
             msg: to_binary(&query_message).map_err(ContractError::Std)?,
         });
 
-        let response: Vec<u8> = deps.querier.query(&query).map_err(ContractError::Std)?;
-        let x_call_btp_address = String::from_utf8(response).unwrap();
-        // xCallBTPAddress = ICallService::get_btp_address(&x_call, _env)?;
+        let x_call_btp_address: String = deps.querier.query(&query).map_err(ContractError::Std)?;
+        if x_call_btp_address.is_empty() {
+            return Err(ContractError::AddressNotFound); 
+        }
         let (nid, _) = NetworkAddress::parse_btp_address(&x_call_btp_address)?;
         let (hub_net, hub_address) = NetworkAddress::parse_network_address(&hub_address)?;
 
