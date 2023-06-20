@@ -1,7 +1,7 @@
 use common::rlp::{RlpStream};
 use cosmwasm_schema::{cw_serde};
 
-pub mod Types {
+pub mod types {
     use super::*;
 
     #[cw_serde]
@@ -19,7 +19,7 @@ pub mod Types {
     }
 }
 
-impl Types::CrossTransfer {
+impl types::CrossTransfer {
     pub fn encode_cross_transfer_message(self) -> Vec<u8> {
         let method = "xCrossTransfer";
 
@@ -35,7 +35,7 @@ impl Types::CrossTransfer {
     }
 }
 
-impl Types::CrossTransferRevert {
+impl types::CrossTransferRevert {
     pub fn encode_cross_transfer_revert_message(self) -> Vec<u8> {
         let method = "xCrossTransferRevert";
 

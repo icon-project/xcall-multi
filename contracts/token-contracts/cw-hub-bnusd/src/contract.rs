@@ -6,7 +6,8 @@ use cosmwasm_std::{
 // use cw2::set_contract_version;
 use crate::constants::{REPLY_MSG_SUCCESS, X_CROSS_TRANSFER, X_CROSS_TRANSFER_REVERT};
 use crate::error::ContractError;
-use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg, XCallMsg, XCallQuery};
+use cw_common::hub_token_msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
+use cw_common::x_call_msg::{XCallMsg, XCallQuery};
 use crate::state::{HUB_ADDRESS, HUB_NET, NID, OWNER, X_CALL, X_CALL_BTP_ADDRESS};
 use bytes::Bytes;
 
@@ -16,7 +17,7 @@ use cw20_base::state::{MinterData, TokenInfo, TOKEN_INFO};
 
 use common::rlp::{DecoderError, Rlp};
 
-use crate::types::Types::{CrossTransfer, CrossTransferRevert};
+use cw_common::types::types::{CrossTransfer, CrossTransferRevert};
 
 /*
 // version info for migration info

@@ -224,6 +224,8 @@ name = "cw-common"
 version = "0.1.0"
 dependencies = [
  "bytes",
+ "common",
+ "cosmwasm-schema",
  "cosmwasm-std",
  "cw20",
  "hex",

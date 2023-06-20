@@ -1,7 +1,9 @@
 use cosmwasm_schema::{cw_serde, QueryResponses};
 
-use crate::types::Types;
+use crate::types::types;
 
+pub const X_CROSS_TRANSFER: &str = "XCrossTransfer";
+pub const X_CROSS_TRANSFER_REVERT: &str = "XCrossTransferRevert";
 
 #[cw_serde]
 pub struct InstantiateMsg {
@@ -29,37 +31,15 @@ pub enum ExecuteMsg {
     },
     XCrossTransfer {
         from: String,
-        cross_transfer_data: Types::CrossTransfer,
+        cross_transfer_data: types::CrossTransfer,
     },
     XCrossTransferRevert {
         from: String,
-        cross_transfer_revert_data: Types::CrossTransferRevert,
+        cross_transfer_revert_data: types::CrossTransferRevert,
     },
-}
-
-#[cw_serde]
-struct NetworkAddress {
-    address: String,
 }
 
 #[cw_serde]
 #[derive(QueryResponses)]
 pub enum QueryMsg {}
 
-#[cw_serde]
-#[derive(QueryResponses)]
-pub enum XCallQuery {
-    #[returns(NetworkAddress)]
-    GetNetworkAddress {
-        x_call: String,
-    },
-}
-
-#[cw_serde]
-pub enum XCallMsg {
-    SendCallMessage {
-        to: String,
-        data: Vec<u8>,
-        rollback: Option<Vec<u8>>,
-    },
-}
