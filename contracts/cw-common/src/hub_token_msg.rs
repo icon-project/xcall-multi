@@ -9,9 +9,6 @@ pub const X_CROSS_TRANSFER_REVERT: &str = "XCrossTransferRevert";
 pub struct InstantiateMsg {
     pub x_call: String,
     pub hub_address: String,
-    pub name: String,
-    pub symbol: String,
-    pub decimals: u8,
 }
 
 #[cw_serde]
