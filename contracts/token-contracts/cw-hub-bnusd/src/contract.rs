@@ -1,8 +1,7 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    to_binary, Binary, Deps, DepsMut, Empty, Env, MessageInfo, QueryRequest, Reply, Response,
-    StdResult, Uint128, WasmQuery,
+    to_binary, Binary, Deps, DepsMut, Env, MessageInfo, Reply, Response, StdResult, Uint128, QueryRequest, WasmQuery, Empty,
 };
 // use cw2::set_contract_version;
 use crate::constants::{REPLY_MSG_SUCCESS, X_CROSS_TRANSFER, X_CROSS_TRANSFER_REVERT};
@@ -46,7 +45,6 @@ pub fn instantiate(
             cap: None,
         }),
     };
-
     let save_token = TOKEN_INFO.save(deps.storage, &data);
     if save_token.is_err() {
         return Err(ContractError::Std(save_token.err().unwrap()));
@@ -60,7 +58,6 @@ pub fn instantiate(
     }
     let _x_call = &msg.x_call;
     let query_message = XCallQuery::GetNetworkAddress {
-        x_call: _x_call.to_string(),
     };
 
     let query: QueryRequest<Empty> = QueryRequest::Wasm(WasmQuery::Smart {
@@ -70,12 +67,12 @@ pub fn instantiate(
 
     let x_call_btp_address: String = deps.querier.query(&query).map_err(ContractError::Std)?;
 
+    // let x_call_btp_address = "btp://0x38.bsc/0x034AaDE86BF402F023Aa17E5725fABC4ab9E9798";
     if x_call_btp_address.is_empty() {
         return Err(ContractError::AddressNotFound);
     }
-
-    let (nid, _) = NetworkAddress::parse_btp_address(&x_call_btp_address)?;
-    let (hub_net, hub_address) = NetworkAddress::parse_network_address(&msg.hub_address)?;
+    let (nid, _) = NetworkAddress::parse_network_address(&x_call_btp_address)?;
+    let (hub_net, hub_address) = NetworkAddress::parse_protocol_address(&msg.hub_address)?;
 
     X_CALL_BTP_ADDRESS.save(deps.storage, &x_call_btp_address.to_string())?;
     NID.save(deps.storage, &nid.to_string())?;
@@ -95,11 +92,11 @@ pub fn execute(
     use ExecuteMsg::*;
     match msg {
         Setup {
-            _x_call,
-            _hub_address,
-        } => execute::setup(deps, _env, info, _x_call, _hub_address),
-        HandleCallMessage { _from, _data } => {
-            execute::handle_call_message(deps, _env, info, _from, _data)
+            x_call,
+            hub_address,
+        } => execute::setup(deps, _env, info, x_call, hub_address),
+        HandleCallMessage { from, data } => {
+            execute::handle_call_message(deps, _env, info, from, data)
         }
         CrossTransfer { to, amount, data } => {
             execute::cross_transfer(deps, _env, info, to, amount, data.into())
@@ -158,7 +155,6 @@ mod execute {
         X_CALL.save(deps.storage, &x_call)?;
         //Network address call remaining
         let query_message = XCallQuery::GetNetworkAddress {
-            x_call: x_call.to_string(),
         };
 
         let query: QueryRequest<Empty> = QueryRequest::Wasm(WasmQuery::Smart {
@@ -170,8 +166,8 @@ mod execute {
         if x_call_btp_address.is_empty() {
             return Err(ContractError::AddressNotFound);
         }
-        let (nid, _) = NetworkAddress::parse_btp_address(&x_call_btp_address)?;
-        let (hub_net, hub_address) = NetworkAddress::parse_network_address(&hub_address)?;
+        let (nid, _) = NetworkAddress::parse_network_address(&x_call_btp_address)?;
+        let (hub_net, hub_address) = NetworkAddress::parse_protocol_address(&hub_address)?;
 
         X_CALL_BTP_ADDRESS.save(deps.storage, &x_call_btp_address)?;
         NID.save(deps.storage, &nid.to_string())?;
@@ -242,7 +238,7 @@ mod execute {
         let hub_net: String = HUB_NET.load(deps.storage)?;
         let hub_address: String = HUB_ADDRESS.load(deps.storage)?;
 
-        let from = NetworkAddress::btp_address(&nid, info.sender.as_ref());
+        let from = NetworkAddress::get_network_address("btp",&nid, info.sender.as_ref());
 
         let _call_data = CrossTransfer {
             from: from.clone(),
@@ -256,7 +252,7 @@ mod execute {
             value: amount,
         };
 
-        let _hub_btp_address = NetworkAddress::btp_address(&hub_net, &hub_address);
+        let _hub_btp_address = NetworkAddress::get_network_address("btp",&hub_net, &hub_address);
 
         let call_message = XCallMsg::SendCallMessage {
             to: _hub_btp_address,
@@ -299,13 +295,13 @@ mod execute {
         let hub_net: String = HUB_NET.load(deps.storage)?;
         let hub_address: String = HUB_ADDRESS.load(deps.storage)?;
 
-        let btp_address = NetworkAddress::btp_address(&hub_net, &hub_address);
+        let btp_address = NetworkAddress::get_network_address("btp",&hub_net, &hub_address);
 
         if from != btp_address {
             return Err(ContractError::Unauthorized {});
         }
 
-        let (net, account) = NetworkAddress::parse_network_address(&cross_transfer_data.to)?;
+        let (net, account) = NetworkAddress::parse_protocol_address(&cross_transfer_data.to)?;
         if net != nid {
             return Err(ContractError::WrongNetwork);
         }
@@ -345,7 +341,7 @@ mod execute {
         }
 
         let (net, account) =
-            NetworkAddress::parse_network_address(&cross_transfer_revert_data.from)?;
+            NetworkAddress::parse_protocol_address(&cross_transfer_revert_data.from)?;
         if net != nid {
             return Err(ContractError::InvalidBTPAddress);
         }
@@ -387,7 +383,7 @@ mod rlpdecode_struct {
     }
 }
 #[cfg(test)]
-mod tests {
+mod rlp_test {
     use common::rlp::{DecoderError, Rlp, RlpStream};
 
     #[test]
@@ -425,4 +421,73 @@ mod tests {
         let encoded = calldata.as_raw().to_vec();
         print!("this is {:?}", encoded)
     }
+}
+
+#[cfg(test)]
+mod tests_instantiate {
+    use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_info};
+
+    use super::*;
+
+    #[test]
+    fn setup() {
+        let mut deps = mock_dependencies();
+        let env = mock_env();
+        let info = mock_info("SENDER", &[]);
+        let msg = InstantiateMsg{
+            x_call: "todo!()".to_owned(),
+            hub_address: "todo!()".to_owned(),
+        };
+
+        let _res: Response = instantiate(deps.as_mut(), env, info.clone(), msg).unwrap();
+        // let mut deps = mock_dependencies();
+        // let env = mock_env();
+
+        // instantiate(
+        //     deps.as_mut(),
+        //     env.clone(),
+        //     mock_info("sender", &[]),
+        //     InstantiateMsg { x_call: "()".to_owned(), hub_address: "()".to_owned() },
+        // )
+        // .unwrap();
+
+        // let resp = query(deps.as_ref(), env, QueryMsg::Greet {}).unwrap();
+        // let resp: GreetResp = from_binary(&resp).unwrap();
+        // assert_eq!(
+        //     resp,
+        //     GreetResp {
+        //         message: "Hello World".to_owned()
+        //     }
+        // );
+    }
+}
+#[cfg(test)]
+mod contract_test {
+    use cosmwasm_std::Addr;
+    use cw_multi_test::{ContractWrapper, App, Executor};
+
+    use super::*;
+
+
+#[test]
+fn init() {
+    let mut app = App::default();
+
+        let code: ContractWrapper<ExecuteMsg, InstantiateMsg, QueryMsg, ContractError, ContractError, cosmwasm_std::StdError> = ContractWrapper::new(execute, instantiate, query);
+        let code_id = app.store_code(Box::new(code));
+
+        let _addr = app.
+        instantiate_contract(code_id, 
+                            Addr::unchecked("owner"), 
+                            &InstantiateMsg{
+                                x_call: "archway13zjt2swjk0un2fpp3259szed7dsfmv3etdfkumrstlrdcq3szx9szucncp".to_owned(),
+                                hub_address: "btp://0x1.icon/0x03AaDE86BF402F023Aa17E5725fABC4ab9E9798".to_owned(),
+                            },
+                            &[], 
+                            "Contract", 
+                            None)
+                            .unwrap();
+        
+}
+
 }
