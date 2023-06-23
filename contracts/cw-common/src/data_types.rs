@@ -23,7 +23,7 @@ impl types::CrossTransfer {
     pub fn encode_cross_transfer_message(self) -> Vec<u8> {
         let method = "xCrossTransfer";
 
-        let mut calldata = RlpStream::new_list(4);
+        let mut calldata = RlpStream::new_list(5);
         calldata.append(&method.to_string());
         calldata.append(&self.from);
         calldata.append(&self.to);

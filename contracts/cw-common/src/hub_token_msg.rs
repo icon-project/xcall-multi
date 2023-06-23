@@ -14,12 +14,12 @@ pub struct InstantiateMsg {
 #[cw_serde]
 pub enum ExecuteMsg {
     Setup {
-        _x_call: String,
-        _hub_address: String,
+        x_call: String,
+        hub_address: String,
     },
     HandleCallMessage {
-        _from: String,
-        _data: Vec<u8>,
+        from: String,
+        data: Vec<u8>,
     },
     CrossTransfer {
         to: String,

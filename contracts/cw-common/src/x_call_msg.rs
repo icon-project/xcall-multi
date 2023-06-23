@@ -6,10 +6,13 @@ struct NetworkAddress {
 }
 
 #[cw_serde]
+pub struct InstantiateMsg {}
+
+#[cw_serde]
 #[derive(QueryResponses)]
 pub enum XCallQuery {
     #[returns(NetworkAddress)]
-    GetNetworkAddress { x_call: String },
+    GetNetworkAddress {},
 }
 
 #[cw_serde]
