@@ -1,10 +1,5 @@
 use cosmwasm_schema::{cw_serde, QueryResponses};
 
-use crate::data_types::types;
-
-pub const X_CROSS_TRANSFER: &str = "XCrossTransfer";
-pub const X_CROSS_TRANSFER_REVERT: &str = "XCrossTransferRevert";
-
 #[cw_serde]
 pub struct InstantiateMsg {
     pub x_call: String,
@@ -25,14 +20,6 @@ pub enum ExecuteMsg {
         to: String,
         amount: u128,
         data: Vec<u8>,
-    },
-    XCrossTransfer {
-        from: String,
-        cross_transfer_data: types::CrossTransfer,
-    },
-    XCrossTransferRevert {
-        from: String,
-        cross_transfer_revert_data: types::CrossTransferRevert,
     },
 }
 

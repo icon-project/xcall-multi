@@ -1,25 +1,68 @@
-use common::rlp::RlpStream;
+use common::rlp::{RlpStream, Encodable, Decodable};
 use cosmwasm_schema::cw_serde;
 
-pub mod types {
-    use super::*;
+#[cw_serde]
+pub struct CrossTransfer {
+    pub method: String,
+    pub from: String,
+    pub to: String,
+    pub value: u128,
+    pub data: Vec<u8>,
+} 
 
-    #[cw_serde]
-    pub struct CrossTransfer {
-        pub from: String,
-        pub to: String,
-        pub value: u128,
-        pub data: Vec<u8>,
-    }
+#[cw_serde]
+pub struct CrossTransferRevert {
+    pub method: String,
+    pub from: String,
+    pub value: u128,
+}
 
-    #[cw_serde]
-    pub struct CrossTransferRevert {
-        pub from: String,
-        pub value: u128,
+impl Encodable for CrossTransfer {
+    fn rlp_append(&self, stream: &mut common::rlp::RlpStream) {
+        stream
+            .begin_list(5)
+            .append(&self.method)
+            .append(&self.from)
+            .append(&self.to)
+            .append(&self.value)
+            .append(&self.data);
     }
 }
 
-impl types::CrossTransfer {
+impl Decodable for CrossTransfer {
+    fn decode(rlp: &common::rlp::Rlp<'_>) -> Result<CrossTransfer, common::rlp::DecoderError> {
+        Ok(Self {
+            method: rlp.val_at(0)?,
+            from: rlp.val_at(1)?,
+            to: rlp.val_at(2)?,
+            value: rlp.val_at(3)?,
+            data: rlp.val_at(4)?,
+        })
+    }
+}
+
+
+impl Encodable for CrossTransferRevert {
+    fn rlp_append(&self, stream: &mut common::rlp::RlpStream) {
+
+        stream
+            .begin_list(3)
+            .append(&self.method)
+            .append(&self.from)
+            .append(&self.value);
+}
+}
+
+impl Decodable for CrossTransferRevert {
+    fn decode(rlp: &common::rlp::Rlp<'_>) -> Result<CrossTransferRevert, common::rlp::DecoderError> {
+        Ok(Self {
+            method: rlp.val_at(0)?,
+            from: rlp.val_at(1)?,
+            value: rlp.val_at(2)?,
+    })
+    }
+}
+impl CrossTransfer {
     pub fn encode_cross_transfer_message(self) -> Vec<u8> {
         let method = "xCrossTransfer";
 
@@ -27,7 +70,7 @@ impl types::CrossTransfer {
         calldata.append(&method.to_string());
         calldata.append(&self.from);
         calldata.append(&self.to);
-        calldata.append(&self.value);
+        calldata.append(&self.value.to_string());
         calldata.append(&self.data);
 
         let encoded = calldata.as_raw().to_vec();
@@ -35,14 +78,14 @@ impl types::CrossTransfer {
     }
 }
 
-impl types::CrossTransferRevert {
+impl CrossTransferRevert {
     pub fn encode_cross_transfer_revert_message(self) -> Vec<u8> {
         let method = "xCrossTransferRevert";
 
         let mut calldata = RlpStream::new_list(3);
         calldata.append(&method.to_string());
         calldata.append(&self.from);
-        calldata.append(&self.value);
+        calldata.append(&self.value.to_string());
 
         let encoded = calldata.as_raw().to_vec();
         encoded

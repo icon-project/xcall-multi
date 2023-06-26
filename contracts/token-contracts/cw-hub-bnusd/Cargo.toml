@@ -43,10 +43,12 @@ bytes = "1.0"
 common = { path = "../../../libraries/rust/common" }
 cw-common = { path = "../../cw-common" }
 hex = "0.4.3"
+# cw20-base = { path = "../../cw20-base" }
 
 
 [dev-dependencies]
 cw-multi-test = "0.16.2"
+x-call-mock = { path = "../../mock-contracts/x-call-mock" }
 
 [profile.release]
 # Do not perform backtrace for panic on release builds.

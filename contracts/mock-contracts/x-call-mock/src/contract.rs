@@ -33,6 +33,9 @@ pub fn execute(
 ) -> Result<Response, ContractError> {
     match _msg {
         XCallMsg::SendCallMessage { to, data, rollback } => {
+            print!("to: {}", to);
+            print!("data: {:?}", data);
+            print!("rollback: {:?}", rollback);
             let _network_address = to;
             Ok(Response::default())
         }
