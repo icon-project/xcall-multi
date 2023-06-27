@@ -1,13 +1,10 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
-use cosmwasm_std::{
-    Binary, Deps, DepsMut, Env, MessageInfo, Reply, Response,
-    StdResult,
-};
+use cosmwasm_std::{Binary, Deps, DepsMut, Env, MessageInfo, Reply, Response, StdResult, StdError};
 // use cw2::set_contract_version;
 use crate::constants::{
-    REPLY_MSG_SUCCESS, TOKEN_DECIMALS, TOKEN_NAME, TOKEN_SYMBOL, X_CROSS_TRANSFER,
-    X_CROSS_TRANSFER_REVERT, TOKEN_TOTAL_SUPPLY,
+    REPLY_MSG_SUCCESS, TOKEN_DECIMALS, TOKEN_NAME, TOKEN_SYMBOL, TOKEN_TOTAL_SUPPLY,
+    X_CROSS_TRANSFER, X_CROSS_TRANSFER_REVERT,
 };
 use crate::error::ContractError;
 use crate::state::{HUB_ADDRESS, HUB_NET, NID, OWNER, X_CALL, X_CALL_BTP_ADDRESS};
@@ -52,7 +49,9 @@ pub fn instantiate(
             cap: None,
         }),
     };
-    let _save_token = TOKEN_INFO.save(deps.storage, &data).map_err(ContractError::Std)?;
+    let _save_token = TOKEN_INFO
+        .save(deps.storage, &data)
+        .map_err(ContractError::Std)?;
     Ok(Response::default())
 }
 
@@ -68,12 +67,10 @@ pub fn execute(
             x_call,
             hub_address,
         } => execute::setup(deps, env, info, x_call, hub_address),
-        ExecuteMsg::HandleCallMessage { from, data } => {
-            execute::handle_call_message(deps, env, info, from, data)
-        }
-        ExecuteMsg::CrossTransfer { to, amount, data } => {
-            execute::cross_transfer(deps, env, info, to, amount, data.into())
-        }
+        ExecuteMsg::HandleCallMessage { from, data } => 
+            execute::handle_call_message(deps, env, info, from, data),
+        ExecuteMsg::CrossTransfer { to, amount, data } => 
+            execute::cross_transfer(deps, env, info, to, amount, data.into()),        
     }
 }
 
@@ -85,35 +82,30 @@ pub fn query(_deps: Deps, _env: Env, _msg: QueryMsg) -> StdResult<Binary> {
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn reply(deps: DepsMut, env: Env, msg: Reply) -> Result<Response, ContractError> {
     match msg.id {
-        REPLY_MSG_SUCCESS => reply::reply_msg_success(deps, env, msg),
+        REPLY_MSG_SUCCESS => reply_msg_success(deps, env, msg),
         _ => Err(ContractError::InvalidReply),
     }
 }
 
-mod reply {
-    use super::*;
-
-    pub fn reply_msg_success(
-        _deps: DepsMut,
-        _env: Env,
-        msg: Reply,
-    ) -> Result<Response, ContractError> {
-        match msg.result {
-            cosmwasm_std::SubMsgResult::Ok(_) => {},
-            cosmwasm_std::SubMsgResult::Err(_) => {
-
-            }, 
+pub fn reply_msg_success(_deps: DepsMut, _env: Env, msg: Reply) -> Result<Response, ContractError> {
+    match msg.result {
+        cosmwasm_std::SubMsgResult::Ok(_) => {}
+        cosmwasm_std::SubMsgResult::Err(error) => {
+            Err(StdError::GenericErr { msg: error }).map_err(Into::<ContractError>::into)?
         }
-        Ok(Response::default())
     }
+    Ok(Response::default())
 }
 
 mod execute {
     use std::str::from_utf8;
 
     use bytes::BytesMut;
-    use common::rlp::{encode, decode};
+    use common::rlp::{decode, encode};
     use cosmwasm_std::{to_binary, CosmosMsg, Empty, QueryRequest, SubMsg, WasmQuery};
+    use debug_print::debug_println;
+
+    use crate::constants::PROTOCOL;
 
     use super::*;
 
@@ -128,7 +120,9 @@ mod execute {
             .addr_validate(&x_call)
             .map_err(ContractError::Std)?;
 
-        X_CALL.save(deps.storage, &x_call).map_err(ContractError::Std)?;
+        X_CALL
+            .save(deps.storage, &x_call)
+            .map_err(ContractError::Std)?;
 
         let query_message = XCallQuery::GetNetworkAddress {};
 
@@ -165,33 +159,30 @@ mod execute {
         if info.sender != xcall {
             return Err(ContractError::OnlyCallService);
         }
-
         let rlp: Rlp = Rlp::new(&data);
         let data_list: Vec<BytesMut> = rlp.as_list().unwrap();
+
+        if data_list.len() <= 2 {
+            return Err(ContractError::InvalidData);
+        }
+        debug_println!("this is {:?}", data_list);
+
         let data_list = &data_list[0].to_vec();
         let method = from_utf8(&data_list).unwrap();
-       
+        debug_println!("this is {:?}", method);
         match method {
             X_CROSS_TRANSFER => {
-                let cross_transfer_data: CrossTransfer =
-                    decode(&data).unwrap();
+                let cross_transfer_data: CrossTransfer = decode(&data).unwrap();
                 x_cross_transfer(deps, env, info, from, cross_transfer_data)?;
             }
             X_CROSS_TRANSFER_REVERT => {
-                let cross_transfer_revert_data: CrossTransferRevert =
-                    decode(&data).unwrap();
-                x_cross_transfer_revert(
-                    deps,
-                    env,
-                    info,
-                    from,
-                    cross_transfer_revert_data,
-                )?;
+                let cross_transfer_revert_data: CrossTransferRevert = decode(&data).unwrap();
+                x_cross_transfer_revert(deps, env, info, from, cross_transfer_revert_data)?;
             }
             _ => {
                 return Err(ContractError::InvalidMethod);
             }
-                }
+        }
 
         Ok(Response::default())
     }
@@ -209,7 +200,7 @@ mod execute {
         let hub_net: String = HUB_NET.load(deps.storage)?;
         let hub_address: String = HUB_ADDRESS.load(deps.storage)?;
 
-        let from = NetworkAddress::get_network_address("btp", &nid, info.sender.as_ref());
+        let from = NetworkAddress::get_network_address(PROTOCOL, &nid, info.sender.as_ref());
 
         let call_data = CrossTransfer {
             method: X_CROSS_TRANSFER.to_string(),
@@ -223,7 +214,7 @@ mod execute {
             from,
             value: amount,
         };
-        let hub_btp_address = NetworkAddress::get_network_address("btp", &hub_net, &hub_address);
+        let hub_btp_address = NetworkAddress::get_network_address(PROTOCOL, &hub_net, &hub_address);
 
         let call_message = XCallMsg::SendCallMessage {
             to: hub_btp_address,
@@ -238,10 +229,12 @@ mod execute {
         });
 
         let sub_message = SubMsg::reply_always(wasm_execute_message, REPLY_MSG_SUCCESS);
+        debug_println!("this is {:?}", info.sender);
 
-        let result = execute_burn(deps, env, info, amount.into()).map_err(ContractError::Cw20BaseError)?;
-        
-        Ok(result
+        let _result =
+            execute_burn(deps, env, info, amount.into()).map_err(ContractError::Cw20BaseError)?;
+
+        Ok(Response::new()
             .add_submessage(sub_message)
             .add_attribute("method", "cross_transfer"))
     }
@@ -258,13 +251,14 @@ mod execute {
         let hub_net: String = HUB_NET.load(deps.storage)?;
 
         let hub_address: String = HUB_ADDRESS.load(deps.storage)?;
-        let btp_address = NetworkAddress::get_network_address("btp", &hub_net, &hub_address);
+        let btp_address = NetworkAddress::get_network_address(PROTOCOL, &hub_net, &hub_address);
+
         if from != btp_address {
             return Err(ContractError::WrongAddress {});
         }
 
         let (net, account) = NetworkAddress::parse_network_address(&cross_transfer_data.to)?;
-
+        debug_println!("this is {:?},{:?}", net, nid);
         if net != nid {
             return Err(ContractError::WrongNetwork);
         }
@@ -282,7 +276,8 @@ mod execute {
         )
         .expect("Fail to mint");
 
-        Ok(res)
+        Ok(res
+            .add_attribute("method", "x_cross_transfer"))
     }
 
     pub fn x_cross_transfer_revert(
@@ -294,12 +289,16 @@ mod execute {
     ) -> Result<Response, ContractError> {
         let nid = NID.load(deps.storage)?;
         let x_call_btp_address = X_CALL_BTP_ADDRESS.load(deps.storage)?;
+        debug_println!("this is {:?}, {:?}", from, x_call_btp_address);
+
         if from != x_call_btp_address {
             return Err(ContractError::OnlyCallService);
         }
 
         let (net, account) =
             NetworkAddress::parse_network_address(&cross_transfer_revert_data.from)?;
+        debug_println!("this is {:?},{:?}", net, nid);
+
         if net != nid {
             return Err(ContractError::InvalidBTPAddress);
         }
@@ -326,7 +325,7 @@ mod rlp_test {
     use std::str::from_utf8;
 
     use bytes::BytesMut;
-    use common::rlp::{Rlp, encode, decode};
+    use common::rlp::{decode, encode, Rlp};
     use cw_common::data_types::CrossTransfer;
 
     #[test]
@@ -336,12 +335,14 @@ mod rlp_test {
             from: "btp://0x38.bsc/archway1qvqas572t6fx7af203mzygn7lgw5ywjt4y6q8e".to_owned(),
             to: "btp://btp/archway123fdth".to_string(),
             value: 1000,
-            data: vec![118, 101, 99, 33, 91, 49, 44, 32, 50, 44, 32, 51, 44, 32, 52, 44, 32, 53, 93],
+            data: vec![
+                118, 101, 99, 33, 91, 49, 44, 32, 50, 44, 32, 51, 44, 32, 52, 44, 32, 53, 93,
+            ],
         };
 
         // let mut stream = RlpStream::new();
         let encoded_bytes = encode(&call_data).to_vec();
-        
+
         // let encoded_data: Vec<u8> = stream.out().to_vec();
 
         let data: CrossTransfer = decode(&encoded_bytes).unwrap();
@@ -353,8 +354,7 @@ mod rlp_test {
         let data = &data[0].to_vec();
         let method = from_utf8(&data).unwrap();
 
-        print!("this is {:?}",method)
-        
+        print!("this is {:?}", method)
     }
 }
 
@@ -362,10 +362,10 @@ mod rlp_test {
 mod tests {
     use std::vec;
 
-    use common::rlp::{encode};
+    use common::rlp::encode;
     use cosmwasm_std::{
         testing::{mock_dependencies, mock_env, mock_info, MockApi, MockQuerier},
-        ContractResult, MemoryStorage, OwnedDeps, SystemResult, WasmQuery, to_binary,
+        to_binary, ContractResult, MemoryStorage, OwnedDeps, SystemResult, WasmQuery,
     };
 
     use super::*;
@@ -375,11 +375,7 @@ mod tests {
         Env,
         MessageInfo,
     ) {
-        let mut deps: OwnedDeps<
-            MemoryStorage,
-            MockApi,
-            MockQuerier,
-        > = mock_dependencies();
+        let mut deps: OwnedDeps<MemoryStorage, MockApi, MockQuerier> = mock_dependencies();
         let env = mock_env();
         let info = mock_info("archway123fdth", &[]);
         let msg = InstantiateMsg {
@@ -387,6 +383,13 @@ mod tests {
             hub_address: "btp://0x38.bsc/archway1qvqas572t6fx7af203mzygn7lgw5ywjt4y6q8e".to_owned(),
         };
 
+        let _res: Response = instantiate(deps.as_mut(), env.clone(), info.clone(), msg).unwrap();
+        
+        let setup_message = ExecuteMsg::Setup {
+            x_call: "archway123fdth".to_owned(),
+            hub_address: "btp://0x38.bsc/archway1qvqas572t6fx7af203mzygn7lgw5ywjt4y6q8e".to_owned(),
+        };
+        
         deps.querier.update_wasm(|r| match r {
             WasmQuery::Smart {
                 contract_addr: _,
@@ -397,15 +400,8 @@ mod tests {
             _ => todo!(),
         });
 
-        let _res: Response = instantiate(deps.as_mut(), env.clone(), info.clone(), msg).unwrap();
-
-        let setup_message = ExecuteMsg::Setup {
-            x_call: "archway123fdth".to_owned(),
-            hub_address: "btp://0x38.bsc/archway1qvqas572t6fx7af203mzygn7lgw5ywjt4y6q8e".to_owned(),
-        };
-
         execute(deps.as_mut(), env.clone(), info.clone(), setup_message).unwrap();
-        
+
         (deps, env, info)
     }
 
@@ -423,13 +419,15 @@ mod tests {
             from: "btp://0x38.bsc/archway1qvqas572t6fx7af203mzygn7lgw5ywjt4y6q8e".to_owned(),
             to: "btp://0x38.bsc/archway123fdth".to_string(),
             value: 1000,
-            data: vec![118, 101, 99, 33, 91, 49, 44, 32, 50, 44, 32, 51, 44, 32, 52, 44, 32, 53, 93],
+            data: vec![
+                118, 101, 99, 33, 91, 49, 44, 32, 50, 44, 32, 51, 44, 32, 52, 44, 32, 53, 93,
+            ],
         };
 
         // let mut stream = RlpStream::new();
         let data = encode(&call_data).to_vec();
-        
-         let _res: Response = execute(
+
+        let _res: Response = execute(
             deps.as_mut(),
             env,
             info.clone(),
@@ -450,12 +448,14 @@ mod tests {
             from: "btp://0x38.bsc/archway1qvqas572t6fx7af203mzygn7lgw5ywjt4y6q8e".to_owned(),
             to: "btp://0x38.bsc/archway123fdth".to_string(),
             value: 1000,
-            data: vec![118, 101, 99, 33, 91, 49, 44, 32, 50, 44, 32, 51, 44, 32, 52, 44, 32, 53, 93],
+            data: vec![
+                118, 101, 99, 33, 91, 49, 44, 32, 50, 44, 32, 51, 44, 32, 52, 44, 32, 53, 93,
+            ],
         };
 
         // let mut stream = RlpStream::new();
         let data = encode(&call_data).to_vec();
-        
+
         let _res: Response = execute(
             deps.as_mut(),
             env.clone(),
@@ -484,23 +484,21 @@ mod tests {
     fn execute_handle_call_test_xcrossrevert() {
         let (mut deps, env, info) = setup();
 
-        let call_data = CrossTransfer {
-            method: "xCrossTransfer".to_string(),
+        let call_data = CrossTransferRevert {
+            method: "xCrossTransferRevert".to_string(),
             from: "btp://0x38.bsc/archway1qvqas572t6fx7af203mzygn7lgw5ywjt4y6q8e".to_owned(),
-            to: "btp://0x38.bsc/archway123fdth".to_string(),
             value: 1000,
-            data: vec![118, 101, 99, 33, 91, 49, 44, 32, 50, 44, 32, 51, 44, 32, 52, 44, 32, 53, 93],
         };
 
         // let mut stream = RlpStream::new();
         let data = encode(&call_data).to_vec();
-        
+
         let _res: Response = execute(
             deps.as_mut(),
             env,
             info.clone(),
             ExecuteMsg::HandleCallMessage {
-                from: "btp://0x38.bsc/archway1qvqas572t6fx7af203mzygn7lgw5ywjt4y6q8e".to_owned(),
+                from: "btp://0x38.bsc/archway192kfvz2vrxv4hhaz3tjdk39maa69xs75n5cea8".to_owned(),
                 data,
             },
         )

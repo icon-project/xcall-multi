@@ -9,3 +9,4 @@ pub const TOKEN_NAME: &str = "HubToken";
 pub const TOKEN_SYMBOL: &str = "HUB";
 pub const TOKEN_DECIMALS: u8 = 18;
 pub const TOKEN_TOTAL_SUPPLY: Uint128 = Uint128::zero();
+pub const PROTOCOL: &str = "btp";

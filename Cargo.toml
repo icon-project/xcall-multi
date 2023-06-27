@@ -17,3 +17,6 @@ codegen-units = 1
 panic = 'abort'
 incremental = false
 overflow-checks = true
+
+[workspace.dependencies]
+debug_print = "1.0.0"
