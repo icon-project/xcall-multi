@@ -22,4 +22,10 @@ pub enum XCallMsg {
         data: Vec<u8>,
         rollback: Option<Vec<u8>>,
     },
+
+    TestHandleCallMessage {
+        from: String,
+        data: Vec<u8>,
+        hub_token: String,
+    },
 }
