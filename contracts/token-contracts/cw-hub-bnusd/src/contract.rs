@@ -89,12 +89,13 @@ pub fn reply(deps: DepsMut, env: Env, msg: Reply) -> Result<Response, ContractEr
 
 pub fn reply_msg_success(_deps: DepsMut, _env: Env, msg: Reply) -> Result<Response, ContractError> {
     match msg.result {
-        cosmwasm_std::SubMsgResult::Ok(_) => {}
+        cosmwasm_std::SubMsgResult::Ok(_) => {
+            Ok(Response::default())
+        }
         cosmwasm_std::SubMsgResult::Err(error) => {
-            Err(StdError::GenericErr { msg: error }).map_err(Into::<ContractError>::into)?
+            Err(StdError::GenericErr { msg: error }).map_err(Into::<ContractError>::into)
         }
     }
-    Ok(Response::default())
 }
 
 mod execute {
