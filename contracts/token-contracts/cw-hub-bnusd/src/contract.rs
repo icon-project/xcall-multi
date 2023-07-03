@@ -1,6 +1,6 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
-use cosmwasm_std::{Binary, Deps, DepsMut, Env, MessageInfo, Reply, Response, StdResult, StdError};
+use cosmwasm_std::{Binary, Deps, DepsMut, Env, MessageInfo, Reply, Response, StdError, StdResult};
 // use cw2::set_contract_version;
 use crate::constants::{
     REPLY_MSG_SUCCESS, TOKEN_DECIMALS, TOKEN_NAME, TOKEN_SYMBOL, TOKEN_TOTAL_SUPPLY,
@@ -67,10 +67,12 @@ pub fn execute(
             x_call,
             hub_address,
         } => execute::setup(deps, env, info, x_call, hub_address),
-        ExecuteMsg::HandleCallMessage { from, data } =>
-            execute::handle_call_message(deps, env, info, from, data),
-        ExecuteMsg::CrossTransfer { to, amount, data } =>
-            execute::cross_transfer(deps, env, info, to, amount, data.into()),
+        ExecuteMsg::HandleCallMessage { from, data } => {
+            execute::handle_call_message(deps, env, info, from, data)
+        }
+        ExecuteMsg::CrossTransfer { to, amount, data } => {
+            execute::cross_transfer(deps, env, info, to, amount, data.into())
+        }
     }
 }
 
@@ -89,9 +91,7 @@ pub fn reply(deps: DepsMut, env: Env, msg: Reply) -> Result<Response, ContractEr
 
 pub fn reply_msg_success(_deps: DepsMut, _env: Env, msg: Reply) -> Result<Response, ContractError> {
     match msg.result {
-        cosmwasm_std::SubMsgResult::Ok(_) => {
-            Ok(Response::default())
-        }
+        cosmwasm_std::SubMsgResult::Ok(_) => Ok(Response::default()),
         cosmwasm_std::SubMsgResult::Err(error) => {
             Err(StdError::GenericErr { msg: error }).map_err(Into::<ContractError>::into)
         }
@@ -283,8 +283,7 @@ mod execute {
         .expect("Fail to mint");
 
         //TODO: add event for cross transfer with relevant parameters
-        Ok(res
-            .add_attribute("method", "x_cross_transfer"))
+        Ok(res.add_attribute("method", "x_cross_transfer"))
     }
 
     pub fn x_cross_transfer_revert(

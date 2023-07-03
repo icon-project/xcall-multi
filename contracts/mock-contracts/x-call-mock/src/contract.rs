@@ -1,13 +1,16 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
-use cosmwasm_std::{to_binary, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult, CosmosMsg, SubMsg};
+use cosmwasm_std::{
+    to_binary, Binary, CosmosMsg, Deps, DepsMut, Env, MessageInfo, Response, StdResult, SubMsg,
+};
 // use cw2::set_contract_version;
 
 use crate::error::ContractError;
+use cosmwasm_std::{Reply, StdError};
 use cw_common::{
-    x_call_msg::{InstantiateMsg, XCallMsg, XCallQuery}, hub_token_msg::ExecuteMsg,
+    hub_token_msg::ExecuteMsg,
+    x_call_msg::{InstantiateMsg, XCallMsg, XCallQuery},
 };
-use cosmwasm_std::{StdError, Reply};
 
 /*
 // version info for migration info
@@ -41,10 +44,17 @@ pub fn execute(
             print!("rollback: {:?}", rollback);
             let _network_address = to;
             Ok(Response::default())
-        },
-        XCallMsg::TestHandleCallMessage { from, data, hub_token } => {
-            let call_message = ExecuteMsg::HandleCallMessage { from, data: data.clone() };
-    
+        }
+        XCallMsg::TestHandleCallMessage {
+            from,
+            data,
+            hub_token,
+        } => {
+            let call_message = ExecuteMsg::HandleCallMessage {
+                from,
+                data: data.clone(),
+            };
+
             let wasm_execute_message: CosmosMsg = CosmosMsg::Wasm(cosmwasm_std::WasmMsg::Execute {
                 contract_addr: hub_token,
                 msg: to_binary(&call_message)?,
@@ -62,14 +72,11 @@ pub fn execute(
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn query(_deps: Deps, _env: Env, _msg: XCallQuery) -> StdResult<Binary> {
     match _msg {
-        XCallQuery::GetNetworkAddress { } => {
-            Ok(to_binary(
-                "btp://0x1.icon/archway1qvqas572t6fx7af203mzygn7lgw5ywjt4y6q8e",
-            )?)
-        }
+        XCallQuery::GetNetworkAddress {} => Ok(to_binary(
+            "btp://0x1.icon/archway1qvqas572t6fx7af203mzygn7lgw5ywjt4y6q8e",
+        )?),
     }
 }
-
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn reply(deps: DepsMut, env: Env, msg: Reply) -> Result<Response, ContractError> {
@@ -81,19 +88,14 @@ pub fn reply(deps: DepsMut, env: Env, msg: Reply) -> Result<Response, ContractEr
     }
 }
 
-
-pub fn reply_msg_success(
-    _deps: DepsMut,
-    _env: Env,
-    msg: Reply,
-) -> Result<Response, ContractError> {
+pub fn reply_msg_success(_deps: DepsMut, _env: Env, msg: Reply) -> Result<Response, ContractError> {
     match msg.result {
-        cosmwasm_std::SubMsgResult::Ok(_) => {},
+        cosmwasm_std::SubMsgResult::Ok(_) => {}
         cosmwasm_std::SubMsgResult::Err(error) => {
             Err(StdError::GenericErr { msg: error }).map_err(Into::<ContractError>::into)?
+        }
     }
-}
-Ok(Response::default())
+    Ok(Response::default())
 }
 
 #[cfg(test)]

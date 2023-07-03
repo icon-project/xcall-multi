@@ -1,4 +1,4 @@
-use common::rlp::{RlpStream, Encodable, Decodable};
+use common::rlp::{Decodable, Encodable, RlpStream};
 use cosmwasm_schema::cw_serde;
 
 #[cw_serde]
@@ -41,25 +41,25 @@ impl Decodable for CrossTransfer {
     }
 }
 
-
 impl Encodable for CrossTransferRevert {
     fn rlp_append(&self, stream: &mut RlpStream) {
-
         stream
             .begin_list(3)
             .append(&self.method)
             .append(&self.from)
             .append(&self.value);
-}
+    }
 }
 
 impl Decodable for CrossTransferRevert {
-    fn decode(rlp: &common::rlp::Rlp<'_>) -> Result<CrossTransferRevert, common::rlp::DecoderError> {
+    fn decode(
+        rlp: &common::rlp::Rlp<'_>,
+    ) -> Result<CrossTransferRevert, common::rlp::DecoderError> {
         Ok(Self {
             method: rlp.val_at(0)?,
             from: rlp.val_at(1)?,
             value: rlp.val_at(2)?,
-    })
+        })
     }
 }
 impl CrossTransfer {

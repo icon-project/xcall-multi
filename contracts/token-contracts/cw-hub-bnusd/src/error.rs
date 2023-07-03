@@ -34,11 +34,9 @@ pub enum ContractError {
     AddressNotFound,
     #[error("{0}")]
     Cw20BaseError(#[from] cw20_base::ContractError),
-
     // Add any other custom errors you like here.
     // Look at https://docs.rs/thiserror/1.0.21/thiserror/ for details.
 }
-
 
 // impl From<cw20_base::ContractError> for ContractError {
 //     fn from(value: cw20_base::ContractError) -> Self {

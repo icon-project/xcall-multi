@@ -29,12 +29,7 @@ impl NetworkAddress {
     }
 
     pub fn get_network_address(protocol: &str, network: &str, account: &str) -> String {
-        format!(
-            "{}://{}/{}",
-            protocol,
-            network,
-            account
-        )
+        format!("{}://{}/{}", protocol, network, account)
     }
 }
 
@@ -50,7 +45,8 @@ mod tests {
     #[test]
     fn test_parse_network_address() {
         let btp_address = "btp://0x38.bsc/0x034AaDE86BF402F023Aa17E5725fABC4ab9E9798";
-        let (network, account) = super::NetworkAddress::parse_protocol_address(btp_address).unwrap();
+        let (network, account) =
+            super::NetworkAddress::parse_protocol_address(btp_address).unwrap();
         assert_eq!(network, "btp");
         assert_eq!(
             account,
