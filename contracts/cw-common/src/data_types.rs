@@ -8,7 +8,7 @@ pub struct CrossTransfer {
     pub to: String,
     pub value: u128,
     pub data: Vec<u8>,
-} 
+}
 
 #[cw_serde]
 pub struct CrossTransferRevert {
@@ -18,7 +18,7 @@ pub struct CrossTransferRevert {
 }
 
 impl Encodable for CrossTransfer {
-    fn rlp_append(&self, stream: &mut common::rlp::RlpStream) {
+    fn rlp_append(&self, stream: &mut RlpStream) {
         stream
             .begin_list(5)
             .append(&self.method)
@@ -43,7 +43,7 @@ impl Decodable for CrossTransfer {
 
 
 impl Encodable for CrossTransferRevert {
-    fn rlp_append(&self, stream: &mut common::rlp::RlpStream) {
+    fn rlp_append(&self, stream: &mut RlpStream) {
 
         stream
             .begin_list(3)

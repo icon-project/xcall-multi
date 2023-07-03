@@ -67,10 +67,10 @@ pub fn execute(
             x_call,
             hub_address,
         } => execute::setup(deps, env, info, x_call, hub_address),
-        ExecuteMsg::HandleCallMessage { from, data } => 
+        ExecuteMsg::HandleCallMessage { from, data } =>
             execute::handle_call_message(deps, env, info, from, data),
-        ExecuteMsg::CrossTransfer { to, amount, data } => 
-            execute::cross_transfer(deps, env, info, to, amount, data.into()),        
+        ExecuteMsg::CrossTransfer { to, amount, data } =>
+            execute::cross_transfer(deps, env, info, to, amount, data.into()),
     }
 }
 
@@ -140,6 +140,7 @@ mod execute {
         let (nid, _) = NetworkAddress::parse_network_address(&x_call_btp_address)?;
         let (hub_net, hub_address) = NetworkAddress::parse_network_address(&hub_address)?;
 
+        //TODO: remove btp specification
         X_CALL_BTP_ADDRESS.save(deps.storage, &x_call_btp_address.to_string())?;
         NID.save(deps.storage, &nid.to_string())?;
         HUB_ADDRESS.save(deps.storage, &hub_address.to_string())?;
@@ -215,6 +216,7 @@ mod execute {
             from,
             value: amount,
         };
+        //TODO: rename to hub_token_address
         let hub_btp_address = NetworkAddress::get_network_address(PROTOCOL, &hub_net, &hub_address);
 
         let call_message = XCallMsg::SendCallMessage {
@@ -235,6 +237,7 @@ mod execute {
         let _result =
             execute_burn(deps, env, info, amount.into()).map_err(ContractError::Cw20BaseError)?;
 
+        //TODO: emit a event log for cross transfer
         Ok(Response::new()
             .add_submessage(sub_message)
             .add_attribute("method", "cross_transfer"))
@@ -251,6 +254,7 @@ mod execute {
 
         let hub_net: String = HUB_NET.load(deps.storage)?;
 
+        //TODO: rename hub address to DESTINATION_TOKEN_ADDRESS
         let hub_address: String = HUB_ADDRESS.load(deps.storage)?;
         let btp_address = NetworkAddress::get_network_address(PROTOCOL, &hub_net, &hub_address);
 
@@ -258,6 +262,7 @@ mod execute {
             return Err(ContractError::WrongAddress {});
         }
 
+        //TODO: add a validation check for ICON address in network address library
         let (net, account) = NetworkAddress::parse_network_address(&cross_transfer_data.to)?;
         debug_println!("this is {:?},{:?}", net, nid);
         if net != nid {
@@ -277,6 +282,7 @@ mod execute {
         )
         .expect("Fail to mint");
 
+        //TODO: add event for cross transfer with relevant parameters
         Ok(res
             .add_attribute("method", "x_cross_transfer"))
     }
@@ -296,10 +302,12 @@ mod execute {
             return Err(ContractError::OnlyCallService);
         }
 
+        //TODO: from can be a native archway address
         let (net, account) =
             NetworkAddress::parse_network_address(&cross_transfer_revert_data.from)?;
         debug_println!("this is {:?},{:?}", net, nid);
 
+        //TODO: this can be removed
         if net != nid {
             return Err(ContractError::InvalidBTPAddress);
         }
@@ -356,6 +364,7 @@ mod rlp_test {
         let method = from_utf8(&data).unwrap();
 
         print!("this is {:?}", method)
+        // TODO: Add fixed values for tests from java tests for encoding and decoding
     }
 }
 
@@ -385,12 +394,12 @@ mod tests {
         };
 
         let _res: Response = instantiate(deps.as_mut(), env.clone(), info.clone(), msg).unwrap();
-        
+
         let setup_message = ExecuteMsg::Setup {
             x_call: "archway123fdth".to_owned(),
             hub_address: "btp://0x38.bsc/archway1qvqas572t6fx7af203mzygn7lgw5ywjt4y6q8e".to_owned(),
         };
-        
+
         deps.querier.update_wasm(|r| match r {
             WasmQuery::Smart {
                 contract_addr: _,

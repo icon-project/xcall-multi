@@ -15,6 +15,7 @@ pub enum XCallQuery {
     GetNetworkAddress {},
 }
 
+//TODO: Use the ibc-integration/xcallmsg and xcall contract from ibc
 #[cw_serde]
 pub enum XCallMsg {
     SendCallMessage {
