@@ -2,5 +2,17 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "InstantiateMsg",
   "type": "object",
+  "required": [
+    "hub_address",
+    "x_call"
+  ],
+  "properties": {
+    "hub_address": {
+      "type": "string"
+    },
+    "x_call": {
+      "type": "string"
+    }
+  },
   "additionalProperties": false
 }

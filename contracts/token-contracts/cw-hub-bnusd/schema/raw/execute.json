@@ -1,6 +1,97 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "ExecuteMsg",
-  "type": "string",
-  "enum": []
+  "oneOf": [
+    {
+      "type": "object",
+      "required": [
+        "setup"
+      ],
+      "properties": {
+        "setup": {
+          "type": "object",
+          "required": [
+            "hub_address",
+            "x_call"
+          ],
+          "properties": {
+            "hub_address": {
+              "type": "string"
+            },
+            "x_call": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "handle_call_message"
+      ],
+      "properties": {
+        "handle_call_message": {
+          "type": "object",
+          "required": [
+            "data",
+            "from"
+          ],
+          "properties": {
+            "data": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "format": "uint8",
+                "minimum": 0.0
+              }
+            },
+            "from": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "cross_transfer"
+      ],
+      "properties": {
+        "cross_transfer": {
+          "type": "object",
+          "required": [
+            "amount",
+            "data",
+            "to"
+          ],
+          "properties": {
+            "amount": {
+              "type": "integer",
+              "format": "uint128",
+              "minimum": 0.0
+            },
+            "data": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "format": "uint8",
+                "minimum": 0.0
+              }
+            },
+            "to": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  ]
 }

@@ -49,7 +49,7 @@ pub fn instantiate(
             cap: None,
         }),
     };
-    let _save_token = TOKEN_INFO
+    TOKEN_INFO
         .save(deps.storage, &data)
         .map_err(ContractError::Std)?;
     Ok(Response::default())
@@ -128,7 +128,7 @@ mod execute {
         let query_message = XCallQuery::GetNetworkAddress {};
 
         let query: QueryRequest<Empty> = QueryRequest::Wasm(WasmQuery::Smart {
-            contract_addr: x_call.to_string(),
+            contract_addr: x_call,
             msg: to_binary(&query_message).map_err(ContractError::Std)?,
         });
 
@@ -170,7 +170,7 @@ mod execute {
         debug_println!("this is {:?}", data_list);
 
         let data_list = &data_list[0].to_vec();
-        let method = from_utf8(&data_list).unwrap();
+        let method = from_utf8(data_list).unwrap();
         debug_println!("this is {:?}", method);
         match method {
             X_CROSS_TRANSFER => {
@@ -270,7 +270,7 @@ mod execute {
         }
 
         deps.api
-            .addr_validate(&account)
+            .addr_validate(account)
             .map_err(ContractError::Std)?;
 
         let res = execute_mint(
@@ -312,7 +312,7 @@ mod execute {
         }
 
         deps.api
-            .addr_validate(&account)
+            .addr_validate(account)
             .map_err(ContractError::Std)?;
 
         let res = execute_mint(
@@ -360,7 +360,7 @@ mod rlp_test {
         let rlp: Rlp = Rlp::new(&encoded_bytes);
         let data: Vec<BytesMut> = rlp.as_list().unwrap();
         let data = &data[0].to_vec();
-        let method = from_utf8(&data).unwrap();
+        let method = from_utf8(data).unwrap();
 
         print!("this is {:?}", method)
         // TODO: Add fixed values for tests from java tests for encoding and decoding
@@ -439,7 +439,7 @@ mod tests {
         let _res: Response = execute(
             deps.as_mut(),
             env,
-            info.clone(),
+            info,
             ExecuteMsg::HandleCallMessage {
                 from: "btp://0x38.bsc/archway1qvqas572t6fx7af203mzygn7lgw5ywjt4y6q8e".to_owned(),
                 data,
@@ -479,7 +479,7 @@ mod tests {
         let _res: Response = execute(
             deps.as_mut(),
             env,
-            info.clone(),
+            info,
             ExecuteMsg::CrossTransfer {
                 to: "btp://0x38.bsc/archway1qvqas572t6fx7af203mzygn7lgw5ywjt4y6q8e".to_owned(),
                 amount: 1000,
@@ -505,7 +505,7 @@ mod tests {
         let _res: Response = execute(
             deps.as_mut(),
             env,
-            info.clone(),
+            info,
             ExecuteMsg::HandleCallMessage {
                 from: "btp://0x38.bsc/archway192kfvz2vrxv4hhaz3tjdk39maa69xs75n5cea8".to_owned(),
                 data,

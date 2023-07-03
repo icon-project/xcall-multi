@@ -7,7 +7,7 @@ impl NetworkAddress {
     pub fn parse_network_address(_str: &str) -> StdResult<(&str, &str)> {
         let mut iter = _str.splitn(2, "://");
         let _ = iter.next().unwrap_or("");
-        let mut account = iter.next().unwrap_or("").splitn(2, "/");
+        let mut account = iter.next().unwrap_or("").splitn(2, '/');
         let network = account.next().unwrap_or("");
         let address = account.next().unwrap_or("");
         Ok((network, address))
@@ -23,7 +23,7 @@ impl NetworkAddress {
     pub fn protocol_address(_str: &str) -> StdResult<&str> {
         let mut iter = _str.splitn(2, "://");
         let _ = iter.next().unwrap_or("");
-        let mut address = iter.next().unwrap_or("").splitn(2, "/");
+        let mut address = iter.next().unwrap_or("").splitn(2, '/');
         let network = address.next().unwrap_or("");
         Ok(network)
     }

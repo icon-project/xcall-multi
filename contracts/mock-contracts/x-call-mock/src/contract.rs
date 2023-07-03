@@ -52,7 +52,7 @@ pub fn execute(
         } => {
             let call_message = ExecuteMsg::HandleCallMessage {
                 from,
-                data: data.clone(),
+                data,
             };
 
             let wasm_execute_message: CosmosMsg = CosmosMsg::Wasm(cosmwasm_std::WasmMsg::Execute {
