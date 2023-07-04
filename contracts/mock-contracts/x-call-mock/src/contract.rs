@@ -50,10 +50,7 @@ pub fn execute(
             data,
             hub_token,
         } => {
-            let call_message = ExecuteMsg::HandleCallMessage {
-                from,
-                data,
-            };
+            let call_message = ExecuteMsg::HandleCallMessage { from, data };
 
             let wasm_execute_message: CosmosMsg = CosmosMsg::Wasm(cosmwasm_std::WasmMsg::Execute {
                 contract_addr: hub_token,
