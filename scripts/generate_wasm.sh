@@ -40,7 +40,6 @@ done
 
 cosmwasm-check "artifacts/cw_asset_manager.wasm"
 cosmwasm-check "artifacts/cw_hub_bnusd.wasm"
-cosmwasm-check "artifacts/cw_asset_manager.wasm"
 
 # validate size
 echo "Check if size of wasm file exceeds $MAX_WASM_SIZE kilobytes..."
