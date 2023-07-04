@@ -1,4 +1,7 @@
 use cosmwasm_schema::{cw_serde, QueryResponses};
+use cosmwasm_std::Addr;
+
+use crate::network_address::NetworkAddress;
 
 #[cw_serde]
 pub struct InstantiateMsg {
@@ -11,15 +14,15 @@ pub struct InstantiateMsg {
 pub enum ExecuteMsg {
     Setup {
         //TODO: x_call should be of addr type
-        x_call: String,
-        hub_address: String,
+        x_call: Addr,
+        hub_address: NetworkAddress,
     },
     HandleCallMessage {
-        from: String,
+        from: NetworkAddress,
         data: Vec<u8>,
     },
     CrossTransfer {
-        to: String,
+        to: NetworkAddress,
         amount: u128,
         data: Vec<u8>,
     },

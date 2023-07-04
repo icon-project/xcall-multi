@@ -1,11 +1,14 @@
-use common::rlp::{Decodable, Encodable, RlpStream};
 use cosmwasm_schema::cw_serde;
+use cosmwasm_std::Addr;
+use rlp::{Decodable, DecoderError, Encodable, Rlp, RlpStream};
+
+use crate::network_address::NetworkAddress;
 
 #[cw_serde]
 pub struct CrossTransfer {
     pub method: String,
-    pub from: String,
-    pub to: String,
+    pub from: NetworkAddress,
+    pub to: NetworkAddress,
     pub value: u128,
     pub data: Vec<u8>,
 }
@@ -13,7 +16,7 @@ pub struct CrossTransfer {
 #[cw_serde]
 pub struct CrossTransferRevert {
     pub method: String,
-    pub from: String,
+    pub from: Addr,
     pub value: u128,
 }
 
@@ -22,19 +25,19 @@ impl Encodable for CrossTransfer {
         stream
             .begin_list(5)
             .append(&self.method)
-            .append(&self.from)
-            .append(&self.to)
+            .append(&self.from.to_string())
+            .append(&self.to.to_string())
             .append(&self.value)
             .append(&self.data);
     }
 }
 
 impl Decodable for CrossTransfer {
-    fn decode(rlp: &common::rlp::Rlp<'_>) -> Result<CrossTransfer, common::rlp::DecoderError> {
+    fn decode(rlp: &Rlp<'_>) -> Result<CrossTransfer, DecoderError> {
         Ok(Self {
             method: rlp.val_at(0)?,
-            from: rlp.val_at(1)?,
-            to: rlp.val_at(2)?,
+            from: NetworkAddress(rlp.val_at(1)?),
+            to: NetworkAddress(rlp.val_at(2)?),
             value: rlp.val_at(3)?,
             data: rlp.val_at(4)?,
         })
@@ -46,48 +49,18 @@ impl Encodable for CrossTransferRevert {
         stream
             .begin_list(3)
             .append(&self.method)
-            .append(&self.from)
+            .append(&self.from.to_string())
             .append(&self.value);
     }
 }
 
 impl Decodable for CrossTransferRevert {
-    fn decode(
-        rlp: &common::rlp::Rlp<'_>,
-    ) -> Result<CrossTransferRevert, common::rlp::DecoderError> {
+    fn decode(rlp: &Rlp<'_>) -> Result<CrossTransferRevert, DecoderError> {
+        let from: String = rlp.val_at(1)?;
         Ok(Self {
             method: rlp.val_at(0)?,
-            from: rlp.val_at(1)?,
+            from: Addr::unchecked(from),
             value: rlp.val_at(2)?,
         })
-    }
-}
-impl CrossTransfer {
-    pub fn encode_cross_transfer_message(self) -> Vec<u8> {
-        let method = "xCrossTransfer";
-
-        let mut calldata = RlpStream::new_list(5);
-        calldata.append(&method.to_string());
-        calldata.append(&self.from);
-        calldata.append(&self.to);
-        calldata.append(&self.value.to_string());
-        calldata.append(&self.data);
-
-        let encoded = calldata.as_raw().to_vec();
-        encoded
-    }
-}
-
-impl CrossTransferRevert {
-    pub fn encode_cross_transfer_revert_message(self) -> Vec<u8> {
-        let method = "xCrossTransferRevert";
-
-        let mut calldata = RlpStream::new_list(3);
-        calldata.append(&method.to_string());
-        calldata.append(&self.from);
-        calldata.append(&self.value.to_string());
-
-        let encoded = calldata.as_raw().to_vec();
-        encoded
     }
 }

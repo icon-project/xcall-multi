@@ -50,7 +50,10 @@ pub fn execute(
             data,
             hub_token,
         } => {
-            let call_message = ExecuteMsg::HandleCallMessage { from, data };
+            let call_message = ExecuteMsg::HandleCallMessage {
+                from: cw_common::network_address::NetworkAddress(from),
+                data,
+            };
 
             let wasm_execute_message: CosmosMsg = CosmosMsg::Wasm(cosmwasm_std::WasmMsg::Execute {
                 contract_addr: hub_token,
@@ -70,7 +73,7 @@ pub fn execute(
 pub fn query(_deps: Deps, _env: Env, _msg: XCallQuery) -> StdResult<Binary> {
     match _msg {
         XCallQuery::GetNetworkAddress {} => Ok(to_binary(
-            "btp://0x1.icon/archway1qvqas572t6fx7af203mzygn7lgw5ywjt4y6q8e",
+            "0x1.icon/archway1qvqas572t6fx7af203mzygn7lgw5ywjt4y6q8e",
         )?),
     }
 }
@@ -87,12 +90,11 @@ pub fn reply(deps: DepsMut, env: Env, msg: Reply) -> Result<Response, ContractEr
 
 pub fn reply_msg_success(_deps: DepsMut, _env: Env, msg: Reply) -> Result<Response, ContractError> {
     match msg.result {
-        cosmwasm_std::SubMsgResult::Ok(_) => {}
+        cosmwasm_std::SubMsgResult::Ok(_) => Ok(Response::default()),
         cosmwasm_std::SubMsgResult::Err(error) => {
             Err(StdError::GenericErr { msg: error }).map_err(Into::<ContractError>::into)?
         }
     }
-    Ok(Response::default())
 }
 
 #[cfg(test)]

@@ -11,7 +11,7 @@ pub enum ContractError {
     #[error("Wrong Address")]
     WrongAddress,
     #[error("Invalid BTP Address")]
-    InvalidBTPAddress,
+    InvalidNetworkAddress,
     #[error("Wrong Network")]
     WrongNetwork,
     #[error("Invalid to Address")]
