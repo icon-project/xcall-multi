@@ -9,18 +9,15 @@ struct NetworkAddress {
 #[derive(QueryResponses)]
 pub enum XCallQuery {
     //later in case of multiplre bridges
-//     #[returns(NetworkAddress)]
-//     GetNetworkAddress { 
-//         protocol: String,
-//         network_id: String,
-//      },
-// }
-
-#[returns(NetworkAddress)]
+    //     #[returns(NetworkAddress)]
+    //     GetNetworkAddress {
+    //         protocol: String,
+    //         network_id: String,
+    //      },
+    // }
+    #[returns(NetworkAddress)]
     GetNetworkAddress {},
 }
-
-
 
 #[cw_serde]
 pub enum XCallMsg {
