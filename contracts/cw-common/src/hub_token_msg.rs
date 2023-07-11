@@ -14,7 +14,6 @@ pub struct InstantiateMsg {
 #[cw_serde]
 pub enum ExecuteMsg {
     Setup {
-        //TODO: x_call should be of addr type
         x_call: Addr,
         hub_address: NetworkAddress,
     },
