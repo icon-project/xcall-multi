@@ -73,7 +73,7 @@ pub fn execute(
 pub fn query(_deps: Deps, _env: Env, _msg: XCallQuery) -> StdResult<Binary> {
     match _msg {
         XCallQuery::GetNetworkAddress {} => Ok(to_binary(
-            "0x1.icon/archway1qvqas572t6fx7af203mzygn7lgw5ywjt4y6q8e",
+            "0x01.icon/cx9876543210fedcba9876543210fedcba98765432",
         )?),
     }
 }

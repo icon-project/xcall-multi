@@ -97,8 +97,7 @@ mod instantiate_test {
                 ctx.sender.clone(),
                 &InstantiateMsg {
                     x_call: Addr::unchecked(_x_call_address).into_string(),
-                    hub_address: "0x1.icon/archway1qvqas572t6fx7af203mzygn7lgw5ywjt4y6q8e"
-                        .to_owned(),
+                    hub_address: "0x01.icon/cx9876543210fedcba9876543210fedcba98765432".to_owned(),
                 },
                 &[],
                 "HubToken",
@@ -118,7 +117,7 @@ mod instantiate_test {
                 &ExecuteMsg::Setup {
                     x_call: Addr::unchecked(ctx.get_xcall_app()),
                     hub_address: NetworkAddress(
-                        "0x38.bsc/archway1qvqas572t6fx7af203mzygn7lgw5ywjt4y6q8e".to_owned(),
+                        "0x01.icon/cx7866543210fedcba9876543210fedcba987654df".to_owned(),
                     ),
                 },
                 &[],
@@ -131,10 +130,8 @@ mod instantiate_test {
     fn handle_call_message(mut ctx: TestContext) -> TestContext {
         let call_data = CrossTransfer {
             method: "xCrossTransfer".to_string(),
-            from: NetworkAddress(
-                "0x38.bsc/archway1qvqas572t6fx7af203mzygn7lgw5ywjt4y6q8e".to_owned(),
-            ),
-            to: NetworkAddress("0x1.icon/archway123fdth".to_string()),
+            from: NetworkAddress("0x01.icon/cx7866543210fedcba9876543210fedcba987654df".to_owned()),
+            to: NetworkAddress("0x01.icon/cx9876543210fedcba9876543210fedcba98765432".to_string()),
             value: 1000,
             data: vec![
                 118, 101, 99, 33, 91, 49, 44, 32, 50, 44, 32, 51, 44, 32, 52, 44, 32, 53, 93,
@@ -144,19 +141,18 @@ mod instantiate_test {
         // let mut stream = RlpStream::new();
         let data = encode(&call_data).to_vec();
 
-        let _resp = ctx
-            .app
-            .execute_contract(
-                ctx.sender.clone(),
-                ctx.get_xcall_app(),
-                &XCallMsg::TestHandleCallMessage {
-                    from: "0x38.bsc/archway1qvqas572t6fx7af203mzygn7lgw5ywjt4y6q8e".to_owned(),
-                    data,
-                    hub_token: ctx.get_hubtoken_app().into_string(),
-                },
-                &[],
-            )
-            .unwrap();
+        let _resp = ctx.app.execute_contract(
+            ctx.sender.clone(),
+            ctx.get_xcall_app(),
+            &XCallMsg::TestHandleCallMessage {
+                from: "0x01.icon/cx7866543210fedcba9876543210fedcba987654df".to_owned(),
+                data,
+                hub_token: ctx.get_hubtoken_app().into_string(),
+            },
+            &[],
+        );
+        println!("Respose Please{:?}", _resp);
+        assert!(_resp.is_ok());
 
         let call_data = CrossTransferRevert {
             method: "xCrossTransferRevert".to_string(),
@@ -167,19 +163,18 @@ mod instantiate_test {
         // let mut stream = RlpStream::new();
         let data = encode(&call_data).to_vec();
 
-        let _resp = ctx
-            .app
-            .execute_contract(
-                ctx.sender.clone(),
-                ctx.get_xcall_app(),
-                &XCallMsg::TestHandleCallMessage {
-                    from: "0x1.icon/archway1qvqas572t6fx7af203mzygn7lgw5ywjt4y6q8e".to_owned(),
-                    data,
-                    hub_token: ctx.get_hubtoken_app().into_string(),
-                },
-                &[],
-            )
-            .unwrap();
+        let _resp = ctx.app.execute_contract(
+            ctx.sender.clone(),
+            ctx.get_xcall_app(),
+            &XCallMsg::TestHandleCallMessage {
+                from: "0x01.icon/cx9876543210fedcba9876543210fedcba98765432".to_owned(),
+                data,
+                hub_token: ctx.get_hubtoken_app().into_string(),
+            },
+            &[],
+        );
+        println!("{:?}", _resp);
+        assert!(_resp.is_ok());
 
         ctx
     }
@@ -192,7 +187,7 @@ mod instantiate_test {
                 ctx.get_hubtoken_app(),
                 &ExecuteMsg::CrossTransfer {
                     to: NetworkAddress(
-                        "0x1.icon/archway1qvqas572t6fx7af203mzygn7lgw5ywjt4y6q8e".to_string(),
+                        "0x01.icon/cx9876543210fedcba9876543210fedcba98765432".to_string(),
                     ),
                     amount: 100,
                     data: vec![],
@@ -200,6 +195,7 @@ mod instantiate_test {
                 &[],
             )
             .unwrap();
+        println!("{:?}", _resp);
 
         ctx
     }

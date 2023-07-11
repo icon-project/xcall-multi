@@ -10,7 +10,7 @@ pub enum ContractError {
     Unauthorized {},
     #[error("Wrong Address")]
     WrongAddress,
-    #[error("Invalid BTP Address")]
+    #[error("Invalid Network Address according to Network ID")]
     InvalidNetworkAddress,
     #[error("Wrong Network")]
     WrongNetwork,

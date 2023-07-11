@@ -16,6 +16,5 @@ cosmwasm-std = { version = "1.2.5", default-features = false }
 rlp = { version = "0.5.2", default-features = false }
 cosmwasm-schema = "1.2.6"
 cw-storage-plus = "1.1.0"
-regex = "1.5.4"
 
 
