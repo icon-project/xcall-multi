@@ -100,7 +100,9 @@ fn test_successful_reply_message() {
         .store_proxy_request(mock_deps.as_mut().storage, request_id, &proxy_requests)
         .unwrap();
 
-    contract.store_execute_request_id(mock_deps.as_mut().storage, request_id).unwrap();
+    contract
+        .store_execute_request_id(mock_deps.as_mut().storage, request_id)
+        .unwrap();
 
     let response = contract.reply(mock_deps.as_mut(), env, msg).unwrap();
 
@@ -133,7 +135,9 @@ fn test_failed_reply_message() {
         .store_proxy_request(mock_deps.as_mut().storage, request_id, &proxy_requests)
         .unwrap();
 
-   contract.store_execute_request_id(mock_deps.as_mut().storage, request_id).unwrap();
+    contract
+        .store_execute_request_id(mock_deps.as_mut().storage, request_id)
+        .unwrap();
 
     let response = contract.reply(mock_deps.as_mut(), env, msg).unwrap();
 
@@ -180,7 +184,9 @@ fn check_for_rollback_in_response() {
 }
 
 #[test]
-#[should_panic(expected = "td(NotFound { kind: \"cw_xcall::types::request::CallServiceMessageRequest\" })")]
+#[should_panic(
+    expected = "td(NotFound { kind: \"cw_xcall::types::request::CallServiceMessageRequest\" })"
+)]
 fn test_invalid_sequence_no() {
     let deps = mock_dependencies();
     let contract = CwCallService::new();
@@ -231,13 +237,20 @@ fn execute_rollback_success() {
 
     let mock_info = create_mock_info(&alice().to_string(), "umlg", 2000);
 
-    let env= mock_env();
+    let env = mock_env();
 
     let contract = CwCallService::default();
-    contract.instantiate(mock_deps.as_mut(), env, mock_info.clone(),cw_xcall::msg::InstantiateMsg{
-        network_id:"nid".to_string(),
-        denom:"arch".to_string(),
-    }).unwrap();
+    contract
+        .instantiate(
+            mock_deps.as_mut(),
+            env,
+            mock_info.clone(),
+            cw_xcall::msg::InstantiateMsg {
+                network_id: "nid".to_string(),
+                denom: "arch".to_string(),
+            },
+        )
+        .unwrap();
 
     let seq_id = 123456;
 
@@ -268,7 +281,10 @@ fn execute_rollback_success() {
             funds: _,
         }) => {
             let data = String::from_utf8(msg.0).unwrap();
-            assert_eq!("{\"handle_call_message\":{\"from\":\"nid/cosmos2contract\",\"data\":[1,2,3]}}", data)
+            assert_eq!(
+                "{\"handle_call_message\":{\"from\":\"nid/cosmos2contract\",\"data\":[1,2,3]}}",
+                data
+            )
         }
         _ => todo!(),
     }
