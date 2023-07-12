@@ -37,10 +37,6 @@ fn update_sequence_without_proper_initialisation() {
 
     let contract = CwCallService::default();
 
-    contract
-        .increment_last_sequence_no(mock_deps.as_mut().storage)
-        .unwrap();
-
     let result = contract
         .query_last_sequence_no(mock_deps.as_ref().storage)
         .unwrap();

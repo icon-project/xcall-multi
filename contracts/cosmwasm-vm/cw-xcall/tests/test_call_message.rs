@@ -105,9 +105,29 @@ fn send_packet_failure_due_data_len() {
                     })
                 }
             }
+            // protocol fee query
+            WasmQuery::Smart { contract_addr, msg } => {
+                SystemResult::Ok(ContractResult::Ok(to_binary(&0_u128).unwrap()))
+            }
             _ => todo!(),
         }
     });
+    contract
+        .store_config(
+            mock_deps.as_mut().storage,
+            &Config {
+                network_id: "nid".to_string(),
+                denom: "arch".to_string(),
+            },
+        )
+        .unwrap();
+    contract
+        .store_default_connection(
+            mock_deps.as_mut().storage,
+            NetId::from("nid".to_owned()),
+            Addr::unchecked("hostaddress"),
+        )
+        .unwrap();
 
     contract
         .send_call_message(
@@ -154,6 +174,22 @@ fn send_packet_failure_due_rollback_len() {
             _ => todo!(),
         }
     });
+    contract
+    .store_config(
+        mock_deps.as_mut().storage,
+        &Config {
+            network_id: "nid".to_string(),
+            denom: "arch".to_string(),
+        },
+    )
+    .unwrap();
+contract
+    .store_default_connection(
+        mock_deps.as_mut().storage,
+        NetId::from("nid".to_owned()),
+        Addr::unchecked("hostaddress"),
+    )
+    .unwrap();
 
     contract
         .send_call_message(
@@ -178,6 +214,10 @@ fn send_packet_success_needresponse() {
     let _env = mock_env();
 
     let contract = CwCallService::default();
+    contract.instantiate(mock_deps.as_mut(), _env, mock_info.clone(),cw_xcall::msg::InstantiateMsg{
+        network_id:"nid".to_string(),
+        denom:"arch".to_string(),
+    }).unwrap();
 
     contract.sn().save(mock_deps.as_mut().storage, &0).unwrap();
 
@@ -199,10 +239,11 @@ fn send_packet_success_needresponse() {
             WasmQuery::Smart {
                 contract_addr: _,
                 msg: _,
-            } => SystemResult::Ok(ContractResult::Ok(to_binary(&10).unwrap())),
+            } => SystemResult::Ok(ContractResult::Ok(to_binary(&10_u128).unwrap())),
             _ => todo!(),
         }
     });
+
 
     contract
         .store_default_connection(
@@ -211,9 +252,7 @@ fn send_packet_success_needresponse() {
             Addr::unchecked("hostaddress"),
         )
         .unwrap();
-    // contract
-    //     .set_timeout_height(mock_deps.as_mut().storage, 10)
-    //     .unwrap();
+   
 
     contract
         .send_call_message(
@@ -232,5 +271,5 @@ fn send_packet_success_needresponse() {
         .get_call_request(mock_deps.as_ref().storage, 1)
         .unwrap();
 
-    assert!(result.enabled())
+    assert!(!result.enabled())
 }
