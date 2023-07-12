@@ -37,8 +37,8 @@ cw2 = {workspace=true}
 schemars = {workspace=true}
 serde = { workspace=true}
 thiserror = { workspace=true}
-common = { path="../../../libraries/rust/common" }
-cw-common = { path="../cw-common" }
+common = { git = "https://github.com/icon-project/IBC-Integration.git",branch="main" }
+cw-common = { git = "https://github.com/icon-project/IBC-Integration.git",branch="main" }
 debug_print={workspace=true}
 
 
@@ -48,4 +48,4 @@ cosmwasm = "0.7.2"
 getrandom = {version = "0.2", default-features = false, features = ["custom"]}
 hex = "0.4.3"
 anyhow="*"
-test-utils={path="../../../libraries/rust/test-utils"}
+test-utils={ git = "https://github.com/icon-project/IBC-Integration.git",branch="main" }
