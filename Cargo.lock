@@ -407,7 +407,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "cw-xcall-multi"
+name = "cw-xcall"
 version = "0.1.0"
 dependencies = [
  "anyhow",

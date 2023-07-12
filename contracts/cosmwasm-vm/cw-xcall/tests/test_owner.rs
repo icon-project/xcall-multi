@@ -2,7 +2,7 @@ mod account;
 mod setup;
 use account::*;
 
-use cw_xcall_multi::state::CwCallService;
+use cw_xcall::state::CwCallService;
 use setup::test::*;
 #[test]
 fn add_owner() {

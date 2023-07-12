@@ -1,7 +1,7 @@
 mod account;
 mod setup;
 
-use cw_xcall_multi::state::CwCallService;
+use cw_xcall::state::CwCallService;
 use setup::test::*;
 
 #[test]

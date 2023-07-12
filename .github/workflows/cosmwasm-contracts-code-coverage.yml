@@ -6,7 +6,6 @@ on:
       - "**"
     paths:
       - "contracts/cosmwasm-vm/**"
-      - "libraries/common/rust/**"
       - ".github/workflows/cosmwasm-contracts-code-coverage.yml"
   push:
     branches:

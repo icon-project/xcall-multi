@@ -9,7 +9,7 @@ use cosmwasm_std::{
     IbcTimeoutBlock, SystemError, SystemResult, WasmQuery,
 };
 use cw_common::xcall_types::network_address::{NetId, NetworkAddress};
-use cw_xcall_multi::{
+use cw_xcall::{
     state::CwCallService,
     types::{config::Config, message::CallServiceMessage, request::CallServiceMessageRequest},
 };
