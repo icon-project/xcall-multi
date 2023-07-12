@@ -25,10 +25,9 @@ impl<'a> CwCallService<'a> {
         &self,
         deps: DepsMut,
         env: &Env,
-        info: &MessageInfo,
+        _info: &MessageInfo,
         address: String,
     ) -> Result<Response, ContractError> {
-        self.ensure_admin(deps.storage, info.sender.clone())?;
         self.add_feehandler(deps.storage, &address)?;
 
         if address.len().ne(&0) {

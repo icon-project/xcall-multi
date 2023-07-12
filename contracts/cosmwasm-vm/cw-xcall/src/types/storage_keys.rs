@@ -37,11 +37,10 @@ impl StorageKey {
             StorageKey::Connections => "connections",
             StorageKey::PendingRequests => "pending_requests",
             StorageKey::PendingResponses => "pending_responses",
-            StorageKey::PendingResponses => "pending_responses",
             StorageKey::SuccessfulResponses => "successful_responses",
             StorageKey::Config => "config",
             StorageKey::ExecuteReqId => "execute_request_id",
-            StorageKey::ExecuteRollbackId => "execute_rollback_id",
+            StorageKey::ExecuteRollbackId => "execute_request_id",
         }
     }
 }
