@@ -76,6 +76,7 @@ public class NetworkAddress {
         }
         return address;
     }
+
     // Accepts Native addresses as well
     public static NetworkAddress valueOf(String str, String nativeNid) {
         NetworkAddress address = parse(str);
