@@ -2,6 +2,8 @@
 [![License: Apache-2.0](https://img.shields.io/github/license/icon-project/xCall.svg?style=flat-square)](https://github.com/icon-project/xCall/blob/main/LICENSE)
 [![Lines Of Code](https://img.shields.io/tokei/lines/github/icon-project/xCall?style=flat-square)](https://github.com/icon-project/xCall)
 [![Version](https://img.shields.io/github/tag/icon-project/xCall.svg?style=flat-square)](https://github.com/icon-project/xCall)
+![GitHub Workflow Status - cosmwasm](https://github.com/icon-project/xCall/actions/workflows/build-and-publish-cosmwasm.yml/badge.svg)
+![GitHub Workflow Status - javascore](https://github.com/icon-project/xCall/actions/workflows/build-and-publish-javascore.yml/badge.svg)
 | Language                            | Code Coverage                                  |
 | ----------------------------------- | ---------------------------------------------- |
 | [Java](./contracts/javascore)       | [![Java Cov][java-cov-badge]][java-cov-link]   |
