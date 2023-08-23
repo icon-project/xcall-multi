@@ -268,7 +268,7 @@ public class CallServiceImpl implements CallService, FeeManage {
         CSMessage msg = CSMessage.fromBytes(_msg);
         switch (msg.getType()) {
             case CSMessage.REQUEST:
-                handleRequest(_from, msg.getData());
+                handleRequest(_fromNid, msg.getData());
                 break;
             case CSMessage.RESPONSE:
                 handleResponse(msg.getData());
