@@ -501,6 +501,7 @@ public class CallServiceTest extends TestBase {
 
         String[] sources = {connection1.getAddress().toString(), connection2.getAddress().toString()};
         xcall.invoke(owner, "setProtocolFee", protocolFee);
+        xcall.invoke(owner,"setProtocolFeeHandler",owner);
 
         // Act
         BigInteger fee = xcall.call(BigInteger.class, "getFee", nid, true, sources);

@@ -407,6 +407,7 @@ public class CallServiceImpl implements CallService, FeeManage {
 
     @External
     public void setProtocolFeeHandler(Address address) {
+        checkCallerOrThrow(admin(), "OnlyAdmin");
         feeHandler.set(address);
     }
 
