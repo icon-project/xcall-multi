@@ -76,9 +76,10 @@ impl<'a> CwCallService<'a> {
                         } else {
                             vec![]
                         };
+                        let address = deps.api.addr_validate(r)?;
 
                         self.call_connection_send_message(
-                            &r.to_string(),
+                            &address,
                             fund,
                             to.nid(),
                             sn,
