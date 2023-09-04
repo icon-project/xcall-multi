@@ -78,13 +78,7 @@ impl<'a> CwCallService<'a> {
                         };
                         let address = deps.api.addr_validate(r)?;
 
-                        self.call_connection_send_message(
-                            &address,
-                            fund,
-                            to.nid(),
-                            sn,
-                            &message,
-                        )
+                        self.call_connection_send_message(&address, fund, to.nid(), sn, &message)
                     });
             })
             .collect::<Result<Vec<SubMsg>, ContractError>>()?;
