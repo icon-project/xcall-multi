@@ -190,10 +190,7 @@ impl<'a> CwCallService<'a> {
         info: MessageInfo,
         sn: u128,
     ) -> Result<Response, ContractError> {
-        let msg = CSMessageResponse::new(
-            sn,
-            CallServiceResponseType::CallServiceResponseFailure,
-        );
+        let msg = CSMessageResponse::new(sn, CallServiceResponseType::CallServiceResponseFailure);
         self.handle_response(deps, info, &rlp::encode(&msg))
     }
 }

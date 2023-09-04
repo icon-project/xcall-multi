@@ -172,9 +172,7 @@ fn test_failed_reply_message() {
 }
 
 #[test]
-#[should_panic(
-    expected = "td(NotFound { kind: \"cw_xcall::types::request::CSMessageRequest\" })"
-)]
+#[should_panic(expected = "td(NotFound { kind: \"cw_xcall::types::request::CSMessageRequest\" })")]
 fn test_invalid_sequence_no() {
     let deps = mock_dependencies();
     let contract = CwCallService::new();
