@@ -23,8 +23,8 @@ impl<'a> CwCallService<'a> {
 
         self.ensure_caller_is_contract_and_rollback_is_null(
             deps.as_ref(),
-            caller.clone(),
-            rollback.clone(),
+            &caller,
+            &rollback,
         )?;
 
         let need_response = rollback.is_some();
