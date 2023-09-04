@@ -24,7 +24,7 @@ impl<'a> CwCallService<'a> {
         let msg = rlp::encode(msg).to_vec();
         self.ensure_data_length(msg.len())?;
         let message = xcall_connection_msg::ExecuteMsg::SendMessage { to, sn, msg };
-        
+
         let cosm_msg = CosmosMsg::Wasm(WasmMsg::Execute {
             contract_addr: address.to_string(),
             msg: to_binary(&message).map_err(ContractError::Std)?,
