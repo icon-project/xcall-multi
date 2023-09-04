@@ -77,7 +77,6 @@ impl<'a> CwCallService<'a> {
 
         let request = self.get_proxy_request(deps.storage, req_id)?;
         self.remove_proxy_request(deps.storage, req_id);
-       
 
         let (response, event) = match msg.result {
             cosmwasm_std::SubMsgResult::Ok(_res) => {

@@ -53,7 +53,7 @@ impl<'a> CwCallService<'a> {
             call_request.protocols().clone(),
             EXECUTE_ROLLBACK_ID,
         )?;
-        sub_msg.reply_on=ReplyOn::Never;
+        sub_msg.reply_on = ReplyOn::Never;
 
         let event = event_rollback_executed(sequence_no);
 
@@ -63,6 +63,4 @@ impl<'a> CwCallService<'a> {
             .add_event(event)
             .add_submessage(sub_msg))
     }
-
-
 }

@@ -1,4 +1,4 @@
-use cosmwasm_std::{Order, to_vec, from_slice};
+use cosmwasm_std::{from_slice, to_vec, Order};
 use cw_storage_plus::{KeyDeserialize, PrimaryKey};
 use cw_xcall_lib::network_address::NetId;
 use serde::de::DeserializeOwned;
@@ -29,7 +29,7 @@ pub struct CwCallService<'a> {
     successful_responses: Map<'a, u128, bool>,
     // execute_request_id: Item<'a, u128>,
     // execute_rollback_id: Item<'a, u128>,
-    callback_data:Map<'a,u64,Vec<u8>>
+    callback_data: Map<'a, u64, Vec<u8>>,
 }
 
 impl<'a> Default for CwCallService<'a> {
@@ -55,7 +55,7 @@ impl<'a> CwCallService<'a> {
             config: Item::new(StorageKey::Config.as_str()),
             // execute_request_id: Item::new(StorageKey::ExecuteReqId.as_str()),
             // execute_rollback_id: Item::new(StorageKey::ExecuteRollbackId.as_str()),
-            callback_data:Map::new(StorageKey::Callbackdata.as_str())
+            callback_data: Map::new(StorageKey::Callbackdata.as_str()),
         }
     }
 
@@ -95,19 +95,14 @@ impl<'a> CwCallService<'a> {
         store: &mut dyn Storage,
         req_id: u128,
     ) -> Result<(), ContractError> {
-      return self.store_callback_data(store, EXECUTE_CALL_ID, &req_id)
-           
+        self.store_callback_data(store, EXECUTE_CALL_ID, &req_id)
     }
-    pub fn remove_execute_request_id(
-        &self,
-        store: &mut dyn Storage,
-    )  {
-      return self.clear_callback_data(store, EXECUTE_CALL_ID)
-           
+    pub fn remove_execute_request_id(&self, store: &mut dyn Storage) {
+        self.clear_callback_data(store, EXECUTE_CALL_ID)
     }
 
     pub fn get_execute_request_id(&self, store: &dyn Storage) -> Result<u128, ContractError> {
-        return self.get_callback_data(store, EXECUTE_CALL_ID);
+        self.get_callback_data(store, EXECUTE_CALL_ID)
     }
 
     pub fn admin(&self) -> &Item<'a, Addr> {
@@ -341,7 +336,6 @@ impl<'a> CwCallService<'a> {
             .map_err(ContractError::Std)
     }
 
-
     pub fn store_callback_data<T>(
         &self,
         store: &mut dyn Storage,
@@ -356,17 +350,17 @@ impl<'a> CwCallService<'a> {
         }
 
         let bytes = to_vec(data).map_err(ContractError::Std)?;
-        return self.callback_data
+        self.callback_data
             .save(store, id, &bytes)
-            .map_err(ContractError::Std);
+            .map_err(ContractError::Std)
     }
 
     pub fn has_callback_data(&self, store: &dyn Storage, id: u64) -> bool {
-        return self.callback_data.load(store, id).is_ok();
+        self.callback_data.load(store, id).is_ok()
     }
 
     pub fn clear_callback_data(&self, store: &mut dyn Storage, id: u64) {
-        return self.callback_data.remove(store, id);
+        self.callback_data.remove(store, id)
     }
 
     pub fn get_callback_data<T: DeserializeOwned>(

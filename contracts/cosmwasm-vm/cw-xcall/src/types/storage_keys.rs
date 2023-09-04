@@ -16,7 +16,7 @@ pub enum StorageKey {
     PendingResponses,
     SuccessfulResponses,
     Config,
-    Callbackdata
+    Callbackdata,
 }
 
 impl StorageKey {
