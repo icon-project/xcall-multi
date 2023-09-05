@@ -55,7 +55,7 @@ impl<'a> CwCallService<'a> {
 
         let call_request = CSMessageRequest::new(
             from,
-            to.account(),
+            deps.api.addr_validate(to.account().as_str())?,
             sequence_no,
             need_response,
             data.to_vec(),
