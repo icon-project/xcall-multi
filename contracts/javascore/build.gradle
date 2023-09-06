@@ -86,6 +86,17 @@ gradle.taskGraph.whenReady { taskGraph ->
     }
 }
 
+task printOptimizedJarOutputFiles {
+    doLast {
+        subprojects.each { subproject ->
+            def optimizedJarOutputFiles = subproject.tasks.optimizedJar.outputs.files
+            println "Optimized JAR files for subproject '${subproject.name}':"
+            optimizedJarOutputFiles.each { file ->
+                println "  ${file}"
+            }
+        }
+    }
+}
 
 task collectOptimizedJars(type: Copy) {
     from subprojects.collect { subproject ->
@@ -104,6 +115,8 @@ task zipOutputOptimizedJars(type: Zip) {
     archiveFileName = "javascore-contracts.zip"
     destinationDirectory = file("$buildDir")
 }
+
+
 
 
 
