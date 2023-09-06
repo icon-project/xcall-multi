@@ -53,16 +53,16 @@ impl<'a> CwCallService<'a> {
             self.store_call_request(deps.storage, sequence_no, &request)?;
         }
 
-        let call_request = CallServiceMessageRequest::new(
+        let call_request = CSMessageRequest::new(
             from,
-            to.account(),
+            deps.api.addr_validate(to.account().as_str())?,
             sequence_no,
             need_response,
             data.to_vec(),
             destinations,
         );
 
-        let message: CallServiceMessage = call_request.into();
+        let message: CSMessage = call_request.into();
         let sn: i64 = if need_response { sequence_no as i64 } else { 0 };
 
         let submessages = confirmed_sources
@@ -76,14 +76,9 @@ impl<'a> CwCallService<'a> {
                         } else {
                             vec![]
                         };
+                        let address = deps.api.addr_validate(r)?;
 
-                        self.call_connection_send_message(
-                            &r.to_string(),
-                            fund,
-                            to.nid(),
-                            sn,
-                            &message,
-                        )
+                        self.call_connection_send_message(&address, fund, to.nid(), sn, &message)
                     });
             })
             .collect::<Result<Vec<SubMsg>, ContractError>>()?;

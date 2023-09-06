@@ -10,7 +10,6 @@ pub mod execute_rollback;
 pub mod fee_handler;
 pub mod fees;
 pub mod handle_call_message;
-pub mod helpers;
 pub mod msg;
 pub mod requests;
 pub mod send_call_message;
@@ -27,9 +26,9 @@ use crate::{
     state::{CwCallService, EXECUTE_CALL_ID, EXECUTE_ROLLBACK_ID, SEND_CALL_MESSAGE_REPLY_ID},
     types::{
         call_request::CallRequest,
-        message::{CallServiceMessage, CallServiceMessageType},
-        request::CallServiceMessageRequest,
-        response::{CallServiceMessageResponse, CallServiceResponseType},
+        message::{CSMessage, CallServiceMessageType},
+        request::CSMessageRequest,
+        response::{CSMessageResponse, CallServiceResponseType},
         storage_keys::StorageKey,
     },
 };
