@@ -109,4 +109,3 @@ mod tests {
         assert_ne!(encoded_deposit, encode_deposit_revert);
     }
 }
-
