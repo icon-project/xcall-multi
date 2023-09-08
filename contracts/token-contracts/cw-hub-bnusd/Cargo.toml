@@ -37,9 +37,26 @@ cw2 = "1.0.1"
 schemars = "0.8.12"
 serde = { version = "1.0.163", default-features = false, features = ["derive"] }
 thiserror = { version = "1.0.40" }
+cw20 = { version = "1.0.1", default-features = false }
+cw20-base = { version = "1.0.1", features = ["library"] }
+bytes = "1.0"
+cw-common = { path = "../../cw-common" }
+hex = "0.4.3"
+debug_print = {workspace=true}
+rlp = "0.5.2"
+# cw20-base = { path = "../../cw20-base" }
+
 
 [dev-dependencies]
-cw-multi-test = "0.16.2"
+cw-multi-test = "0.16.4"
+cw-xcall-lib={package="cw-xcall-lib", git="https://github.com/icon-project/xcall-multi.git", branch="main"}
+cw-xcall-multi = {package="cw-xcall", git="https://github.com/icon-project/xcall-multi.git", branch="main"}
+cw-common-ibc = {package="cw-common", git = "https://github.com/icon-project/IBC-Integration.git", branch="main" }
+cw_xcall_ibc_connection = { git =  "https://github.com/icon-project/IBC-Integration.git", package = "cw-mock-ibc-connection", branch="feat/mock-ibc-connection-balanced-test" }
+cw_mock_ibc_core =  { git =  "https://github.com/icon-project/IBC-Integration.git", branch="main", package="cw-mock-ibc-core" }
+anyhow = { version = "1.0", default-features = false }
+getrandom = { version = "0.2", features = ["custom"] }
+
 
 [profile.release]
 # Do not perform backtrace for panic on release builds.

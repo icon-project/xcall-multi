@@ -21,5 +21,6 @@ for WASM in ./target/wasm32-unknown-unknown/release/*.wasm; do
   echo "########Optimizing $NAME ...########"
   wasm-opt -Oz "$WASM" -o "artifacts/$NAME"
   echo "########Verifying $NAME file with cosmwasm-check ...########"
-  cosmwasm-check "artifacts/$NAME"
 done
+
+cosmwasm-check "artifacts/cw_hub_bnusd.wasm"

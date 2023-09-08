@@ -1,8 +1,6 @@
 [workspace]
-members = [
-#  "contracts/core-contracts/*",
-  "contracts/token-contracts/cw-hub-bnusd"]
-
+members = ["contracts/token-contracts/cw-hub-bnusd", "contracts/cw-common"]
+exclude = ["contracts/archway"]
 
 [profile.release]
 opt-level = 'z'
@@ -14,3 +12,6 @@ codegen-units = 1
 panic = 'abort'
 incremental = false
 overflow-checks = true
+
+[workspace.dependencies]
+debug_print = "1.0.0"
