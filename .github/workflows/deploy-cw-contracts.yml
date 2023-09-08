@@ -41,7 +41,7 @@ jobs:
 
       - name: Install cw-check
         run: |
-          cargo install cosmwasm-check
+          cargo install cosmwasm-check --locked
 
       - name: Compile WASM
         run: bash ./scripts/generate_wasm.sh
