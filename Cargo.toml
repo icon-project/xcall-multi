@@ -1,10 +1,6 @@
 [workspace]
-members = [
-#  "contracts/core-contracts/*",
-  "contracts/token-contracts/cw-hub-bnusd",
-  "contracts/cw-common",
-  "contracts/mock-contracts/x-call-mock",]
-
+members = ["contracts/token-contracts/cw-hub-bnusd", "contracts/cw-common"]
+exclude = ["contracts/archway"]
 
 [profile.release]
 opt-level = 'z'

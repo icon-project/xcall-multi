@@ -7,7 +7,7 @@ pub enum ContractError {
     Std(#[from] StdError),
 
     #[error("Unauthorized")]
-    Unauthorized {},
+    Unauthorized,
     #[error("Wrong Address")]
     WrongAddress,
     #[error("Invalid Network Address according to Network ID")]
@@ -34,6 +34,8 @@ pub enum ContractError {
     AddressNotFound,
     #[error("{0}")]
     Cw20BaseError(#[from] cw20_base::ContractError),
+    #[error("Cannot Send to Self")]
+    CannotSendToSelf,
     // Add any other custom errors you like here.
     // Look at https://docs.rs/thiserror/1.0.21/thiserror/ for details.
 }
