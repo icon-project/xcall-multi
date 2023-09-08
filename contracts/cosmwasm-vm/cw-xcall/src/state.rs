@@ -27,8 +27,6 @@ pub struct CwCallService<'a> {
     pending_requests: Map<'a, (Vec<u8>, String), bool>,
     pending_responses: Map<'a, (Vec<u8>, String), bool>,
     successful_responses: Map<'a, u128, bool>,
-    // execute_request_id: Item<'a, u128>,
-    // execute_rollback_id: Item<'a, u128>,
     callback_data: Map<'a, u64, Vec<u8>>,
 }
 
@@ -53,8 +51,6 @@ impl<'a> CwCallService<'a> {
             pending_responses: Map::new(StorageKey::PendingResponses.as_str()),
             successful_responses: Map::new(StorageKey::SuccessfulResponses.as_str()),
             config: Item::new(StorageKey::Config.as_str()),
-            // execute_request_id: Item::new(StorageKey::ExecuteReqId.as_str()),
-            // execute_rollback_id: Item::new(StorageKey::ExecuteRollbackId.as_str()),
             callback_data: Map::new(StorageKey::Callbackdata.as_str()),
         }
     }
