@@ -1,3 +1,0 @@
-[submodule "contracts/archway"]
-	path = contracts/archway
-	url = https://github.com/archway-network/archway.git
