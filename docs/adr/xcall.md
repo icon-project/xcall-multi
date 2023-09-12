@@ -485,11 +485,11 @@ payable external function sendCallMessage(String _to,
 
 `handleMessage` is the external function used by connections to deliver messages.
 ```javascript
-external function handleMessage(String fromNid, bytes _msg) {
+external function handleMessage(String _fromNid, bytes _msg) {
     msg = CSMessage.decode(_msg);
     switch (msg.type) :
         case CSMessage.REQUEST:
-            handleRequest(fromNid, msg.data);
+            handleRequest(_fromNid, msg.data);
             break;
         case CSMessage.RESPONSE:
             handleResponse(msg.data);
