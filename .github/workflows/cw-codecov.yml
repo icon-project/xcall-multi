@@ -32,7 +32,8 @@ jobs:
         uses: taiki-e/install-action@cargo-llvm-cov
 
       - name: Generate code coverage
-        run: cargo llvm-cov --lcov --output-path lcov.info --package cw-hub-bnusd --package cw-asset-manager
+        run: cargo llvm-cov --lcov --output-path lcov.info --package cw-asset-manager --package cw-hub-bnusd
+
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:

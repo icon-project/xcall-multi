@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 WALLET=fd # This account is default while running the chain on docker.
 ### LOCALNET ###
 ENDPOINT=http://localhost:26657
@@ -23,6 +25,10 @@ deploy_wasm() {
 
 # This wasm directory is inside the docker container
 for CONTRACT_WASM in /contracts/artifacts/*.wasm; do
+  if [[ $CONTRACT_WASM == *"_lib"* || $CONTRACT_WASM == *"cw_common"* ]]; then
+      echo "Skipping library: $CONTRACT_WASM"
+      continue
+    fi
   echo "=> Deploying $CONTRACT_WASM"
   deploy_wasm "$CONTRACT_WASM"
 done
