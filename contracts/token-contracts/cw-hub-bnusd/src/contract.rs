@@ -51,14 +51,28 @@ pub fn instantiate(
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)
         .map_err(ContractError::Std)?;
     debug_println!("Instantiate cw-hub-bnusd contract...{:?}", msg);
+
     let x_call_addr = deps
         .api
         .addr_validate(&msg.x_call)
         .map_err(ContractError::Std)?;
+
     OWNER.save(deps.storage, &info.sender)?;
+
     let hub_network_address =
         NetworkAddress::from_str(&msg.hub_address).map_err(ContractError::Std)?;
-    setup_function(deps, env, x_call_addr, hub_network_address)
+
+    let token_info = TokenInfo {
+        name: TOKEN_NAME.to_string(),
+        symbol: TOKEN_SYMBOL.to_string(),
+        decimals: TOKEN_DECIMALS,
+        total_supply: TOKEN_TOTAL_SUPPLY,
+        mint: Some(MinterData {
+            minter: x_call_addr.clone(),
+            cap: None,
+        }),
+    };
+    setup_function(deps, env, x_call_addr, hub_network_address, token_info)
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
@@ -197,7 +211,15 @@ mod execute {
         if owner != info.sender {
             return Err(ContractError::Unauthorized);
         }
-        setup_function(deps, env, x_call, hub_network_address)
+        let mut token_info = TOKEN_INFO.load(deps.storage)?;
+        token_info.mint = Some(MinterData {
+            minter: x_call.clone(),
+            cap: None,
+        });
+        deps.api
+            .addr_validate(x_call.as_str())
+            .map_err(ContractError::Std)?;
+        setup_function(deps, env, x_call, hub_network_address, token_info)
     }
 
     pub fn handle_call_message(
@@ -399,30 +421,10 @@ fn setup_function(
     _env: Env,
     x_call: Addr,
     hub_network_address: NetworkAddress,
+    token_info: TokenInfo,
 ) -> Result<Response, ContractError> {
-    debug_println!(
-        "Instantiate cw-hub-bnusd contract...{:?}",
-        hub_network_address
-    );
-
-    let x_call_addr = deps
-        .api
-        .addr_validate(x_call.as_ref())
-        .map_err(ContractError::Std)?;
-
-    let data = TokenInfo {
-        name: TOKEN_NAME.to_string(),
-        symbol: TOKEN_SYMBOL.to_string(),
-        decimals: TOKEN_DECIMALS,
-        total_supply: TOKEN_TOTAL_SUPPLY,
-        mint: Some(MinterData {
-            minter: x_call_addr,
-            cap: None,
-        }),
-    };
-
     TOKEN_INFO
-        .save(deps.storage, &data)
+        .save(deps.storage, &token_info)
         .map_err(ContractError::Std)?;
 
     if !hub_network_address.validate_foreign_addresses() {
@@ -446,6 +448,7 @@ fn setup_function(
     if x_call_network_address.to_string().is_empty() {
         return Err(ContractError::AddressNotFound);
     }
+
     let nid = x_call_network_address.nid();
     let (hub_net, hub_address) = (hub_network_address.nid(), hub_network_address.account());
     debug_println!("setup {:?},{:?},{:?}", hub_net, hub_address, nid);
@@ -499,7 +502,8 @@ mod tests {
 
     use cosmwasm_std::{
         testing::{mock_dependencies, mock_env, mock_info, MockApi, MockQuerier},
-        to_binary, Addr, ContractResult, MemoryStorage, OwnedDeps, SystemResult, WasmQuery,
+        to_binary, Addr, ContractResult, MemoryStorage, OwnedDeps, SystemResult, Uint128,
+        WasmQuery,
     };
     use cw_ibc_rlp_lib::rlp::encode;
     use debug_print::debug_println;
@@ -533,27 +537,6 @@ mod tests {
 
         let res = instantiate(deps.as_mut(), env.clone(), info.clone(), msg);
         debug_println!("res {:?}", res);
-        assert!(res.is_ok());
-
-        let setup_message = ExecuteMsg::Setup {
-            x_call: Addr::unchecked("archway123fdth".to_owned()),
-            hub_address: NetworkAddress::from_str(
-                "0x01.icon/cx9876543210fedcba9876543210fedcba98765432",
-            )
-            .unwrap(),
-        };
-
-        deps.querier.update_wasm(|r| match r {
-            WasmQuery::Smart {
-                contract_addr: _,
-                msg: _,
-            } => SystemResult::Ok(ContractResult::Ok(
-                to_binary("0x01.icon/cx9876543210fedcba9876543210fedcba98765432").unwrap(),
-            )),
-            _ => todo!(),
-        });
-
-        let res = execute(deps.as_mut(), env.clone(), info.clone(), setup_message);
         assert!(res.is_ok());
 
         (deps, env, info)
@@ -644,6 +627,86 @@ mod tests {
         );
         debug_println!("this is {:?}", _res);
         assert!(res.is_ok());
+    }
+
+    #[test]
+    fn change_xcall_address() {
+        let (mut deps, env, info) = setup("archway123fdth");
+
+        let balance1: u128 = 1000;
+        let balance2: u128 = 200;
+        let call_data = ExecuteMsg::Mint {
+            recipient: "alice".to_string(),
+            amount: Uint128::from(balance1),
+        };
+
+        execute(deps.as_mut(), env.clone(), info.clone(), call_data).unwrap();
+
+        let call_data = ExecuteMsg::Mint {
+            recipient: "bob".to_string(),
+            amount: Uint128::from(balance2),
+        };
+
+        execute(deps.as_mut(), env.clone(), info.clone(), call_data).unwrap();
+
+        let alice_balance = query_balance(deps.as_ref(), "alice".to_string()).unwrap();
+        let bob_balance = query_balance(deps.as_ref(), "bob".to_string()).unwrap();
+
+        assert_eq!(alice_balance.balance, Uint128::from(balance1));
+        assert_eq!(bob_balance.balance, Uint128::from(balance2));
+
+        let total_balance = query_token_info(deps.as_ref()).unwrap();
+        assert_eq!(
+            total_balance.total_supply,
+            Uint128::from(balance1 + balance2)
+        );
+
+        let setup_message = ExecuteMsg::Setup {
+            x_call: Addr::unchecked("archwayxcalladdress".to_owned()),
+            hub_address: NetworkAddress::from_str(
+                "0x01.icon/cx9876543210fedcba9876543210fedcba98765432",
+            )
+            .unwrap(),
+        };
+
+        deps.querier.update_wasm(|r| match r {
+            WasmQuery::Smart {
+                contract_addr: _,
+                msg: _,
+            } => SystemResult::Ok(ContractResult::Ok(
+                to_binary("0x01.icon/cx9876543210fedcba9876543210fedcba98765432").unwrap(),
+            )),
+            _ => todo!(),
+        });
+
+        let res = execute(deps.as_mut(), env.clone(), info.clone(), setup_message);
+        assert!(res.is_ok());
+
+        let call_data = ExecuteMsg::Mint {
+            recipient: "alice".to_string(),
+            amount: Uint128::from(balance1),
+        };
+
+        let res = execute(deps.as_mut(), env.clone(), info.clone(), call_data);
+        assert!(res.is_err());
+
+        let info = mock_info("archwayxcalladdress", &[]);
+
+        let call_data = ExecuteMsg::Mint {
+            recipient: "alice".to_string(),
+            amount: Uint128::from(balance2),
+        };
+
+        execute(deps.as_mut(), env.clone(), info.clone(), call_data).unwrap();
+
+        let alice_balance = query_balance(deps.as_ref(), "alice".to_string()).unwrap();
+        assert_eq!(alice_balance.balance, Uint128::from(balance1 + balance2));
+
+        let total_balance = query_token_info(deps.as_ref()).unwrap();
+        assert_eq!(
+            total_balance.total_supply,
+            Uint128::from(balance1 + balance2 + balance2)
+        );
     }
 
     #[test]
