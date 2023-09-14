@@ -1,5 +1,5 @@
 use cosmwasm_std::{coins, BankMsg};
-use cw_xcall_lib::network_address::{NetId, NetworkAddress};
+use cw_xcall_lib::network_address::NetworkAddress;
 
 use crate::types::LOG_PREFIX;
 

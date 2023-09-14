@@ -65,7 +65,7 @@ impl<'a> CwCallService<'a> {
         let mut total = 0_u128;
         for c in coins.iter() {
             if c.denom == config.denom {
-                total = total + c.amount.u128();
+                total += c.amount.u128();
             }
         }
         Ok(total)
