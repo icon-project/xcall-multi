@@ -2,7 +2,7 @@ use std::str::FromStr;
 
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::Addr;
-use rlp::{Decodable, DecoderError, Encodable, Rlp, RlpStream};
+use cw_ibc_rlp_lib::rlp::{Decodable, DecoderError, Encodable, Rlp, RlpStream};
 
 use crate::network_address::NetworkAddress;
 
@@ -40,9 +40,8 @@ impl Decodable for CrossTransfer {
         let to: String = rlp.val_at(2)?;
         Ok(Self {
             method: rlp.val_at(0)?,
-            from: NetworkAddress::from_str(&from)
-                .map_err(|_e| rlp::DecoderError::RlpInvalidLength)?,
-            to: NetworkAddress::from_str(&to).map_err(|_e| rlp::DecoderError::RlpInvalidLength)?,
+            from: NetworkAddress::from_str(&from).map_err(|_e| DecoderError::RlpInvalidLength)?,
+            to: NetworkAddress::from_str(&to).map_err(|_e| DecoderError::RlpInvalidLength)?,
             value: rlp.val_at(3)?,
             data: rlp.val_at(4)?,
         })

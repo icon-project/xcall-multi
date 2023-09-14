@@ -64,7 +64,7 @@ jobs:
       - name: Generate schema
         run: |
           cd contracts
-          ../scripts/run_in_subprojects.sh token-contracts/cw-hub-bnusd
+          ../scripts/run_in_subprojects.sh token-contracts/cw-hub-bnusd core-contracts/cw-asset-manager
 
       - name: Verify schema
         uses: tj-actions/verify-changed-files@v14

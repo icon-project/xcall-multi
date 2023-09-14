@@ -5,6 +5,9 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[lib]
+crate-type = ["cdylib", "rlib"]
+
 [dependencies]
 bytes = { version = "1.4.0", default-features = false }
 rlp-derive = { version = "0.1.0", default-features = false }
@@ -12,11 +15,12 @@ cw20 = { version = "1.0.1", default-features = false }
 rustc-hex = { version = "2.1.0", default-features = false }
 serde = { version = "1.0.156", default-features = false,features = ["derive"] }
 hex ={ version = "0.4.3", default-features = false }
-cosmwasm-std = { version = "1.2.5", default-features = false }
-rlp = { version = "0.5.2", default-features = false }
-cosmwasm-schema = "1.2.6"
+cosmwasm-std = { version = "1.2.6", default-features = false }
+cosmwasm-schema = "1.2.7"
 cw-storage-plus = "1.1.0"
 cw20-base = { version = "1.0.1", features = ["library"] }
 cw-xcall-multi = {package="cw-xcall", git="https://github.com/icon-project/xcall-multi.git", branch="main", features=["library"]}
 cw-xcall-lib={package="cw-xcall-lib", git="https://github.com/icon-project/xcall-multi.git", branch="main", features = ["library"]}
-
+cw_ibc_rlp_lib = {git = "https://github.com/icon-project/IBC-Integration.git", branch="main", package = "common"}
+bech32 = "0.9.1"
+regex = "1.9.0"

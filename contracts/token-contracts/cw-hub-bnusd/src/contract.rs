@@ -34,8 +34,8 @@ use cw20_base::enumerable::{query_all_accounts, query_owner_allowances, query_sp
 use cw20_base::state::{MinterData, TokenInfo, TOKEN_INFO};
 use cw_common::network_address::NetworkAddress;
 
+use cw_ibc_rlp_lib::rlp::Rlp;
 use debug_print::debug_println;
-use rlp::Rlp;
 
 use cw_common::data_types::{CrossTransfer, CrossTransferRevert};
 const CONTRACT_NAME: &str = "crates.io:cw-hub-bnusd";
@@ -179,8 +179,8 @@ mod execute {
     use bytes::BytesMut;
     use cosmwasm_std::{to_binary, Addr, CosmosMsg, SubMsg};
     use cw_common::network_address::NetId;
+    use cw_ibc_rlp_lib::rlp::{decode, encode};
     use debug_print::debug_println;
-    use rlp::{decode, encode};
 
     use crate::events::{emit_cross_transfer_event, emit_cross_transfer_revert_event};
 
@@ -462,7 +462,7 @@ mod rlp_test {
 
     use bytes::BytesMut;
     use cw_common::{data_types::CrossTransfer, network_address::NetworkAddress};
-    use rlp::{decode, encode, Rlp};
+    use cw_ibc_rlp_lib::rlp::{decode, encode, Rlp};
 
     #[test]
     fn encode_test() {
@@ -501,8 +501,8 @@ mod tests {
         testing::{mock_dependencies, mock_env, mock_info, MockApi, MockQuerier},
         to_binary, Addr, ContractResult, MemoryStorage, OwnedDeps, SystemResult, WasmQuery,
     };
+    use cw_ibc_rlp_lib::rlp::encode;
     use debug_print::debug_println;
-    use rlp::encode;
 
     use super::*;
 

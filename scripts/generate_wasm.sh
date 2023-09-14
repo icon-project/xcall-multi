@@ -23,4 +23,5 @@ for WASM in ./target/wasm32-unknown-unknown/release/*.wasm; do
   echo "########Verifying $NAME file with cosmwasm-check ...########"
 done
 
+cosmwasm-check "artifacts/cw_asset_manager.wasm"
 cosmwasm-check "artifacts/cw_hub_bnusd.wasm"

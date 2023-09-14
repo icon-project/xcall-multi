@@ -11,7 +11,7 @@ use crate::setup::{execute_setup, instantiate_contracts};
 use cw20::BalanceResponse;
 use cw20_base::msg::QueryMsg;
 use cw_common::network_address::NetId;
-use rlp::{encode, RlpStream};
+use cw_ibc_rlp_lib::rlp::{encode, RlpStream};
 use setup::{get_event, set_default_connection, setup_context, TestContext};
 
 fn execute_and_handle_message(mut context: TestContext) -> TestContext {

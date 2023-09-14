@@ -1,5 +1,5 @@
 [workspace]
-members = ["contracts/token-contracts/cw-hub-bnusd", "contracts/cw-common"]
+members = ["contracts/token-contracts/cw-hub-bnusd", "contracts/cw-common", "contracts/core-contracts/cw-asset-manager"]
 exclude = ["contracts/archway"]
 
 [profile.release]
