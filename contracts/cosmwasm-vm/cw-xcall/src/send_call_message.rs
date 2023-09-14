@@ -24,12 +24,6 @@ impl<'a> CwCallService<'a> {
         self.ensure_caller_is_contract_and_rollback_is_null(deps.as_ref(), &caller, &rollback)?;
 
         let need_response = rollback.is_some();
-        let total_fee_required =
-            self.get_fee(deps.as_ref(), to.nid(), rollback.is_some(), sources.clone())?;
-        let mut total_paid = self.get_total_paid(deps.as_ref(), &info.funds)?;
-        if total_paid < total_fee_required {
-            return Err(ContractError::InsufficientFunds);
-        }
 
         let rollback_data = match rollback {
             Some(data) => data,
@@ -66,6 +60,7 @@ impl<'a> CwCallService<'a> {
 
         let message: CSMessage = call_request.into();
         let sn: i64 = if need_response { sequence_no as i64 } else { 0 };
+        let mut total_spent = 0_u128;
 
         let submessages = confirmed_sources
             .iter()
@@ -74,7 +69,7 @@ impl<'a> CwCallService<'a> {
                     .query_connection_fee(deps.as_ref(), to.nid(), need_response, r)
                     .and_then(|fee| {
                         let fund = if fee > 0 {
-                            total_paid = total_paid.checked_sub(fee).unwrap();
+                            total_spent = total_spent.checked_add(fee).unwrap();
                             coins(fee, config.denom.clone())
                         } else {
                             vec![]
@@ -86,7 +81,15 @@ impl<'a> CwCallService<'a> {
             })
             .collect::<Result<Vec<SubMsg>, ContractError>>()?;
 
+        let total_paid = self.get_total_paid(deps.as_ref(), &info.funds)?;
         let fee_handler = self.fee_handler().load(deps.storage)?;
+        let protocol_fee = self.get_protocol_fee(deps.as_ref().storage);
+        let total_fee_required = protocol_fee + total_spent;
+
+        if total_paid < total_fee_required {
+            return Err(ContractError::InsufficientFunds);
+        }
+        let remaining = total_paid - total_spent;
 
         let event = event_xcall_message_sent(caller.to_string(), to.to_string(), sequence_no);
         println!("{LOG_PREFIX} Sent Bank Message");
@@ -99,7 +102,7 @@ impl<'a> CwCallService<'a> {
 
         let msg = BankMsg::Send {
             to_address: fee_handler,
-            amount: coins(total_paid, config.denom),
+            amount: coins(remaining, config.denom),
         };
         res = res.add_message(msg);
 
