@@ -51,5 +51,5 @@ jobs:
         run: |
           container=$(docker ps --format '{{.Names}}')
           docker exec $container sh -c "rm /contracts/cw_common*.wasm"
-          docker exec $container chmod +x /contracts/deploy_cw.sh
-          docker exec $container sh /contracts/deploy_cw.sh
+          docker exec $container chmod +x /opt/deploy_cw.sh
+          docker exec $container sh /opt/deploy_cw.sh
