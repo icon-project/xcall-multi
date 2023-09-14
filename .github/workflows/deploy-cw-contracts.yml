@@ -42,7 +42,10 @@ jobs:
           cargo install cosmwasm-check --locked
 
       - name: Compile WASM
-        run: bash ./scripts/generate_wasm.sh
+        run: |
+          sudo chmod -R 777 artifacts
+          sudo chmod -R 777 scripts
+          bash ./scripts/generate_wasm.sh
 
       - name: Deploy WASM
         run: |
