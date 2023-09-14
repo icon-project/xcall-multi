@@ -144,6 +144,10 @@ fn send_packet_failure_due_rollback_len() {
                     })
                 }
             }
+            WasmQuery::Smart {
+                contract_addr: _,
+                msg: _,
+            } => SystemResult::Ok(ContractResult::Ok(to_binary(&0_u128).unwrap())),
             _ => todo!(),
         }
     });
@@ -182,7 +186,7 @@ fn send_packet_failure_due_rollback_len() {
 fn send_packet_success_needresponse() {
     let mut mock_deps = deps();
 
-    let mock_info = create_mock_info(MOCK_CONTRACT_ADDR, "umlg", 2000);
+    let mock_info = create_mock_info(MOCK_CONTRACT_ADDR, "arch", 2000);
 
     let _env = mock_env();
 

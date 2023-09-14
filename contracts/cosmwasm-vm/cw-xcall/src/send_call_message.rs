@@ -1,5 +1,5 @@
 use cosmwasm_std::{coins, BankMsg};
-use cw_xcall_lib::network_address::NetworkAddress;
+use cw_xcall_lib::network_address::{NetId, NetworkAddress};
 
 use crate::types::LOG_PREFIX;
 
@@ -24,6 +24,12 @@ impl<'a> CwCallService<'a> {
         self.ensure_caller_is_contract_and_rollback_is_null(deps.as_ref(), &caller, &rollback)?;
 
         let need_response = rollback.is_some();
+        let total_fee_required =
+            self.get_fee(deps.as_ref(), to.nid(), rollback.is_some(), sources.clone())?;
+        let mut total_paid = self.get_total_paid(deps.as_ref(), &info.funds)?;
+        if total_paid < total_fee_required {
+            return Err(ContractError::InsufficientFunds);
+        }
 
         let rollback_data = match rollback {
             Some(data) => data,
@@ -68,6 +74,7 @@ impl<'a> CwCallService<'a> {
                     .query_connection_fee(deps.as_ref(), to.nid(), need_response, r)
                     .and_then(|fee| {
                         let fund = if fee > 0 {
+                            total_paid = total_paid.checked_sub(fee).unwrap();
                             coins(fee, config.denom.clone())
                         } else {
                             vec![]
@@ -78,7 +85,7 @@ impl<'a> CwCallService<'a> {
                     });
             })
             .collect::<Result<Vec<SubMsg>, ContractError>>()?;
-        let protocol_fee = self.get_protocol_fee(deps.storage);
+
         let fee_handler = self.fee_handler().load(deps.storage)?;
 
         let event = event_xcall_message_sent(caller.to_string(), to.to_string(), sequence_no);
@@ -89,13 +96,13 @@ impl<'a> CwCallService<'a> {
             .add_attribute("method", "send_packet")
             .add_attribute("sequence_no", sequence_no.to_string())
             .add_event(event);
-        if protocol_fee > 0 {
-            let msg = BankMsg::Send {
-                to_address: fee_handler,
-                amount: coins(protocol_fee, config.denom),
-            };
-            res = res.add_message(msg);
-        }
+
+        let msg = BankMsg::Send {
+            to_address: fee_handler,
+            amount: coins(total_paid, config.denom),
+        };
+        res = res.add_message(msg);
+
         Ok(res)
     }
 }
