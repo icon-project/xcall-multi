@@ -54,8 +54,7 @@ library RLPEncodeStruct {
         bytes memory _rlp =
             abi.encodePacked(
                 _bs.sn.encodeUint(),
-                _bs.code.encodeInt(),
-                _bs.msg.encodeString()
+                _bs.code.encodeInt()
             );
         return _rlp.encodeList();
     }
