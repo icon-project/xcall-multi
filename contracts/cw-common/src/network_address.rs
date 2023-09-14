@@ -75,4 +75,3 @@ fn address_validation_test() {
     let res = network_address.validate_foreign_addresses();
     assert!(!res);
 }
-
