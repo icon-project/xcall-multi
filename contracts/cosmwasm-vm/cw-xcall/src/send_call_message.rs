@@ -99,12 +99,13 @@ impl<'a> CwCallService<'a> {
             .add_attribute("method", "send_packet")
             .add_attribute("sequence_no", sequence_no.to_string())
             .add_event(event);
-
-        let msg = BankMsg::Send {
-            to_address: fee_handler,
-            amount: coins(remaining, config.denom),
-        };
-        res = res.add_message(msg);
+        if remaining > 0 {
+            let msg = BankMsg::Send {
+                to_address: fee_handler,
+                amount: coins(remaining, config.denom),
+            };
+            res = res.add_message(msg);
+        }
 
         Ok(res)
     }
