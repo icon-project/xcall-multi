@@ -429,7 +429,7 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
     */
     function setAdmin(
         address _address
-    ) external onlyOwner {
+    ) external onlyAdmin {
         adminAddress = _address;
     }
 
