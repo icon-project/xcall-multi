@@ -21,11 +21,7 @@ impl<'a> CwCallService<'a> {
         let config = self.get_config(deps.as_ref().storage)?;
         let nid = config.network_id;
 
-        self.ensure_caller_is_contract_and_rollback_is_null(
-            deps.as_ref(),
-            caller.clone(),
-            rollback.clone(),
-        )?;
+        self.ensure_caller_is_contract_and_rollback_is_null(deps.as_ref(), &caller, &rollback)?;
 
         let need_response = rollback.is_some();
 
@@ -55,7 +51,7 @@ impl<'a> CwCallService<'a> {
 
         let call_request = CSMessageRequest::new(
             from,
-            deps.api.addr_validate(to.account().as_str())?,
+            to.account(),
             sequence_no,
             need_response,
             data.to_vec(),

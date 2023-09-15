@@ -1,12 +1,13 @@
 use cosmwasm_std::DepsMut;
 use cosmwasm_std::MessageInfo;
-use cosmwasm_std::SubMsgResult;
-use cosmwasm_std::{Deps, Env, Reply, Response};
+use cosmwasm_std::ReplyOn;
+
+use cosmwasm_std::{Env, Response};
 
 use crate::error::ContractError;
 use crate::events::event_rollback_executed;
-use crate::state::{CwCallService, EXECUTE_ROLLBACK_ID};
-use crate::types::LOG_PREFIX;
+use crate::state::CwCallService;
+use crate::state::EXECUTE_ROLLBACK_ID;
 
 impl<'a> CwCallService<'a> {
     /// This function executes a rollback operation for a previously made call request.
@@ -42,7 +43,7 @@ impl<'a> CwCallService<'a> {
             .unwrap();
         let from = self.get_own_network_address(deps.as_ref().storage, &env)?;
 
-        let sub_msg = self.call_dapp_handle_message(
+        let mut sub_msg = self.call_dapp_handle_message(
             info,
             // the original caller is stored as from in call request
             call_request.from().clone(),
@@ -51,6 +52,7 @@ impl<'a> CwCallService<'a> {
             call_request.protocols().clone(),
             EXECUTE_ROLLBACK_ID,
         )?;
+        sub_msg.reply_on = ReplyOn::Never;
 
         let event = event_rollback_executed(sequence_no);
 
