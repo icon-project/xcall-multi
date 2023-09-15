@@ -97,7 +97,9 @@ impl<'a> CwCallService<'a> {
                 let dests = destinations.unwrap_or(vec![]);
                 self.send_call_message(deps, info, env, to, data, rollback, sources, dests)
             }
-            ExecuteMsg::HandleMessage { msg, from } => self.handle_message(deps, info, from, msg),
+            ExecuteMsg::HandleMessage { msg, from_nid } => {
+                self.handle_message(deps, info, from_nid, msg)
+            }
             ExecuteMsg::HandleError { sn } => self.handle_error(deps, info, sn),
             ExecuteMsg::ExecuteCall { request_id, data } => {
                 self.execute_call(deps, info, request_id, data)
