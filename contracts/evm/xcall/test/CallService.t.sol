@@ -65,4 +65,23 @@ contract CallServiceTest is Test {
         callService.setAdmin(user);
     }
 
+    function testSetProtocolFees() public {
+        callService.setProtocolFee(10);
+        assertEq(callService.getProtocolFee(), 10);
+    }
+
+    function testSetProtocolFeesAdmin() public {
+        callService.setAdmin(user);
+        vm.prank(user);
+        callService.setProtocolFee(10);
+
+        assertEq(callService.getProtocolFee(), 10);
+    }
+
+    function testSetProtocolFeesUnauthorized() public {
+        vm.prank(user);
+        vm.expectRevert("OnlyAdmin");
+        callService.setProtocolFee(10);
+    }
+
 }
