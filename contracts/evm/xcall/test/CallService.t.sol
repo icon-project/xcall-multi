@@ -41,6 +41,12 @@ contract CallServiceTest is Test {
 
     string constant xcallMulti = "xcall-multi";
 
+    event CallMessageSent(
+        address indexed _from,
+        string indexed _to,
+        uint256 indexed _sn
+    );
+
     function setUp() public {
         dapp = new DAppProxySample();
         ethDappAddress = NetworkAddress.networkAddress(ethNid, ParseAddress.toString(address(dapp)));
