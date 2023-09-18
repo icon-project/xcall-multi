@@ -110,4 +110,33 @@ contract CallServiceTest is Test {
         callService.setProtocolFeeHandler(user);
     }
 
+    function testHandleResponseDefaultProtocol() public {
+        bytes memory data = bytes("test");
+
+        callService.setDefaultConnection(netTo, address(baseConnection));
+
+        Types.CSMessageRequest memory request = Types.CSMessageRequest(iconDapp, ParseAddress.toString(address(dapp)), 1, false, data, new string[](0));
+        Types.CSMessage memory msg = Types.CSMessage(Types.CS_REQUEST, RLPEncodeStruct.encodeCSMessageRequest(request));
+
+        vm.expectEmit();
+        emit CallMessage(iconDapp, ParseAddress.toString(address(dapp)), 1, 1, data);
+
+        vm.prank(address(baseConnection));
+        callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(msg));
+    }
+
+    function testHandleResponseDefaultProtocolInvalidSender() public {
+        bytes memory data = bytes("test");
+
+        callService.setDefaultConnection(netTo, address(baseConnection));
+        Types.CSMessageRequest memory request = Types.CSMessageRequest(iconDapp, ParseAddress.toString(address(dapp)), 1, false, data, new string[](0));
+        Types.CSMessage memory msg = Types.CSMessage(Types.CS_REQUEST, RLPEncodeStruct.encodeCSMessageRequest(request));
+
+        vm.prank(address(user));
+        vm.expectRevert("NotAuthorized");
+        callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(msg));
+    }
+
+
+
 }
