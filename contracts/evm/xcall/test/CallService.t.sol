@@ -13,6 +13,9 @@ import "@iconfoundation/btp2-solidity-library/contracts/utils/Strings.sol";
 
 import "@iconfoundation/btp2-solidity-library/contracts/interfaces/IConnection.sol";
 import "@iconfoundation/btp2-solidity-library/contracts/interfaces/ICallServiceReceiver.sol";
+import "@iconfoundation/btp2-solidity-library/contracts/interfaces/ICallService.sol";
+
+import "../contracts/test/DAppProxySample.sol";
 
 
 contract CallServiceTest is Test {
@@ -51,7 +54,6 @@ contract CallServiceTest is Test {
         dapp = new DAppProxySample();
         ethDappAddress = NetworkAddress.networkAddress(ethNid, ParseAddress.toString(address(dapp)));
 
-        // mock when call getFee to return 0
         baseConnection = IConnection(address(0x0000000000000000000000000000000000000000));
 
         _baseSource = new string[](1);
@@ -72,7 +74,7 @@ contract CallServiceTest is Test {
 
     function testSetAdminUnauthorized() public {
         vm.prank(user);
-        vm.expectRevert("OnlyOwner");
+        vm.expectRevert("OnlyAdmin");
         callService.setAdmin(user);
     }
 

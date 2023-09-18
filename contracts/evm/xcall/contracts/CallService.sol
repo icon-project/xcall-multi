@@ -76,7 +76,7 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
         return networkAddress;
     }
 
-     function getNetworkId(
+    function getNetworkId(
     ) external view override returns (
         string memory
     ) {
@@ -138,6 +138,7 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
 
         if (sources.length == 0) {
             address conn = defaultConnections[netTo];
+            require(conn != address(0), "NoDefaultConnection");
             uint256 requiredFee = IConnection(conn).getFee(netTo, needResponse);
             sendBTPMessage(conn, requiredFee, netTo, Types.CS_REQUEST, msgSn, _msg);
         } else {
@@ -346,9 +347,9 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
                 delete pendingReqs[dataHash][req.protocols[i]];
             }
         } else if (req.protocols.length == 1) {
-            require(msg.sender == req.protocols[0].parseAddress("IllegalArgument"));
+            require(msg.sender == req.protocols[0].parseAddress("IllegalArgument"), "NotAuthorized");
         } else {
-            require(msg.sender == defaultConnections[fromNID]);
+            require(msg.sender == defaultConnections[fromNID], "NotAuthorized");
         }
 
         uint256 reqId = getNextReqId();
@@ -384,9 +385,9 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
                 delete pendingResponses[res.sn][req.sources[i]];
             }
         } else if (req.sources.length == 1) {
-            require(msg.sender == req.sources[0].parseAddress("IllegalArgument"));
+            require(msg.sender == req.sources[0].parseAddress("IllegalArgument"), "NotAuthorized");
         } else {
-            require(msg.sender == defaultConnections[req.to]);
+            require(msg.sender == defaultConnections[req.to], "NotAuthorized");
         }
 
         emit ResponseMessage(res.sn, res.code);
@@ -429,7 +430,7 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
     */
     function setAdmin(
         address _address
-    ) external onlyOwner {
+    ) external onlyAdmin {
         adminAddress = _address;
     }
 
@@ -444,6 +445,10 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
         address
     ) {
         return feeHandler;
+    }
+
+    function setDefaultConnection(string memory nid, address connection) external onlyAdmin {
+        defaultConnections[nid] = connection;
     }
 
     function setProtocolFee(
