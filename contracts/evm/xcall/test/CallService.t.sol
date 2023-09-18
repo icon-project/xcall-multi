@@ -156,4 +156,30 @@ contract CallServiceTest is Test {
         vm.mockCall(address(connection2), abi.encodeWithSelector(connection2.sendMessage.selector, netTo, xcallMulti, 0, msg), abi.encode(1));
     }
 
+    function testSendMessageDefaultProtocol() public {
+        bytes memory data = bytes("test");
+        bytes memory rollbackData = bytes("");
+
+        callService.setDefaultConnection(netTo, address(baseConnection));
+
+        vm.expectEmit();
+        emit CallMessageSent(address(callService), iconDapp, 1);
+
+        uint256 sn = callService.sendCallMessage{value: 0 ether}(iconDapp, data, rollbackData);
+        assertEq(sn, 1);
+
+        Types.CSMessageRequest memory request = Types.CSMessageRequest(ethDappAddress, dstAccount, 1, false, data, new string[](0));
+        Types.CSMessage memory msg = Types.CSMessage(Types.CS_REQUEST, RLPEncodeStruct.encodeCSMessageRequest(request));
+
+        vm.mockCall(address(dapp), abi.encodeWithSelector(baseConnection.sendMessage.selector, netTo, xcallMulti, 0, msg), abi.encode(1));
+    }
+
+    function testSendMessageDefaultProtocolNotSet() public {
+        bytes memory data = bytes("test");
+        bytes memory rollbackData = bytes("");
+
+        vm.expectRevert("NoDefaultConnection");
+        uint256 sn = callService.sendCallMessage{value: 0 ether}(iconDapp, data, rollbackData);
+    }
+
 }
