@@ -31,12 +31,16 @@ contract CallServiceTest is Test {
     string public iconNid = "0x2.ICON";
     string public ethNid = "0x1.ETH";
     string public iconDapp = NetworkAddress.networkAddress(iconNid, "0xa");
+    string public netTo;
+    string public dstAccount;
     string public ethDappAddress;
 
     string public baseIconConnection = "0xb";
 
     string[] _baseSource;
     string[] _baseDestination;
+
+    string constant xcallMulti = "xcall-multi";
 
     function setUp() public {
         dapp = new DAppProxySample();
