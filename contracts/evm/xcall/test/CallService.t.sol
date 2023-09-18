@@ -23,6 +23,7 @@ contract CallServiceTest is Test {
 
     IConnection public connection1;
     IConnection public connection2;
+    ICallServiceReceiver public receiver;
 
     address public owner = address(0x1111);
     address public user = address(0x1234);
@@ -191,5 +192,23 @@ contract CallServiceTest is Test {
         emit CallMessage(iconDapp, ParseAddress.toString(address(dapp)), 1, 1, data);
         vm.prank(address(connection2));
         callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(msg));
+    }
+
+    function testExecuteCallSingleProtocol() public {
+        bytes memory data = bytes("test");
+
+        Types.CSMessageRequest memory request = Types.CSMessageRequest(iconDapp, ParseAddress.toString(address(receiver)), 1, false, data, _baseSource);
+        Types.CSMessage memory msg = Types.CSMessage(Types.CS_REQUEST, RLPEncodeStruct.encodeCSMessageRequest(request));
+
+        vm.prank(address(baseConnection));
+        callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(msg));
+
+        vm.expectEmit();
+        emit CallExecuted(1, 1, "");
+
+        vm.prank(user);
+        vm.mockCall(address(receiver), abi.encodeWithSelector(receiver.handleCallMessage.selector, iconDapp, data, _baseSource), abi.encode(1));
+        callService.executeCall(1, data);
+
     }
 }
