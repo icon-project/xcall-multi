@@ -137,6 +137,34 @@ contract CallServiceTest is Test {
         callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(msg));
     }
 
+    function testHandleResponseSingleProtocol() public {
+        bytes memory data = bytes("test");
 
+        string[] memory sources = new string[](1);
+        sources[0] = ParseAddress.toString(address(baseConnection));
 
+        Types.CSMessageRequest memory request = Types.CSMessageRequest(iconDapp, ParseAddress.toString(address(dapp)), 1, false, data, sources);
+        Types.CSMessage memory msg = Types.CSMessage(Types.CS_REQUEST, RLPEncodeStruct.encodeCSMessageRequest(request));
+        vm.prank(address(baseConnection));
+
+        vm.expectEmit();
+        emit CallMessage(iconDapp, ParseAddress.toString(address(dapp)), 1, 1, data);
+
+        callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(msg));
+    }
+
+    function testHandleResponseSingleProtocolInvalidSender() public {
+        bytes memory data = bytes("test");
+
+        string[] memory sources = new string[](1);
+        sources[0] = ParseAddress.toString(address(baseConnection));
+
+        Types.CSMessageRequest memory request = Types.CSMessageRequest(iconDapp, ParseAddress.toString(address(dapp)), 1, false, data, sources);
+        Types.CSMessage memory msg = Types.CSMessage(Types.CS_REQUEST, RLPEncodeStruct.encodeCSMessageRequest(request));
+
+        vm.prank(address(user));
+        vm.expectRevert("NotAuthorized");
+
+        callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(msg));
+    }
 }
