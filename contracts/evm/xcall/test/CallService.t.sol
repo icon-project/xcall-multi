@@ -124,4 +124,36 @@ contract CallServiceTest is Test {
 
     }
 
+    function testSendMessageMultiProtocol() public {
+        bytes memory data = bytes("test");
+        bytes memory rollbackData = bytes("");
+
+        connection1 = IConnection(address(0x0000000000000000000000000000000000000011));
+        connection2 = IConnection(address(0x0000000000000000000000000000000000000012));
+
+        vm.mockCall(address(connection1), abi.encodeWithSelector(connection1.getFee.selector), abi.encode(0));
+        vm.mockCall(address(connection2), abi.encodeWithSelector(connection2.getFee.selector), abi.encode(0));
+
+        string[] memory destinations = new string[](2);
+        destinations[0] = "0x1icon";
+        destinations[1] = "0x2icon";
+
+        string[] memory sources = new string[](2);
+        sources[0] = ParseAddress.toString(address(connection1));
+        sources[1] = ParseAddress.toString(address(connection2));
+
+        vm.expectEmit();
+        emit CallMessageSent(address(dapp), iconDapp, 1);
+
+        vm.prank(address(dapp));
+        uint256 sn = callService.sendCallMessage{value: 0 ether}(iconDapp, data, rollbackData, sources, destinations);
+        assertEq(sn, 1);
+
+        Types.CSMessageRequest memory request = Types.CSMessageRequest(ethDappAddress, dstAccount, 1, false, data, destinations);
+        Types.CSMessage memory msg = Types.CSMessage(Types.CS_REQUEST, RLPEncodeStruct.encodeCSMessageRequest(request));
+
+        vm.mockCall(address(connection1), abi.encodeWithSelector(connection1.sendMessage.selector, netTo, xcallMulti, 0, msg), abi.encode(1));
+        vm.mockCall(address(connection2), abi.encodeWithSelector(connection2.sendMessage.selector, netTo, xcallMulti, 0, msg), abi.encode(1));
+    }
+
 }
