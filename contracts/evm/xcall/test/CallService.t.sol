@@ -59,6 +59,25 @@ contract CallServiceTest is Test {
         string _msg
     );
 
+    event CallMessageSent(
+        address indexed _from,
+        string indexed _to,
+        uint256 indexed _sn
+    );
+
+    event ResponseMessage(
+        uint256 indexed _sn,
+        int _code
+    );
+
+    event RollbackMessage(
+        uint256 indexed _sn
+    );
+
+    event RollbackExecuted(
+        uint256 indexed _sn
+    );
+
 
     function setUp() public {
         dapp = new DAppProxySample();
