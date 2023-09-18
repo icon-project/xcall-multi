@@ -290,5 +290,27 @@ contract CallServiceTest is Test {
         callService.executeCall(1, data);
     }
 
+    function testRollBackSingleProtocol() public {
+        bytes memory data = bytes("test");
+        bytes memory rollbackData = bytes("rollback");
+
+        vm.prank(address(dapp));
+        vm.expectEmit();
+        emit CallMessageSent(address(dapp), iconDapp, 1);
+
+        uint256 sn = callService.sendCallMessage{value: 0 ether}(iconDapp, data, rollbackData, _baseSource, _baseDestination);
+        assertEq(sn, 1);
+
+        Types.CSMessageResponse memory response = Types.CSMessageResponse(1, Types.CS_RESP_FAILURE);
+        Types.CSMessage memory msg = Types.CSMessage(Types.CS_RESPONSE, RLPEncodeStruct.encodeCSMessageResponse(response));
+
+        vm.expectEmit();
+        emit ResponseMessage(1, Types.CS_RESP_FAILURE);
+        emit RollbackMessage(1);
+
+        vm.prank(address(baseConnection));
+        callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(msg));
+    }
+
 
 }
