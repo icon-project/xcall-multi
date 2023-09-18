@@ -21,6 +21,9 @@ contract CallServiceTest is Test {
     DAppProxySample public dapp;
     IConnection public baseConnection;
 
+    IConnection public connection1;
+    IConnection public connection2;
+
     address public owner = address(0x1111);
     address public user = address(0x1234);
 
@@ -29,12 +32,24 @@ contract CallServiceTest is Test {
     string public iconNid = "0x2.ICON";
     string public ethNid = "0x1.ETH";
     string public iconDapp = NetworkAddress.networkAddress(iconNid, "0xa");
+
+    string public netTo;
+    string public dstAccount;
     string public ethDappAddress;
 
     string public baseIconConnection = "0xb";
 
     string[] _baseSource;
     string[] _baseDestination;
+
+    event CallMessage(
+        string indexed _from,
+        string indexed _to,
+        uint256 indexed _sn,
+        uint256 _reqId,
+        bytes _data
+    );
+
 
     function setUp() public {
         dapp = new DAppProxySample();
