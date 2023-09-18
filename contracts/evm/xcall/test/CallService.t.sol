@@ -167,4 +167,29 @@ contract CallServiceTest is Test {
 
         callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(msg));
     }
+
+    function testHandleResponseMultiProtocol() public {
+        bytes memory data = bytes("test");
+
+        connection1 = IConnection(address(0x0000000000000000000000000000000000000011));
+        connection2 = IConnection(address(0x0000000000000000000000000000000000000012));
+
+        vm.mockCall(address(connection1), abi.encodeWithSelector(connection1.getFee.selector), abi.encode(0));
+        vm.mockCall(address(connection2), abi.encodeWithSelector(connection2.getFee.selector), abi.encode(0));
+
+        string[] memory connections = new string[](2);
+        connections[0] = ParseAddress.toString(address(connection1));
+        connections[1] = ParseAddress.toString(address(connection2));
+
+        Types.CSMessageRequest memory request = Types.CSMessageRequest(iconDapp, ParseAddress.toString(address(dapp)), 1, false, data, connections);
+        Types.CSMessage memory msg = Types.CSMessage(Types.CS_REQUEST, RLPEncodeStruct.encodeCSMessageRequest(request));
+
+        vm.prank(address(connection1));
+        callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(msg));
+
+        vm.expectEmit();
+        emit CallMessage(iconDapp, ParseAddress.toString(address(dapp)), 1, 1, data);
+        vm.prank(address(connection2));
+        callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(msg));
+    }
 }
