@@ -240,5 +240,36 @@ contract CallServiceTest is Test {
         callService.executeCall(1, data);
     }
 
+    function testExecuteCallMultiProtocol() public {
+        bytes memory data = bytes("test");
+
+        defaultServiceReceiver = IDefaultCallServiceReceiver(address(0x5678));
+        connection1 = IConnection(address(0x0000000000000000000000000000000000000011));
+        connection2 = IConnection(address(0x0000000000000000000000000000000000000012));
+
+        string[] memory connections = new string[](2);
+        connections[0] = ParseAddress.toString(address(connection1));
+        connections[1] = ParseAddress.toString(address(connection2));
+
+        vm.mockCall(address(connection1), abi.encodeWithSelector(connection1.getFee.selector), abi.encode(0));
+        vm.mockCall(address(connection2), abi.encodeWithSelector(connection2.getFee.selector), abi.encode(0));
+
+        Types.CSMessageRequest memory request = Types.CSMessageRequest(iconDapp, ParseAddress.toString(address(receiver)), 1, false, data, connections);
+        Types.CSMessage memory msg = Types.CSMessage(Types.CS_REQUEST, RLPEncodeStruct.encodeCSMessageRequest(request));
+
+        vm.prank(address(connection1));
+        callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(msg));
+
+        vm.prank(address(connection2));
+        callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(msg));
+
+        vm.expectEmit();
+        emit CallExecuted(1, 1, "");
+
+        vm.prank(user);
+        vm.mockCall(address(receiver), abi.encodeWithSelector(receiver.handleCallMessage.selector, iconDapp, data, connections), abi.encode(1));
+        callService.executeCall(1, data);
+    }
+
 
 }
