@@ -61,7 +61,7 @@ contract CallServiceTest is Test {
 
     function testSetAdminUnauthorized() public {
         vm.prank(user);
-        vm.expectRevert("OnlyOwner");
+        vm.expectRevert("OnlyAdmin");
         callService.setAdmin(user);
     }
 
