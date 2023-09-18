@@ -54,11 +54,15 @@ contract CallServiceTest is Test {
 
     }
 
-    function testAddTestHere() public{
-        console2.log("testAddTestHere");
+    function testSetAdmin() public {
+        callService.setAdmin(user);
+        assertEq(callService.admin(), user);
     }
 
-
-
+    function testSetAdminUnauthorized() public {
+        vm.prank(user);
+        vm.expectRevert("OnlyAdmin");
+        callService.setAdmin(user);
+    }
 
 }
