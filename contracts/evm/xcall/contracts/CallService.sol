@@ -76,7 +76,7 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
         return networkAddress;
     }
 
-     function getNetworkId(
+    function getNetworkId(
     ) external view override returns (
         string memory
     ) {
@@ -138,6 +138,7 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
 
         if (sources.length == 0) {
             address conn = defaultConnections[netTo];
+            require(conn != address(0), "NoDefaultConnection");
             uint256 requiredFee = IConnection(conn).getFee(netTo, needResponse);
             sendBTPMessage(conn, requiredFee, netTo, Types.CS_REQUEST, msgSn, _msg);
         } else {
