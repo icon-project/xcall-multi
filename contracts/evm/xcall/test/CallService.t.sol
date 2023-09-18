@@ -27,7 +27,6 @@ contract CallServiceTest is Test {
     address public user = address(0x1234);
 
     address public xcall;
-    // address public xcallSpy;
     string public iconNid = "0x2.ICON";
     string public ethNid = "0x1.ETH";
     string public iconDapp = NetworkAddress.networkAddress(iconNid, "0xa");
@@ -101,41 +100,22 @@ contract CallServiceTest is Test {
         callService.setProtocolFeeHandler(user);
     }
 
-    function testSendMessage() public {
+    function testSendMessageSingleProtocol() public {
         bytes memory data = bytes("test");
-        bytes memory rollbackData =bytes("");
-        uint256 sn = callService.sendCallMessage{value: 0 ether}(iconDapp, data, rollbackData,_baseSource,_baseDestination);
+        bytes memory rollbackData = bytes("");
+
+        vm.prank(address(dapp));
+        vm.expectEmit();
+        emit CallMessageSent(address(dapp), iconDapp, 1);
+
+        uint256 sn = callService.sendCallMessage{value: 0 ether}(iconDapp, data, rollbackData, _baseSource, _baseDestination);
         assertEq(sn, 1);
 
-        Types.CSMessageRequest memory request = Types.CSMessageRequest(ethDappAddress, iconDapp, 1, false, data, _baseSource);
+        Types.CSMessageRequest memory request = Types.CSMessageRequest(ethDappAddress, dstAccount, 1, false, data, new string[](0));
         Types.CSMessage memory msg = Types.CSMessage(Types.CS_REQUEST, RLPEncodeStruct.encodeCSMessageRequest(request));
-        vm.mockCall(address(baseConnection), abi.encodeWithSelector(baseConnection.sendMessage.selector, msg), abi.encode(1));
+
+        vm.mockCall(address(dapp), abi.encodeWithSelector(baseConnection.sendMessage.selector, netTo, xcallMulti, 0, msg), abi.encode(1));
+
     }
 
-    function testSendMessageMultiProtocol() public {
-        bytes memory data = bytes("test");
-        bytes memory rollbackData =bytes("");
-
-        connection1 = IConnection(address(0x0000000000000000000000000000000000000001));
-        connection1 = IConnection(address(0x0000000000000000000000000000000000000002));
-
-        vm.mockCall(address(connection1), abi.encodeWithSelector(connection1.getFee.selector), abi.encode(0));
-        vm.mockCall(address(connection2), abi.encodeWithSelector(connection2.getFee.selector), abi.encode(0));
-
-        string[] memory destinations = new string[](2);
-        destinations[0] = "0x1icon";
-        destinations[1] = "0x2icon";
-
-        string[] memory sources = new string[](2);
-        sources[0] = ParseAddress.toString(address(connection1));
-        sources[1] = ParseAddress.toString(address(connection2));
-
-        uint256 sn = callService.sendCallMessage{value: 0 ether}(iconDapp, data, rollbackData,sources,destinations);
-        assertEq(sn, 1);
-
-        Types.CSMessageRequest memory request = Types.CSMessageRequest(ethDappAddress, iconDapp, 1, false, data, _baseSource);
-        Types.CSMessage memory msg = Types.CSMessage(Types.CS_REQUEST, RLPEncodeStruct.encodeCSMessageRequest(request));
-        vm.mockCall(address(connection1), abi.encodeWithSelector(connection1.sendMessage.selector, msg), abi.encode(1));
-        vm.mockCall(address(connection2), abi.encodeWithSelector(connection2.sendMessage.selector, msg), abi.encode(1));
-    }
 }
