@@ -347,9 +347,9 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
                 delete pendingReqs[dataHash][req.protocols[i]];
             }
         } else if (req.protocols.length == 1) {
-            require(msg.sender == req.protocols[0].parseAddress("IllegalArgument"));
+            require(msg.sender == req.protocols[0].parseAddress("IllegalArgument"), "NotAuthorized");
         } else {
-            require(msg.sender == defaultConnections[fromNID]);
+            require(msg.sender == defaultConnections[fromNID], "NotAuthorized");
         }
 
         uint256 reqId = getNextReqId();
@@ -385,9 +385,9 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
                 delete pendingResponses[res.sn][req.sources[i]];
             }
         } else if (req.sources.length == 1) {
-            require(msg.sender == req.sources[0].parseAddress("IllegalArgument"));
+            require(msg.sender == req.sources[0].parseAddress("IllegalArgument"), "NotAuthorized");
         } else {
-            require(msg.sender == defaultConnections[req.to]);
+            require(msg.sender == defaultConnections[req.to], "NotAuthorized");
         }
 
         emit ResponseMessage(res.sn, res.code);
