@@ -84,4 +84,15 @@ contract CallServiceTest is Test {
         callService.setProtocolFee(10);
     }
 
+    function testSetProtocolFeeFeeHandler() public {
+        callService.setProtocolFeeHandler(user);
+        assertEq(callService.getProtocolFeeHandler(), user);
+    }
+
+    function testSetProtocolFeeHandlerUnauthorized() public {
+        vm.prank(user);
+        vm.expectRevert("OnlyAdmin");
+        callService.setProtocolFeeHandler(user);
+    }
+
 }
