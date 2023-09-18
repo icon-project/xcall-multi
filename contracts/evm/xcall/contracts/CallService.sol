@@ -447,6 +447,10 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
         return feeHandler;
     }
 
+    function setDefaultConnection(string memory nid, address connection) external onlyAdmin {
+        defaultConnections[nid] = connection;
+    }
+
     function setProtocolFee(
         uint256 _value
     ) external override onlyAdmin {
