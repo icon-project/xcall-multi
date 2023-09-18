@@ -11,6 +11,7 @@ import "@iconfoundation/btp2-solidity-library/contracts/utils/Strings.sol";
 
 import "@iconfoundation/btp2-solidity-library/contracts/interfaces/IConnection.sol";
 import "@iconfoundation/btp2-solidity-library/contracts/interfaces/ICallService.sol";
+import "@iconfoundation/btp2-solidity-library/contracts/interfaces/IDefaultCallServiceReceiver.sol";
 
 
 import "../contracts/test/DAppProxySample.sol";
@@ -24,6 +25,7 @@ contract CallServiceTest is Test {
     IConnection public connection1;
     IConnection public connection2;
     ICallServiceReceiver public receiver;
+    IDefaultCallServiceReceiver public defaultServiceReceiver;
 
     address public owner = address(0x1111);
     address public user = address(0x1234);
@@ -217,4 +219,26 @@ contract CallServiceTest is Test {
         callService.executeCall(1, data);
 
     }
+
+    function testExecuteCallDefaultProtocol() public {
+        bytes memory data = bytes("test");
+
+        defaultServiceReceiver = IDefaultCallServiceReceiver(address(0x5678));
+        callService.setDefaultConnection(netTo, address(baseConnection));
+
+        Types.CSMessageRequest memory request = Types.CSMessageRequest(iconDapp, ParseAddress.toString(address(defaultServiceReceiver)), 1, false, data, _baseSource);
+        Types.CSMessage memory msg = Types.CSMessage(Types.CS_REQUEST, RLPEncodeStruct.encodeCSMessageRequest(request));
+
+        vm.prank(address(baseConnection));
+        callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(msg));
+
+        vm.expectEmit();
+        emit CallExecuted(1, 1, "");
+
+        vm.prank(user);
+        vm.mockCall(address(defaultServiceReceiver), abi.encodeWithSelector(defaultServiceReceiver.handleCallMessage.selector, iconDapp, data), abi.encode(1));
+        callService.executeCall(1, data);
+    }
+
+
 }
