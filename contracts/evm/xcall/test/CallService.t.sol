@@ -51,6 +51,12 @@ contract CallServiceTest is Test {
         bytes _data
     );
 
+    event CallExecuted(
+        uint256 indexed _reqId,
+        int _code,
+        string _msg
+    );
+
 
     function setUp() public {
         dapp = new DAppProxySample();
