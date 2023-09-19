@@ -54,7 +54,7 @@ contract CallServiceTest is Test {
         dapp = new DAppProxySample();
         ethDappAddress = NetworkAddress.networkAddress(ethNid, ParseAddress.toString(address(dapp)));
 
-        baseConnection = IConnection(address(0x0000000000000000000000000000000000000000));
+        baseConnection = IConnection(address(0x01));
 
         _baseSource = new string[](1);
         _baseSource[0] = ParseAddress.toString(address(baseConnection));
@@ -111,18 +111,19 @@ contract CallServiceTest is Test {
     function testSendMessageSingleProtocol() public {
         bytes memory data = bytes("test");
         bytes memory rollbackData = bytes("");
+        receiver = ICallServiceReceiver(address(0x02));
 
         vm.prank(address(dapp));
         vm.expectEmit();
         emit CallMessageSent(address(dapp), iconDapp, 1);
 
-        uint256 sn = callService.sendCallMessage{value: 0 ether}(iconDapp, data, rollbackData, _baseSource, _baseDestination);
-        assertEq(sn, 1);
-
-        Types.CSMessageRequest memory request = Types.CSMessageRequest(ethDappAddress, dstAccount, 1, false, data, new string[](0));
+        Types.CSMessageRequest memory request = Types.CSMessageRequest(ethDappAddress, dstAccount, 1, false, data, _baseSource);
         Types.CSMessage memory msg = Types.CSMessage(Types.CS_REQUEST, RLPEncodeStruct.encodeCSMessageRequest(request));
 
-        vm.mockCall(address(dapp), abi.encodeWithSelector(baseConnection.sendMessage.selector, netTo, xcallMulti, 0, msg), abi.encode(1));
+        vm.expectCall(address(baseConnection), abi.encodeWithSelector(baseConnection.sendMessage.selector));
+
+        uint256 sn = callService.sendCallMessage{value: 0 ether}(iconDapp, data, rollbackData, _baseSource, _baseDestination);
+        assertEq(sn, 1);
 
     }
 
@@ -147,33 +148,33 @@ contract CallServiceTest is Test {
         vm.expectEmit();
         emit CallMessageSent(address(dapp), iconDapp, 1);
 
-        vm.prank(address(dapp));
-        uint256 sn = callService.sendCallMessage{value: 0 ether}(iconDapp, data, rollbackData, sources, destinations);
-        assertEq(sn, 1);
-
         Types.CSMessageRequest memory request = Types.CSMessageRequest(ethDappAddress, dstAccount, 1, false, data, destinations);
         Types.CSMessage memory msg = Types.CSMessage(Types.CS_REQUEST, RLPEncodeStruct.encodeCSMessageRequest(request));
 
-        vm.mockCall(address(connection1), abi.encodeWithSelector(connection1.sendMessage.selector, netTo, xcallMulti, 0, msg), abi.encode(1));
-        vm.mockCall(address(connection2), abi.encodeWithSelector(connection2.sendMessage.selector, netTo, xcallMulti, 0, msg), abi.encode(1));
+        vm.expectCall(address(connection1), abi.encodeWithSelector(connection1.sendMessage.selector));
+        vm.expectCall(address(connection2), abi.encodeWithSelector(connection2.sendMessage.selector));
+
+         vm.prank(address(dapp));
+        uint256 sn = callService.sendCallMessage{value: 0 ether}(iconDapp, data, rollbackData, sources, destinations);
+        assertEq(sn, 1);
     }
 
     function testSendMessageDefaultProtocol() public {
         bytes memory data = bytes("test");
         bytes memory rollbackData = bytes("");
 
-        callService.setDefaultConnection(netTo, address(baseConnection));
+        callService.setDefaultConnection(iconNid, address(baseConnection));
 
         vm.expectEmit();
         emit CallMessageSent(address(callService), iconDapp, 1);
 
-        uint256 sn = callService.sendCallMessage{value: 0 ether}(iconDapp, data, rollbackData);
-        assertEq(sn, 1);
-
         Types.CSMessageRequest memory request = Types.CSMessageRequest(ethDappAddress, dstAccount, 1, false, data, new string[](0));
         Types.CSMessage memory msg = Types.CSMessage(Types.CS_REQUEST, RLPEncodeStruct.encodeCSMessageRequest(request));
 
-        vm.mockCall(address(dapp), abi.encodeWithSelector(baseConnection.sendMessage.selector, netTo, xcallMulti, 0, msg), abi.encode(1));
+        vm.expectCall(address(baseConnection), abi.encodeWithSelector(baseConnection.sendMessage.selector));
+
+        uint256 sn = callService.sendCallMessage{value: 0 ether}(iconDapp, data, rollbackData);
+        assertEq(sn, 1);
     }
 
     function testSendMessageDefaultProtocolNotSet() public {
