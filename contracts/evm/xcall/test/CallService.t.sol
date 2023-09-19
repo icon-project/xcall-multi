@@ -12,7 +12,6 @@ import "@iconfoundation/btp2-solidity-library/contracts/utils/Strings.sol";
 import "@iconfoundation/btp2-solidity-library/contracts/interfaces/IConnection.sol";
 import "@iconfoundation/btp2-solidity-library/contracts/interfaces/ICallService.sol";
 
-
 import "../contracts/test/DAppProxySample.sol";
 
 
@@ -28,7 +27,6 @@ contract CallServiceTest is Test {
     address public user = address(0x1234);
 
     address public xcall;
-    // address public xcallSpy;
     string public iconNid = "0x2.ICON";
     string public ethNid = "0x1.ETH";
     string public iconDapp = NetworkAddress.networkAddress(iconNid, "0xa");
