@@ -45,16 +45,16 @@ The default connections are specified by and admin and can be changed at any tim
  * @param _to The network address of the callee on the destination chain
  * @param _data The calldata specific to the target contract
  * @param _rollback (Optional) Data used to specify error handling of a two-way messages
- * @param sources  (Optional) The contracts that will be used to send the message
- * @param destinations (Optional) The addresses of the contracts that xcall will expect the message from.
+ * @param _sources  (Optional) The contracts that will be used to send the message
+ * @param _destinations (Optional) The addresses of the contracts that xcall will expect the message from.
  *
  * @return The serial number of the request
  */
 payable external sendCallMessage(String _to,
                                 byte[] _data,
                                 @Optional bytes _rollback,
-                                @Optional String[] sources
-                                @Optional String[] destinations) return Integer;
+                                @Optional String[] _sources
+                                @Optional String[] _destinations) return Integer;
 ```
 
 ### Events
@@ -75,7 +75,7 @@ CallMessage {
     String _to,
     Integer _sn,
     Integer _reqId,
-    byte[] data
+    byte[] _data
 }
 ```
 
@@ -212,6 +212,30 @@ A rollback can only be delivered by the same protocols used to send the message,
 so the `_protocols` will be the protocols used to send the message.
 So they can be assumed to be safe as long as all messages sent have been done using trusted protocols.
 
+Example implementations of handleCallMessage:
+```javascript
+external handleCallMessage(String _from, byte[] _data) {
+    assert caller == xCall
+    if (_from == xCallNetworkAddress):
+        //Rollback logic
+    else:
+        //Application logic
+}
+```
+
+The below example requires that all the trusted protocols where used in the message but many different strategies could be used. For example asserting that one of the trusted protocols was used would also be a possible verification strategy.
+```javascript
+external handleCallMessage(String _from, byte[] _data, String[] _protocols) {
+    assert caller == xCall
+    if (_from == xCallNetworkAddress):
+        //Rollback logic
+    else:
+        nid = NetworkAddress(_from).net()
+        assert myTrustedProtocols[nid] is in _protocols
+        //Application logic
+}
+```
+
 #### Success verification
 
 If rollback was specified and the call was successful, the success can be verified.
@@ -240,12 +264,12 @@ Sending a message through xCall has two types of fees. One for using the protoco
  * @param _protocol The protocol/connection used
  * @param _net The network id
  * @param _rollback Indicates whether it provides rollback data
- * @param sources The protocols used to send the message is omitted default protocol is used.
+ * @param _sources The protocols used to send the message is omitted default protocol is used.
  * @return The total fee of sending the message
  */
 external readonly getFee(String _net,
                           boolean _rollback
-                          @Optional String[] sources) returns Integer;
+                          @Optional String[] _sources) returns Integer;
 ```
 
 ```
@@ -261,6 +285,7 @@ external readonly getProtocolFee() Returns Integer;
 
 The security of xCall comes from the security of the underlying connections.
 It is up to the dapp to verify that protocols are checked to be valid during `handleCallMessage`.
+Any address can deliver messages to xCall and are assumed to be correct and will be delivered to the dapp which can then discard the message in case of invalid protocols.
 
 ## Implementation Guidelines
 
@@ -377,7 +402,7 @@ proxyReqs: reqId -> CSMessageRequest
 
 # default values should be false in case of boolean storage
 pendingReqs: msgHash -> connection address -> boolean
-pendingResponses: sn -> connection address -> boolean
+pendingResponses: msgHash -> connection address -> boolean
 successfulResponses: sn -> boolean
 
 admin: <admin>
@@ -407,16 +432,16 @@ function init(String networkId) {
 - `_to`: The network address of the target contract.
 - `_data`: The data to be sent to the `_to` contract.
 - `_rollback`: The data to be returned to the caller in case of failure.
-- `sources`: A set of addresses representing the connections to be used when sending the message.
+- `_sources`: A set of addresses representing the connections to be used when sending the message.
   These connections are also used to verify potential rollbacks
-- `destination`: The addresses that the target contract should wait for messages from before considering it complete.
+- `_destination`: The addresses that the target contract should wait for messages from before considering it complete.
 
 ```
 payable external function sendCallMessage(String _to,
                                           byte[] _data,
                                           @Optional bytes _rollback,
-                                          @Optional String[] sources
-                                          @Optional String[] destinations) returns Integer {
+                                          @Optional String[] _sources
+                                          @Optional String[] _destinations) returns Integer {
     caller = getCaller()
     require(caller.isContract() || _rollback == null, "RollbackNotPossible");
     require(_rollback == null || _rollback.length <= MAX_ROLLBACK_SIZE, "MaxRollbackSizeExceeded")
@@ -427,16 +452,16 @@ payable external function sendCallMessage(String _to,
 
     needResponse = _rollback != null && _rollback.length > 0
     if needResponse:
-        req = CallRequest(caller, dst.net(), sources, _rollback)
+        req = CallRequest(caller, dst.net(), _sources, _rollback)
         requests[sn] = req
 
 
-    msgReq = CSMessageRequest(from, dst.account(), sn, needResponse, _data, destinations)
+    msgReq = CSMessageRequest(from, dst.account(), sn, needResponse, _data, _destinations)
     msg = CSMessage(CSMessage.REQUEST, msgReq.toBytes()).toBytes();
     require(msg.length <= MAX_DATA_SIZE, "MaxDataSizeExceeded")
 
     sendSn = needResponse ? sn : 0
-    if sources == []:
+    if _sources == []:
         src = defaultConnection[dst.net()]
         fee = src->getFee(dst.net(), needResponse)
         src->sendMessage(fee, dst.net(), "xcall-multi", sendSn, msg)
@@ -459,13 +484,12 @@ payable external function sendCallMessage(String _to,
 #### Receiving messages
 
 `handleMessage` is the external function used by connections to deliver messages.
-
-```
-external function handleMessage(String _from, bytes _msg) {
+```javascript
+external function handleMessage(String _fromNid, bytes _msg) {
     msg = CSMessage.decode(_msg);
     switch (msg.type) :
         case CSMessage.REQUEST:
-            handleRequest(_from, msg.data);
+            handleRequest(_fromNid, msg.data);
             break;
         case CSMessage.RESPONSE:
             handleResponse(msg.data);
@@ -541,13 +565,14 @@ internal function handleResponse(data bytes) {
             return; // just ignore
 
         if req.protocols.length > 1:
-            pendingResponses.at(resSn).set(source, true);
+             _hash = hash(data);
+            pendingResponses.at(_hash).set(source, true);
             for protocol : req.protocols:
-                if !pendingResponses[resSn][protocol]:
+                if !pendingResponses[_hash][protocol]:
                     return;
 
             for (String protocol : protocols):
-                pendingResponses[resSn][protocol] = null
+                pendingResponses[_hash][protocol] = null
         else if (msgReq.protocols.length == 1):
             require(source == msgReq.protocols[0]);
         else:
@@ -576,20 +601,20 @@ the function should allow the call to fail and send a new message to roll back t
 While if a one way message fails, re-execution should be allowed.
 
 ```
-external function executeCall(Integer _reqId, byte[] data) {
+external function executeCall(Integer _reqId, byte[] _data) {
         req = proxyReqs[_reqId];
         require(req != null, "InvalidRequestId");
         proxyReqs[_reqId] == null;
 
-        assert hash(data) == req.data
+        assert hash(_data) == req.data
 
         from = NetworkAddress(req.from);
         ErrorMessage = ""
         try:
             if req.protocols == []:
-                req.to->handleCallMessage(req.from, data);
+                req.to->handleCallMessage(req.from, _data);
             else:
-                req.to->handleCallMessage(req.from, data, req.protocols);
+                req.to->handleCallMessage(req.from, _data, req.protocols);
             response = new CSMessageResponse(req.sn, CSMessageResponse.SUCCESS);
         catch err:
             response = new CSMessageResponse(req.sn, CSMessageResponse.FAILURE);
@@ -629,21 +654,21 @@ external function executeRollback(Integer _sn) {
 
 ### Admin methods
 
-```
-adminOnly function setAdmin(Address admin){
-    admin = admin
+```javascript
+adminOnly function setAdmin(Address _admin){
+    admin = _admin
 }
 
-adminOnly function setProtocolFeeHandler(Address address){
-    protocolFeeHandler = address
+adminOnly function setProtocolFeeHandler(Address _address){
+    protocolFeeHandler = _address
 }
 
-adminOnly function setProtocolFee(Integer fee){
-    protocolFee = fee
+adminOnly function setProtocolFee(Integer _protocolFee){
+    protocolFee = _protocolFee
 }
 
-adminOnly function setDefaultConnection(String nid, Address connection){
-    defaultConnection.set(nid, connection)
+adminOnly function setDefaultConnection(String _nid, Address _connection){
+    defaultConnection.set(_nid, _connection)
 }
 ```
 
@@ -670,10 +695,10 @@ external readonly function  getProtocolFee() returns Integer {
 ```
 external readonly function  getFee(String _net,
                                    boolean _rollback
-                                   @Optional String[] sources)
+                                   @Optional String[] _sources)
                                         returns Integer {
     fee = protocolFee;
-    if sources == [] {
+    if _sources == [] {
         return defaultConnection[_net]->getFee(_net, _rollback) + fee
     }
 

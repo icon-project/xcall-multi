@@ -6,8 +6,8 @@ use crate::{
     events::event_call_executed,
     state::{CwCallService, EXECUTE_CALL_ID},
     types::{
-        message::CallServiceMessage,
-        response::{CallServiceMessageResponse, CallServiceResponseType},
+        message::CSMessage,
+        response::{CSMessageResponse, CallServiceResponseType},
     },
 };
 
@@ -41,13 +41,13 @@ impl<'a> CwCallService<'a> {
     ) -> Result<Response, ContractError> {
         let proxy_requests = self.get_proxy_request(deps.storage, request_id).unwrap();
 
+        self.ensure_request_not_null(request_id, &proxy_requests)
+            .unwrap();
+
         let data_hash = keccak256(&data).to_vec();
         if data_hash != proxy_requests.data().unwrap().to_vec() {
             return Err(ContractError::DataMismatch);
         }
-
-        self.ensure_request_not_null(request_id, &proxy_requests)
-            .unwrap();
 
         let sub_msg = self.call_dapp_handle_message(
             info,
@@ -73,6 +73,7 @@ impl<'a> CwCallService<'a> {
         msg: Reply,
     ) -> Result<Response, ContractError> {
         let req_id = self.get_execute_request_id(deps.storage)?;
+        self.remove_execute_request_id(deps.storage);
 
         let request = self.get_proxy_request(deps.storage, req_id)?;
         self.remove_proxy_request(deps.storage, req_id);
@@ -81,7 +82,7 @@ impl<'a> CwCallService<'a> {
             cosmwasm_std::SubMsgResult::Ok(_res) => {
                 let code = CallServiceResponseType::CallServiceResponseSuccess.into();
 
-                let message_response = CallServiceMessageResponse::new(
+                let message_response = CSMessageResponse::new(
                     request.sequence_no(),
                     CallServiceResponseType::CallServiceResponseSuccess,
                 );
@@ -91,8 +92,7 @@ impl<'a> CwCallService<'a> {
             cosmwasm_std::SubMsgResult::Err(err) => {
                 let code = CallServiceResponseType::CallServiceResponseFailure;
                 let error_message = format!("CallService Reverted : {err}");
-                let message_response =
-                    CallServiceMessageResponse::new(request.sequence_no(), code.clone());
+                let message_response = CSMessageResponse::new(request.sequence_no(), code.clone());
                 let event = event_call_executed(req_id, code.into(), &error_message);
                 (message_response, event)
             }
@@ -100,7 +100,7 @@ impl<'a> CwCallService<'a> {
         let mut submsgs: Vec<SubMsg> = vec![];
         let sn: i64 = -(request.sequence_no() as i64);
         if request.rollback() {
-            let message: CallServiceMessage = response.into();
+            let message: CSMessage = response.into();
             let mut reply_address = request.protocols().clone();
             let from = request.from().clone();
             if request.protocols().is_empty() {
@@ -109,7 +109,15 @@ impl<'a> CwCallService<'a> {
             }
             submsgs = reply_address
                 .iter()
-                .map(|to| self.call_connection_send_message(to, vec![], from.nid(), sn, &message))
+                .map(|to| {
+                    self.call_connection_send_message(
+                        &deps.api.addr_validate(to)?,
+                        vec![],
+                        from.nid(),
+                        sn,
+                        &message,
+                    )
+                })
                 .collect::<Result<Vec<SubMsg>, ContractError>>()?;
         }
 

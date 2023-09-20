@@ -10,7 +10,6 @@ pub mod execute_rollback;
 pub mod fee_handler;
 pub mod fees;
 pub mod handle_call_message;
-pub mod helpers;
 pub mod msg;
 pub mod requests;
 pub mod send_call_message;
@@ -24,29 +23,27 @@ use crate::{
         event_xcall_message_sent,
     },
     msg::{InstantiateMsg, QueryMsg},
-    state::{CwCallService, EXECUTE_CALL_ID, EXECUTE_ROLLBACK_ID, SEND_CALL_MESSAGE_REPLY_ID},
+    state::{CwCallService, EXECUTE_CALL_ID},
     types::{
         call_request::CallRequest,
-        message::{CallServiceMessage, CallServiceMessageType},
-        request::CallServiceMessageRequest,
-        response::{CallServiceMessageResponse, CallServiceResponseType},
+        message::{CSMessage, CallServiceMessageType},
+        request::CSMessageRequest,
+        response::{CSMessageResponse, CallServiceResponseType},
         storage_keys::StorageKey,
     },
 };
 
 use cosmwasm_schema::{cw_serde, QueryResponses};
 use cosmwasm_std::{
-    ensure, ensure_eq, entry_point, to_binary, Addr, Api, Binary, CosmosMsg, Deps, DepsMut, Env,
-    Event, MessageInfo, QuerierWrapper, Reply, Response, StdError, StdResult, Storage, SubMsg,
-    SubMsgResult, WasmMsg,
+    ensure, ensure_eq, entry_point, to_binary, Addr, Api, Binary, Deps, DepsMut, Env, Event,
+    MessageInfo, QuerierWrapper, Reply, Response, StdError, StdResult, Storage, SubMsg,
 };
 
 use cw2::set_contract_version;
 use cw_storage_plus::{Item, Map};
 use cw_xcall_lib::xcall_msg::ExecuteMsg;
-use schemars::JsonSchema;
 
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use thiserror::Error;
 
 /// This function instantiates a contract using the CwCallService.
@@ -72,7 +69,7 @@ use thiserror::Error;
 ///
 /// The `instantiate` function returns a `Result<Response, ContractError>` which represents either a
 /// successful response or an error.
-#[entry_point]
+#[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
     deps: DepsMut,
     env: Env,

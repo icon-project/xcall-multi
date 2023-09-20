@@ -3,7 +3,7 @@ use super::*;
 use crate::{
     error::ContractError,
     state::{CwCallService, MAX_DATA_SIZE, MAX_ROLLBACK_SIZE},
-    types::{call_request::CallRequest, request::CallServiceMessageRequest},
+    types::{call_request::CallRequest, request::CSMessageRequest},
 };
 
 impl<'a> CwCallService<'a> {
@@ -27,8 +27,8 @@ impl<'a> CwCallService<'a> {
     pub fn ensure_caller_is_contract_and_rollback_is_null(
         &self,
         deps: Deps,
-        address: Addr,
-        rollback: Option<Vec<u8>>,
+        address: &Addr,
+        rollback: &Option<Vec<u8>>,
     ) -> Result<(), ContractError> {
         if rollback.is_some() {
             ensure!(
@@ -101,7 +101,7 @@ impl<'a> CwCallService<'a> {
     pub fn ensure_request_not_null(
         &self,
         req_id: u128,
-        message: &CallServiceMessageRequest,
+        message: &CSMessageRequest,
     ) -> Result<(), ContractError> {
         let data = to_binary(message).unwrap();
         ensure!(
@@ -200,6 +200,6 @@ impl<'a> CwCallService<'a> {
 /// `querier` object to get information about the contract at the given `address`. If the query is
 /// successful, it returns `true`, indicating that the address is a valid contract. If the query fails,
 /// it returns `
-fn is_contract(querier: QuerierWrapper, address: Addr) -> bool {
+fn is_contract(querier: QuerierWrapper, address: &Addr) -> bool {
     querier.query_wasm_contract_info(address).is_ok()
 }

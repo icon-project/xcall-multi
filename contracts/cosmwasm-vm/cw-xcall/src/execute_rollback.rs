@@ -1,12 +1,13 @@
 use cosmwasm_std::DepsMut;
 use cosmwasm_std::MessageInfo;
-use cosmwasm_std::SubMsgResult;
-use cosmwasm_std::{Deps, Env, Reply, Response};
+use cosmwasm_std::ReplyOn;
+
+use cosmwasm_std::{Env, Response};
 
 use crate::error::ContractError;
 use crate::events::event_rollback_executed;
-use crate::state::{CwCallService, EXECUTE_ROLLBACK_ID};
-use crate::types::LOG_PREFIX;
+use crate::state::CwCallService;
+use crate::state::EXECUTE_ROLLBACK_ID;
 
 impl<'a> CwCallService<'a> {
     /// This function executes a rollback operation for a previously made call request.
@@ -42,7 +43,7 @@ impl<'a> CwCallService<'a> {
             .unwrap();
         let from = self.get_own_network_address(deps.as_ref().storage, &env)?;
 
-        let sub_msg = self.call_dapp_handle_message(
+        let mut sub_msg = self.call_dapp_handle_message(
             info,
             // the original caller is stored as from in call request
             call_request.from().clone(),
@@ -51,6 +52,7 @@ impl<'a> CwCallService<'a> {
             call_request.protocols().clone(),
             EXECUTE_ROLLBACK_ID,
         )?;
+        sub_msg.reply_on = ReplyOn::Never;
 
         let event = event_rollback_executed(sequence_no);
 
@@ -59,48 +61,5 @@ impl<'a> CwCallService<'a> {
             .add_attribute("method", "execute_rollback")
             .add_event(event)
             .add_submessage(sub_msg))
-    }
-
-    /// This function handles the response of a call to a service and generates a response with an
-    /// event.
-    ///
-    /// Arguments:
-    ///
-    /// * `deps`: `deps` is an instance of the `Deps` struct, which provides access to the contract's
-    /// dependencies such as storage, API, and context.
-    /// * `msg`: `msg` is a `Reply` struct that contains the result of a sub-message that was sent by
-    /// the contract to another contract or external system. It is used to construct a
-    /// `CallServiceMessageResponse` that will be returned as part of the `Response` to the original
-    /// message that triggered the
-    ///
-    /// Returns:
-    ///
-    /// a `Result<Response, ContractError>` where `Response` is a struct representing the response to be
-    /// returned by the contract and `ContractError` is an enum representing any errors that may occur
-    /// during contract execution.
-    pub fn execute_rollback_reply(
-        &self,
-        _deps: Deps,
-        msg: Reply,
-    ) -> Result<Response, ContractError> {
-        match msg.result {
-            SubMsgResult::Ok(res) => {
-                println!("{LOG_PREFIX} Rollback Success");
-                println!("{:?}", res);
-                Ok(Response::new()
-                    .add_attribute("action", "reply")
-                    .add_attribute("method", "execute_rollback"))
-            }
-            SubMsgResult::Err(error) => {
-                println!(
-                    "{} Execute Rollback Failed with error {}",
-                    LOG_PREFIX, &error
-                );
-                Err(ContractError::ReplyError {
-                    code: msg.id,
-                    msg: error,
-                })
-            }
-        }
     }
 }

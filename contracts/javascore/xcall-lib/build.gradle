@@ -10,7 +10,6 @@ optimizedJar.enabled = false
 group = findProperty("GROUP") ?: System.getenv("OSSRH_GROUP")
 version = '0.1.2'
 
-
 dependencies {
 
 }
