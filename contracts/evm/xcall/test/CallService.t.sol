@@ -82,8 +82,7 @@ contract CallServiceTest is Test {
         dapp = new DAppProxySample();
         ethDappAddress = NetworkAddress.networkAddress(ethNid, ParseAddress.toString(address(dapp)));
 
-        // mock when call getFee to return 0
-        baseConnection = IConnection(address(0x1234));
+        baseConnection = IConnection(address(0x01));
 
         _baseSource = new string[](1);
         _baseSource[0] = ParseAddress.toString(address(baseConnection));
@@ -140,7 +139,7 @@ contract CallServiceTest is Test {
     function testHandleResponseDefaultProtocol() public {
         bytes memory data = bytes("test");
 
-        callService.setDefaultConnection(netTo, address(baseConnection));
+        callService.setDefaultConnection(iconNid, address(baseConnection));
 
         Types.CSMessageRequest memory request = Types.CSMessageRequest(iconDapp, ParseAddress.toString(address(dapp)), 1, false, data, new string[](0));
         Types.CSMessage memory msg = Types.CSMessage(Types.CS_REQUEST, RLPEncodeStruct.encodeCSMessageRequest(request));
@@ -155,7 +154,7 @@ contract CallServiceTest is Test {
     function testHandleResponseDefaultProtocolInvalidSender() public {
         bytes memory data = bytes("test");
 
-        callService.setDefaultConnection(netTo, address(baseConnection));
+        callService.setDefaultConnection(iconNid, address(baseConnection));
         Types.CSMessageRequest memory request = Types.CSMessageRequest(iconDapp, ParseAddress.toString(address(dapp)), 1, false, data, new string[](0));
         Types.CSMessage memory msg = Types.CSMessage(Types.CS_REQUEST, RLPEncodeStruct.encodeCSMessageRequest(request));
 
@@ -411,7 +410,6 @@ contract CallServiceTest is Test {
 
         vm.expectEmit();
         emit ResponseMessage(1, Types.CS_RESP_SUCCESS);
-        emit RollbackMessage(1);
 
         vm.prank(address(baseConnection));
         callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(msg));
