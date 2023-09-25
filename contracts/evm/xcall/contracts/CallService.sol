@@ -40,6 +40,8 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
     mapping(uint256 => Types.CallRequest) private requests;
     mapping(uint256 => Types.ProxyRequest) private proxyReqs;
 
+    mapping(uint256 => bool) private successfulResponses;
+
     mapping(bytes32 =>  mapping(string => bool)) private pendingReqs;
     mapping(uint256 =>  mapping(string => bool)) private pendingResponses;
 
