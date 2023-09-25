@@ -14,7 +14,6 @@ import "@iconfoundation/btp2-solidity-library/contracts/interfaces/ICallService.
 import "@iconfoundation/btp2-solidity-library/contracts/interfaces/IDefaultCallServiceReceiver.sol";
 import "@iconfoundation/btp2-solidity-library/contracts/interfaces/ICallServiceReceiver.sol";
 
-
 import "../contracts/test/DAppProxySample.sol";
 
 
@@ -26,6 +25,7 @@ contract CallServiceTest is Test {
 
     IConnection public connection1;
     IConnection public connection2;
+
     ICallServiceReceiver public receiver;
     IDefaultCallServiceReceiver public defaultServiceReceiver;
 
@@ -33,7 +33,6 @@ contract CallServiceTest is Test {
     address public user = address(0x1234);
 
     address public xcall;
-    // address public xcallSpy;
     string public iconNid = "0x2.ICON";
     string public ethNid = "0x1.ETH";
     string public iconDapp = NetworkAddress.networkAddress(iconNid, "0xa");
@@ -46,9 +45,9 @@ contract CallServiceTest is Test {
 
     string[] _baseSource;
     string[] _baseDestination;
-
+    
     string constant xcallMulti = "xcall-multi";
-
+    
     event CallMessage(
         string indexed _from,
         string indexed _to,
@@ -62,7 +61,6 @@ contract CallServiceTest is Test {
         int _code,
         string _msg
     );
-
 
     function setUp() public {
         dapp = new DAppProxySample();
@@ -358,6 +356,5 @@ contract CallServiceTest is Test {
         emit CallExecuted(1, 0, "unknownError");
         callService.executeCall(1, data);
     }
-
 
 }
