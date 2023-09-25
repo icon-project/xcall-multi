@@ -395,6 +395,7 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
         emit ResponseMessage(res.sn, res.code);
         if (res.code == Types.CS_RESP_SUCCESS){
             cleanupCallRequest(res.sn);
+            successfulResponses[res.sn] = true;
         } else {
             //emit rollback event
             require(req.rollback.length > 0, "NoRollbackData");
@@ -500,5 +501,9 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
         }
 
         return fee;
+    }
+
+    function verifySuccess(uint256 _sn) external view returns(bool) {
+        successfulResponses[_sn];
     }
 }
