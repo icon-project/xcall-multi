@@ -421,100 +421,109 @@ contract CallServiceTest is Test {
         callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(msg));
     }
 
-
     function testExecuteRollBackDefaultProtocol() public {
-        bytes memory data = bytes("test");
-        bytes memory rollbackData = bytes("rollback");
+       bytes memory data = bytes("test");
+       bytes memory rollbackData = bytes("rollback");
 
-        defaultServiceReceiver = IDefaultCallServiceReceiver(address(0x5678));
-        string memory xcallAddr = NetworkAddress.networkAddress(ethNid, ParseAddress.toString(address(callService)));
+       defaultServiceReceiver = IDefaultCallServiceReceiver(address(0x5678));
+       string memory xcallAddr = NetworkAddress.networkAddress(ethNid, ParseAddress.toString(address(callService)));
 
-        callService.setDefaultConnection(iconNid, address(baseConnection));
+       callService.setDefaultConnection(iconNid, address(baseConnection));
 
-        vm.prank(address(defaultServiceReceiver));
-        uint256 sn = callService.sendCallMessage{value: 0 ether}(iconDapp, data, rollbackData);
-        assertEq(sn, 1);
+       vm.startPrank(address(defaultServiceReceiver));
 
-        Types.CSMessageResponse memory msgRes = Types.CSMessageResponse(1, Types.CS_RESP_FAILURE);
-        Types.CSMessage memory msg = Types.CSMessage(Types.CS_RESPONSE, RLPEncodeStruct.encodeCSMessageResponse(msgRes));
+       string[] memory connections = new string[](1);
+       connections[0] = "";
 
-        vm.prank(address(baseConnection));
-        callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(msg));
 
-        // vm.expectEmit();
-        // emit RollbackExecuted(1);
-        // vm.prank(user);
-        // vm.mockCall(address(defaultServiceReceiver), abi.encodeWithSelector(defaultServiceReceiver.handleCallMessage.selector, xcallAddr, rollbackData), abi.encode(1));
-        // callService.executeRollback(1);
-    }
+       uint256 sn = callService.sendCallMessage{value: 0 ether}(iconDapp, data, rollbackData);
+       assertEq(sn, 1);
+       vm.stopPrank();
 
-    function testExecuteRollBackSingleProtocol() public {
-        bytes memory data = bytes("test");
-        bytes memory rollbackData = bytes("rollback");
+       Types.CSMessageResponse memory msgRes = Types.CSMessageResponse(1, Types.CS_RESP_FAILURE);
+       Types.CSMessage memory msg = Types.CSMessage(Types.CS_RESPONSE, RLPEncodeStruct.encodeCSMessageResponse(msgRes));
 
-        string memory xcallAddr = NetworkAddress.networkAddress(ethNid, ParseAddress.toString(address(callService)));
+       vm.prank(address(baseConnection));
+       callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(msg));
 
-        vm.prank(address(dapp));
-        vm.expectEmit();
-        emit CallMessageSent(address(dapp), iconDapp, 1);
+       vm.expectEmit();
+       emit RollbackExecuted(1);
+       
+       vm.mockCall(address(callService), abi.encodeWithSelector(defaultServiceReceiver.handleCallMessage.selector, xcallAddr, rollbackData), abi.encode(1));
+       vm.prank(user);
+       callService.executeRollback(1);
+   }
 
-        uint256 sn = callService.sendCallMessage{value: 0 ether}(iconDapp, data, rollbackData, _baseSource, _baseDestination);
-        assertEq(sn, 1);
 
-        Types.CSMessageResponse memory msgRes = Types.CSMessageResponse(1, Types.CS_RESP_FAILURE);
-        Types.CSMessage memory msg = Types.CSMessage(Types.CS_RESPONSE, RLPEncodeStruct.encodeCSMessageResponse(msgRes));
+   function testExecuteRollBackSingleProtocol() public {
+       bytes memory data = bytes("test");
+       bytes memory rollbackData = bytes("rollback");
 
-        vm.prank(address(baseConnection));
-        callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(msg));
+       string memory xcallAddr = NetworkAddress.networkAddress(ethNid, ParseAddress.toString(address(callService)));
 
-        // vm.expectEmit();
-        // emit RollbackExecuted(1);
-        // vm.prank(user);
-        // vm.mockCall(address(receiver), abi.encodeWithSelector(receiver.handleCallMessage.selector, xcallAddr, rollbackData), abi.encode(1));
-        // callService.executeRollback(1);
-    }
+       vm.prank(address(dapp));
+       vm.expectEmit();
+       emit CallMessageSent(address(dapp), iconDapp, 1);
+
+       uint256 sn = callService.sendCallMessage{value: 0 ether}(iconDapp, data, rollbackData, _baseSource, _baseDestination);
+       assertEq(sn, 1);
+
+       Types.CSMessageResponse memory msgRes = Types.CSMessageResponse(1, Types.CS_RESP_FAILURE);
+       Types.CSMessage memory msg = Types.CSMessage(Types.CS_RESPONSE, RLPEncodeStruct.encodeCSMessageResponse(msgRes));
+
+       vm.prank(address(baseConnection));
+       callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(msg));
+
+       vm.expectEmit();
+       emit RollbackExecuted(1);
+
+       vm.mockCall(address(dapp), abi.encodeWithSelector(receiver.handleCallMessage.selector, xcallAddr, rollbackData, _baseSource), abi.encode(1));
+       vm.prank(user);
+       callService.executeRollback(1);
+   }
 
     function testExecuteRollbackMultiProtocol() public {
-        bytes memory data = bytes("test");
-        bytes memory rollbackData = bytes("rollback");
+         bytes memory data = bytes("test");
+         bytes memory rollbackData = bytes("rollback");
 
-        string memory xcallAddr = NetworkAddress.networkAddress(ethNid, ParseAddress.toString(address(callService)));
+         string memory xcallAddr = NetworkAddress.networkAddress(ethNid, ParseAddress.toString(address(callService)));
 
-        connection1 = IConnection(address(0x0000000000000000000000000000000000000011));
-        connection2 = IConnection(address(0x0000000000000000000000000000000000000012));
+         connection1 = IConnection(address(0x0000000000000000000000000000000000000011));
+         connection2 = IConnection(address(0x0000000000000000000000000000000000000012));
 
-        vm.mockCall(address(connection1), abi.encodeWithSelector(connection1.getFee.selector), abi.encode(0));
-        vm.mockCall(address(connection2), abi.encodeWithSelector(connection2.getFee.selector), abi.encode(0));
+         vm.mockCall(address(connection1), abi.encodeWithSelector(connection1.getFee.selector), abi.encode(0));
+         vm.mockCall(address(connection2), abi.encodeWithSelector(connection2.getFee.selector), abi.encode(0));
 
-        string[] memory connections = new string[](2);
-        connections[0] = ParseAddress.toString(address(connection1));
-        connections[1] = ParseAddress.toString(address(connection2));
+         string[] memory connections = new string[](2);
+         connections[0] = ParseAddress.toString(address(connection1));
+         connections[1] = ParseAddress.toString(address(connection2));
 
-        string[] memory destinations = new string[](2);
-        destinations[0] = "0x1icon";
-        destinations[1] = "0x2icon";
+         string[] memory destinations = new string[](2);
+         destinations[0] = "0x1icon";
+         destinations[1] = "0x2icon";
 
-        vm.prank(address(dapp));
-        vm.expectEmit();
-        emit CallMessageSent(address(dapp), iconDapp, 1);
+         vm.prank(address(dapp));
+         vm.expectEmit();
+         emit CallMessageSent(address(dapp), iconDapp, 1);
 
-        uint256 sn = callService.sendCallMessage{value: 0 ether}(iconDapp, data, rollbackData, connections, destinations);
-        assertEq(sn, 1);
+         uint256 sn = callService.sendCallMessage{value: 0 ether}(iconDapp, data, rollbackData, connections, destinations);
+         assertEq(sn, 1);
 
-        Types.CSMessageResponse memory response = Types.CSMessageResponse(1, Types.CS_RESP_FAILURE);
-        Types.CSMessage memory msg = Types.CSMessage(Types.CS_RESPONSE, RLPEncodeStruct.encodeCSMessageResponse(response));
+         Types.CSMessageResponse memory response = Types.CSMessageResponse(1, Types.CS_RESP_FAILURE);
+         Types.CSMessage memory msg = Types.CSMessage(Types.CS_RESPONSE, RLPEncodeStruct.encodeCSMessageResponse(response));
 
-        vm.prank(address(connection1));
-        callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(msg));
+         vm.prank(address(connection1));
+         callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(msg));
 
-        vm.expectEmit();
-        emit ResponseMessage(1, Types.CS_RESP_FAILURE);
-        emit RollbackMessage(1);
+         vm.expectEmit();
+         emit ResponseMessage(1, Types.CS_RESP_FAILURE);
+         emit RollbackMessage(1);
 
-        vm.prank(address(connection2));
-        callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(msg));
+         vm.prank(address(connection2));
+         callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(msg));
 
-        // vm.prank(user);
-        // callService.executeRollback(sn);
-    }
+         vm.prank(user);
+         vm.mockCall(address(dapp), abi.encodeWithSelector(receiver.handleCallMessage.selector, xcallAddr, rollbackData, _baseSource), abi.encode(1));
+         callService.executeRollback(sn);
+     }
 }
