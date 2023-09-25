@@ -9,12 +9,11 @@ contract CallServiceScript is Script {
 
     function run() public {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
+        string memory nid = vm.envString("NID");
+
         vm.startBroadcast(deployerPrivateKey);
-
         CallService xcall = new CallService();
-
-        xcall.initialize("bsc");
-
+        xcall.initialize(nid);
         vm.stopBroadcast();
         
     }
