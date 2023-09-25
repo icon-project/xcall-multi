@@ -48,7 +48,14 @@ $ anvil
 ### Deploy
 
 ```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
+export PRIVATE_KEY=<your-private-key>
+
+$ forge script script/CallService.s.sol:CallServiceScript --rpc-url <your_rpc_url> --private-key <your_private_key>
+
+For Example: (deploying the contract on localnet) 
+$ forge script script/CallService.s.sol:CallServiceScript --fork-url http://localhost:8545 \
+--private-key $PRIVATE_KEY --broadcast
+
 ```
 
 ### Cast
