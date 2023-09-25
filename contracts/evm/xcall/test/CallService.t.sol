@@ -4,13 +4,13 @@ pragma solidity ^0.8.13;
 import "forge-std/Test.sol";
 import "../contracts/CallService.sol";
 
-import "@iconfoundation/btp2-solidity-library/contracts/utils/NetworkAddress.sol";
-import "@iconfoundation/btp2-solidity-library/contracts/utils/ParseAddress.sol";
-import "@iconfoundation/btp2-solidity-library/contracts/utils/Integers.sol";
-import "@iconfoundation/btp2-solidity-library/contracts/utils/Strings.sol";
+import "@iconfoundation/btp2-solidity-library/utils/NetworkAddress.sol";
+import "@iconfoundation/btp2-solidity-library/utils/ParseAddress.sol";
+import "@iconfoundation/btp2-solidity-library/utils/Integers.sol";
+import "@iconfoundation/btp2-solidity-library/utils/Strings.sol";
 
-import "@iconfoundation/btp2-solidity-library/contracts/interfaces/IConnection.sol";
-import "@iconfoundation/btp2-solidity-library/contracts/interfaces/ICallService.sol";
+import "@iconfoundation/btp2-solidity-library/interfaces/IConnection.sol";
+import "@iconfoundation/btp2-solidity-library/interfaces/ICallService.sol";
 
 import "../contracts/test/DAppProxySample.sol";
 
