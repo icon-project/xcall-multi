@@ -35,13 +35,22 @@ library RLPEncodeStruct {
         pure
         returns (bytes memory)
     {
+
+        bytes memory _protocols;
+        bytes memory temp;
+        for (uint256 i = 0; i < _bs.protocols.length; i++) {
+            temp = abi.encodePacked(_bs.protocols[i].encodeString());
+            _protocols = abi.encodePacked(_protocols, temp);
+        }
         bytes memory _rlp =
             abi.encodePacked(
                 _bs.from.encodeString(),
                 _bs.to.encodeString(),
                 _bs.sn.encodeUint(),
                 _bs.rollback.encodeBool(),
-                _bs.data.encodeBytes()
+                _bs.data.encodeBytes(),
+                _protocols.encodeList()
+
             );
         return _rlp.encodeList();
     }
