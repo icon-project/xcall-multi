@@ -13,7 +13,6 @@ import "@iconfoundation/btp2-solidity-library/contracts/interfaces/IConnection.s
 import "@iconfoundation/btp2-solidity-library/contracts/interfaces/ICallServiceReceiver.sol";
 import "@iconfoundation/btp2-solidity-library/contracts/interfaces/IDefaultCallServiceReceiver.sol";
 
-
 import "../contracts/test/DAppProxySample.sol";
 
 
@@ -27,6 +26,9 @@ contract CallServiceTest is Test {
 
     ICallServiceReceiver public receiver;
     IDefaultCallServiceReceiver public defaultServiceReceiver;
+
+    IConnection public connection1;
+    IConnection public connection2;
 
     address public owner = address(0x1111);
     address public user = address(0x1234);
@@ -46,7 +48,7 @@ contract CallServiceTest is Test {
     string[] _baseDestination;
 
     string constant xcallMulti = "xcall-multi";
-
+    
     event CallMessage(
         string indexed _from,
         string indexed _to,
@@ -79,7 +81,6 @@ contract CallServiceTest is Test {
     event RollbackExecuted(
         uint256 indexed _sn
     );
-
 
     function setUp() public {
         dapp = new DAppProxySample();
