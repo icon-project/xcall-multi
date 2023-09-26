@@ -40,6 +40,8 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
     mapping(uint256 => Types.CallRequest) private requests;
     mapping(uint256 => Types.ProxyRequest) private proxyReqs;
 
+    mapping(uint256 => bool) private successfulResponses;
+
     mapping(bytes32 =>  mapping(string => bool)) private pendingReqs;
     mapping(uint256 =>  mapping(string => bool)) private pendingResponses;
 
@@ -393,6 +395,7 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
         emit ResponseMessage(res.sn, res.code);
         if (res.code == Types.CS_RESP_SUCCESS){
             cleanupCallRequest(res.sn);
+            successfulResponses[res.sn] = true;
         } else {
             //emit rollback event
             require(req.rollback.length > 0, "NoRollbackData");
@@ -498,5 +501,9 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
         }
 
         return fee;
+    }
+
+    function verifySuccess(uint256 _sn) external view returns(bool) {
+        successfulResponses[_sn];
     }
 }
