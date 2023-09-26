@@ -1,8 +1,0 @@
-rootProject.name = 'btp2-solidity'
-include (
-        'bmc',
-        'bmv-bridge',
-        'test-lib',
-        'xcall',
-)
-

@@ -7,15 +7,15 @@ import "./libraries/RLPDecodeStruct.sol";
 import "./libraries/RLPEncodeStruct.sol";
 import "./libraries/Types.sol";
 
-import "@iconfoundation/btp2-solidity-library/contracts/interfaces/IConnection.sol";
-import "@iconfoundation/btp2-solidity-library/contracts/interfaces/IBSH.sol";
-import "@iconfoundation/btp2-solidity-library/contracts/interfaces/ICallService.sol";
-import "@iconfoundation/btp2-solidity-library/contracts/interfaces/ICallServiceReceiver.sol";
-import "@iconfoundation/btp2-solidity-library/contracts/interfaces/IDefaultCallServiceReceiver.sol";
-import "@iconfoundation/btp2-solidity-library/contracts/utils/NetworkAddress.sol";
-import "@iconfoundation/btp2-solidity-library/contracts/utils/Integers.sol";
-import "@iconfoundation/btp2-solidity-library/contracts/utils/ParseAddress.sol";
-import "@iconfoundation/btp2-solidity-library/contracts/utils/Strings.sol";
+import "@iconfoundation/btp2-solidity-library/interfaces/IConnection.sol";
+import "@iconfoundation/btp2-solidity-library/interfaces/IBSH.sol";
+import "@iconfoundation/btp2-solidity-library/interfaces/ICallService.sol";
+import "@iconfoundation/btp2-solidity-library/interfaces/ICallServiceReceiver.sol";
+import "@iconfoundation/btp2-solidity-library/interfaces/IDefaultCallServiceReceiver.sol";
+import "@iconfoundation/btp2-solidity-library/utils/NetworkAddress.sol";
+import "@iconfoundation/btp2-solidity-library/utils/Integers.sol";
+import "@iconfoundation/btp2-solidity-library/utils/ParseAddress.sol";
+import "@iconfoundation/btp2-solidity-library/utils/Strings.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 contract CallService is IBSH, ICallService, IFeeManage, Initializable {

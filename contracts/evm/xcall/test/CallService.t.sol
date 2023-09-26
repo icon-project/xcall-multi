@@ -4,10 +4,10 @@ pragma solidity ^0.8.13;
 import "forge-std/Test.sol";
 import "../contracts/CallService.sol";
 
-import "@iconfoundation/btp2-solidity-library/contracts/utils/NetworkAddress.sol";
-import "@iconfoundation/btp2-solidity-library/contracts/utils/ParseAddress.sol";
-import "@iconfoundation/btp2-solidity-library/contracts/utils/Integers.sol";
-import "@iconfoundation/btp2-solidity-library/contracts/utils/Strings.sol";
+import "@iconfoundation/btp2-solidity-library/utils/NetworkAddress.sol";
+import "@iconfoundation/btp2-solidity-library/utils/ParseAddress.sol";
+import "@iconfoundation/btp2-solidity-library/utils/Integers.sol";
+import "@iconfoundation/btp2-solidity-library/utils/Strings.sol";
 
 import "@iconfoundation/btp2-solidity-library/contracts/interfaces/IConnection.sol";
 import "@iconfoundation/btp2-solidity-library/contracts/interfaces/ICallService.sol";
@@ -45,9 +45,9 @@ contract CallServiceTest is Test {
 
     string[] _baseSource;
     string[] _baseDestination;
-    
+
     string constant xcallMulti = "xcall-multi";
-    
+
     event CallMessage(
         string indexed _from,
         string indexed _to,
@@ -349,7 +349,7 @@ contract CallServiceTest is Test {
 
         Types.CSMessageResponse memory msgResponse = Types.CSMessageResponse(1, Types.CS_RESP_FAILURE);
         msg = Types.CSMessage(Types.CS_RESPONSE, RLPEncodeStruct.encodeCSMessageResponse(msgResponse));
-        
+
         vm.mockCall(address(receiver), 0 ether , abi.encodeWithSelector(baseConnection.sendMessage.selector, iconNid, xcallMulti, -1, msg), abi.encode(1));
 
         vm.expectEmit();
