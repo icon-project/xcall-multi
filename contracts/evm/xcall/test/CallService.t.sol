@@ -328,7 +328,6 @@ contract CallServiceTest is Test {
 
         vm.expectEmit();
         emit ResponseMessage(1, Types.CS_RESP_FAILURE);
-        emit RollbackMessage(1);
 
         vm.prank(address(baseConnection));
         callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(msg));
@@ -388,7 +387,6 @@ contract CallServiceTest is Test {
 
         vm.expectEmit();
         emit ResponseMessage(1, Types.CS_RESP_FAILURE);
-        emit RollbackMessage(1);
 
         vm.prank(address(connection2));
         callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(msg));
