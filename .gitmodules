@@ -7,3 +7,6 @@
 [submodule "contracts/evm/xcall/lib/openzeppelin-contracts"]
 	path = contracts/evm/xcall/lib/openzeppelin-contracts
 	url = https://github.com/Openzeppelin/openzeppelin-contracts
+[submodule "contracts/evm/newTestForge/lib/forge-std"]
+	path = contracts/evm/newTestForge/lib/forge-std
+	url = https://github.com/foundry-rs/forge-std
