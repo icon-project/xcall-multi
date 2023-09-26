@@ -9,12 +9,19 @@ contract CallServiceScript is Script {
 
     function run() public {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
-        string memory nid = vm.envString("NID");
+        string memory nid = vm.envString("BSC_NID");
+        string memory iconNid = vm.envString("ICON_NID");
+        address connection = vm.envAddress("BMC_ADDRESS");
 
         vm.startBroadcast(deployerPrivateKey);
         CallService xcall = new CallService();
         xcall.initialize(nid);
+
+        xcall.setProtocolFee(vm.envUint("PROTOCOL_FEE"));
+        xcall.setProtocolFeeHandler(vm.envAddress("OWNER_ADDRESS"));
+
+        xcall.setDefaultConnection(iconNid, connection);
         vm.stopBroadcast();
-        
+
     }
 }
