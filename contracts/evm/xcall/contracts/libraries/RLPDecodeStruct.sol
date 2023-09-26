@@ -2,7 +2,7 @@
 pragma solidity >=0.8.0;
 pragma abicoder v2;
 
-import "@iconfoundation/btp2-solidity-library/contracts/utils/RLPDecode.sol";
+import "@iconfoundation/btp2-solidity-library/utils/RLPDecode.sol";
 import "./Types.sol";
 
 library RLPDecodeStruct {
