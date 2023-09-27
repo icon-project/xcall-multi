@@ -4,3 +4,8 @@ out = "out"
 libs = ["lib"]
 
 remappings = ["@iconfoundation/btp2-solidity-library=../library","@openzeppelin/contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/"]
+
+
+[rpc_endpoints]
+binance_testnet = "${BINANCE_TESTNET_RPC_URL}"
+
