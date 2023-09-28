@@ -507,7 +507,7 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
         return fee;
     }
 
-    function verifySuccess(uint256 _sn) external view returns(bool) {
-        successfulResponses[_sn];
+    function verifySuccess(uint256 _sn) external view returns (bool) {
+        return successfulResponses[_sn];
     }
 }
