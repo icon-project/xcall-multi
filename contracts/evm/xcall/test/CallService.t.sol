@@ -391,6 +391,8 @@ contract CallServiceTest is Test {
 
         vm.prank(address(baseConnection));
         callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(msg));
+
+        assertEq(callService.verifySuccess(sn),false);
     }
 
     function testRollBackDefaultProtocol() public {
@@ -414,6 +416,8 @@ contract CallServiceTest is Test {
 
         vm.prank(address(baseConnection));
         callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(msg));
+
+        assertEq(callService.verifySuccess(sn),false);
     }
 
     function testRollBackDefaultProtocolInvalidSender() public {
@@ -435,6 +439,8 @@ contract CallServiceTest is Test {
         vm.prank(address(user));
         vm.expectRevert("NotAuthorized");
         callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(msg));
+
+        assertEq(callService.verifySuccess(sn),false);
     }
 
     function testRollbackMultiProtocol() public {
@@ -473,6 +479,8 @@ contract CallServiceTest is Test {
 
         vm.prank(address(connection2));
         callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(msg));
+
+        assertEq(callService.verifySuccess(sn),false);
     }
 
     function testRollBackSuccess() public {
@@ -494,6 +502,8 @@ contract CallServiceTest is Test {
 
         vm.prank(address(baseConnection));
         callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(msg));
+
+        assertEq(callService.verifySuccess(sn),true);
     }
 
     function testExecuteRollBackDefaultProtocol() public {
@@ -527,6 +537,8 @@ contract CallServiceTest is Test {
        vm.mockCall(address(callService), abi.encodeWithSelector(defaultServiceReceiver.handleCallMessage.selector, xcallAddr, rollbackData), abi.encode(1));
        vm.prank(user);
        callService.executeRollback(1);
+
+       assertEq(callService.verifySuccess(sn),false);
    }
 
 
@@ -555,6 +567,8 @@ contract CallServiceTest is Test {
        vm.mockCall(address(dapp), abi.encodeWithSelector(receiver.handleCallMessage.selector, xcallAddr, rollbackData, _baseSource), abi.encode(1));
        vm.prank(user);
        callService.executeRollback(1);
+
+       assertEq(callService.verifySuccess(sn),false);
    }
 
     function testExecuteRollbackMultiProtocol() public {
@@ -600,6 +614,8 @@ contract CallServiceTest is Test {
          vm.prank(user);
          vm.mockCall(address(dapp), abi.encodeWithSelector(receiver.handleCallMessage.selector, xcallAddr, rollbackData, _baseSource), abi.encode(1));
          callService.executeRollback(sn);
+
+         assertEq(callService.verifySuccess(sn),false);
      }
      
     function testExecuteCallMultiProtocolRollback() public {
