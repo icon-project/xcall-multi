@@ -11,10 +11,10 @@ import "@iconfoundation/btp2-solidity-library/utils/ParseAddress.sol";
 import "@iconfoundation/btp2-solidity-library/utils/Integers.sol";
 import "@iconfoundation/btp2-solidity-library/utils/Strings.sol";
 
-import "@iconfoundation/btp2-solidity-library/contracts/interfaces/IConnection.sol";
-import "@iconfoundation/btp2-solidity-library/contracts/interfaces/ICallServiceReceiver.sol";
-import "@iconfoundation/btp2-solidity-library/contracts/interfaces/IDefaultCallServiceReceiver.sol";
-import "@iconfoundation/btp2-solidity-library/contracts/interfaces/ICallService.sol";
+import "@iconfoundation/btp2-solidity-library/interfaces/IConnection.sol";
+import "@iconfoundation/btp2-solidity-library/interfaces/ICallServiceReceiver.sol";
+import "@iconfoundation/btp2-solidity-library/interfaces/IDefaultCallServiceReceiver.sol";
+import "@iconfoundation/btp2-solidity-library/interfaces/ICallService.sol";
 
 import "../contracts/test/DAppProxySample.sol";
 
@@ -27,15 +27,6 @@ contract CallServiceTest is Test {
     IConnection public baseConnection;
     IConnection public connection1;
     IConnection public connection2;
-
-    ICallServiceReceiver public receiver;
-    IDefaultCallServiceReceiver public defaultServiceReceiver;
-
-    IConnection public connection1;
-    IConnection public connection2;
-    
-    ICallServiceReceiver public receiver;
-    IDefaultCallServiceReceiver public defaultServiceReceiver;
 
     ICallServiceReceiver public receiver;
     IDefaultCallServiceReceiver public defaultServiceReceiver;
