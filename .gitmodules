@@ -1,3 +1,6 @@
 [submodule "contracts/example-dapps/dapp-multi-protocol/lib/forge-std"]
 	path = contracts/example-dapps/dapp-multi-protocol/lib/forge-std
 	url = https://github.com/foundry-rs/forge-std
+[submodule "contracts/example-dapps/dapp-simple/lib/forge-std"]
+	path = contracts/example-dapps/dapp-simple/lib/forge-std
+	url = https://github.com/foundry-rs/forge-std
