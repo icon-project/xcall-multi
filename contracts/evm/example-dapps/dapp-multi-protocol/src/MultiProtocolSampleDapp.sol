@@ -14,8 +14,10 @@ import "@iconfoundation/btp2-solidity-library/interfaces/IDefaultCallServiceRece
 // import "../../../library/utils/Integers.sol";
 // import "../../../library/utils/ParseAddress.sol";
 // import "../../../library/utils/Strings.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
-contract MultiProtocolSampleDapp {
+
+contract MultiProtocolSampleDapp is Initializable {
     using Strings for string;
     using Integers for uint;
     using ParseAddress for address;
@@ -28,7 +30,7 @@ contract MultiProtocolSampleDapp {
     
     event MessageReceived(string indexed from, bytes data);
 
-    constructor(address _callService) {
+    function initialize(address _callService) public {
         callSvc = _callService;
     }
 
