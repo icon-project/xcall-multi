@@ -7,3 +7,6 @@
 [submodule "contracts/evm/example-dapps/dapp-simple/lib/openzeppelin-contracts-upgradeable"]
 	path = contracts/evm/example-dapps/dapp-simple/lib/openzeppelin-contracts-upgradeable
 	url = https://github.com/openzeppelin/openzeppelin-contracts-upgradeable
+[submodule "contracts/evm/example-dapps/dapp-multi-protocol/lib/openzeppelin-contracts-upgradeable"]
+	path = contracts/evm/example-dapps/dapp-multi-protocol/lib/openzeppelin-contracts-upgradeable
+	url = https://github.com/openzeppelin/openzeppelin-contracts-upgradeable
