@@ -4,10 +4,11 @@ import "@iconfoundation/btp2-solidity-library/interfaces/IDefaultCallServiceRece
 import "@iconfoundation/btp2-solidity-library/interfaces/ICallService.sol";
 import "@iconfoundation/btp2-solidity-library/utils/ParseAddress.sol";
 
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+
 import "../lib/RollBack.sol";
 
-contract SimpleDapp is IDefaultCallServiceReceiver {
-
+contract SimpleDapp is IDefaultCallServiceReceiver, Initializable {
     using ParseAddress for string;
 
     address public callSvc;
@@ -19,7 +20,7 @@ contract SimpleDapp is IDefaultCallServiceReceiver {
         _;
     }
 
-    constructor(address _callService) {
+    function initialize(address _callService) public {
         callSvc = _callService;
     }
 
@@ -28,10 +29,18 @@ contract SimpleDapp is IDefaultCallServiceReceiver {
         return id;
     }
 
-    function sendMessage(string memory _to, bytes memory _data, bytes memory rollback) external payable {
+    function sendMessage(
+        string memory _to,
+        bytes memory _data,
+        bytes memory rollback
+    ) external payable {
         if (rollback.length > 0) {
             uint256 newId = getNextId();
-            Rollback.RollbackData memory rbData = Rollback.RollbackData(newId, rollback, 0);
+            Rollback.RollbackData memory rbData = Rollback.RollbackData(
+                newId,
+                rollback,
+                0
+            );
             uint256 ssn = _sendCallMessage(msg.value, _to, _data, rollback);
             rbData.ssn = ssn;
             rollbacks[newId] = rbData;
@@ -40,20 +49,39 @@ contract SimpleDapp is IDefaultCallServiceReceiver {
         }
     }
 
-    function _sendCallMessage(uint256 value, string memory to, bytes memory data, bytes memory rollback) internal returns (uint256) {
-         try ICallService(callSvc).sendCallMessage{value: value}(to, data, rollback) returns (uint256 result) {
+    function _sendCallMessage(
+        uint256 value,
+        string memory to,
+        bytes memory data,
+        bytes memory rollback
+    ) internal returns (uint256) {
+        try
+            ICallService(callSvc).sendCallMessage{value: value}(
+                to,
+                data,
+                rollback
+            )
+        returns (uint256 result) {
             return result;
-         } catch (bytes memory e) {
-            revert(string(e));   
-         }
+        } catch (bytes memory e) {
+            revert(string(e));
+        }
     }
 
-    function handleCallMessage(string memory _from, bytes memory _data) external onlyCallService {
+    function handleCallMessage(
+        string memory _from,
+        bytes memory _data
+    ) external onlyCallService {
         if (address(this) == _from._toAddress()) {
-            Rollback.RollbackData memory received = Rollback.decodeRollbackData(_data);
+            Rollback.RollbackData memory received = Rollback.decodeRollbackData(
+                _data
+            );
             Rollback.RollbackData storage stored = rollbacks[received.id];
             require(stored.id == received.id, "invalid received id");
-            require(keccak256(stored.rollback) == keccak256(received.rollback), "rollbackData mismatch");
+            require(
+                keccak256(stored.rollback) == keccak256(received.rollback),
+                "rollbackData mismatch"
+            );
             delete rollbacks[received.id];
             emit RollbackDataReceived(_from, stored.ssn, received.rollback);
         } else {
