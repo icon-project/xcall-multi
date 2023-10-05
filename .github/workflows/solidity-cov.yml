@@ -1,0 +1,46 @@
+name: Solidity contracts Codecov
+
+on:
+  pull_request:
+    branches:
+      - "**"
+    paths:
+      - "contracts/evm/**"
+      - ".github/workflows/solidity-cov.yml"
+  push:
+    branches:
+      - main
+
+defaults:
+  run:
+    working-directory: contracts/evm
+
+jobs:
+  code-coverage:
+    runs-on: ubuntu-latest
+    env:
+      CARGO_TERM_COLOR: always
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          submodules: true
+      - name: Install Forge
+        run: | 
+            mkdir foundry
+            cd foundry
+            curl -L https://foundry.paradigm.xyz | bash
+            source ~/.bashrc 
+            foundryup
+      - name: Build Contracts
+        run: forge build
+      - name: Generate code coverage
+        run: |
+            forge coverage --report lcov
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: lcov.info
+          flags: solidity
+          fail_ci_if_error: true
