@@ -34,13 +34,6 @@ jobs:
         run: |
             forge remappings
             forge build
-        #   cd /home/runner/work/
-        #   mkdir repo
-        #   cd repo
-        #   git clone https://github.com/icon-project/xcall-multi.git
-        #   cd xcall-multi
-        #   git checkout feature/add-solidity-code-coverages
-        #   cd contracts/evm/xcall
          
       - name: Generate code coverage
         run: |
