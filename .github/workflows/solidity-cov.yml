@@ -25,24 +25,19 @@ jobs:
         uses: actions/checkout@v3
         with:
           submodules: true
-      - name: Install Forge
-        run: | 
-            mkdir foundry
-            cd foundry
-            curl -L https://foundry.paradigm.xyz | bash
-            export PATH=$PATH:$HOME/.config/.foundry/bin
-            foundryup
-            ls $HOME/.config/.foundry/bin
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
 
       - name: Build Contracts
         run: |
-            export PATH=$PATH:$HOME/.config/.foundry/bin
-            forge remappings
-            forge build
+          forge remappings
+          forge build
       - name: Generate code coverage
         run: |
-            export PATH=$PATH:$HOME/.config/.foundry/bin
-            forge coverage --report lcov
+          export PATH=$PATH:$HOME/.config/.foundry/bin
+          forge coverage --report lcov
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:
