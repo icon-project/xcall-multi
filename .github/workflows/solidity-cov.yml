@@ -37,6 +37,7 @@ jobs:
           mkdir repo
           cd repo
           git clone https://github.com/icon-project/xcall-multi.git
+          cd xcall-multi
           git checkout feature/add-solidity-code-coverages
           forge remappings
           forge build
