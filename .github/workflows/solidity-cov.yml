@@ -31,9 +31,7 @@ jobs:
             cd foundry
             curl -L https://foundry.paradigm.xyz | bash
             echo $PWD
-            ls -la
-            cat ~/.bashrc
-            source ~/.bashrc
+            . ~/.bashrc
             ls /home/runner/.config/.foundry/bin
             echo $PATH
             foundryup
