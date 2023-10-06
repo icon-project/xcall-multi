@@ -36,6 +36,7 @@ jobs:
         run: forge build
       - name: Generate code coverage
         run: |
+            export PATH=$PATH:$HOME/.config/.foundry/bin
             forge coverage --report lcov
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
