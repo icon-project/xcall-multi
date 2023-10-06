@@ -37,6 +37,7 @@ jobs:
       - name: Build Contracts
         run: |
             export PATH=$PATH:$HOME/.config/.foundry/bin
+            forge install Openzeppelin/openzeppelin-contracts
             forge remappings
             forge build
       - name: Generate code coverage
