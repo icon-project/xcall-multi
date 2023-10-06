@@ -32,7 +32,7 @@ jobs:
             curl -L https://foundry.paradigm.xyz | bash
             export PATH=$PATH:$HOME/.config/.foundry/bin
             foundryup
-            sudo find / -type f -name forge
+            ls
       - name: Build Contracts
         run: forge build
       - name: Generate code coverage
