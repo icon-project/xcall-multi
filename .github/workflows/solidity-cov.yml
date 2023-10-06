@@ -9,7 +9,7 @@ on:
       - ".github/workflows/solidity-cov.yml"
   push:
     branches:
-      - main
+      - "**"
 
 defaults:
   run:
