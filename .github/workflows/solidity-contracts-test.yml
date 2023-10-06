@@ -14,12 +14,16 @@ on:
 env:
   FOUNDRY_PROFILE: ci
 
+defaults:
+  run:
+    working-directory: contracts/evm/xcall
+
 jobs:
   check:
     strategy:
       fail-fast: true
 
-    name: Foundry project
+    name: xCall-Multi Solidity Tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -34,6 +38,7 @@ jobs:
       - name: Run Forge build
         run: |
           forge --version
+          forge remappings
           forge build --sizes
         id: build
 

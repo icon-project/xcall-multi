@@ -1,7 +1,7 @@
 name: Solidity contracts Codecov
 
 env:
-    FOUNDRY_PROFILE: ci
+  FOUNDRY_PROFILE: ci
 
 on:
   pull_request:
@@ -35,9 +35,9 @@ jobs:
 
       - name: Build Contracts
         run: |
-            forge remappings
-            forge build
-         
+          forge remappings
+          forge build
+
       - name: Generate code coverage
         run: |
           export PATH=$PATH:$HOME/.config/.foundry/bin
