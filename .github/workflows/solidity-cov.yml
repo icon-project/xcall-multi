@@ -33,6 +33,7 @@ jobs:
             echo $PWD
             . ~/.bashrc
             ls /home/runner/.config/.foundry/bin
+            source /home/runner/.bashrc
             echo $PATH
             foundryup
       - name: Build Contracts
