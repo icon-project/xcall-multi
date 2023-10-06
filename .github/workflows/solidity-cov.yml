@@ -30,11 +30,7 @@ jobs:
             mkdir foundry
             cd foundry
             curl -L https://foundry.paradigm.xyz | bash
-            echo $PWD
-            . ~/.bashrc
-            ls /home/runner/.config/.foundry/bin
-            source /home/runner/.bashrc
-            echo $PATH
+            export PATH=$PATH:$HOME/.config/.foundry/bin
             foundryup
       - name: Build Contracts
         run: forge build
