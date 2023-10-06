@@ -34,6 +34,8 @@ jobs:
       - name: Build Contracts
         run: |
           cd /home/runner/work/
+          mkdir repo
+          cd repo
           git clone git@github.com:icon-project/xcall-multi.git
           git checkout feature/add-solidity-code-coverages
           forge remappings
