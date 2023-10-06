@@ -11,21 +11,20 @@ on:
     branches:
       - "**"
 
-# defaults:
-#   run:
-#     working-directory: contracts/evm
+defaults:
+  run:
+    working-directory: contracts/evm/xcall
 
 jobs:
   code-coverage:
     runs-on: ubuntu-latest
     env:
       CARGO_TERM_COLOR: always
-    #   PROJECT_PATH: /home/runner/work
     steps:
-    #   - name: Checkout
-        # uses: actions/checkout@v3
-        # with:
-        #   submodules: recursive
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
         with:
@@ -33,15 +32,16 @@ jobs:
 
       - name: Build Contracts
         run: |
-          cd /home/runner/work/
-          mkdir repo
-          cd repo
-          git clone https://github.com/icon-project/xcall-multi.git
-          cd xcall-multi
-          git checkout feature/add-solidity-code-coverages
-          cd contracts/evm/xcall
-          forge remappings
-          forge build
+            forge remappings
+            forge build
+        #   cd /home/runner/work/
+        #   mkdir repo
+        #   cd repo
+        #   git clone https://github.com/icon-project/xcall-multi.git
+        #   cd xcall-multi
+        #   git checkout feature/add-solidity-code-coverages
+        #   cd contracts/evm/xcall
+         
       - name: Generate code coverage
         run: |
           export PATH=$PATH:$HOME/.config/.foundry/bin
