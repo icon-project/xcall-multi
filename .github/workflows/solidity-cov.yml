@@ -20,6 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       CARGO_TERM_COLOR: always
+      PROJECT_PATH: /home/runner/work
     steps:
       - name: Checkout
         uses: actions/checkout@v3
