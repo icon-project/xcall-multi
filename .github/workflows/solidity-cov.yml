@@ -1,5 +1,8 @@
 name: Solidity contracts Codecov
 
+env:
+    FOUNDRY_PROFILE: ci
+
 on:
   pull_request:
     branches:
