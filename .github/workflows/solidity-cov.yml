@@ -30,6 +30,8 @@ jobs:
             mkdir foundry
             cd foundry
             curl -L https://foundry.paradigm.xyz | bash
+            ls -la
+            cat ~/.bashrc
             source ~/.bashrc 
             foundryup
       - name: Build Contracts
