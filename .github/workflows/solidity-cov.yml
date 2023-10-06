@@ -36,7 +36,7 @@ jobs:
 
       - name: Build Contracts
         run: |
-            bash -leo
+            export PATH=$PATH:$HOME/.config/.foundry/bin
             forge build
       - name: Generate code coverage
         run: |
