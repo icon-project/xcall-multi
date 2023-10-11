@@ -42,10 +42,11 @@ jobs:
         run: |
           export PATH=$PATH:$HOME/.config/.foundry/bin
           forge coverage --report lcov
+          lcov --remove lcov.info 'test/*' 'script/*' '**/library/*' '**/libraries/**' > lcov2.info
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: lcov.info
+          files: lcov2.info
           flags: solidity
           fail_ci_if_error: true
