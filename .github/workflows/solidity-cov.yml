@@ -16,7 +16,7 @@ on:
 
 defaults:
   run:
-    working-directory: contracts/evm/xcall
+    working-directory: contracts/evm
 
 jobs:
   code-coverage:
