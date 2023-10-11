@@ -4,11 +4,7 @@ import "@iconfoundation/btp2-solidity-library/utils/NetworkAddress.sol";
 import "@iconfoundation/btp2-solidity-library/utils/Integers.sol";
 import "@iconfoundation/btp2-solidity-library/utils/ParseAddress.sol";
 import "@iconfoundation/btp2-solidity-library/utils/Strings.sol";
-
-import "@iconfoundation/btp2-solidity-library/interfaces/IConnection.sol";
-import "@iconfoundation/btp2-solidity-library/interfaces/IBSH.sol";
 import "@iconfoundation/btp2-solidity-library/interfaces/ICallService.sol";
-import "@iconfoundation/btp2-solidity-library/interfaces/ICallServiceReceiver.sol";
 
 import "openzeppelin-contracts-upgradeable/contracts/proxy/utils/Initializable.sol";
 
