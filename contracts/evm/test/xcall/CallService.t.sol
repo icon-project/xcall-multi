@@ -2,9 +2,9 @@
 pragma solidity ^0.8.13;
 
 import "forge-std/Test.sol";
-import "../contracts/CallService.sol";
-import "../contracts/libraries/Types.sol";
-import "../contracts/test/DAppProxySample.sol";
+import "@xcall/contracts/xcall/CallService.sol";
+import "@xcall/utils/Types.sol";
+import "@xcall/contracts/mocks/dapp/DAppProxySample.sol";
 
 import "@iconfoundation/btp2-solidity-library/utils/NetworkAddress.sol";
 import "@iconfoundation/btp2-solidity-library/utils/ParseAddress.sol";
@@ -15,8 +15,6 @@ import "@iconfoundation/btp2-solidity-library/interfaces/IConnection.sol";
 import "@iconfoundation/btp2-solidity-library/interfaces/ICallServiceReceiver.sol";
 import "@iconfoundation/btp2-solidity-library/interfaces/IDefaultCallServiceReceiver.sol";
 import "@iconfoundation/btp2-solidity-library/interfaces/ICallService.sol";
-
-import "../contracts/test/DAppProxySample.sol";
 
 
 
