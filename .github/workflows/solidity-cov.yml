@@ -42,7 +42,7 @@ jobs:
         run: |
           export PATH=$PATH:$HOME/.config/.foundry/bin
           forge coverage --report lcov
-          apt-get install lcov
+          sudo apt-get install lcov
           lcov --remove lcov.info 'test/*' 'script/*' '**/library/*' '**/libraries/**' > lcov2.info
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
