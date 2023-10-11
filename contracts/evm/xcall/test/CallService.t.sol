@@ -612,7 +612,7 @@ contract CallServiceTest is Test {
          callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(msg));
 
          vm.prank(user);
-         vm.mockCall(address(dapp), abi.encodeWithSelector(receiver.handleCallMessage.selector, xcallAddr, rollbackData, _baseSource), abi.encode(1));
+         vm.mockCall(address(dapp), abi.encodeWithSelector(receiver.handleCallMessage.selector, xcallAddr, rollbackData, connections), abi.encode(1));
          callService.executeRollback(sn);
 
          assertEq(callService.verifySuccess(sn),false);
