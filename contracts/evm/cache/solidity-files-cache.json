@@ -12,7 +12,7 @@
   },
   "files": {
     "contracts/adapters/layerzero/LayerZeroAdapter.sol": {
-      "lastModificationDate": 1697007319583,
+      "lastModificationDate": 1697015256572,
       "contentHash": "b2e48ff79b44d8cdc06044d735450664",
       "sourceName": "contracts/adapters/layerzero/LayerZeroAdapter.sol",
       "solcConfig": {
@@ -51,12 +51,12 @@
       "versionRequirement": ">=0.8.0",
       "artifacts": {
         "LayerZeroAdapter": {
-          "0.8.21+commit.d9974bed.Darwin.appleclang": "LayerZeroAdapter.sol/LayerZeroAdapter.json"
+          "0.8.21+commit.d9974bed.Linux.gcc": "LayerZeroAdapter.sol/LayerZeroAdapter.json"
         }
       }
     },
     "contracts/adapters/wormhole/WormholeAdapter.sol": {
-      "lastModificationDate": 1697007319611,
+      "lastModificationDate": 1697015256572,
       "contentHash": "465447db35e2a624b2074a26767f3f77",
       "sourceName": "contracts/adapters/wormhole/WormholeAdapter.sol",
       "solcConfig": {
@@ -95,12 +95,12 @@
       "versionRequirement": ">=0.8.0",
       "artifacts": {
         "WormholeAdapter": {
-          "0.8.21+commit.d9974bed.Darwin.appleclang": "WormholeAdapter.sol/WormholeAdapter.json"
+          "0.8.21+commit.d9974bed.Linux.gcc": "WormholeAdapter.sol/WormholeAdapter.json"
         }
       }
     },
     "contracts/mocks/dapp/DAppProxySample.sol": {
-      "lastModificationDate": 1697008929986,
+      "lastModificationDate": 1697015256572,
       "contentHash": "40b64da7acbeff269b82d138fef691da",
       "sourceName": "contracts/mocks/dapp/DAppProxySample.sol",
       "solcConfig": {
@@ -141,12 +141,64 @@
       "versionRequirement": ">=0.8.0",
       "artifacts": {
         "DAppProxySample": {
-          "0.8.21+commit.d9974bed.Darwin.appleclang": "DAppProxySample.sol/DAppProxySample.json"
+          "0.8.21+commit.d9974bed.Linux.gcc": "DAppProxySample.sol/DAppProxySample.json"
+        }
+      }
+    },
+    "contracts/mocks/multi-protocol-dapp/MultiProtocolSampleDapp.sol": {
+      "lastModificationDate": 1697016327533,
+      "contentHash": "08db0d3535241d65db083caae1ab1c85",
+      "sourceName": "contracts/mocks/multi-protocol-dapp/MultiProtocolSampleDapp.sol",
+      "solcConfig": {
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "metadata": {
+            "useLiteralContent": false,
+            "bytecodeHash": "ipfs",
+            "appendCBOR": true
+          },
+          "outputSelection": {
+            "*": {
+              "": [
+                "ast"
+              ],
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ]
+            }
+          },
+          "evmVersion": "paris",
+          "libraries": {}
+        }
+      },
+      "imports": [
+        "lib/openzeppelin-contracts-upgradeable/contracts/proxy/utils/Initializable.sol",
+        "lib/openzeppelin-contracts-upgradeable/contracts/utils/AddressUpgradeable.sol",
+        "library/btp2/interfaces/IBSH.sol",
+        "library/btp2/interfaces/ICallService.sol",
+        "library/btp2/interfaces/ICallServiceReceiver.sol",
+        "library/btp2/interfaces/IConnection.sol",
+        "library/btp2/utils/Integers.sol",
+        "library/btp2/utils/NetworkAddress.sol",
+        "library/btp2/utils/ParseAddress.sol",
+        "library/btp2/utils/Strings.sol"
+      ],
+      "versionRequirement": "^0.8.13",
+      "artifacts": {
+        "MultiProtocolSampleDapp": {
+          "0.8.21+commit.d9974bed.Linux.gcc": "MultiProtocolSampleDapp.sol/MultiProtocolSampleDapp.json"
         }
       }
     },
     "contracts/xcall/CallService.sol": {
-      "lastModificationDate": 1697008910401,
+      "lastModificationDate": 1697015256572,
       "contentHash": "2f49344835a37c48adee6e92b91a4fcc",
       "sourceName": "contracts/xcall/CallService.sol",
       "solcConfig": {
@@ -200,12 +252,12 @@
       "versionRequirement": ">=0.8.0",
       "artifacts": {
         "CallService": {
-          "0.8.21+commit.d9974bed.Darwin.appleclang": "CallService.sol/CallService.json"
+          "0.8.21+commit.d9974bed.Linux.gcc": "CallService.sol/CallService.json"
         }
       }
     },
     "contracts/xcall/interfaces/IFeeManage.sol": {
-      "lastModificationDate": 1697007583626,
+      "lastModificationDate": 1697015256572,
       "contentHash": "98dba095babc43947dce1d0b28cd8c55",
       "sourceName": "contracts/xcall/interfaces/IFeeManage.sol",
       "solcConfig": {
@@ -241,12 +293,12 @@
       "versionRequirement": ">=0.8.0",
       "artifacts": {
         "IFeeManage": {
-          "0.8.21+commit.d9974bed.Darwin.appleclang": "IFeeManage.sol/IFeeManage.json"
+          "0.8.21+commit.d9974bed.Linux.gcc": "IFeeManage.sol/IFeeManage.json"
         }
       }
     },
     "lib/forge-std/lib/ds-test/src/test.sol": {
-      "lastModificationDate": 1697007608897,
+      "lastModificationDate": 1697015264567,
       "contentHash": "9febff9d09f18af5306669dc276c4c43",
       "sourceName": "lib/forge-std/lib/ds-test/src/test.sol",
       "solcConfig": {
@@ -282,12 +334,12 @@
       "versionRequirement": ">=0.5.0",
       "artifacts": {
         "DSTest": {
-          "0.8.21+commit.d9974bed.Darwin.appleclang": "test.sol/DSTest.json"
+          "0.8.21+commit.d9974bed.Linux.gcc": "test.sol/DSTest.json"
         }
       }
     },
     "lib/forge-std/src/Base.sol": {
-      "lastModificationDate": 1697007608866,
+      "lastModificationDate": 1697015264535,
       "contentHash": "ee13c050b1914464f1d3f90cde90204b",
       "sourceName": "lib/forge-std/src/Base.sol",
       "solcConfig": {
@@ -326,18 +378,18 @@
       "versionRequirement": ">=0.6.2, <0.9.0",
       "artifacts": {
         "CommonBase": {
-          "0.8.21+commit.d9974bed.Darwin.appleclang": "Base.sol/CommonBase.json"
+          "0.8.21+commit.d9974bed.Linux.gcc": "Base.sol/CommonBase.json"
         },
         "ScriptBase": {
-          "0.8.21+commit.d9974bed.Darwin.appleclang": "Base.sol/ScriptBase.json"
+          "0.8.21+commit.d9974bed.Linux.gcc": "Base.sol/ScriptBase.json"
         },
         "TestBase": {
-          "0.8.21+commit.d9974bed.Darwin.appleclang": "Base.sol/TestBase.json"
+          "0.8.21+commit.d9974bed.Linux.gcc": "Base.sol/TestBase.json"
         }
       }
     },
     "lib/forge-std/src/Script.sol": {
-      "lastModificationDate": 1697007608866,
+      "lastModificationDate": 1697015264535,
       "contentHash": "ba325c778a7da8a21c2136aa32763c14",
       "sourceName": "lib/forge-std/src/Script.sol",
       "solcConfig": {
@@ -387,12 +439,12 @@
       "versionRequirement": ">=0.6.2, <0.9.0",
       "artifacts": {
         "Script": {
-          "0.8.21+commit.d9974bed.Darwin.appleclang": "Script.sol/Script.json"
+          "0.8.21+commit.d9974bed.Linux.gcc": "Script.sol/Script.json"
         }
       }
     },
     "lib/forge-std/src/StdAssertions.sol": {
-      "lastModificationDate": 1697007608867,
+      "lastModificationDate": 1697015264535,
       "contentHash": "6cc2858240bcd443debbbf075490e325",
       "sourceName": "lib/forge-std/src/StdAssertions.sol",
       "solcConfig": {
@@ -431,12 +483,12 @@
       "versionRequirement": ">=0.6.2, <0.9.0",
       "artifacts": {
         "StdAssertions": {
-          "0.8.21+commit.d9974bed.Darwin.appleclang": "StdAssertions.sol/StdAssertions.json"
+          "0.8.21+commit.d9974bed.Linux.gcc": "StdAssertions.sol/StdAssertions.json"
         }
       }
     },
     "lib/forge-std/src/StdChains.sol": {
-      "lastModificationDate": 1697007608867,
+      "lastModificationDate": 1697015264535,
       "contentHash": "b0324b2e5a11948f852032aa293b3a05",
       "sourceName": "lib/forge-std/src/StdChains.sol",
       "solcConfig": {
@@ -474,12 +526,12 @@
       "versionRequirement": ">=0.6.2, <0.9.0",
       "artifacts": {
         "StdChains": {
-          "0.8.21+commit.d9974bed.Darwin.appleclang": "StdChains.sol/StdChains.json"
+          "0.8.21+commit.d9974bed.Linux.gcc": "StdChains.sol/StdChains.json"
         }
       }
     },
     "lib/forge-std/src/StdCheats.sol": {
-      "lastModificationDate": 1697007608867,
+      "lastModificationDate": 1697015264535,
       "contentHash": "d984e2c76dae07bac1e292af2a5d4fd1",
       "sourceName": "lib/forge-std/src/StdCheats.sol",
       "solcConfig": {
@@ -519,15 +571,15 @@
       "versionRequirement": ">=0.6.2, <0.9.0",
       "artifacts": {
         "StdCheats": {
-          "0.8.21+commit.d9974bed.Darwin.appleclang": "StdCheats.sol/StdCheats.json"
+          "0.8.21+commit.d9974bed.Linux.gcc": "StdCheats.sol/StdCheats.json"
         },
         "StdCheatsSafe": {
-          "0.8.21+commit.d9974bed.Darwin.appleclang": "StdCheats.sol/StdCheatsSafe.json"
+          "0.8.21+commit.d9974bed.Linux.gcc": "StdCheats.sol/StdCheatsSafe.json"
         }
       }
     },
     "lib/forge-std/src/StdError.sol": {
-      "lastModificationDate": 1697007608867,
+      "lastModificationDate": 1697015264535,
       "contentHash": "64c896e1276a291776e5ea5aecb3870a",
       "sourceName": "lib/forge-std/src/StdError.sol",
       "solcConfig": {
@@ -563,12 +615,12 @@
       "versionRequirement": ">=0.6.2, <0.9.0",
       "artifacts": {
         "stdError": {
-          "0.8.21+commit.d9974bed.Darwin.appleclang": "StdError.sol/stdError.json"
+          "0.8.21+commit.d9974bed.Linux.gcc": "StdError.sol/stdError.json"
         }
       }
     },
     "lib/forge-std/src/StdInvariant.sol": {
-      "lastModificationDate": 1697007608867,
+      "lastModificationDate": 1697015264535,
       "contentHash": "0a580d6fac69e9d4b6504f747f3c0c24",
       "sourceName": "lib/forge-std/src/StdInvariant.sol",
       "solcConfig": {
@@ -604,12 +656,12 @@
       "versionRequirement": ">=0.6.2, <0.9.0",
       "artifacts": {
         "StdInvariant": {
-          "0.8.21+commit.d9974bed.Darwin.appleclang": "StdInvariant.sol/StdInvariant.json"
+          "0.8.21+commit.d9974bed.Linux.gcc": "StdInvariant.sol/StdInvariant.json"
         }
       }
     },
     "lib/forge-std/src/StdJson.sol": {
-      "lastModificationDate": 1697007608867,
+      "lastModificationDate": 1697015264535,
       "contentHash": "b5de4d3e9eda3333019b0e407ec2a1ac",
       "sourceName": "lib/forge-std/src/StdJson.sol",
       "solcConfig": {
@@ -647,12 +699,12 @@
       "versionRequirement": ">=0.6.0, <0.9.0",
       "artifacts": {
         "stdJson": {
-          "0.8.21+commit.d9974bed.Darwin.appleclang": "StdJson.sol/stdJson.json"
+          "0.8.21+commit.d9974bed.Linux.gcc": "StdJson.sol/stdJson.json"
         }
       }
     },
     "lib/forge-std/src/StdMath.sol": {
-      "lastModificationDate": 1697007608867,
+      "lastModificationDate": 1697015264535,
       "contentHash": "9da8f453eba6bb98f3d75bc6822bfb29",
       "sourceName": "lib/forge-std/src/StdMath.sol",
       "solcConfig": {
@@ -688,12 +740,12 @@
       "versionRequirement": ">=0.6.2, <0.9.0",
       "artifacts": {
         "stdMath": {
-          "0.8.21+commit.d9974bed.Darwin.appleclang": "StdMath.sol/stdMath.json"
+          "0.8.21+commit.d9974bed.Linux.gcc": "StdMath.sol/stdMath.json"
         }
       }
     },
     "lib/forge-std/src/StdStorage.sol": {
-      "lastModificationDate": 1697007608867,
+      "lastModificationDate": 1697015264535,
       "contentHash": "abd6f3379e6e2a7979b18abc21aea0c1",
       "sourceName": "lib/forge-std/src/StdStorage.sol",
       "solcConfig": {
@@ -731,15 +783,15 @@
       "versionRequirement": ">=0.6.2, <0.9.0",
       "artifacts": {
         "stdStorage": {
-          "0.8.21+commit.d9974bed.Darwin.appleclang": "StdStorage.sol/stdStorage.json"
+          "0.8.21+commit.d9974bed.Linux.gcc": "StdStorage.sol/stdStorage.json"
         },
         "stdStorageSafe": {
-          "0.8.21+commit.d9974bed.Darwin.appleclang": "StdStorage.sol/stdStorageSafe.json"
+          "0.8.21+commit.d9974bed.Linux.gcc": "StdStorage.sol/stdStorageSafe.json"
         }
       }
     },
     "lib/forge-std/src/StdStyle.sol": {
-      "lastModificationDate": 1697007608868,
+      "lastModificationDate": 1697015264535,
       "contentHash": "6281165a12aa639705c691fccefd855e",
       "sourceName": "lib/forge-std/src/StdStyle.sol",
       "solcConfig": {
@@ -777,12 +829,12 @@
       "versionRequirement": ">=0.4.22, <0.9.0",
       "artifacts": {
         "StdStyle": {
-          "0.8.21+commit.d9974bed.Darwin.appleclang": "StdStyle.sol/StdStyle.json"
+          "0.8.21+commit.d9974bed.Linux.gcc": "StdStyle.sol/StdStyle.json"
         }
       }
     },
     "lib/forge-std/src/StdUtils.sol": {
-      "lastModificationDate": 1697007608868,
+      "lastModificationDate": 1697015264535,
       "contentHash": "3ce83748fd76644688f916c9cced545b",
       "sourceName": "lib/forge-std/src/StdUtils.sol",
       "solcConfig": {
@@ -821,12 +873,12 @@
       "versionRequirement": ">=0.6.2, <0.9.0",
       "artifacts": {
         "StdUtils": {
-          "0.8.21+commit.d9974bed.Darwin.appleclang": "StdUtils.sol/StdUtils.json"
+          "0.8.21+commit.d9974bed.Linux.gcc": "StdUtils.sol/StdUtils.json"
         }
       }
     },
     "lib/forge-std/src/Test.sol": {
-      "lastModificationDate": 1697007608868,
+      "lastModificationDate": 1697015264535,
       "contentHash": "15866901137b5670eabf31362523bd28",
       "sourceName": "lib/forge-std/src/Test.sol",
       "solcConfig": {
@@ -880,12 +932,12 @@
       "versionRequirement": ">=0.6.2, <0.9.0",
       "artifacts": {
         "Test": {
-          "0.8.21+commit.d9974bed.Darwin.appleclang": "Test.sol/Test.json"
+          "0.8.21+commit.d9974bed.Linux.gcc": "Test.sol/Test.json"
         }
       }
     },
     "lib/forge-std/src/Vm.sol": {
-      "lastModificationDate": 1697007608868,
+      "lastModificationDate": 1697015264535,
       "contentHash": "99c76f92020cc3d67eca52e07eea5d77",
       "sourceName": "lib/forge-std/src/Vm.sol",
       "solcConfig": {
@@ -921,15 +973,15 @@
       "versionRequirement": ">=0.6.2, <0.9.0",
       "artifacts": {
         "Vm": {
-          "0.8.21+commit.d9974bed.Darwin.appleclang": "Vm.sol/Vm.json"
+          "0.8.21+commit.d9974bed.Linux.gcc": "Vm.sol/Vm.json"
         },
         "VmSafe": {
-          "0.8.21+commit.d9974bed.Darwin.appleclang": "Vm.sol/VmSafe.json"
+          "0.8.21+commit.d9974bed.Linux.gcc": "Vm.sol/VmSafe.json"
         }
       }
     },
     "lib/forge-std/src/console.sol": {
-      "lastModificationDate": 1697007608868,
+      "lastModificationDate": 1697015264535,
       "contentHash": "100b8a33b917da1147740d7ab8b0ded3",
       "sourceName": "lib/forge-std/src/console.sol",
       "solcConfig": {
@@ -965,12 +1017,12 @@
       "versionRequirement": ">=0.4.22, <0.9.0",
       "artifacts": {
         "console": {
-          "0.8.21+commit.d9974bed.Darwin.appleclang": "console.sol/console.json"
+          "0.8.21+commit.d9974bed.Linux.gcc": "console.sol/console.json"
         }
       }
     },
     "lib/forge-std/src/console2.sol": {
-      "lastModificationDate": 1697007608869,
+      "lastModificationDate": 1697015264535,
       "contentHash": "491ca717c1915995e78cc361485a3067",
       "sourceName": "lib/forge-std/src/console2.sol",
       "solcConfig": {
@@ -1006,12 +1058,12 @@
       "versionRequirement": ">=0.4.22, <0.9.0",
       "artifacts": {
         "console2": {
-          "0.8.21+commit.d9974bed.Darwin.appleclang": "console2.sol/console2.json"
+          "0.8.21+commit.d9974bed.Linux.gcc": "console2.sol/console2.json"
         }
       }
     },
     "lib/forge-std/src/interfaces/IMulticall3.sol": {
-      "lastModificationDate": 1697007608869,
+      "lastModificationDate": 1697015264535,
       "contentHash": "7b131ca1ca32ef6378b7b9ad5488b901",
       "sourceName": "lib/forge-std/src/interfaces/IMulticall3.sol",
       "solcConfig": {
@@ -1047,12 +1099,12 @@
       "versionRequirement": ">=0.6.2, <0.9.0",
       "artifacts": {
         "IMulticall3": {
-          "0.8.21+commit.d9974bed.Darwin.appleclang": "IMulticall3.sol/IMulticall3.json"
+          "0.8.21+commit.d9974bed.Linux.gcc": "IMulticall3.sol/IMulticall3.json"
         }
       }
     },
     "lib/forge-std/src/safeconsole.sol": {
-      "lastModificationDate": 1697007608870,
+      "lastModificationDate": 1697015264535,
       "contentHash": "ac3b1bf5a444db5db3656021830258a8",
       "sourceName": "lib/forge-std/src/safeconsole.sol",
       "solcConfig": {
@@ -1088,12 +1140,12 @@
       "versionRequirement": ">=0.6.2, <0.9.0",
       "artifacts": {
         "safeconsole": {
-          "0.8.21+commit.d9974bed.Darwin.appleclang": "safeconsole.sol/safeconsole.json"
+          "0.8.21+commit.d9974bed.Linux.gcc": "safeconsole.sol/safeconsole.json"
         }
       }
     },
     "lib/openzeppelin-contracts-upgradeable/contracts/proxy/utils/Initializable.sol": {
-      "lastModificationDate": 1697007609190,
+      "lastModificationDate": 1697015264914,
       "contentHash": "b0970a564d121abf9adfff8d1a01eb16",
       "sourceName": "lib/openzeppelin-contracts-upgradeable/contracts/proxy/utils/Initializable.sol",
       "solcConfig": {
@@ -1131,12 +1183,12 @@
       "versionRequirement": "^0.8.2",
       "artifacts": {
         "Initializable": {
-          "0.8.21+commit.d9974bed.Darwin.appleclang": "Initializable.sol/Initializable.json"
+          "0.8.21+commit.d9974bed.Linux.gcc": "Initializable.sol/Initializable.json"
         }
       }
     },
     "lib/openzeppelin-contracts-upgradeable/contracts/utils/AddressUpgradeable.sol": {
-      "lastModificationDate": 1697007609200,
+      "lastModificationDate": 1697015264925,
       "contentHash": "c30c805386fda8a42ff515da963d3a95",
       "sourceName": "lib/openzeppelin-contracts-upgradeable/contracts/utils/AddressUpgradeable.sol",
       "solcConfig": {
@@ -1172,12 +1224,12 @@
       "versionRequirement": "^0.8.1",
       "artifacts": {
         "AddressUpgradeable": {
-          "0.8.21+commit.d9974bed.Darwin.appleclang": "AddressUpgradeable.sol/AddressUpgradeable.json"
+          "0.8.21+commit.d9974bed.Linux.gcc": "AddressUpgradeable.sol/AddressUpgradeable.json"
         }
       }
     },
     "library/btp2/interfaces/IBSH.sol": {
-      "lastModificationDate": 1697007330921,
+      "lastModificationDate": 1697015256572,
       "contentHash": "8fd4c949cdbf37dad2e7223d27b4d823",
       "sourceName": "library/btp2/interfaces/IBSH.sol",
       "solcConfig": {
@@ -1213,12 +1265,12 @@
       "versionRequirement": ">=0.8.0",
       "artifacts": {
         "IBSH": {
-          "0.8.21+commit.d9974bed.Darwin.appleclang": "IBSH.sol/IBSH.json"
+          "0.8.21+commit.d9974bed.Linux.gcc": "IBSH.sol/IBSH.json"
         }
       }
     },
     "library/btp2/interfaces/ICallService.sol": {
-      "lastModificationDate": 1697007330948,
+      "lastModificationDate": 1697015256572,
       "contentHash": "9c79e9e914cd12f78e22cb7790d98de2",
       "sourceName": "library/btp2/interfaces/ICallService.sol",
       "solcConfig": {
@@ -1254,12 +1306,12 @@
       "versionRequirement": ">=0.8.0",
       "artifacts": {
         "ICallService": {
-          "0.8.21+commit.d9974bed.Darwin.appleclang": "ICallService.sol/ICallService.json"
+          "0.8.21+commit.d9974bed.Linux.gcc": "ICallService.sol/ICallService.json"
         }
       }
     },
     "library/btp2/interfaces/ICallServiceReceiver.sol": {
-      "lastModificationDate": 1697007330990,
+      "lastModificationDate": 1697015256572,
       "contentHash": "2ca794c9547a409bda43e8cd9cddc21d",
       "sourceName": "library/btp2/interfaces/ICallServiceReceiver.sol",
       "solcConfig": {
@@ -1295,12 +1347,12 @@
       "versionRequirement": ">=0.8.0",
       "artifacts": {
         "ICallServiceReceiver": {
-          "0.8.21+commit.d9974bed.Darwin.appleclang": "ICallServiceReceiver.sol/ICallServiceReceiver.json"
+          "0.8.21+commit.d9974bed.Linux.gcc": "ICallServiceReceiver.sol/ICallServiceReceiver.json"
         }
       }
     },
     "library/btp2/interfaces/IConnection.sol": {
-      "lastModificationDate": 1697007331014,
+      "lastModificationDate": 1697015256572,
       "contentHash": "c1657a27420fbc7a9189bfddeb12e47f",
       "sourceName": "library/btp2/interfaces/IConnection.sol",
       "solcConfig": {
@@ -1336,12 +1388,12 @@
       "versionRequirement": ">=0.8.0",
       "artifacts": {
         "IConnection": {
-          "0.8.21+commit.d9974bed.Darwin.appleclang": "IConnection.sol/IConnection.json"
+          "0.8.21+commit.d9974bed.Linux.gcc": "IConnection.sol/IConnection.json"
         }
       }
     },
     "library/btp2/interfaces/IDefaultCallServiceReceiver.sol": {
-      "lastModificationDate": 1697007331035,
+      "lastModificationDate": 1697015256572,
       "contentHash": "9ed4a1596fa1e5e72f7109dbab545534",
       "sourceName": "library/btp2/interfaces/IDefaultCallServiceReceiver.sol",
       "solcConfig": {
@@ -1377,12 +1429,12 @@
       "versionRequirement": ">=0.8.0",
       "artifacts": {
         "IDefaultCallServiceReceiver": {
-          "0.8.21+commit.d9974bed.Darwin.appleclang": "IDefaultCallServiceReceiver.sol/IDefaultCallServiceReceiver.json"
+          "0.8.21+commit.d9974bed.Linux.gcc": "IDefaultCallServiceReceiver.sol/IDefaultCallServiceReceiver.json"
         }
       }
     },
     "library/btp2/utils/Integers.sol": {
-      "lastModificationDate": 1697007331062,
+      "lastModificationDate": 1697015256572,
       "contentHash": "e3d539bdfbc1bc771779239375c3885b",
       "sourceName": "library/btp2/utils/Integers.sol",
       "solcConfig": {
@@ -1418,12 +1470,12 @@
       "versionRequirement": ">=0.8.0",
       "artifacts": {
         "Integers": {
-          "0.8.21+commit.d9974bed.Darwin.appleclang": "Integers.sol/Integers.json"
+          "0.8.21+commit.d9974bed.Linux.gcc": "Integers.sol/Integers.json"
         }
       }
     },
     "library/btp2/utils/NetworkAddress.sol": {
-      "lastModificationDate": 1697007331107,
+      "lastModificationDate": 1697015256572,
       "contentHash": "b3d02bcf18199307b399901bbf4f6387",
       "sourceName": "library/btp2/utils/NetworkAddress.sol",
       "solcConfig": {
@@ -1459,12 +1511,12 @@
       "versionRequirement": ">=0.8.0",
       "artifacts": {
         "NetworkAddress": {
-          "0.8.21+commit.d9974bed.Darwin.appleclang": "NetworkAddress.sol/NetworkAddress.json"
+          "0.8.21+commit.d9974bed.Linux.gcc": "NetworkAddress.sol/NetworkAddress.json"
         }
       }
     },
     "library/btp2/utils/ParseAddress.sol": {
-      "lastModificationDate": 1697007331142,
+      "lastModificationDate": 1697015256572,
       "contentHash": "717833bbbc0f961eda0f1b00dd1dec8c",
       "sourceName": "library/btp2/utils/ParseAddress.sol",
       "solcConfig": {
@@ -1500,12 +1552,12 @@
       "versionRequirement": ">=0.8.0",
       "artifacts": {
         "ParseAddress": {
-          "0.8.21+commit.d9974bed.Darwin.appleclang": "ParseAddress.sol/ParseAddress.json"
+          "0.8.21+commit.d9974bed.Linux.gcc": "ParseAddress.sol/ParseAddress.json"
         }
       }
     },
     "library/btp2/utils/RLPDecode.sol": {
-      "lastModificationDate": 1697007331173,
+      "lastModificationDate": 1697015256572,
       "contentHash": "8a237d675ba6b1b4a7ff47dfcb229869",
       "sourceName": "library/btp2/utils/RLPDecode.sol",
       "solcConfig": {
@@ -1541,12 +1593,12 @@
       "versionRequirement": ">=0.8.0",
       "artifacts": {
         "RLPDecode": {
-          "0.8.21+commit.d9974bed.Darwin.appleclang": "RLPDecode.sol/RLPDecode.json"
+          "0.8.21+commit.d9974bed.Linux.gcc": "RLPDecode.sol/RLPDecode.json"
         }
       }
     },
     "library/btp2/utils/RLPEncode.sol": {
-      "lastModificationDate": 1697007331193,
+      "lastModificationDate": 1697015256583,
       "contentHash": "3d288700d76882ab990800af30932805",
       "sourceName": "library/btp2/utils/RLPEncode.sol",
       "solcConfig": {
@@ -1582,12 +1634,12 @@
       "versionRequirement": ">=0.8.0",
       "artifacts": {
         "RLPEncode": {
-          "0.8.21+commit.d9974bed.Darwin.appleclang": "RLPEncode.sol/RLPEncode.json"
+          "0.8.21+commit.d9974bed.Linux.gcc": "RLPEncode.sol/RLPEncode.json"
         }
       }
     },
     "library/btp2/utils/Strings.sol": {
-      "lastModificationDate": 1697007331228,
+      "lastModificationDate": 1697015256583,
       "contentHash": "15688932876357610555acf8dafa69d9",
       "sourceName": "library/btp2/utils/Strings.sol",
       "solcConfig": {
@@ -1623,12 +1675,12 @@
       "versionRequirement": ">=0.8.0",
       "artifacts": {
         "Strings": {
-          "0.8.21+commit.d9974bed.Darwin.appleclang": "Strings.sol/Strings.json"
+          "0.8.21+commit.d9974bed.Linux.gcc": "Strings.sol/Strings.json"
         }
       }
     },
     "library/utils/RLPDecodeStruct.sol": {
-      "lastModificationDate": 1697007583627,
+      "lastModificationDate": 1697015256583,
       "contentHash": "be35dc124c8d1b9b5a62d7f4d9aed277",
       "sourceName": "library/utils/RLPDecodeStruct.sol",
       "solcConfig": {
@@ -1667,12 +1719,12 @@
       "versionRequirement": ">=0.8.0",
       "artifacts": {
         "RLPDecodeStruct": {
-          "0.8.21+commit.d9974bed.Darwin.appleclang": "RLPDecodeStruct.sol/RLPDecodeStruct.json"
+          "0.8.21+commit.d9974bed.Linux.gcc": "RLPDecodeStruct.sol/RLPDecodeStruct.json"
         }
       }
     },
     "library/utils/RLPEncodeStruct.sol": {
-      "lastModificationDate": 1697007583627,
+      "lastModificationDate": 1697015256583,
       "contentHash": "896c923d044305f86689cc28f395776d",
       "sourceName": "library/utils/RLPEncodeStruct.sol",
       "solcConfig": {
@@ -1711,12 +1763,12 @@
       "versionRequirement": ">=0.8.0",
       "artifacts": {
         "RLPEncodeStruct": {
-          "0.8.21+commit.d9974bed.Darwin.appleclang": "RLPEncodeStruct.sol/RLPEncodeStruct.json"
+          "0.8.21+commit.d9974bed.Linux.gcc": "RLPEncodeStruct.sol/RLPEncodeStruct.json"
         }
       }
     },
     "library/utils/Types.sol": {
-      "lastModificationDate": 1697007583627,
+      "lastModificationDate": 1697015256583,
       "contentHash": "db3f548955c93249c140f82656d31383",
       "sourceName": "library/utils/Types.sol",
       "solcConfig": {
@@ -1752,12 +1804,12 @@
       "versionRequirement": ">=0.8.0",
       "artifacts": {
         "Types": {
-          "0.8.21+commit.d9974bed.Darwin.appleclang": "Types.sol/Types.json"
+          "0.8.21+commit.d9974bed.Linux.gcc": "Types.sol/Types.json"
         }
       }
     },
     "script/CallService.s.sol": {
-      "lastModificationDate": 1697009017151,
+      "lastModificationDate": 1697015256583,
       "contentHash": "05f206f20b3b26b31bb53604db26f6c7",
       "sourceName": "script/CallService.s.sol",
       "solcConfig": {
@@ -1826,12 +1878,12 @@
       "versionRequirement": "^0.8.13",
       "artifacts": {
         "CallServiceScript": {
-          "0.8.21+commit.d9974bed.Darwin.appleclang": "CallService.s.sol/CallServiceScript.json"
+          "0.8.21+commit.d9974bed.Linux.gcc": "CallService.s.sol/CallServiceScript.json"
         }
       }
     },
     "test/adapters/layerzero/LayerZeroAdapter.t.sol": {
-      "lastModificationDate": 1697007334500,
+      "lastModificationDate": 1697015256583,
       "contentHash": "916c9328b3f0d5b3a49beebe923ae795",
       "sourceName": "test/adapters/layerzero/LayerZeroAdapter.t.sol",
       "solcConfig": {
@@ -1886,12 +1938,12 @@
       "versionRequirement": "^0.8.13",
       "artifacts": {
         "LayerZeroAdapterTest": {
-          "0.8.21+commit.d9974bed.Darwin.appleclang": "LayerZeroAdapter.t.sol/LayerZeroAdapterTest.json"
+          "0.8.21+commit.d9974bed.Linux.gcc": "LayerZeroAdapter.t.sol/LayerZeroAdapterTest.json"
         }
       }
     },
     "test/adapters/wormhole/WormholeAdapter.t.sol": {
-      "lastModificationDate": 1697007334544,
+      "lastModificationDate": 1697015256583,
       "contentHash": "67c296db43e7a719bdbe6ffba14a3c5e",
       "sourceName": "test/adapters/wormhole/WormholeAdapter.t.sol",
       "solcConfig": {
@@ -1946,12 +1998,12 @@
       "versionRequirement": "^0.8.13",
       "artifacts": {
         "WormholeAdapterTest": {
-          "0.8.21+commit.d9974bed.Darwin.appleclang": "WormholeAdapter.t.sol/WormholeAdapterTest.json"
+          "0.8.21+commit.d9974bed.Linux.gcc": "WormholeAdapter.t.sol/WormholeAdapterTest.json"
         }
       }
     },
     "test/xcall/CallService.t.sol": {
-      "lastModificationDate": 1697008999857,
+      "lastModificationDate": 1697015256583,
       "contentHash": "77f21cfc852119124a6d0ba4f924f47d",
       "sourceName": "test/xcall/CallService.t.sol",
       "solcConfig": {
@@ -2025,7 +2077,7 @@
       "versionRequirement": "^0.8.13",
       "artifacts": {
         "CallServiceTest": {
-          "0.8.21+commit.d9974bed.Darwin.appleclang": "CallService.t.sol/CallServiceTest.json"
+          "0.8.21+commit.d9974bed.Linux.gcc": "CallService.t.sol/CallServiceTest.json"
         }
       }
     }
