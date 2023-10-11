@@ -2,10 +2,10 @@
 pragma solidity >=0.8.0;
 pragma abicoder v2;
 
-import "./interfaces/IFeeManage.sol";
-import "./libraries/RLPDecodeStruct.sol";
-import "./libraries/RLPEncodeStruct.sol";
-import "./libraries/Types.sol";
+import "@xcall/contracts/xcall/interfaces/IFeeManage.sol";
+import "@xcall/utils/RLPDecodeStruct.sol";
+import "@xcall/utils/RLPEncodeStruct.sol";
+import "@xcall/utils/Types.sol";
 
 import "@iconfoundation/btp2-solidity-library/interfaces/IConnection.sol";
 import "@iconfoundation/btp2-solidity-library/interfaces/IBSH.sol";
@@ -16,7 +16,7 @@ import "@iconfoundation/btp2-solidity-library/utils/NetworkAddress.sol";
 import "@iconfoundation/btp2-solidity-library/utils/Integers.sol";
 import "@iconfoundation/btp2-solidity-library/utils/ParseAddress.sol";
 import "@iconfoundation/btp2-solidity-library/utils/Strings.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "openzeppelin-contracts-upgradeable/contracts/proxy/utils/Initializable.sol";
 
 contract CallService is IBSH, ICallService, IFeeManage, Initializable {
     using Strings for string;
@@ -42,8 +42,8 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
 
     mapping(uint256 => bool) private successfulResponses;
 
-    mapping(bytes32 =>  mapping(string => bool)) private pendingReqs;
-    mapping(uint256 =>  mapping(string => bool)) private pendingResponses;
+    mapping(bytes32 => mapping(string => bool)) private pendingReqs;
+    mapping(uint256 => mapping(string => bool)) private pendingResponses;
 
     mapping(string => address) private defaultConnections;
 
@@ -210,12 +210,12 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
         if (msgReq.rollback) {
             if (msgReq.protocols.length == 0) {
                 address conn = defaultConnections[netFrom];
-                sendBTPMessage(conn, 0, netFrom, Types.CS_RESPONSE, int256(msgReq.sn) * -1, msgRes.encodeCSMessageResponse());
+                sendBTPMessage(conn, 0, netFrom, Types.CS_RESPONSE, int256(msgReq.sn) * - 1, msgRes.encodeCSMessageResponse());
 
             } else {
                 for (uint i = 0; i < msgReq.protocols.length; i++) {
                     address conn = msgReq.protocols[i].parseAddress("IllegalArgument");
-                    sendBTPMessage(conn, 0, netFrom, Types.CS_RESPONSE, int256(msgReq.sn) * -1, msgRes.encodeCSMessageResponse());
+                    sendBTPMessage(conn, 0, netFrom, Types.CS_RESPONSE, int256(msgReq.sn) * - 1, msgRes.encodeCSMessageResponse());
                 }
             }
 
@@ -393,7 +393,7 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
         }
 
         emit ResponseMessage(res.sn, res.code);
-        if (res.code == Types.CS_RESP_SUCCESS){
+        if (res.code == Types.CS_RESP_SUCCESS) {
             cleanupCallRequest(res.sn);
             successfulResponses[res.sn] = true;
         } else {
@@ -488,7 +488,7 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
     ) external view override returns (
         uint256
     ) {
-        return protocolFee +  _getFee(defaultConnections[_net], _net, _rollback);
+        return protocolFee + _getFee(defaultConnections[_net], _net, _rollback);
     }
 
     function getFee(
