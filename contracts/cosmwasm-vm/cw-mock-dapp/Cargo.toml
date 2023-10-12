@@ -35,7 +35,7 @@ cw2 = {workspace=true}
 schemars = {workspace=true}
 serde = { workspace=true}
 thiserror = { workspace=true}
-common ={ git = "https://github.com/icon-project/IBC-Integration.git",branch="main" }
+common ={ git = "https://github.com/icon-project/IBC-Integration.git",branch="feat/cw-wasm-light-client" }
 cw-xcall-lib = { path="../cw-xcall-lib" }
 serde-json-wasm = {workspace=true}
 
