@@ -29,7 +29,6 @@ optimize = """docker run --rm -v "$(pwd)":/code \
 [dependencies]
 cosmwasm-schema = {workspace=true}
 cosmwasm-std = { workspace=true}
-#cosmwasm-storage = {workspace=true}
 cw-storage-plus = {workspace=true}
 cw2 = {workspace=true}
 schemars = {workspace=true}
@@ -41,6 +40,5 @@ serde-json-wasm = {workspace=true}
 
 [dev-dependencies]
 cosmwasm = "0.7.2"
-cw-multi-test = "0.16.2"
 getrandom = {version = "0.2", default-features = false, features = ["custom"]}
 
