@@ -37,14 +37,16 @@ The user can also specify which connections to use, if not specified, the defaul
 This also allows dapps to have their messages secured by multiple protocols.
 
 The default connections are specified by and admin and can be changed at any time.
+The `_data` is limited to 2048 KB.
+The `_rollback` data is limited to  1024KB.
 
 ```
 /**
  * Sends a call message to the contract on the destination chain.
  *
  * @param _to The network address of the callee on the destination chain
- * @param _data The calldata specific to the target contract
- * @param _rollback (Optional) Data used to specify error handling of a two-way messages
+ * @param _data The calldata specific to the target contract. Max 2048KB
+ * @param _rollback (Optional) Data used to specify error handling of a two-way messages. Max 1024KB
  * @param _sources  (Optional) The contracts that will be used to send the message
  * @param _destinations (Optional) The addresses of the contracts that xcall will expect the message from.
  *
@@ -391,8 +393,8 @@ CallRequest {
 ### Storage
 
 ```
-MAX_DATA_SIZE: <size>
-MAX_ROLLBACK_SIZE: <size>
+MAX_DATA_SIZE: 2048
+MAX_ROLLBACK_SIZE: 1024
 NID: <networkId>
 
 sn: <current send message sequence>
@@ -484,13 +486,12 @@ payable external function sendCallMessage(String _to,
 #### Receiving messages
 
 `handleMessage` is the external function used by connections to deliver messages.
-
-```
-external function handleMessage(String _from, bytes _msg) {
+```javascript
+external function handleMessage(String _fromNid, bytes _msg) {
     msg = CSMessage.decode(_msg);
     switch (msg.type) :
         case CSMessage.REQUEST:
-            handleRequest(_from, msg.data);
+            handleRequest(_fromNid, msg.data);
             break;
         case CSMessage.RESPONSE:
             handleResponse(msg.data);
