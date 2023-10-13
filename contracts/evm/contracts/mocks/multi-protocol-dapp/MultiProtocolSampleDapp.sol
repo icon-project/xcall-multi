@@ -1,14 +1,17 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
+
 import "@iconfoundation/btp2-solidity-library/utils/NetworkAddress.sol";
 import "@iconfoundation/btp2-solidity-library/utils/Integers.sol";
 import "@iconfoundation/btp2-solidity-library/utils/ParseAddress.sol";
 import "@iconfoundation/btp2-solidity-library/utils/Strings.sol";
 import "@iconfoundation/btp2-solidity-library/interfaces/ICallService.sol";
+import "@iconfoundation/btp2-solidity-library/interfaces/ICallServiceReceiver.sol";
 
 import "openzeppelin-contracts-upgradeable/contracts/proxy/utils/Initializable.sol";
+import "../../../library/btp2/interfaces/IDefaultCallServiceReceiver.sol";
 
-contract MultiProtocolSampleDapp is Initializable {
+contract MultiProtocolSampleDapp is Initializable, ICallServiceReceiver {
     using Strings for string;
     using Integers for uint;
     using ParseAddress for address;
@@ -21,7 +24,7 @@ contract MultiProtocolSampleDapp is Initializable {
     
     event MessageReceived(string indexed from, bytes data);
 
-    function initialize(address _callService) public {
+    function initialize(address _callService) public initializer {
         callSvc = _callService;
     }
 
@@ -53,13 +56,13 @@ contract MultiProtocolSampleDapp is Initializable {
         bytes memory data,
         bytes memory rollback
     ) private {
-        (string memory net,) = to.parseNetworkAddress(); 
-        ICallService(callSvc).sendCallMessage{value:value}(to, data, rollback, getSources(net), getDestinations(net));
+        (string memory net,) = to.parseNetworkAddress();
+        ICallService(callSvc).sendCallMessage{value: value}(to, data, rollback, getSources(net), getDestinations(net));
     }
 
-    function handleCallMessage(string memory from, bytes memory data, string[] memory protocols) onlyCallService external {
-        
-        (string memory netFrom,)  = from.parseNetworkAddress();
+
+    function handleCallMessage(string memory from, bytes memory data, string[] memory protocols) external onlyCallService {
+        (string memory netFrom,) = from.parseNetworkAddress();
         string memory rollbackAddress = ICallService(callSvc).getNetworkAddress();
 
         if (from.compareTo(rollbackAddress)) {

@@ -128,10 +128,9 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
         (string memory netTo, string memory dstAccount) = _to.parseNetworkAddress();
         string memory from = nid.networkAddress(msg.sender.toString());
         uint256 sn = getNextSn();
-        int256 msgSn = 0;
+        int256 msgSn = int256(sn);
         if (needResponse) {
             requests[sn] = Types.CallRequest(msg.sender, netTo, sources, _rollback, false);
-            msgSn = int256(sn);
         }
         Types.CSMessageRequest memory reqMsg = Types.CSMessageRequest(
             from, dstAccount, sn, needResponse, _data, destinations);
@@ -140,7 +139,7 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
 
         if (sources.length == 0) {
             address conn = defaultConnections[netTo];
-            require(conn != address(0), "NoDefaultConnection");
+            require(conn != address(0), string(abi.encodePacked("No default connection for ", netTo)));
             uint256 requiredFee = IConnection(conn).getFee(netTo, needResponse);
             sendBTPMessage(conn, requiredFee, netTo, Types.CS_REQUEST, msgSn, _msg);
         } else {

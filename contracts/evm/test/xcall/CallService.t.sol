@@ -213,7 +213,7 @@ contract CallServiceTest is Test {
         bytes memory data = bytes("test");
         bytes memory rollbackData = bytes("");
 
-        vm.expectRevert("NoDefaultConnection");
+        vm.expectRevert("No default connection for 0x2.ICON");
         uint256 sn = callService.sendCallMessage{value: 0 ether}(iconDapp, data, rollbackData);
     }
 
