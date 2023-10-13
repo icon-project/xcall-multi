@@ -111,7 +111,6 @@ contract WormholeAdapter is IAdapter, Initializable, IWormholeReceiver, IConnect
             0,
             gasLimits[_to]
         );
-        emit RequestSubmitted(uint256(- _sn));
     }
 
     /**
@@ -148,7 +147,6 @@ contract WormholeAdapter is IAdapter, Initializable, IWormholeReceiver, IConnect
             0,
             gasLimits[resp.targetNetwork]
         );
-        emit RequestSubmitted(_sn);
     }
 
     /**

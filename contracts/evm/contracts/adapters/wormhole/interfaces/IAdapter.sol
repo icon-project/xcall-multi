@@ -13,8 +13,6 @@ interface IAdapter {
      */
     event ResponseOnHold(uint256 indexed _sn);
 
-    event RequestSubmitted(uint256 indexed _sn);
-
     /**
      * @notice Configure connection settings for a destination chain.
      * @param networkId The network ID of the destination chain.
