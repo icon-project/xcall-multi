@@ -35,7 +35,7 @@ contract WormholeAdapter is IAdapter, Initializable, IWormholeReceiver, IConnect
     }
 
     modifier onlyAdmin() {
-        require(msg.sender == _admin(), "OnlyAdmin");
+        require(msg.sender == this.admin(), "OnlyAdmin");
         _;
     }
 
@@ -156,7 +156,14 @@ contract WormholeAdapter is IAdapter, Initializable, IWormholeReceiver, IConnect
         adminAddress = _address;
     }
 
-    function _admin() internal view returns (address) {
+    /**
+       @notice Gets the address of admin
+       @return (Address) the address of admin
+    */
+    function admin(
+    ) external view returns (
+        address
+    ) {
         if (adminAddress == address(0)) {
             return owner;
         }

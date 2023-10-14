@@ -33,6 +33,10 @@ contract WormholeAdapterTest is WormholeRelayerBasicTest {
     string public nidTarget = "nid.target";
 
 
+    address public admin = address(0x1111);
+    address public user = address(0x1234);
+
+
     function setUpSource() public override {
         console2.log("------>setting up source<-------");
         xCallSource = new CallService();
@@ -61,6 +65,7 @@ contract WormholeAdapterTest is WormholeRelayerBasicTest {
 
         xCallTarget.setDefaultConnection(nidSource, address(adapterTarget));
         toWormholeFormat(address(xCallTarget));
+
     }
 
     function setUpGeneral() public override {
@@ -91,6 +96,41 @@ contract WormholeAdapterTest is WormholeRelayerBasicTest {
             toWormholeFormat(address(adapterSource)),
             5_000_000
         );
+    }
+
+    function testSetAdmin() public {
+        adapterSource.setAdmin(admin);
+        assertEq(adapterSource.admin(), admin);
+    }
+
+    function testSetAdminUnauthorized() public {
+        vm.prank(user);
+        vm.expectRevert("OnlyAdmin");
+        adapterSource.setAdmin(user);
+    }
+
+    function testConnection() public {
+        vm.selectFork(sourceFork);
+        adapterSource.setAdmin(admin);
+        vm.prank(user);
+        vm.expectRevert("OnlyAdmin");
+        adapterSource.configureConnection(
+            nidTarget,
+            targetChain,
+            toWormholeFormat(address(adapterTarget)),
+            5_000_000
+        );
+
+        vm.prank(admin);
+        vm.expectRevert("Connection already configured");
+
+        adapterSource.configureConnection(
+            nidTarget,
+            targetChain,
+            toWormholeFormat(address(adapterTarget)),
+            5_000_000
+        );
+
     }
 
 
