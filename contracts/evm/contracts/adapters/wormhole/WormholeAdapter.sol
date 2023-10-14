@@ -95,13 +95,12 @@ contract WormholeAdapter is IAdapter, Initializable, IWormholeReceiver, IConnect
 
         if (_sn < 0) {
             fee = this.getFee(_to, false);
-            require(msg.value >= fee, "Insufficient fee for response");
-            uint256 sn = uint256(- _sn);
-            pendingResponses[sn] = Types.PendingResponse(_msg, _to);
-            emit ResponseOnHold(sn);
-            return;
-        } else {
-            fee = msg.value;
+            if (address(this).balance < fee) {
+                uint256 sn = uint256(- _sn);
+                pendingResponses[sn] = Types.PendingResponse(_msg, _to);
+                emit ResponseOnHold(sn);
+                return;
+            }
         }
 
         IWormholeRelayer(wormholeRelayer).sendPayloadToEvm{value: fee}(

@@ -14,6 +14,12 @@ contract WormholeAdapterTest is WormholeRelayerBasicTest {
         string _msg
     );
 
+    event RollbackExecuted(
+        uint256 indexed _sn
+    );
+
+    event ResponseOnHold(uint256 indexed _sn);
+
     MultiProtocolSampleDapp dappSource;
     MultiProtocolSampleDapp dappTarget;
 
@@ -106,7 +112,39 @@ contract WormholeAdapterTest is WormholeRelayerBasicTest {
         vm.expectEmit();
         emit CallExecuted(1, 1, "");
         xCallTarget.executeCall(1, data);
-
     }
+
+    function testRollback() public {
+        vm.recordLogs();
+        vm.selectFork(sourceFork);
+
+        string memory to = NetworkAddress.networkAddress(nidTarget, ParseAddress.toString(address(dappTarget)));
+
+        uint256 cost = adapterSource.getFee(nidTarget, false);
+
+        bytes memory data = bytes("rollback");
+        bytes memory rollback = bytes("rollback-data");
+        dappSource.sendMessage{value: cost}(to, data, rollback);
+
+        performDelivery();
+
+        vm.selectFork(targetFork);
+        vm.expectEmit();
+        emit CallExecuted(1, 0, "rollback");
+
+        emit ResponseOnHold(1);
+        xCallTarget.executeCall(1, data);
+
+        // trigger response
+        adapterTarget.triggerResponse{value: cost}(1);
+        performDelivery();
+
+        //execute rollback
+        vm.selectFork(sourceFork);
+        vm.expectEmit();
+        emit RollbackExecuted(1);
+        xCallSource.executeRollback(1);
+    }
+
 
 }

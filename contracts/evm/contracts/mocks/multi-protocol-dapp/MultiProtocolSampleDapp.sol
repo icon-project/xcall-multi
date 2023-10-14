@@ -9,7 +9,6 @@ import "@iconfoundation/btp2-solidity-library/interfaces/ICallService.sol";
 import "@iconfoundation/btp2-solidity-library/interfaces/ICallServiceReceiver.sol";
 
 import "openzeppelin-contracts-upgradeable/contracts/proxy/utils/Initializable.sol";
-import "../../../library/btp2/interfaces/IDefaultCallServiceReceiver.sol";
 
 contract MultiProtocolSampleDapp is Initializable, ICallServiceReceiver {
     using Strings for string;
@@ -21,7 +20,7 @@ contract MultiProtocolSampleDapp is Initializable, ICallServiceReceiver {
     address private callSvc;
     mapping(string => string[]) private sources;
     mapping(string => string[]) private destinations;
-    
+
     event MessageReceived(string indexed from, bytes data);
 
     function initialize(address _callService) public initializer {
@@ -69,7 +68,7 @@ contract MultiProtocolSampleDapp is Initializable, ICallServiceReceiver {
             return;
         } else {
             require(protocolsEqual(protocols, getSources(netFrom)), "invalid protocols");
-            require(keccak256(data) != keccak256(abi.encodePacked(from)), "failed");
+            require(keccak256(data) != keccak256(abi.encodePacked("rollback")), "rollback");
             emit MessageReceived(from, data);
         }
     }
