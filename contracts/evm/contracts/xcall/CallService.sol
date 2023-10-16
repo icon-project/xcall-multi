@@ -17,8 +17,10 @@ import "@iconfoundation/btp2-solidity-library/utils/Integers.sol";
 import "@iconfoundation/btp2-solidity-library/utils/ParseAddress.sol";
 import "@iconfoundation/btp2-solidity-library/utils/Strings.sol";
 import "openzeppelin-contracts-upgradeable/contracts/proxy/utils/Initializable.sol";
+import {UUPSUpgradeable} from "openzeppelin-contracts-upgradeable/contracts/proxy/utils/UUPSUpgradeable.sol";
 
-contract CallService is IBSH, ICallService, IFeeManage, Initializable {
+
+contract CallService is IBSH, ICallService, IFeeManage, Initializable, UUPSUpgradeable {
     using Strings for string;
     using Integers for uint;
     using ParseAddress for address;
@@ -450,12 +452,12 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
         return feeHandler;
     }
 
-    function setDefaultConnection(string memory nid, address connection) external onlyAdmin {
-        defaultConnections[nid] = connection;
+    function setDefaultConnection(string memory _nid, address connection) external onlyAdmin {
+        defaultConnections[_nid] = connection;
     }
 
-    function getDefaultConnection(string memory nid) external view returns (address) {
-        return defaultConnections[nid];
+    function getDefaultConnection(string memory _nid) external view returns (address) {
+        return defaultConnections[_nid];
     }
 
     function setProtocolFee(
@@ -510,4 +512,10 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
     function verifySuccess(uint256 _sn) external view returns (bool) {
         return successfulResponses[_sn];
     }
+
+        /* ========== UUPS ========== */
+    //solhint-disable-next-line no-empty-blocks
+    function _authorizeUpgrade(address) internal override onlyAdmin {}
+
+    function getImplementation() external view returns (address) {}
 }
