@@ -1,12 +1,12 @@
 use cosmwasm_std::DepsMut;
 use cosmwasm_std::MessageInfo;
-use cosmwasm_std::{Deps, Env, Reply, Response};
-use schemars::_serde_json::to_string;
+use cosmwasm_std::ReplyOn;
+
+use cosmwasm_std::{Env, Response};
 
 use crate::error::ContractError;
 use crate::events::event_rollback_executed;
 use crate::state::{CwCallService, EXECUTE_ROLLBACK_ID};
-use crate::types::response::{CallServiceMessageResponse, CallServiceResponseType};
 
 impl<'a> CwCallService<'a> {
     /// This function executes a rollback operation for a previously made call request.
@@ -34,6 +34,7 @@ impl<'a> CwCallService<'a> {
         sequence_no: u128,
     ) -> Result<Response, ContractError> {
         let call_request = self.get_call_request(deps.storage, sequence_no)?;
+        self.cleanup_request(deps.storage, sequence_no);
 
         self.ensure_call_request_not_null(sequence_no, &call_request)
             .unwrap();
@@ -41,7 +42,7 @@ impl<'a> CwCallService<'a> {
             .unwrap();
         let from = self.get_own_network_address(deps.as_ref().storage, &env)?;
 
-        let sub_msg = self.call_dapp_handle_message(
+        let mut sub_msg = self.call_dapp_handle_message(
             info,
             // the original caller is stored as from in call request
             call_request.from().clone(),
@@ -50,63 +51,14 @@ impl<'a> CwCallService<'a> {
             call_request.protocols().clone(),
             EXECUTE_ROLLBACK_ID,
         )?;
-        self.store_execute_rollback_id(deps.storage, sequence_no)?;
+        sub_msg.reply_on = ReplyOn::Never;
 
-        Ok(Response::new()
-            .add_attribute("action", "call_message")
-            .add_attribute("method", "execute_call")
-            .add_submessage(sub_msg))
-    }
-
-    /// This function handles the response of a call to a service and generates a response with an
-    /// event.
-    ///
-    /// Arguments:
-    ///
-    /// * `deps`: `deps` is an instance of the `Deps` struct, which provides access to the contract's
-    /// dependencies such as storage, API, and context.
-    /// * `msg`: `msg` is a `Reply` struct that contains the result of a sub-message that was sent by
-    /// the contract to another contract or external system. It is used to construct a
-    /// `CallServiceMessageResponse` that will be returned as part of the `Response` to the original
-    /// message that triggered the
-    ///
-    /// Returns:
-    ///
-    /// a `Result<Response, ContractError>` where `Response` is a struct representing the response to be
-    /// returned by the contract and `ContractError` is an enum representing any errors that may occur
-    /// during contract execution.
-    pub fn execute_rollback_reply(
-        &self,
-        deps: Deps,
-        msg: Reply,
-    ) -> Result<Response, ContractError> {
-        let sn = self.get_execute_rollback_id(deps.storage)?;
-
-        let response = match msg.result {
-            cosmwasm_std::SubMsgResult::Ok(_res) => CallServiceMessageResponse::new(
-                sn,
-                CallServiceResponseType::CallServiceResponseSuccess,
-                "",
-            ),
-            cosmwasm_std::SubMsgResult::Err(err) => {
-                let error_message = format!("CallService Reverted : {err}");
-                CallServiceMessageResponse::new(
-                    sn,
-                    CallServiceResponseType::CallServiceResponseFailure,
-                    &error_message,
-                )
-            }
-        };
-
-        let event = event_rollback_executed(
-            sn,
-            (response.response_code().clone()).into(),
-            &to_string(response.message()).unwrap(),
-        );
+        let event = event_rollback_executed(sequence_no);
 
         Ok(Response::new()
             .add_attribute("action", "call_message")
             .add_attribute("method", "execute_rollback")
-            .add_event(event))
+            .add_event(event)
+            .add_submessage(sub_msg))
     }
 }

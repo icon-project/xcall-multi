@@ -1,7 +1,8 @@
-rootProject.name = 'xcall'
+rootProject.name = 'xcall-multi'
 include(
         'test-lib',
         'xcall',
+        'xcall-lib'
 )
 
 include(':dapp-simple')
