@@ -229,9 +229,6 @@ mod execute {
         from: NetworkAddress,
         data: Vec<u8>,
     ) -> Result<Response, ContractError> {
-        if !from.validate_foreign_addresses() {
-            return Err(ContractError::InvalidNetworkAddress);
-        }
         let xcall = X_CALL.load(deps.storage)?;
         if info.sender != xcall {
             return Err(ContractError::OnlyCallService);
@@ -335,9 +332,6 @@ mod execute {
         from: NetworkAddress,
         cross_transfer_data: CrossTransfer,
     ) -> Result<Response, ContractError> {
-        if !cross_transfer_data.from.validate_foreign_addresses() {
-            return Err(ContractError::InvalidNetworkAddress);
-        }
         let nid = NID.load(deps.storage)?;
 
         let hub_net: NetId = DESTINATION_TOKEN_NET.load(deps.storage)?;
@@ -393,6 +387,11 @@ mod execute {
         cross_transfer_revert_data: CrossTransferRevert,
     ) -> Result<Response, ContractError> {
         debug_println!("this is {:?},{:?}", cross_transfer_revert_data, from);
+        let xcall_network_address = X_CALL_NETWORK_ADDRESS.load(deps.storage)?;
+        if from != xcall_network_address {
+            return Err(ContractError::WrongAddress {});
+        }
+
         deps.api
             .addr_validate(cross_transfer_revert_data.from.as_ref())
             .map_err(ContractError::Std)?;
