@@ -23,17 +23,13 @@ pub enum ExecuteMsg {
         destinations: Option<Vec<String>>,
     },
     HandleMessage {
-        from: NetId,
-        sn: Option<i64>,
+        from_nid: NetId,
         msg: Vec<u8>,
     },
 
     HandleError {
-        sn: i64,
-        code: i64,
-        msg: String,
+        sn: u128,
     },
-
     ExecuteCall {
         request_id: u128,
         data: Vec<u8>,

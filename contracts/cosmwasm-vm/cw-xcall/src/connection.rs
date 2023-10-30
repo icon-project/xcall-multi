@@ -1,4 +1,4 @@
-use crate::types::{message::CallServiceMessage, LOG_PREFIX};
+use crate::types::{message::CSMessage, LOG_PREFIX};
 use common::rlp;
 use cosmwasm_std::{
     to_binary, Addr, Coin, CosmosMsg, Deps, DepsMut, QueryRequest, SubMsg, WasmMsg,
@@ -15,11 +15,11 @@ use crate::{
 impl<'a> CwCallService<'a> {
     pub fn call_connection_send_message(
         &self,
-        address: &str,
+        address: &Addr,
         fee: Vec<Coin>,
         to: NetId,
         sn: i64,
-        msg: &CallServiceMessage,
+        msg: &CSMessage,
     ) -> Result<SubMsg, ContractError> {
         let msg = rlp::encode(msg).to_vec();
         self.ensure_data_length(msg.len())?;
@@ -34,7 +34,7 @@ impl<'a> CwCallService<'a> {
             id: SEND_CALL_MESSAGE_REPLY_ID,
             msg: cosm_msg,
             gas_limit: None,
-            reply_on: cosmwasm_std::ReplyOn::Always,
+            reply_on: cosmwasm_std::ReplyOn::Never,
         };
         println!("{LOG_PREFIX} sent message to connection :{address}");
         Ok(submessage)
@@ -71,6 +71,7 @@ impl<'a> CwCallService<'a> {
         address: Addr,
     ) -> Result<Response, ContractError> {
         self.ensure_admin(deps.storage, info.sender)?;
+        deps.api.addr_validate(address.as_str())?;
         self.store_default_connection(deps.storage, nid, address)?;
 
         Ok(Response::new().add_attribute("method", "set_default_connection"))

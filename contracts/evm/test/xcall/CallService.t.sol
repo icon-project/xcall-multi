@@ -29,6 +29,16 @@ contract CallServiceTest is Test {
     ICallServiceReceiver public receiver;
     IDefaultCallServiceReceiver public defaultServiceReceiver;
 
+    using Strings for string;
+    using Integers for uint;
+    using ParseAddress for address;
+    using ParseAddress for string;
+    using NetworkAddress for string;
+    using RLPEncodeStruct for Types.CSMessage;
+    using RLPEncodeStruct for Types.CSMessageRequest;
+    using RLPEncodeStruct for Types.CSMessageResponse;
+    using RLPDecodeStruct for bytes;
+
     address public owner = address(0x1111);
     address public user = address(0x1234);
 
@@ -149,10 +159,10 @@ contract CallServiceTest is Test {
         vm.expectEmit();
         emit CallMessageSent(address(dapp), iconDapp, 1);
 
-        Types.CSMessageRequest memory request = Types.CSMessageRequest(ethDappAddress, dstAccount, 1, false, data, _baseSource);
-        Types.CSMessage memory msg = Types.CSMessage(Types.CS_REQUEST, RLPEncodeStruct.encodeCSMessageRequest(request));
+        Types.CSMessageRequest memory request = Types.CSMessageRequest(ethDappAddress, dstAccount, 1, false, data, _baseDestination);
+        Types.CSMessage memory message = Types.CSMessage(Types.CS_REQUEST, request.encodeCSMessageRequest());
 
-        vm.expectCall(address(baseConnection), abi.encodeWithSelector(baseConnection.sendMessage.selector));
+        vm.expectCall(address(baseConnection), abi.encodeCall(baseConnection.sendMessage, (iconNid, Types.NAME, 0, message.encodeCSMessage())));
 
         uint256 sn = callService.sendCallMessage{value: 0 ether}(iconDapp, data, rollbackData, _baseSource, _baseDestination);
         assertEq(sn, 1);
@@ -181,30 +191,30 @@ contract CallServiceTest is Test {
         emit CallMessageSent(address(dapp), iconDapp, 1);
 
         Types.CSMessageRequest memory request = Types.CSMessageRequest(ethDappAddress, dstAccount, 1, false, data, destinations);
-        Types.CSMessage memory msg = Types.CSMessage(Types.CS_REQUEST, RLPEncodeStruct.encodeCSMessageRequest(request));
+        Types.CSMessage memory message = Types.CSMessage(Types.CS_REQUEST,request.encodeCSMessageRequest());
 
-        vm.expectCall(address(connection1), abi.encodeWithSelector(connection1.sendMessage.selector));
-        vm.expectCall(address(connection2), abi.encodeWithSelector(connection2.sendMessage.selector));
+        vm.expectCall(address(connection1), abi.encodeCall(connection1.sendMessage, (iconNid, Types.NAME, 0, message.encodeCSMessage())));
+        vm.expectCall(address(connection2), abi.encodeCall(connection2.sendMessage, (iconNid, Types.NAME, 0, message.encodeCSMessage())));
 
-         vm.prank(address(dapp));
+        vm.prank(address(dapp));
         uint256 sn = callService.sendCallMessage{value: 0 ether}(iconDapp, data, rollbackData, sources, destinations);
         assertEq(sn, 1);
     }
 
     function testSendMessageDefaultProtocol() public {
         bytes memory data = bytes("test");
-        bytes memory rollbackData = bytes("");
+        bytes memory rollbackData = bytes("rollback");
 
         callService.setDefaultConnection(iconNid, address(baseConnection));
 
         vm.expectEmit();
-        emit CallMessageSent(address(callService), iconDapp, 1);
+        emit CallMessageSent(address(dapp), iconDapp, 1);
 
-        Types.CSMessageRequest memory request = Types.CSMessageRequest(ethDappAddress, dstAccount, 1, false, data, new string[](0));
-        Types.CSMessage memory msg = Types.CSMessage(Types.CS_REQUEST, RLPEncodeStruct.encodeCSMessageRequest(request));
+        Types.CSMessageRequest memory request = Types.CSMessageRequest(ethDappAddress, dstAccount, 1, true, data, new string[](0));
+        Types.CSMessage memory message = Types.CSMessage(Types.CS_REQUEST,request.encodeCSMessageRequest());
+        vm.expectCall(address(baseConnection), abi.encodeCall(baseConnection.sendMessage, (iconNid, Types.NAME, 1, message.encodeCSMessage())));
 
-        vm.expectCall(address(baseConnection), abi.encodeWithSelector(baseConnection.sendMessage.selector));
-
+        vm.prank(address(dapp));
         uint256 sn = callService.sendCallMessage{value: 0 ether}(iconDapp, data, rollbackData);
         assertEq(sn, 1);
     }
@@ -213,8 +223,8 @@ contract CallServiceTest is Test {
         bytes memory data = bytes("test");
         bytes memory rollbackData = bytes("");
 
-        vm.expectRevert("No default connection for 0x2.ICON");
-        uint256 sn = callService.sendCallMessage{value: 0 ether}(iconDapp, data, rollbackData);
+        vm.expectRevert("NoDefaultConnection");
+        callService.sendCallMessage{value: 0 ether}(iconDapp, data, rollbackData);
     }
 
     function testHandleResponseDefaultProtocol() public {
@@ -223,13 +233,13 @@ contract CallServiceTest is Test {
         callService.setDefaultConnection(iconNid, address(baseConnection));
 
         Types.CSMessageRequest memory request = Types.CSMessageRequest(iconDapp, ParseAddress.toString(address(dapp)), 1, false, data, new string[](0));
-        Types.CSMessage memory msg = Types.CSMessage(Types.CS_REQUEST, RLPEncodeStruct.encodeCSMessageRequest(request));
+        Types.CSMessage memory message = Types.CSMessage(Types.CS_REQUEST,request.encodeCSMessageRequest());
 
         vm.expectEmit();
         emit CallMessage(iconDapp, ParseAddress.toString(address(dapp)), 1, 1, data);
 
         vm.prank(address(baseConnection));
-        callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(msg));
+        callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(message));
     }
 
     function testHandleResponseDefaultProtocolInvalidSender() public {
@@ -237,11 +247,11 @@ contract CallServiceTest is Test {
 
         callService.setDefaultConnection(iconNid, address(baseConnection));
         Types.CSMessageRequest memory request = Types.CSMessageRequest(iconDapp, ParseAddress.toString(address(dapp)), 1, false, data, new string[](0));
-        Types.CSMessage memory msg = Types.CSMessage(Types.CS_REQUEST, RLPEncodeStruct.encodeCSMessageRequest(request));
+        Types.CSMessage memory message = Types.CSMessage(Types.CS_REQUEST,request.encodeCSMessageRequest());
 
         vm.prank(address(user));
         vm.expectRevert("NotAuthorized");
-        callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(msg));
+        callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(message));
     }
 
     function testHandleResponseSingleProtocol() public {
@@ -251,13 +261,13 @@ contract CallServiceTest is Test {
         sources[0] = ParseAddress.toString(address(baseConnection));
 
         Types.CSMessageRequest memory request = Types.CSMessageRequest(iconDapp, ParseAddress.toString(address(dapp)), 1, false, data, sources);
-        Types.CSMessage memory msg = Types.CSMessage(Types.CS_REQUEST, RLPEncodeStruct.encodeCSMessageRequest(request));
+        Types.CSMessage memory message = Types.CSMessage(Types.CS_REQUEST,request.encodeCSMessageRequest());
         vm.prank(address(baseConnection));
 
         vm.expectEmit();
         emit CallMessage(iconDapp, ParseAddress.toString(address(dapp)), 1, 1, data);
 
-        callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(msg));
+        callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(message));
     }
 
     function testHandleResponseSingleProtocolInvalidSender() public {
@@ -267,12 +277,12 @@ contract CallServiceTest is Test {
         sources[0] = ParseAddress.toString(address(baseConnection));
 
         Types.CSMessageRequest memory request = Types.CSMessageRequest(iconDapp, ParseAddress.toString(address(dapp)), 1, false, data, sources);
-        Types.CSMessage memory msg = Types.CSMessage(Types.CS_REQUEST, RLPEncodeStruct.encodeCSMessageRequest(request));
+        Types.CSMessage memory message = Types.CSMessage(Types.CS_REQUEST,request.encodeCSMessageRequest());
 
         vm.prank(address(connection1));
         vm.expectRevert("NotAuthorized");
 
-        callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(msg));
+        callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(message));
     }
 
     function testHandleResponseMultiProtocol() public {
@@ -289,25 +299,25 @@ contract CallServiceTest is Test {
         connections[1] = ParseAddress.toString(address(connection2));
 
         Types.CSMessageRequest memory request = Types.CSMessageRequest(iconDapp, ParseAddress.toString(address(dapp)), 1, false, data, connections);
-        Types.CSMessage memory msg = Types.CSMessage(Types.CS_REQUEST, RLPEncodeStruct.encodeCSMessageRequest(request));
+        Types.CSMessage memory message = Types.CSMessage(Types.CS_REQUEST,request.encodeCSMessageRequest());
 
         vm.prank(address(connection1));
-        callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(msg));
+        callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(message));
 
         vm.expectEmit();
         emit CallMessage(iconDapp, ParseAddress.toString(address(dapp)), 1, 1, data);
         vm.prank(address(connection2));
-        callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(msg));
+        callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(message));
     }
 
     function testExecuteCallSingleProtocol() public {
         bytes memory data = bytes("test");
 
         Types.CSMessageRequest memory request = Types.CSMessageRequest(iconDapp, ParseAddress.toString(address(receiver)), 1, false, data, _baseSource);
-        Types.CSMessage memory msg = Types.CSMessage(Types.CS_REQUEST, RLPEncodeStruct.encodeCSMessageRequest(request));
+        Types.CSMessage memory message = Types.CSMessage(Types.CS_REQUEST,request.encodeCSMessageRequest());
 
         vm.prank(address(baseConnection));
-        callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(msg));
+        callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(message));
 
         vm.expectEmit();
         emit CallExecuted(1, 1, "");
@@ -315,7 +325,6 @@ contract CallServiceTest is Test {
         vm.prank(user);
         vm.mockCall(address(receiver), abi.encodeWithSelector(receiver.handleCallMessage.selector, iconDapp, data, _baseSource), abi.encode(1));
         callService.executeCall(1, data);
-
     }
 
     function testExecuteCallDefaultProtocol() public {
@@ -325,10 +334,10 @@ contract CallServiceTest is Test {
         callService.setDefaultConnection(netTo, address(baseConnection));
 
         Types.CSMessageRequest memory request = Types.CSMessageRequest(iconDapp, ParseAddress.toString(address(defaultServiceReceiver)), 1, false, data, _baseSource);
-        Types.CSMessage memory msg = Types.CSMessage(Types.CS_REQUEST, RLPEncodeStruct.encodeCSMessageRequest(request));
+        Types.CSMessage memory message = Types.CSMessage(Types.CS_REQUEST,request.encodeCSMessageRequest());
 
         vm.prank(address(baseConnection));
-        callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(msg));
+        callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(message));
 
         vm.expectEmit();
         emit CallExecuted(1, 1, "");
@@ -353,13 +362,13 @@ contract CallServiceTest is Test {
         vm.mockCall(address(connection2), abi.encodeWithSelector(connection2.getFee.selector), abi.encode(0));
 
         Types.CSMessageRequest memory request = Types.CSMessageRequest(iconDapp, ParseAddress.toString(address(receiver)), 1, false, data, connections);
-        Types.CSMessage memory msg = Types.CSMessage(Types.CS_REQUEST, RLPEncodeStruct.encodeCSMessageRequest(request));
+        Types.CSMessage memory message = Types.CSMessage(Types.CS_REQUEST,request.encodeCSMessageRequest());
 
         vm.prank(address(connection1));
-        callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(msg));
+        callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(message));
 
         vm.prank(address(connection2));
-        callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(msg));
+        callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(message));
 
         vm.expectEmit();
         emit CallExecuted(1, 1, "");
@@ -381,14 +390,14 @@ contract CallServiceTest is Test {
         assertEq(sn, 1);
 
         Types.CSMessageResponse memory response = Types.CSMessageResponse(1, Types.CS_RESP_FAILURE);
-        Types.CSMessage memory msg = Types.CSMessage(Types.CS_RESPONSE, RLPEncodeStruct.encodeCSMessageResponse(response));
+        Types.CSMessage memory message = Types.CSMessage(Types.CS_RESPONSE, RLPEncodeStruct.encodeCSMessageResponse(response));
 
         vm.expectEmit();
         emit ResponseMessage(1, Types.CS_RESP_FAILURE);
         emit RollbackMessage(1);
 
         vm.prank(address(baseConnection));
-        callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(msg));
+        callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(message));
 
         assertEq(callService.verifySuccess(sn),false);
     }
@@ -407,13 +416,13 @@ contract CallServiceTest is Test {
         assertEq(sn, 1);
 
         Types.CSMessageResponse memory response = Types.CSMessageResponse(1, Types.CS_RESP_FAILURE);
-        Types.CSMessage memory msg = Types.CSMessage(Types.CS_RESPONSE, RLPEncodeStruct.encodeCSMessageResponse(response));
+        Types.CSMessage memory message = Types.CSMessage(Types.CS_RESPONSE, RLPEncodeStruct.encodeCSMessageResponse(response));
 
         vm.expectEmit();
         emit ResponseMessage(1, Types.CS_RESP_FAILURE);
 
         vm.prank(address(baseConnection));
-        callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(msg));
+        callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(message));
 
         assertEq(callService.verifySuccess(sn),false);
     }
@@ -432,11 +441,11 @@ contract CallServiceTest is Test {
         assertEq(sn, 1);
 
         Types.CSMessageResponse memory response = Types.CSMessageResponse(1, Types.CS_RESP_FAILURE);
-        Types.CSMessage memory msg = Types.CSMessage(Types.CS_RESPONSE, RLPEncodeStruct.encodeCSMessageResponse(response));
+        Types.CSMessage memory message = Types.CSMessage(Types.CS_RESPONSE, RLPEncodeStruct.encodeCSMessageResponse(response));
 
         vm.prank(address(user));
         vm.expectRevert("NotAuthorized");
-        callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(msg));
+        callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(message));
 
         assertEq(callService.verifySuccess(sn),false);
     }
@@ -467,16 +476,16 @@ contract CallServiceTest is Test {
         assertEq(sn, 1);
 
         Types.CSMessageResponse memory response = Types.CSMessageResponse(1, Types.CS_RESP_FAILURE);
-        Types.CSMessage memory msg = Types.CSMessage(Types.CS_RESPONSE, RLPEncodeStruct.encodeCSMessageResponse(response));
+        Types.CSMessage memory message = Types.CSMessage(Types.CS_RESPONSE, RLPEncodeStruct.encodeCSMessageResponse(response));
 
         vm.prank(address(connection1));
-        callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(msg));
+        callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(message));
 
         vm.expectEmit();
         emit ResponseMessage(1, Types.CS_RESP_FAILURE);
 
         vm.prank(address(connection2));
-        callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(msg));
+        callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(message));
 
         assertEq(callService.verifySuccess(sn),false);
     }
@@ -493,13 +502,13 @@ contract CallServiceTest is Test {
         assertEq(sn, 1);
 
         Types.CSMessageResponse memory response = Types.CSMessageResponse(1, Types.CS_RESP_SUCCESS);
-        Types.CSMessage memory msg = Types.CSMessage(Types.CS_RESPONSE, RLPEncodeStruct.encodeCSMessageResponse(response));
+        Types.CSMessage memory message = Types.CSMessage(Types.CS_RESPONSE, RLPEncodeStruct.encodeCSMessageResponse(response));
 
         vm.expectEmit();
         emit ResponseMessage(1, Types.CS_RESP_SUCCESS);
 
         vm.prank(address(baseConnection));
-        callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(msg));
+        callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(message));
 
         assertEq(callService.verifySuccess(sn),true);
     }
@@ -508,12 +517,11 @@ contract CallServiceTest is Test {
        bytes memory data = bytes("test");
        bytes memory rollbackData = bytes("rollback");
 
-       defaultServiceReceiver = IDefaultCallServiceReceiver(address(0x5678));
        string memory xcallAddr = NetworkAddress.networkAddress(ethNid, ParseAddress.toString(address(callService)));
 
        callService.setDefaultConnection(iconNid, address(baseConnection));
 
-       vm.startPrank(address(defaultServiceReceiver));
+       vm.startPrank(address(dapp));
 
        string[] memory connections = new string[](1);
        connections[0] = "";
@@ -524,21 +532,20 @@ contract CallServiceTest is Test {
        vm.stopPrank();
 
        Types.CSMessageResponse memory msgRes = Types.CSMessageResponse(1, Types.CS_RESP_FAILURE);
-       Types.CSMessage memory msg = Types.CSMessage(Types.CS_RESPONSE, RLPEncodeStruct.encodeCSMessageResponse(msgRes));
+       Types.CSMessage memory message = Types.CSMessage(Types.CS_RESPONSE, msgRes.encodeCSMessageResponse());
 
        vm.prank(address(baseConnection));
-       callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(msg));
+       callService.handleMessage(iconNid, message.encodeCSMessage());
 
        vm.expectEmit();
        emit RollbackExecuted(1);
-       
-       vm.mockCall(address(callService), abi.encodeWithSelector(defaultServiceReceiver.handleCallMessage.selector, xcallAddr, rollbackData), abi.encode(1));
+
+       vm.mockCall(address(dapp), abi.encodeWithSelector(dapp.handleCallMessage.selector, xcallAddr, rollbackData), abi.encode(1));
        vm.prank(user);
        callService.executeRollback(1);
 
        assertEq(callService.verifySuccess(sn),false);
    }
-
 
    function testExecuteRollBackSingleProtocol() public {
        bytes memory data = bytes("test");
@@ -554,10 +561,10 @@ contract CallServiceTest is Test {
        assertEq(sn, 1);
 
        Types.CSMessageResponse memory msgRes = Types.CSMessageResponse(1, Types.CS_RESP_FAILURE);
-       Types.CSMessage memory msg = Types.CSMessage(Types.CS_RESPONSE, RLPEncodeStruct.encodeCSMessageResponse(msgRes));
+       Types.CSMessage memory message = Types.CSMessage(Types.CS_RESPONSE, msgRes.encodeCSMessageResponse());
 
        vm.prank(address(baseConnection));
-       callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(msg));
+       callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(message));
 
        vm.expectEmit();
        emit RollbackExecuted(1);
@@ -597,17 +604,17 @@ contract CallServiceTest is Test {
          assertEq(sn, 1);
 
          Types.CSMessageResponse memory response = Types.CSMessageResponse(1, Types.CS_RESP_FAILURE);
-         Types.CSMessage memory msg = Types.CSMessage(Types.CS_RESPONSE, RLPEncodeStruct.encodeCSMessageResponse(response));
+         Types.CSMessage memory message = Types.CSMessage(Types.CS_RESPONSE, RLPEncodeStruct.encodeCSMessageResponse(response));
 
          vm.prank(address(connection1));
-         callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(msg));
+         callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(message));
 
          vm.expectEmit();
          emit ResponseMessage(1, Types.CS_RESP_FAILURE);
          emit RollbackMessage(1);
 
          vm.prank(address(connection2));
-         callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(msg));
+         callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(message));
 
          vm.prank(user);
          vm.mockCall(address(dapp), abi.encodeWithSelector(receiver.handleCallMessage.selector, xcallAddr, rollbackData, connections), abi.encode(1));
@@ -615,7 +622,7 @@ contract CallServiceTest is Test {
 
          assertEq(callService.verifySuccess(sn),false);
      }
-     
+
     function testExecuteCallMultiProtocolRollback() public {
         bytes memory data = bytes("test");
 
@@ -631,13 +638,13 @@ contract CallServiceTest is Test {
         vm.mockCall(address(connection2), abi.encodeWithSelector(connection2.getFee.selector), abi.encode(0));
 
         Types.CSMessageRequest memory request = Types.CSMessageRequest(iconDapp, ParseAddress.toString(address(receiver)), 1, true, data, connections);
-        Types.CSMessage memory msg = Types.CSMessage(Types.CS_REQUEST, RLPEncodeStruct.encodeCSMessageRequest(request));
+        Types.CSMessage memory message = Types.CSMessage(Types.CS_REQUEST,request.encodeCSMessageRequest());
 
         vm.prank(address(connection1));
-        callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(msg));
+        callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(message));
 
         vm.prank(address(connection2));
-        callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(msg));
+        callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(message));
 
         vm.expectEmit();
         emit CallExecuted(1, 1, "");
@@ -646,10 +653,10 @@ contract CallServiceTest is Test {
         vm.mockCall(address(receiver), abi.encodeWithSelector(receiver.handleCallMessage.selector, iconDapp, data, connections), abi.encode(1));
 
         Types.CSMessageResponse memory msgResponse = Types.CSMessageResponse(1, Types.CS_RESP_SUCCESS);
-        msg = Types.CSMessage(Types.CS_RESPONSE, RLPEncodeStruct.encodeCSMessageResponse(msgResponse));
+        message = Types.CSMessage(Types.CS_RESPONSE, RLPEncodeStruct.encodeCSMessageResponse(msgResponse));
 
-        vm.mockCall(address(connection1), abi.encodeWithSelector(connection1.sendMessage.selector, iconNid, xcallMulti, - 1, msg), abi.encode(1));
-        vm.mockCall(address(connection2), abi.encodeWithSelector(connection2.sendMessage.selector, iconNid, xcallMulti, - 1, msg), abi.encode(1));
+        vm.expectCall(address(connection1), abi.encodeCall(connection1.sendMessage, (iconNid, Types.NAME, -1, message.encodeCSMessage())));
+        vm.expectCall(address(connection2), abi.encodeCall(connection2.sendMessage, (iconNid, Types.NAME, -1, message.encodeCSMessage())));
 
         callService.executeCall(1, data);
     }
@@ -661,10 +668,10 @@ contract CallServiceTest is Test {
         callService.setDefaultConnection(netTo, address(baseConnection));
 
         Types.CSMessageRequest memory request = Types.CSMessageRequest(iconDapp, ParseAddress.toString(address(defaultServiceReceiver)), 1, true, data, _baseSource);
-        Types.CSMessage memory msg = Types.CSMessage(Types.CS_REQUEST, RLPEncodeStruct.encodeCSMessageRequest(request));
+        Types.CSMessage memory message = Types.CSMessage(Types.CS_REQUEST,request.encodeCSMessageRequest());
 
         vm.prank(address(baseConnection));
-        callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(msg));
+        callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(message));
 
         vm.expectEmit();
         emit CallExecuted(1, 1, "");
@@ -673,9 +680,8 @@ contract CallServiceTest is Test {
         vm.mockCall(address(defaultServiceReceiver), abi.encodeWithSelector(defaultServiceReceiver.handleCallMessage.selector, iconDapp, data), abi.encode(0));
 
         Types.CSMessageResponse memory msgResponse = Types.CSMessageResponse(1, Types.CS_RESP_SUCCESS);
-        msg = Types.CSMessage(Types.CS_RESPONSE, RLPEncodeStruct.encodeCSMessageResponse(msgResponse));
-        vm.mockCall(address(baseConnection), 0 ether , abi.encodeWithSelector(baseConnection.sendMessage.selector, iconNid, xcallMulti, -1, msg), abi.encode(1));
-
+        message = Types.CSMessage(Types.CS_RESPONSE, RLPEncodeStruct.encodeCSMessageResponse(msgResponse));
+        vm.expectCall(address(baseConnection), abi.encodeCall(baseConnection.sendMessage, (iconNid, Types.NAME, -1, message.encodeCSMessage())));
         callService.executeCall(1, data);
     }
 
@@ -684,19 +690,20 @@ contract CallServiceTest is Test {
          bytes memory data = bytes("test");
 
         Types.CSMessageRequest memory request = Types.CSMessageRequest(iconDapp, ParseAddress.toString(address(receiver)), 1, true, data, _baseSource);
-        Types.CSMessage memory msg = Types.CSMessage(Types.CS_REQUEST, RLPEncodeStruct.encodeCSMessageRequest(request));
+        Types.CSMessage memory message = Types.CSMessage(Types.CS_REQUEST,request.encodeCSMessageRequest());
 
         vm.prank(address(baseConnection));
         vm.mockCallRevert(address(baseConnection), abi.encodeWithSelector(receiver.handleCallMessage.selector, iconDapp, data, _baseSource), bytes("UserRevert"));
-        callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(msg));
+        callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(message));
 
         Types.CSMessageResponse memory msgResponse = Types.CSMessageResponse(1, Types.CS_RESP_FAILURE);
-        msg = Types.CSMessage(Types.CS_RESPONSE, RLPEncodeStruct.encodeCSMessageResponse(msgResponse));
-
-        vm.mockCall(address(receiver), 0 ether , abi.encodeWithSelector(baseConnection.sendMessage.selector, iconNid, xcallMulti, -1, msg), abi.encode(1));
+        message = Types.CSMessage(Types.CS_RESPONSE, RLPEncodeStruct.encodeCSMessageResponse(msgResponse));
 
         vm.expectEmit();
         emit CallExecuted(1, 0, "unknownError");
+
+        vm.expectCall(address(baseConnection), abi.encodeCall(baseConnection.sendMessage, (iconNid, Types.NAME, -1, message.encodeCSMessage())));
+
         callService.executeCall(1, data);
     }
 
