@@ -162,7 +162,7 @@ contract CallServiceTest is Test {
         Types.CSMessageRequest memory request = Types.CSMessageRequest(ethDappAddress, dstAccount, 1, false, data, _baseDestination);
         Types.CSMessage memory message = Types.CSMessage(Types.CS_REQUEST, request.encodeCSMessageRequest());
 
-        vm.expectCall(address(baseConnection), abi.encodeCall(baseConnection.sendMessage, (iconNid, Types.NAME, 0, message.encodeCSMessage())));
+        vm.expectCall(address(baseConnection), abi.encodeCall(baseConnection.sendMessage, (iconNid, Types.NAME, 1, message.encodeCSMessage())));
 
         uint256 sn = callService.sendCallMessage{value: 0 ether}(iconDapp, data, rollbackData, _baseSource, _baseDestination);
         assertEq(sn, 1);
@@ -193,8 +193,8 @@ contract CallServiceTest is Test {
         Types.CSMessageRequest memory request = Types.CSMessageRequest(ethDappAddress, dstAccount, 1, false, data, destinations);
         Types.CSMessage memory message = Types.CSMessage(Types.CS_REQUEST,request.encodeCSMessageRequest());
 
-        vm.expectCall(address(connection1), abi.encodeCall(connection1.sendMessage, (iconNid, Types.NAME, 0, message.encodeCSMessage())));
-        vm.expectCall(address(connection2), abi.encodeCall(connection2.sendMessage, (iconNid, Types.NAME, 0, message.encodeCSMessage())));
+        vm.expectCall(address(connection1), abi.encodeCall(connection1.sendMessage, (iconNid, Types.NAME, 1, message.encodeCSMessage())));
+        vm.expectCall(address(connection2), abi.encodeCall(connection2.sendMessage, (iconNid, Types.NAME, 1, message.encodeCSMessage())));
 
         vm.prank(address(dapp));
         uint256 sn = callService.sendCallMessage{value: 0 ether}(iconDapp, data, rollbackData, sources, destinations);
