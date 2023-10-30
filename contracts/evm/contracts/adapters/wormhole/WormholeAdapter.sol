@@ -67,6 +67,18 @@ contract WormholeAdapter is IAdapter, Initializable, IWormholeReceiver, IConnect
     }
 
     /**
+* @notice set or update gas limit for a destination chain.
+     * @param networkId The network ID of the destination chain.
+     * @param gasLimit The gas limit for transactions on the destination chain.
+     */
+    function setGasLimit(
+        string calldata networkId,
+        uint256 gasLimit
+    ) external override onlyAdmin {
+        gasLimits[networkId] = gasLimit;
+    }
+
+    /**
      * @notice Get the gas fee required to send a message to a specified destination network.
      * @param _to The network ID of the target chain.
      * @param _response Indicates whether the response fee is included (true) or not (false).
