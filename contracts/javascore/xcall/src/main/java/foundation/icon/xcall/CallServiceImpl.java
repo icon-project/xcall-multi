@@ -31,6 +31,11 @@ import score.annotation.Payable;
 import java.math.BigInteger;
 import java.util.Arrays;
 
+import foundation.icon.xcall.messages.CallMessage;
+import foundation.icon.xcall.messages.CallMessageWithRollback;
+import foundation.icon.xcall.messages.Message;
+import foundation.icon.xcall.messages.XCallEnvelope;
+
 
 public class CallServiceImpl implements CallService, FeeManage {
     public static final int MAX_DATA_SIZE = 2048;
@@ -40,10 +45,9 @@ public class CallServiceImpl implements CallService, FeeManage {
     private final VarDB<BigInteger> sn = Context.newVarDB("sn", BigInteger.class);
     private final VarDB<BigInteger> reqId = Context.newVarDB("reqId", BigInteger.class);
 
-    private final DictDB<BigInteger, CallRequest> requests = Context.newDictDB("requests", CallRequest.class);
+    private final DictDB<BigInteger, RollbackData> rollbacks = Context.newDictDB("rollbacks", RollbackData.class);
     private final DictDB<BigInteger, CSMessageRequest> proxyReqs = Context.newDictDB("proxyReqs", CSMessageRequest.class);
-    private final BranchDB<byte[], DictDB<String, Boolean>> pendingReqs = Context.newBranchDB("pendingReqs", Boolean.class);
-    private final BranchDB<byte[], DictDB<String, Boolean>> pendingResponses = Context.newBranchDB("pendingResponses", Boolean.class);
+    private final BranchDB<byte[], DictDB<String, Boolean>> pendingMessages = Context.newBranchDB("pendingMessages", Boolean.class);
     private final DictDB<BigInteger, Boolean> successfulResponses = Context.newDictDB("successfulResponses", Boolean.class);
 
     private final DictDB<String, Address> defaultConnection = Context.newDictDB("defaultConnection", Address.class);
@@ -91,50 +95,41 @@ public class CallServiceImpl implements CallService, FeeManage {
     }
 
     private void cleanupCallRequest(BigInteger sn) {
-        requests.set(sn, null);
+        rollbacks.set(sn, null);
     }
 
-    @Override
     @Payable
     @External
-    public BigInteger sendCallMessage(String _to,
-                                      byte[] _data,
-                                      @Optional byte[] _rollback,
-                                      @Optional String[] _sources,
-                                      @Optional String[] _destinations) {
+    public BigInteger sendCall(String _to, byte[] _data) {
         Address caller = Context.getCaller();
-        // check if caller is a contract or rollback data is null in case of EOA
-        Context.require(_rollback == null || caller.isContract(), "RollbackNotPossible");
-        // check size of payloads to avoid abusing
-        Context.require(_rollback == null || _rollback.length <= MAX_ROLLBACK_SIZE, "MaxRollbackSizeExceeded");
-
-        boolean needResponse = _rollback != null && _rollback.length > 0;
+        XCallEnvelope envelope = XCallEnvelope.fromBytes(_data);
+        BigInteger sn = getNextSn();
         NetworkAddress dst = NetworkAddress.valueOf(_to);
 
-        BigInteger sn = getNextSn();
-        if (needResponse) {
-            CallRequest req = new CallRequest(caller, dst.net(), _sources, _rollback);
-            requests.set(sn, req);
-        }
+        Object[] result = preProcessMessage(sn, dst, envelope);
+
+        boolean needResponse = (boolean) result[0];
+        byte[] msg = (byte[]) result[1];
 
         String from = new NetworkAddress(NID, caller.toString()).toString();
-        CSMessageRequest msgReq = new CSMessageRequest(from, dst.account(), sn, needResponse, _data, _destinations);
+        CSMessageRequest msgReq = new CSMessageRequest(from, dst.account(), sn, envelope.getType(), msg, envelope.getDestinations());
 
         byte[] msgBytes = msgReq.toBytes();
         Context.require(msgBytes.length <= MAX_DATA_SIZE, "MaxDataSizeExceeded");
+        BigInteger sendSn = needResponse ? sn : BigInteger.ZERO;
 
-        if (_sources == null || _sources.length == 0) {
+        if (envelope.getSources().length == 0) {
             Address src = defaultConnection.get(dst.net());
             Context.require(src != null, "NoDefaultConnection");
             BigInteger fee = Context.call(BigInteger.class, src, "getFee", dst.net(), needResponse);
             sendMessage(src, fee, dst.net(), CSMessage.REQUEST,
-                    needResponse ? sn : BigInteger.ZERO, msgBytes);
+                    sendSn, msgBytes);
         } else {
-            for (String _src : _sources) {
+            for (String _src : envelope.getSources()) {
                 Address src = Address.fromString(_src);
                 BigInteger fee = Context.call(BigInteger.class, src, "getFee", dst.net(), needResponse);
                 sendMessage(src, fee, dst.net(), CSMessage.REQUEST,
-                        needResponse ? sn : BigInteger.ZERO, msgBytes);
+                        sendSn, msgBytes);
             }
 
         }
@@ -150,6 +145,31 @@ public class CallServiceImpl implements CallService, FeeManage {
     }
 
     @Override
+    @Payable
+    @External
+    public BigInteger sendCallMessage(String _to,
+                                      byte[] _data,
+                                      @Optional byte[] _rollback,
+                                      @Optional String[] _sources,
+                                      @Optional String[] _destinations) {
+
+        if (_sources == null || _destinations == null) {
+            _sources = new String[0];
+            _destinations = new String[0];
+        }
+
+        Message msg;
+        if (_rollback == null || _rollback.length == 0) {
+            msg = new CallMessage(_data);
+        } else {
+            msg = new CallMessageWithRollback(_data, _rollback);
+        }
+
+        XCallEnvelope envelope = new XCallEnvelope(msg, _sources, _destinations);
+        return sendCall(_to, envelope.toBytes());
+    }
+
+    @Override
     @External
     public void executeCall(BigInteger _reqId, byte[] _data) {
         CSMessageRequest req = proxyReqs.get(_reqId);
@@ -158,55 +178,22 @@ public class CallServiceImpl implements CallService, FeeManage {
         proxyReqs.set(_reqId, null);
         // compare the given data hash with the saved one
         Context.require(Arrays.equals(getDataHash(_data), req.getData()), "DataHashMismatch");
-
-        NetworkAddress from = NetworkAddress.valueOf(req.getFrom());
-        CSMessageResponse msgRes = null;
-        String msg = "";
-
-        try {
-            Address to = Address.fromString(req.getTo());
-            sendToDapp(to, req.getFrom(), _data, req.getProtocols());
-            msgRes = new CSMessageResponse(req.getSn(), CSMessageResponse.SUCCESS);
-        } catch (UserRevertedException e) {
-            int code = e.getCode();
-            msg = "UserReverted(" + code + ")";
-            msgRes = new CSMessageResponse(req.getSn(), CSMessageResponse.FAILURE);
-        } catch (IllegalArgumentException | RevertedException e) {
-            msgRes = new CSMessageResponse(req.getSn(), CSMessageResponse.FAILURE);
-            msg = e.toString();
-        } finally {
-            if (msgRes == null) {
-                msgRes = new CSMessageResponse(req.getSn(), CSMessageResponse.FAILURE);
-                msg = "UnknownFailure";
-            }
-            CallExecuted(_reqId, msgRes.getCode(), msg);
-            // send response only when there was a rollback
-            if (!req.needRollback()) {
-                return;
-            }
-
-            BigInteger sn = req.getSn().negate();
-            if (req.getProtocols().length == 0) {
-                Address src = defaultConnection.get(from.net());
-                Context.require(src != null, "NoDefaultConnection");
-                sendMessage(src, BigInteger.ZERO, from.net(), CSMessage.RESPONSE, sn, msgRes.toBytes());
-            } else {
-                for (String protocol : req.getProtocols()) {
-                    sendMessage(Address.fromString(protocol), BigInteger.ZERO, from.net(), CSMessage.RESPONSE, sn, msgRes.toBytes());
-                }
-            }
-        }
+        executeMessage(_reqId, req, _data);
     }
 
     @Override
     @External
     public void executeRollback(BigInteger _sn) {
-        CallRequest req = requests.get(_sn);
+        RollbackData req = rollbacks.get(_sn);
         Context.require(req != null, "InvalidSerialNum");
         Context.require(req.enabled(), "RollbackNotEnabled");
         cleanupCallRequest(_sn);
-
-        sendToDapp(req.getFrom(), getNetworkAddress(), req.getRollback(), req.getProtocols());
+        String[] protocols = req.getProtocols();
+        if (protocols.length == 0) {
+            Context.call(req.getFrom(), "handleCallMessage", getNetworkAddress(), req.getRollback());
+        } else {
+            Context.call(req.getFrom(), "handleCallMessage", getNetworkAddress(), req.getRollback(), protocols);
+        }
 
         RollbackExecuted(_sn);
     }
@@ -267,8 +254,8 @@ public class CallServiceImpl implements CallService, FeeManage {
             case CSMessage.REQUEST:
                 handleRequest(_fromNid, msg.getData());
                 break;
-            case CSMessage.RESPONSE:
-                handleResponse(msg.getData());
+            case CSMessage.RESULT:
+                handleResult(msg.getData());
                 break;
             default:
                 Context.revert("UnknownMsgType(" + msg.getType() + ")");
@@ -278,8 +265,8 @@ public class CallServiceImpl implements CallService, FeeManage {
     @Override
     @External
     public void handleError(BigInteger _sn) {
-        CSMessageResponse res = new CSMessageResponse(_sn, CSMessageResponse.FAILURE);
-        handleResponse(res.toBytes());
+        CSMessageResult res = new CSMessageResult(_sn, CSMessageResult.FAILURE);
+        handleResult(res.toBytes());
     }
 
     private BigInteger sendMessage(Address _connection, BigInteger value, String netTo, int msgType, BigInteger sn, byte[] data) {
@@ -288,11 +275,69 @@ public class CallServiceImpl implements CallService, FeeManage {
         return connection.sendMessage(value, netTo, NAME, sn, msg.toBytes());
     }
 
-    private void sendToDapp(Address dapp, String from, byte[] data, String[] protocols) {
+    private int tryExecuteCall(BigInteger id, Address dapp, String from, byte[] data, String[] protocols) {
+        try {
+            _executeCall(id, dapp, from, data, protocols);
+        } catch (Exception e) {
+            CallExecuted(id, CSMessageResult.FAILURE, e.toString());
+            return CSMessageResult.FAILURE;
+        };
+
+       return CSMessageResult.SUCCESS;
+    }
+
+    private void _executeCall(BigInteger id, Address dapp, String from, byte[] data, String[] protocols) {
         if (protocols.length == 0) {
             Context.call(dapp, "handleCallMessage", from, data);
         } else {
             Context.call(dapp, "handleCallMessage", from, data, protocols);
+        }
+        CallExecuted(id, CSMessageResult.SUCCESS, "");
+    }
+
+    private Object[] preProcessMessage(BigInteger sn, NetworkAddress to, XCallEnvelope envelope) {
+        switch (envelope.getType()) {
+            case CallMessage.TYPE:
+                return new Object[]{false, envelope.getMessage()};
+            case CallMessageWithRollback.TYPE:
+                Address caller = Context.getCaller();
+                CallMessageWithRollback msg = CallMessageWithRollback.fromBytes(envelope.getMessage());
+                Context.require(caller.isContract(), "RollbackNotPossible");
+                RollbackData req = new RollbackData(caller, to.net(), envelope.getSources(),  msg.getRollback());
+                rollbacks.set(sn, req);
+                return new Object[]{true, msg.getData()};
+        }
+
+        Context.revert("Message type is not supported");
+        return null;
+    }
+
+    private void executeMessage(BigInteger reqId, CSMessageRequest req, byte[] data) {
+        Address to = Address.fromString(req.getTo());
+        String[] protocols = req.getProtocols();
+        switch (req.getType() ) {
+            case CallMessage.TYPE:
+                tryExecuteCall(reqId, to, req.getFrom(), data, protocols);
+                break;
+            case CallMessageWithRollback.TYPE: {
+                int code =  tryExecuteCall(reqId, to, req.getFrom(), data, protocols);
+                BigInteger sn = req.getSn().negate();
+                NetworkAddress from = NetworkAddress.valueOf(req.getFrom());
+
+                CSMessageResult response = new CSMessageResult(req.getSn(), code);
+                if (protocols.length == 0) {
+                    Address src = defaultConnection.get(from.net());
+                    Context.require(src != null, "NoDefaultConnection");
+                    sendMessage(src, BigInteger.ZERO, from.net(), CSMessage.RESULT, sn, response.toBytes());
+                } else {
+                    for (String protocol : protocols) {
+                        sendMessage(Address.fromString(protocol), BigInteger.ZERO, from.net(), CSMessage.RESULT, sn, response.toBytes());
+                    }
+                }
+                break;
+            }
+            default:
+                Context.revert("Message type is not yet supported");
         }
     }
 
@@ -300,9 +345,8 @@ public class CallServiceImpl implements CallService, FeeManage {
         CSMessageRequest msgReq = CSMessageRequest.fromBytes(data);
         String from = msgReq.getFrom();
         Context.require(NetworkAddress.valueOf(from).net().equals(netFrom));
-        Address caller = Context.getCaller();
 
-        if (!verifyProtocols(pendingReqs, netFrom,msgReq.getProtocols(), caller, data)) {
+        if (!verifyProtocols(netFrom, msgReq.getProtocols(), data)) {
             return;
         }
 
@@ -316,41 +360,40 @@ public class CallServiceImpl implements CallService, FeeManage {
         proxyReqs.set(reqId, msgReq);
     }
 
-    private void handleResponse(byte[] data) {
-        CSMessageResponse msgRes = CSMessageResponse.fromBytes(data);
+    private void handleResult(byte[] data) {
+        CSMessageResult msgRes = CSMessageResult.fromBytes(data);
         BigInteger resSn = msgRes.getSn();
-        CallRequest req = requests.get(resSn);
-        Address caller = Context.getCaller();
+        RollbackData req = rollbacks.get(resSn);
 
         if (req == null) {
-            Context.println("handleResponse: no request for " + resSn);
+            Context.println("handleResult: no request for " + resSn);
             return; // just ignore
         }
-
-        if (!verifyProtocols(pendingResponses, req.getTo(), req.getProtocols(), caller, data)) {
+        if (!verifyProtocols(req.getTo(), req.getProtocols(), data)) {
             return;
         }
 
         ResponseMessage(resSn, msgRes.getCode());
         switch (msgRes.getCode()) {
-            case CSMessageResponse.SUCCESS:
+            case CSMessageResult.SUCCESS:
                 cleanupCallRequest(resSn);
                 successfulResponses.set(resSn, true);
                 break;
-            case CSMessageResponse.FAILURE:
+            case CSMessageResult.FAILURE:
             default:
                 // emit rollback event
                 Context.require(req.getRollback() != null, "NoRollbackData");
                 req.setEnabled();
-                requests.set(resSn, req);
+                rollbacks.set(resSn, req);
                 RollbackMessage(resSn);
         }
     }
 
-    private boolean verifyProtocols(BranchDB<byte[], DictDB<String, Boolean>> db, String net, String[] protocols, Address caller, byte[] data) {
+    private boolean verifyProtocols(String fromNid, String[] protocols, byte[] data) {
+        Address caller = Context.getCaller();
         if (protocols.length > 1) {
             byte[] hash = Context.hash("sha-256", data);
-            DictDB<String, Boolean> pending = db.at(hash);
+            DictDB<String, Boolean> pending = pendingMessages.at(hash);
             pending.set(caller.toString(), true);
             for (String protocol : protocols) {
                 if (!pending.getOrDefault(protocol, false)) {
@@ -364,8 +407,9 @@ public class CallServiceImpl implements CallService, FeeManage {
         } else if (protocols.length == 1) {
             Context.require(caller.toString().equals(protocols[0]), "ProtocolSourceMismatch");
         } else {
-            Context.require(caller.equals(defaultConnection.get(net)), "ProtocolSourceMismatch");
+            Context.require(caller.equals(defaultConnection.get(fromNid)), "ProtocolSourceMismatch");
         }
+
         return true;
     }
 
