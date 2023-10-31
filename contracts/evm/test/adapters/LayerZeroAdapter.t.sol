@@ -195,7 +195,7 @@ contract LayerZeroAdapterTest is Test {
 
 
         vm.expectEmit();
-        emit CallExecuted(1, 1, "");
+        emit CallExecuted(1, 0, "rollback");
 
         emit ResponseOnHold(1);
         xCallTarget.executeCall(1, data);

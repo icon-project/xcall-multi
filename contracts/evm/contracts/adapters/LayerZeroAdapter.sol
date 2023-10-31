@@ -8,7 +8,7 @@ import "@iconfoundation/btp2-solidity-library/interfaces/ICallService.sol";
 import "@lz-contracts/interfaces/ILayerZeroReceiver.sol";
 import "@lz-contracts/interfaces/ILayerZeroEndpoint.sol";
 import "./interfaces/ILayerZeroAdapter.sol";
-import "../xcall/interfaces/IConnection.sol";
+import "@xcall/contracts/xcall/interfaces/IConnection.sol";
 
 /**
  * @title LayerZeroAdapter
