@@ -3,7 +3,7 @@ pragma solidity ^0.8.13;
 
 import {Test, console2} from "forge-std/Test.sol";
 import {LZEndpointMock} from "@lz-contracts/mocks/LZEndpointMock.sol";
-import "../../contracts/adapters/LayerZeroAdapter.sol";
+import "@xcall/contracts/adapters/LayerZeroAdapter.sol";
 import "@xcall/contracts/xcall/CallService.sol";
 import "@xcall/contracts/mocks/multi-protocol-dapp/MultiProtocolSampleDapp.sol";
 

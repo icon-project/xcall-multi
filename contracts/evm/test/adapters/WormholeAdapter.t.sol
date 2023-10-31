@@ -2,7 +2,7 @@
 pragma solidity ^0.8.13;
 
 import "wormhole-solidity-sdk/testing/WormholeRelayerTest.sol";
-import "@xcall/contracts/adapters/wormhole/WormholeAdapter.sol";
+import "@xcall/contracts/adapters/WormholeAdapter.sol";
 import "@xcall/contracts/xcall/CallService.sol";
 import "@xcall/contracts/mocks/multi-protocol-dapp/MultiProtocolSampleDapp.sol";
 
