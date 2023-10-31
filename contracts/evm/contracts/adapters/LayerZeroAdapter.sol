@@ -74,6 +74,22 @@ contract LayerZeroAdapter is ILayerZeroAdapter, Initializable, ILayerZeroReceive
     }
 
     /**
+     * @notice set or update gas limit for a destination chain.
+     * @param networkId The network ID of the destination chain.
+     * @param gasLimit The gas limit for transactions on the destination chain.
+     */
+    function setGasLimit(
+        string calldata networkId,
+        uint256 gasLimit
+    ) external override onlyAdmin {
+        if (gasLimit > 0) {
+            adapterParams[networkId] = abi.encodePacked(uint16(1), gasLimit);
+        } else {
+            adapterParams[networkId] = bytes("");
+        }
+    }
+
+    /**
      * @dev Get the gas fee required to send a message to a specified destination network.
      * @param _to The network ID of the target chain.
      * @param _response Indicates whether the response fee is included (true) or not (false).
@@ -102,7 +118,7 @@ contract LayerZeroAdapter is ILayerZeroAdapter, Initializable, ILayerZeroReceive
         if (_sn < 0) {
             fee = this.getFee(_to, false);
             if (address(this).balance < fee) {
-                uint256 sn=uint256(- _sn);
+                uint256 sn = uint256(- _sn);
                 pendingResponses[sn] = Types.PendingResponse(_msg, _to);
                 emit ResponseOnHold(sn);
                 return;

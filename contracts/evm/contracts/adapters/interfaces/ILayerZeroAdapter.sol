@@ -27,6 +27,16 @@ interface ILayerZeroAdapter {
     ) external;
 
     /**
+* @notice set or update gas limit for a destination chain.
+     * @param networkId The network ID of the destination chain.
+     * @param gasLimit The gas limit for transactions on the destination chain.
+     */
+    function setGasLimit    (
+        string calldata networkId,
+        uint256 gasLimit
+    ) external;
+
+    /**
      * @notice Pay and trigger the execution of a stored response to be sent back.
      * @param _sn The serial number of the message for which the response is being triggered.
      */
