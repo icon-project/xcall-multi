@@ -4,7 +4,7 @@ use crate::types::{config::Config, LOG_PREFIX};
 
 use super::*;
 // version info for migration info
-const CONTRACT_NAME: &str = "crates.io:cw-xcall-multi";
+const CONTRACT_NAME: &str = "crates.io:cw-xcall";
 const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 impl<'a> CwCallService<'a> {
@@ -14,8 +14,7 @@ impl<'a> CwCallService<'a> {
     /// Arguments:
     ///
     /// * `deps`: `deps` is a `DepsMut` object, which is short for "dependencies mutable". It is a struct
-    /// that provides access to the contract's dependencies, such as the storage, API, and querier. The
-    /// `DepsMut` object is passed as a parameter to most of the
+    /// that provides access to the contract's dependencies, such as the storage, API, and querier.
     /// * `_env`: The `_env` parameter in the `instantiate` function is of type `Env`, which represents
     /// the environment in which the contract is being executed. It contains information such as the
     /// current block height, the current time, and the address of the contract being executed. However,
@@ -23,12 +22,10 @@ impl<'a> CwCallService<'a> {
     /// * `info`: `info` is a struct that contains information about the message sender, such as their
     /// address, the amount of tokens they sent with the message, and the maximum amount of gas they are
     /// willing to pay for the transaction. This information can be used to determine whether the sender
-    /// is authorized to perform certain actions
+    /// is authorized to perform certain actions.
     /// * `msg`: The `msg` parameter in the `instantiate` function is of type `InstantiateMsg` and
     /// contains the message sent by the user when instantiating the contract. It can contain any custom
-    /// data that the user wants to pass to the contract during instantiation. The `msg` parameter is
-    /// used by the
-    ///
+    /// data that the user wants to pass to the contract during instantiation.
     /// Returns:
     ///
     /// The `instantiate` function returns a `Result<Response, ContractError>` where `Response` is a
@@ -81,10 +78,7 @@ impl<'a> CwCallService<'a> {
                 self.ensure_admin(deps.storage, info.sender)?;
                 self.set_admin(deps.storage, validated_address)
             }
-            ExecuteMsg::SetProtocolFee { value } => {
-                self.set_protocol_fee(deps, info, value).unwrap();
-                Ok(Response::new())
-            }
+            ExecuteMsg::SetProtocolFee { value } => self.set_protocol_fee(deps, info, value),
             ExecuteMsg::SetProtocolFeeHandler { address } => {
                 self.set_protocol_feehandler(deps, &info, address)
             }
@@ -100,16 +94,10 @@ impl<'a> CwCallService<'a> {
                 let dests = destinations.unwrap_or(vec![]);
                 self.send_call_message(deps, info, env, to, data, rollback, sources, dests)
             }
-            ExecuteMsg::HandleMessage { msg, from, sn } => {
-                self.handle_message(deps, info, from, sn, msg)
+            ExecuteMsg::HandleMessage { msg, from_nid } => {
+                self.handle_message(deps, info, from_nid, msg)
             }
-            ExecuteMsg::HandleError {
-                sn: _,
-                code: _,
-                msg: _,
-            } => {
-                todo!()
-            }
+            ExecuteMsg::HandleError { sn } => self.handle_error(deps, info, sn),
             ExecuteMsg::ExecuteCall { request_id, data } => {
                 self.execute_call(deps, info, request_id, data)
             }
@@ -163,6 +151,15 @@ impl<'a> CwCallService<'a> {
             QueryMsg::GetDefaultConnection { nid } => {
                 to_binary(&self.get_default_connection(deps.storage, nid).unwrap())
             }
+            QueryMsg::GetFee {
+                nid,
+                rollback,
+                sources,
+            } => to_binary(
+                &self
+                    .get_fee(deps, nid, rollback, sources.unwrap_or(vec![]))
+                    .unwrap(),
+            ),
         }
     }
     /// This function handles different types of reply messages and calls corresponding functions based on
@@ -189,13 +186,22 @@ impl<'a> CwCallService<'a> {
     pub fn reply(&self, deps: DepsMut, env: Env, msg: Reply) -> Result<Response, ContractError> {
         match msg.id {
             EXECUTE_CALL_ID => self.execute_call_reply(deps, env, msg),
-            EXECUTE_ROLLBACK_ID => self.execute_rollback_reply(deps.as_ref(), msg),
-            SEND_CALL_MESSAGE_REPLY_ID => self.send_call_message_reply(msg),
             _ => Err(ContractError::ReplyError {
                 code: msg.id,
                 msg: "Unknown".to_string(),
             }),
         }
+    }
+
+    pub fn migrate(
+        &self,
+        deps: DepsMut,
+        _env: Env,
+        _msg: MigrateMsg,
+    ) -> Result<Response, ContractError> {
+        set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)
+            .map_err(ContractError::Std)?;
+        Ok(Response::default().add_attribute("migrate", "successful"))
     }
 }
 
@@ -235,5 +241,34 @@ impl<'a> CwCallService<'a> {
         let address = env.contract.address.to_string();
         let na = NetworkAddress::new(&config.network_id, &address);
         Ok(na)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use cosmwasm_std::testing::{mock_dependencies, mock_env};
+    use cw2::{get_contract_version, ContractVersion};
+
+    use crate::{
+        contract::{CONTRACT_NAME, CONTRACT_VERSION},
+        state::CwCallService,
+        MigrateMsg,
+    };
+
+    #[test]
+    fn test_migrate() {
+        let mut mock_deps = mock_dependencies();
+        let env = mock_env();
+
+        let contract = CwCallService::default();
+        let result = contract.migrate(mock_deps.as_mut(), env, MigrateMsg {});
+        assert!(result.is_ok());
+        let expected = ContractVersion {
+            contract: CONTRACT_NAME.to_string(),
+            version: CONTRACT_VERSION.to_string(),
+        };
+        let version = get_contract_version(&mock_deps.storage).unwrap();
+        println!("{version:?}");
+        assert_eq!(expected, version);
     }
 }
