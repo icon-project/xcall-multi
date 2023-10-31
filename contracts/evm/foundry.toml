@@ -5,6 +5,5 @@ libs = ["lib"]
 test = "test"
 
 
-
 [rpc_endpoints]
 binance_testnet = "${BINANCE_TESTNET_RPC_URL}"

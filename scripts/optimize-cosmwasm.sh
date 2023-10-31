@@ -9,6 +9,8 @@ RUSTC_VERS="1.69.0"
 
 MAX_WASM_SIZE=800 # 800 KB
 
+PROJECTS=("cw-xcall" "cw-xcall-lib")
+
 # Install wasm-opt binary
 if ! which wasm-opt; then
   curl -OL $BINARYEN_DWN
@@ -26,12 +28,12 @@ if [ "$CUR_RUSTC_VERS" != "$RUSTC_VERS" ] || [ "$CUR_WASMOPT_VERS" != "$WASMOPT_
 fi
 
 mkdir -p artifacts/archway
-cargo fmt --all
 cargo clippy --fix --allow-dirty
+cargo fmt --all
 cargo clean
 
 rustup target add wasm32-unknown-unknown
-cargo install cosmwasm-check
+cargo install cosmwasm-check --locked
 
 
 RUSTFLAGS='-C link-arg=-s' cargo build --workspace --exclude test-utils --release --lib --target wasm32-unknown-unknown
@@ -45,9 +47,36 @@ done
 
 # check all generated wasm files
 
-~/.cargo/bin/cosmwasm-check  artifacts/archway/cw_mock_dapp.wasm
-~/.cargo/bin/cosmwasm-check artifacts/archway/cw_mock_dapp_multi.wasm
-~/.cargo/bin/cosmwasm-check  artifacts/archway/cw_xcall.wasm
+cosmwasm-check  artifacts/archway/cw_mock_dapp.wasm
+cosmwasm-check artifacts/archway/cw_mock_dapp_multi.wasm
+cosmwasm-check  artifacts/archway/cw_xcall.wasm
+
+
+# Update version
+get_version() {
+    local cargo_toml="contracts/cosmwasm-vm/$1/Cargo.toml"
+    grep -m 1 "version" "$cargo_toml" | awk -F '"' '{print $2}'
+}
+
+# Rename filename with version in it
+rename_wasm_with_version() {
+    local project_path="$1"
+    local version=$(get_version "$project_path")
+    local wasm_file="artifacts/archway/${project_path//-/_}.wasm"
+
+    if [[ -f "$wasm_file" ]]; then
+        cp "$wasm_file" "${wasm_file%.wasm}_latest.wasm"
+        mv "$wasm_file" "${wasm_file%.wasm}_${version}.wasm"
+        echo "Renamed: ${wasm_file} -> ${wasm_file%.wasm}_${version}.wasm"
+    else
+        echo "Error: Wasm file not found: $wasm_file"
+    fi
+}
+
+# Loop through each project and rename wasm files
+for project in "${PROJECTS[@]}"; do
+    rename_wasm_with_version "$project"
+done
 
 
 # validate size
@@ -55,7 +84,7 @@ echo "Check if size of wasm file exceeds $MAX_WASM_SIZE kilobytes..."
 for file in artifacts/archway/*.wasm
 do
 size=$(du -k "$file" | awk '{print $1}')
-if [[ $size -gt $MAX_WASM_SIZE ]]; then
+if [ $size -gt $MAX_WASM_SIZE ]; then
 echo "Error: $file : $size KB has exceeded maximum contract size limit of $MAX_WASM_SIZE KB."
 exit 1
 fi

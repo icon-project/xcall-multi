@@ -118,6 +118,31 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
     ) external payable override returns (
         uint256
     ) {
+        return _sendCallMessage(_to, _data, _rollback, sources, destinations);
+    }
+
+
+    function sendCallMessage(
+        string memory _to,
+        bytes memory _data,
+        bytes memory _rollback
+    ) external payable override returns (
+        uint256
+    ) {
+        string[] memory src;
+        string[] memory dst;
+        return _sendCallMessage(_to, _data, _rollback, src, dst);
+    }
+
+     function _sendCallMessage(
+        string memory _to,
+        bytes memory _data,
+        bytes memory _rollback,
+        string[] memory sources,
+        string[] memory destinations
+    ) internal returns (
+        uint256
+    ) {
         // check if caller is a contract or rollback data is null in case of EOA
         require(msg.sender.code.length > 0 || _rollback.length == 0, "RollbackNotPossible");
 
@@ -128,11 +153,10 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
         (string memory netTo, string memory dstAccount) = _to.parseNetworkAddress();
         string memory from = nid.networkAddress(msg.sender.toString());
         uint256 sn = getNextSn();
-        int256 msgSn = 0;
-        if (needResponse) {
-            requests[sn] = Types.CallRequest(msg.sender, netTo, sources, _rollback, false);
-            msgSn = int256(sn);
-        }
+         int256 msgSn = int256(sn);
+         if (needResponse) {
+             requests[sn] = Types.CallRequest(msg.sender, netTo, sources, _rollback, false);
+         }
         Types.CSMessageRequest memory reqMsg = Types.CSMessageRequest(
             from, dstAccount, sn, needResponse, _data, destinations);
         bytes memory _msg = reqMsg.encodeCSMessageRequest();
@@ -161,19 +185,6 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
         emit CallMessageSent(msg.sender, _to, sn);
 
         return sn;
-    }
-
-
-    function sendCallMessage(
-        string memory _to,
-        bytes memory _data,
-        bytes memory _rollback
-    ) external payable override returns (
-        uint256
-    ) {
-        string[] memory src;
-        string[] memory dst;
-        return this.sendCallMessage(_to, _data, _rollback, src, dst);
     }
 
     function executeCall(
@@ -450,12 +461,12 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
         return feeHandler;
     }
 
-    function setDefaultConnection(string memory nid, address connection) external onlyAdmin {
-        defaultConnections[nid] = connection;
+    function setDefaultConnection(string memory _nid, address connection) external onlyAdmin {
+        defaultConnections[_nid] = connection;
     }
 
-    function getDefaultConnection(string memory nid) external view returns (address) {
-        return defaultConnections[nid];
+    function getDefaultConnection(string memory _nid) external view returns (address) {
+        return defaultConnections[_nid];
     }
 
     function setProtocolFee(
