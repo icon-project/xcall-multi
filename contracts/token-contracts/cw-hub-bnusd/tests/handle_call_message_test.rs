@@ -1,13 +1,13 @@
 mod setup;
 use std::str::FromStr;
 
-use cw_common::{x_call_msg::XCallMsg as XCallExecuteMsg, hub_token_msg::ExecuteMsg};
-use cw_multi_test::{Executor, AppResponse};
+use cw_common::{hub_token_msg::ExecuteMsg, x_call_msg::XCallMsg as XCallExecuteMsg};
+use cw_multi_test::Executor;
 
 use cosmwasm_std::{Addr, Uint128};
 use cw_common::{data_types::CrossTransfer, network_address::NetworkAddress};
 
-use crate::setup::{execute_setup, instantiate_contracts, mint_token, call_set_xcall_host};
+use crate::setup::{call_set_xcall_host, execute_setup, instantiate_contracts, mint_token};
 use cw20::BalanceResponse;
 use cw20_base::msg::QueryMsg;
 use cw_common::network_address::NetId;
@@ -163,7 +163,7 @@ pub fn cross_transfer_revert_data_test() {
             user.clone(),
             context.get_hubtoken_app(),
             &ExecuteMsg::CrossTransfer {
-                to: to,
+                to,
                 amount: amount.into(),
                 data: vec![],
             },
@@ -175,7 +175,7 @@ pub fn cross_transfer_revert_data_test() {
     let sequence_no = event.get("sn").unwrap();
 
     let balance = balance_of(&context, user.clone());
-    let expected_balance = Uint128::from(initial_balance - amount);
+    let expected_balance = (initial_balance - amount);
     assert_eq!(balance.balance, expected_balance);
 
     let message_type: u64 = 2;
@@ -193,15 +193,18 @@ pub fn cross_transfer_revert_data_test() {
 
     let data = stream.out().to_vec();
 
-    context.app.execute_contract(
-        x_call_connection.clone(),
-        context.get_xcall_app(),
-        &XCallExecuteMsg::HandleMessage {
-            from: NetId::from("icon".to_owned()),
-            msg: data,
-        },
-        &[],
-    ).unwrap();
+    context
+        .app
+        .execute_contract(
+            x_call_connection.clone(),
+            context.get_xcall_app(),
+            &XCallExecuteMsg::HandleMessage {
+                from: NetId::from("icon".to_owned()),
+                msg: data,
+            },
+            &[],
+        )
+        .unwrap();
 
     context
         .app
@@ -209,13 +212,13 @@ pub fn cross_transfer_revert_data_test() {
             user.clone(),
             context.get_xcall_app(),
             &XCallExecuteMsg::ExecuteRollback {
-                sequence_no: sequence_no.parse::<u128>().unwrap()
+                sequence_no: sequence_no.parse::<u128>().unwrap(),
             },
             &[],
         )
         .unwrap();
 
-        let balance = balance_of(&context, user.clone());
-        println!("{:?}", balance.balance);
-        assert_eq!(balance.balance, initial_balance);
+    let balance = balance_of(&context, user.clone());
+    println!("{:?}", balance.balance);
+    assert_eq!(balance.balance, initial_balance);
 }

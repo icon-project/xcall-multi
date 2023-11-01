@@ -1,13 +1,13 @@
 mod setup;
 use cosmwasm_std::{Addr, Uint128};
-use cw_common::{x_call_msg::XCallMsg as XCallExecuteMsg, asset_manager_msg::ExecuteMsg};
+use cw_common::{asset_manager_msg::ExecuteMsg, x_call_msg::XCallMsg as XCallExecuteMsg};
 use cw_ibc_rlp_lib::rlp::RlpStream;
 use cw_multi_test::Executor;
 use cw_xcall_lib::network_address::NetId;
 
 use crate::setup::{
-    execute_config_x_call, instantiate_contracts, set_default_connection, setup_context,
-    TestContext, get_event,
+    execute_config_x_call, get_event, instantiate_contracts, set_default_connection, setup_context,
+    TestContext,
 };
 use cw20::{Cw20Contract, Cw20ExecuteMsg};
 
@@ -85,7 +85,6 @@ fn test_deposit_expected_for_revert() {
     assert_eq!(Uint128::new(100), bl);
 }
 
-
 #[test]
 fn test_deposit_revert() {
     let mut context = setup_context();
@@ -96,11 +95,10 @@ fn test_deposit_revert() {
     let xcall_connection = context.get_xcall_connection();
     context = set_default_connection(context, xcall_connection.clone());
 
-
     let (mut ctx, _allowance) = increase_allowance(context, Uint128::new(1000));
     let user = ctx.sender.clone();
 
-    let initial_balance  = check_balance(&ctx, &spoke_addr, &user);
+    let initial_balance = check_balance(&ctx, &spoke_addr, &user);
 
     let deposit_msg = ExecuteMsg::Deposit {
         token_address: spoke_addr.to_string(),
@@ -111,7 +109,13 @@ fn test_deposit_revert() {
 
     let response = ctx
         .app
-        .execute_contract(ctx.sender.clone(), ctx.get_asset_manager_app(), &deposit_msg, &[]).unwrap();
+        .execute_contract(
+            ctx.sender.clone(),
+            ctx.get_asset_manager_app(),
+            &deposit_msg,
+            &[],
+        )
+        .unwrap();
 
     let event = get_event(&response, "wasm-CallMessageSent").unwrap();
     let sequence_no = event.get("sn").unwrap();
@@ -134,28 +138,28 @@ fn test_deposit_revert() {
 
     let data = stream.out().to_vec();
 
-    ctx.app.execute_contract(
-        xcall_connection.clone(),
-        ctx.get_xcall_app(),
-        &XCallExecuteMsg::HandleMessage {
-            from: NetId::from("icon".to_owned()),
-            msg: data,
-        },
-        &[],
-    ).unwrap();
-
-    ctx
-        .app
+    ctx.app
         .execute_contract(
-            user.clone(),
+            xcall_connection.clone(),
             ctx.get_xcall_app(),
-            &XCallExecuteMsg::ExecuteRollback {
-                sequence_no: sequence_no.parse::<u128>().unwrap()
+            &XCallExecuteMsg::HandleMessage {
+                from: NetId::from("icon".to_owned()),
+                msg: data,
             },
             &[],
         )
         .unwrap();
 
+    ctx.app
+        .execute_contract(
+            user.clone(),
+            ctx.get_xcall_app(),
+            &XCallExecuteMsg::ExecuteRollback {
+                sequence_no: sequence_no.parse::<u128>().unwrap(),
+            },
+            &[],
+        )
+        .unwrap();
 
     let bl = check_balance(&ctx, &spoke_addr, &user);
     assert_eq!(initial_balance, bl);

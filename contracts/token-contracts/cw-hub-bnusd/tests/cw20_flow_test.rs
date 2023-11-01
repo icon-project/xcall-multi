@@ -34,7 +34,7 @@ fn cw20_flow_test() {
     assert!(resp.is_err()); //cannot mint tokens from hubtoken app
 
     //use loop to mint tokens from xcall app to alice, bob and carol
-    vec![alice.to_string(), bob.to_string(), carol.to_string()]
+    [alice.to_string(), bob.to_string(), carol.to_string()]
         .iter()
         .for_each(|recipient| {
             let _resp = context
@@ -52,7 +52,7 @@ fn cw20_flow_test() {
         });
 
     //check balance of each account, and assert this to be 1000
-    vec![
+    [
         (alice.to_string(), amount),
         (bob.to_string(), amount),
         (carol.to_string(), amount),
