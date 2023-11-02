@@ -1,12 +1,20 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import "wormhole-solidity-sdk/testing/WormholeRelayerTest.sol";
-import "@xcall/contracts/adapters/wormhole/WormholeAdapter.sol";
+import {Test, console2} from "forge-std/Test.sol";
+import {LZEndpointMock} from "@lz-contracts/mocks/LZEndpointMock.sol";
+import "@xcall/contracts/adapters/LayerZeroAdapter.sol";
 import "@xcall/contracts/xcall/CallService.sol";
 import "@xcall/contracts/mocks/multi-protocol-dapp/MultiProtocolSampleDapp.sol";
 
-contract WormholeAdapterTest is WormholeRelayerBasicTest {
+
+contract LayerZeroAdapterTest is Test {
+
+    LZEndpointMock public sourceEndpoint;
+    LZEndpointMock public destinationEndpoint;
+
+    uint16 public constant SourceChainID = 0x11;
+    uint16 public constant DestinationChainID = 0x22;
 
     event CallExecuted(
         uint256 indexed _reqId,
@@ -26,18 +34,17 @@ contract WormholeAdapterTest is WormholeRelayerBasicTest {
     CallService xCallSource;
     CallService xCallTarget;
 
-    WormholeAdapter adapterSource;
-    WormholeAdapter adapterTarget;
+    LayerZeroAdapter adapterSource;
+    LayerZeroAdapter adapterTarget;
 
     string public nidSource = "nid.source";
     string public nidTarget = "nid.target";
 
+    address public owner = address(uint160(uint256(keccak256("owner"))));
+    address public admin = address(uint160(uint256(keccak256("admin"))));
+    address public user = address(uint160(uint256(keccak256("user"))));
 
-    address public admin = address(0x1111);
-    address public user = address(0x1234);
-
-
-    function setUpSource() public override {
+    function _setupSource() internal {
         console2.log("------>setting up source<-------");
         xCallSource = new CallService();
         xCallSource.initialize(nidSource);
@@ -45,13 +52,13 @@ contract WormholeAdapterTest is WormholeRelayerBasicTest {
         dappSource = new MultiProtocolSampleDapp();
         dappSource.initialize(address(xCallSource));
 
-        adapterSource = new WormholeAdapter();
-        adapterSource.initialize(address(relayerSource), address(xCallSource));
+        adapterSource = new LayerZeroAdapter();
+        adapterSource.initialize(address(sourceEndpoint), address(xCallSource));
 
         xCallSource.setDefaultConnection(nidTarget, address(adapterSource));
     }
 
-    function setUpTarget() public override {
+    function _setupTarget() internal {
         console2.log("------>setting up target<-------");
 
         xCallTarget = new CallService();
@@ -60,15 +67,24 @@ contract WormholeAdapterTest is WormholeRelayerBasicTest {
         dappTarget = new MultiProtocolSampleDapp();
         dappTarget.initialize(address(xCallTarget));
 
-        adapterTarget = new WormholeAdapter();
-        adapterTarget.initialize(address(relayerTarget), address(xCallTarget));
+        adapterTarget = new LayerZeroAdapter();
+        adapterTarget.initialize(address(destinationEndpoint), address(xCallTarget));
 
         xCallTarget.setDefaultConnection(nidSource, address(adapterTarget));
-        toWormholeFormat(address(xCallTarget));
-
     }
 
-    function setUpGeneral() public override {
+    /**
+     * @dev Sets up the initial state for the test.
+     */
+    function setUp() public {
+        vm.startPrank(owner);
+        // setup mock endpoint
+        sourceEndpoint = new LZEndpointMock(SourceChainID);
+        destinationEndpoint = new LZEndpointMock(DestinationChainID);
+
+        _setupSource();
+        _setupTarget();
+
         console2.log("------>setting up connections<-------");
 
         string memory adapterSourceAdr = ParseAddress.toString(
@@ -78,29 +94,42 @@ contract WormholeAdapterTest is WormholeRelayerBasicTest {
             address(adapterTarget)
         );
 
-
         dappSource.addConnection(nidTarget, adapterSourceAdr, adapterTargetAdr);
 
         adapterSource.configureConnection(
             nidTarget,
-            targetChain,
-            toWormholeFormat(address(adapterTarget)),
-            5_000_000
+            DestinationChainID,
+            abi.encodePacked(address(adapterTarget)),
+            uint256(900_000)
         );
-        vm.selectFork(targetFork);
+
         dappTarget.addConnection(nidSource, adapterTargetAdr, adapterSourceAdr);
 
         adapterTarget.configureConnection(
             nidSource,
-            sourceChain,
-            toWormholeFormat(address(adapterSource)),
-            5_000_000
+            SourceChainID,
+            abi.encodePacked(address(adapterSource)),
+            uint256(900_000)
         );
+
+        sourceEndpoint.setDestLzEndpoint(address(adapterTarget), address(destinationEndpoint));
+        destinationEndpoint.setDestLzEndpoint(address(adapterSource), address(sourceEndpoint));
+
+        adapterSource.setAdmin(admin);
+        adapterTarget.setAdmin(admin);
+
+        vm.stopPrank();
+
+        // deal some gas
+        vm.deal(admin, 10 ether);
+        vm.deal(user, 10 ether);
     }
 
+
     function testSetAdmin() public {
-        adapterSource.setAdmin(admin);
-        assertEq(adapterSource.admin(), admin);
+        vm.prank(admin);
+        adapterSource.setAdmin(user);
+        assertEq(adapterSource.admin(), user);
     }
 
     function testSetAdminUnauthorized() public {
@@ -110,15 +139,13 @@ contract WormholeAdapterTest is WormholeRelayerBasicTest {
     }
 
     function testConnection() public {
-        vm.selectFork(sourceFork);
-        adapterSource.setAdmin(admin);
         vm.prank(user);
         vm.expectRevert("OnlyAdmin");
         adapterSource.configureConnection(
             nidTarget,
-            targetChain,
-            toWormholeFormat(address(adapterTarget)),
-            5_000_000
+            DestinationChainID,
+            abi.encodePacked(address(adapterTarget)),
+            uint256(900_000)
         );
 
         vm.prank(admin);
@@ -126,37 +153,37 @@ contract WormholeAdapterTest is WormholeRelayerBasicTest {
 
         adapterSource.configureConnection(
             nidTarget,
-            targetChain,
-            toWormholeFormat(address(adapterTarget)),
-            5_000_000
+            DestinationChainID,
+            abi.encodePacked(address(adapterTarget)),
+            uint256(900_000)
         );
 
     }
 
 
     function testSendMessage() public {
-        vm.recordLogs();
-        vm.selectFork(sourceFork);
 
+        vm.startPrank(user);
+
+        console2.log(abi.encodePacked(address(adapterTarget)).length);
         string memory to = NetworkAddress.networkAddress(nidTarget, ParseAddress.toString(address(dappTarget)));
 
         uint256 cost = adapterSource.getFee(nidTarget, false);
 
         bytes memory data = bytes("test");
         bytes memory rollback = bytes("");
+
         dappSource.sendMessage{value: cost}(to, data, rollback);
 
-        performDelivery();
-
-        vm.selectFork(targetFork);
-        vm.expectEmit();
+        vm.expectEmit(address(xCallTarget));
         emit CallExecuted(1, 1, "");
         xCallTarget.executeCall(1, data);
+        vm.stopPrank();
     }
 
     function testRollback() public {
-        vm.recordLogs();
-        vm.selectFork(sourceFork);
+        vm.startPrank(user);
+
 
         string memory to = NetworkAddress.networkAddress(nidTarget, ParseAddress.toString(address(dappTarget)));
 
@@ -166,25 +193,18 @@ contract WormholeAdapterTest is WormholeRelayerBasicTest {
         bytes memory rollback = bytes("rollback-data");
         dappSource.sendMessage{value: cost}(to, data, rollback);
 
-        performDelivery();
 
-        vm.selectFork(targetFork);
         vm.expectEmit();
         emit CallExecuted(1, 0, "rollback");
 
         emit ResponseOnHold(1);
         xCallTarget.executeCall(1, data);
 
-        // trigger response
         adapterTarget.triggerResponse{value: cost}(1);
-        performDelivery();
 
-        //execute rollback
-        vm.selectFork(sourceFork);
         vm.expectEmit();
         emit RollbackExecuted(1);
         xCallSource.executeRollback(1);
+        vm.stopPrank();
     }
-
-
 }
