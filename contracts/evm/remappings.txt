@@ -10,3 +10,5 @@ openzeppelin-contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/
 openzeppelin-contracts/=lib/openzeppelin-contracts/
 openzeppelin/=lib/openzeppelin-contracts-upgradeable/contracts/
 wormhole-solidity-sdk/=lib/wormhole-solidity-sdk/src/
+@lz-contracts/=lib/solidity-examples/contracts/lzApp/
+@lz-contracts/utils/=lib/solidity-examples/contracts/libraries/

@@ -2,11 +2,11 @@
 pragma solidity >=0.8.0;
 
 /**
- * @title IAdapter - Interface for Wormhole-xCall Adapter
+ * @title IWormholeAdapter.sol - Interface for Wormhole-xCall Adapter
  * @dev This interface defines the functions and events for a Wormhole-xCall adapter,
  * allowing communication and message transfer between xCall on different blockchain networks.
  */
-interface IAdapter {
+interface IWormholeAdapter {
     /**
      * @notice Emitted when a response is put on hold.
      * @param _sn The serial number of the response.

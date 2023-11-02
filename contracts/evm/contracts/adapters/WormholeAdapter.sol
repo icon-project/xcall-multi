@@ -7,17 +7,17 @@ import "wormhole-solidity-sdk/interfaces/IWormholeRelayer.sol";
 import "wormhole-solidity-sdk/interfaces/IWormholeReceiver.sol";
 import "wormhole-solidity-sdk/Utils.sol";
 
-import "./interfaces/IAdapter.sol";
+import "./interfaces/IWormholeAdapter.sol";
 
 import "@xcall/utils/Types.sol";
+import "@xcall/contracts/xcall/interfaces/IConnection.sol";
 import "@iconfoundation/btp2-solidity-library/interfaces/ICallService.sol";
-import "@iconfoundation/btp2-solidity-library/interfaces/IConnection.sol";
 
 /**
  * @title WormholeAdapter
  * @dev This contract serves as a cross-chain xcall adapter, enabling communication between xcall on different blockchain networks via Wormhole.
  */
-contract WormholeAdapter is IAdapter, Initializable, IWormholeReceiver, IConnection {
+contract WormholeAdapter is IWormholeAdapter, Initializable, IWormholeReceiver, IConnection {
     mapping(uint256 => Types.PendingResponse) private pendingResponses;
     mapping(string => uint16) private chainIds;
     mapping(uint16 => string) private networkIds;
