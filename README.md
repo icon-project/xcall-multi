@@ -26,23 +26,23 @@ For full xcall-multi specification see [xcall-multi Spec](./docs/adr/xcall.md).
 For building dapps with xcall-multi see official developer [docs](https://www.xcall.dev/).
 
 ## xcall-multi Contract Address for Repective Chain
-| Icon     | Address                                                              |
-| -------- | -------------------------------------------------------------------- | 
-| Mainnet  | <pre><code> cxa07f426062a1384bdd762afa6a87d123fbc81c75 </pre></code> | 
-| Berlin   | <pre><code> cx5b0bd4bb62e2b511aa29586c1e8a21749425d474 </pre></code> |
-| Lisbon   | <pre><code> cx15a339fa60bd86225050b22ea8cd4a9d7cd8bb83 </pre></code> |
+| Icon     | xcall-multi Address                                                  | xcall-connection Address
+| -------- | -------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| Mainnet  | <pre><code> cxa07f426062a1384bdd762afa6a87d123fbc81c75 </pre></code> | <pre><code> cx6f86ed848f9f0d03ba1220811d95d864c72da88c </pre></code> |
+| Berlin   | <pre><code> cx5b0bd4bb62e2b511aa29586c1e8a21749425d474 </pre></code> | <pre><code> cx2fed89936d8ebb184148fd950ed61077c2f375aa </pre></code> |
+| Lisbon   | <pre><code> cx15a339fa60bd86225050b22ea8cd4a9d7cd8bb83 </pre></code> | <pre><code> cx7acee950ca6ca031c6e491ba9e0117d97ff48f55 </pre></code> |
 
-| Archway        | Address                                                                                      |
-| -------------- | -------------------------------------------------------------------------------------------- | 
-| archway-1      | <pre><code> archway19hzhgd90etqc3z2qswumq80ag2d8het38r0al0r4ulrly72t20psdrpna6 </pre></code> | 
-| constantine-3  | <pre><code> archway1kenxz0wuczr04mc9q3gwjuyzd6ft4zqm5wach846gghfjupvlncshvchs2 </pre></code> |
-| constantine-3  | <pre><code> archway1h04c8eqr99dnsw6wqx80juj2vtuxth70eh65cf6pnj4zan6ms4jqshc5wk </pre></code> |
+| Archway        | xcall-multi Address                                                                                      | xcall-connection Address                                                                                      |
+| -------------- | -------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| archway-1      | <pre><code> archway19hzhgd90etqc3z2qswumq80ag2d8het38r0al0r4ulrly72t20psdrpna6 </pre></code> | <pre><code> archway1f68v03g2646z7wk9h9sy5uxhztajcrdgwvdrsftyp4448h067v0shn6l5w </pre></code> |
+| constantine-3  | <pre><code> archway1kenxz0wuczr04mc9q3gwjuyzd6ft4zqm5wach846gghfjupvlncshvchs2 </pre></code> | <pre><code> archway1avp2q350kefzhvy6x22yyryfylqehhtmhmsg7u633rlccewsdkzsja3g5l </pre></code> |
+| constantine-3  | <pre><code> archway1h04c8eqr99dnsw6wqx80juj2vtuxth70eh65cf6pnj4zan6ms4jqshc5wk </pre></code> | <pre><code> archway1jac5l0mh0zygety4yh8r8qux8r3u3dxnkfjq6ur9djvrwhz8ddwqygsf9l </pre></code> |
 
 
-| Neutron        | Address                                                                                      |
-| -------------- | -------------------------------------------------------------------------------------------- | 
-| neutron-1      | <pre><code> neutron1g28ca6axwkar5fuhhfcgua2807njh795nvrz6qf75u3xpv805y7sugakf9 </pre></code> | 
-| pion-1         | <pre><code> neutron164uehrt5zp6y9atz3x595zwad2vtk7gr5tpvmnj8nqqlc9a0g4xs4sqg0m </pre></code> |
+| Neutron        | xcall-multi Address                                                                                      | xcall-connection Address                                                                                      |
+| -------------- | -------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| neutron-1      | <pre><code> neutron1g28ca6axwkar5fuhhfcgua2807njh795nvrz6qf75u3xpv805y7sugakf9 </pre></code> | <pre><code> neutron1gfmvnlrpd6mu7p254udqvky6r2nu3dq0p82yc7jg8ytq6ku2lzhstk8c3t </pre></code> |
+| pion-1         | <pre><code> neutron164uehrt5zp6y9atz3x595zwad2vtk7gr5tpvmnj8nqqlc9a0g4xs4sqg0m </pre></code> | <pre><code> neutron155tl944k8e5rrlgcp5m2eekv027m6f4fz6re2ayyf0hz8d64fwuswpdgjj </pre></code> |
 
 ## IBC Relayer Path Configuration
 | Relayer  | Path           | Source Chain ID  | Destination Chain ID | 
@@ -52,6 +52,17 @@ For building dapps with xcall-multi see official developer [docs](https://www.xc
 | Berlin   | icon-archway   | ibc-icon         | constantine-3        |
 | Lisbon   | icon-archway   | lisbon           | constantine-3        |
 |          | icon-neutron   | lisbon           | pion-1               |
+
+## Chain Network IDs
+| Chain    | Network               | IDs       |
+| -------  | --------------------- | --------- |
+| Icon     | Mainnet               | 0x1.icon  |
+|          | Berlin Testnet        | 0x7.icon  |
+|          | Lisbon Testnet        | 0x2.icon  |
+| Archway  | Mainnet               | archway-1 |
+|          | Constantine-3 Testnet | archway   |
+| Neutron  | Mainnet               | neutron-1 |
+|          | Pion Testnet          | neutron   |
 
 ### Project Structure
 | Directory | Description |
