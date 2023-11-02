@@ -21,7 +21,6 @@ contract LayerZeroAdapter is ILayerZeroAdapter, Initializable, ILayerZeroReceive
     mapping(uint16 => string) private networkIds;
     mapping(string => bytes) private adapterParams;
     mapping(string => bytes) private remoteEndpoint;
-    mapping(bytes32 => bool) public seenDeliveryVaaHashes;
     address private layerZeroEndpoint;
     address private xCall;
     address private owner;
@@ -132,7 +131,7 @@ contract LayerZeroAdapter is ILayerZeroAdapter, Initializable, ILayerZeroReceive
             chainIds[_to],
             remoteEndpoint[_to],
             abi.encodePacked(_msg),
-            payable(tx.origin),
+            payable(address(this)),
             address(0x0),
             adapterParams[_to]
         );
@@ -152,11 +151,8 @@ contract LayerZeroAdapter is ILayerZeroAdapter, Initializable, ILayerZeroReceive
         bytes memory payload
     ) public override {
         require(msg.sender == layerZeroEndpoint, "Invalid endpoint caller");
-        bytes32 hash = keccak256(abi.encodePacked(payload, _nonce));
-        require(!seenDeliveryVaaHashes[hash], "Message already processed");
         string memory nid = networkIds[sourceChain];
         require(keccak256(_srcAddress) == keccak256(abi.encodePacked(remoteEndpoint[nid])), "Source address mismatched");
-        seenDeliveryVaaHashes[hash] = true;
         ICallService(xCall).handleMessage(nid, payload);
     }
 
@@ -174,7 +170,7 @@ contract LayerZeroAdapter is ILayerZeroAdapter, Initializable, ILayerZeroReceive
             chainIds[resp.targetNetwork],
             remoteEndpoint[resp.targetNetwork],
             abi.encodePacked(resp.msg),
-            payable(msg.sender),
+            payable(address(this)),
             address(0x0),
             adapterParams[resp.targetNetwork]
         );
@@ -198,4 +194,6 @@ contract LayerZeroAdapter is ILayerZeroAdapter, Initializable, ILayerZeroReceive
         }
         return adminAddress;
     }
+
+    fallback() external payable {}
 }
