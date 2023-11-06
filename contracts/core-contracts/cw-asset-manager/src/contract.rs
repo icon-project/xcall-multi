@@ -304,8 +304,7 @@ mod exec {
         from: String,
         data: Vec<u8>,
     ) -> Result<Response, ContractError> {
-        let xcall = SOURCE_XCALL.load(deps.storage)?;
-        let x_call_addr = deps.api.addr_validate(xcall.as_ref())?;
+        let x_call_addr = SOURCE_XCALL.load(deps.storage)?;
         let x_network = X_CALL_NETWORK_ADDRESS.load(deps.storage)?;
 
         if info.sender != x_call_addr {
