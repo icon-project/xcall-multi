@@ -16,6 +16,8 @@ pub enum ContractError {
     WrongNetwork,
     #[error("Invalid to Address")]
     InvalidToAddress,
+    #[error("Token amount can't be zero")]
+    InvalidAmount,
     #[error("OnlyCallService")]
     OnlyCallService,
     #[error("OnlyHub")]

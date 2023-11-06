@@ -175,7 +175,7 @@ mod execute {
     use std::str::from_utf8;
 
     use bytes::BytesMut;
-    use cosmwasm_std::{to_binary, Addr, CosmosMsg, SubMsg};
+    use cosmwasm_std::{to_binary, Addr, CosmosMsg, SubMsg, ensure};
     use cw_common::network_address::NetId;
     use cw_ibc_rlp_lib::rlp::{decode, encode};
     use debug_print::debug_println;
@@ -257,6 +257,8 @@ mod execute {
         if !to.validate_foreign_addresses() {
             return Err(ContractError::InvalidNetworkAddress);
         }
+        ensure!(amount > 0, ContractError::InvalidAmount);
+
         let funds = info.funds.clone();
         let nid = NID.load(deps.storage)?;
         let hub_net: NetId = DESTINATION_TOKEN_NET.load(deps.storage)?;
