@@ -1,4 +1,3 @@
-
 use cosmwasm_std::Uint128;
 
 pub const X_CROSS_TRANSFER: &str = "xCrossTransfer";
