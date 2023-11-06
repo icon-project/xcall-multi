@@ -22,8 +22,6 @@ pub enum ContractError {
     OnlyHub,
     #[error("Invalid Method")]
     InvalidMethod,
-    #[error("Invalid Reply")]
-    InvalidReply,
     #[error("Issue in Minting of Token")]
     MintError,
     #[error("Issue in Burning of Token")]

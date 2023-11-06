@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
 use crate::constants::{
-    REPLY_MSG_SUCCESS, TOKEN_DECIMALS, TOKEN_NAME, TOKEN_SYMBOL, TOKEN_TOTAL_SUPPLY,
+    TOKEN_DECIMALS, TOKEN_NAME, TOKEN_SYMBOL, TOKEN_TOTAL_SUPPLY,
     X_CROSS_TRANSFER, X_CROSS_TRANSFER_REVERT,
 };
 use crate::error::ContractError;
@@ -13,8 +13,7 @@ use cw_common::network_address::IconAddressValidation;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    to_binary, Addr, Binary, Deps, DepsMut, Empty, Env, MessageInfo, QueryRequest, Reply, Response,
-    StdError, StdResult, WasmQuery,
+    to_binary, Addr, Binary, Deps, DepsMut, Empty, Env, MessageInfo, QueryRequest, Response, StdResult, WasmQuery,
 };
 
 use cw2::set_contract_version;
@@ -162,13 +161,6 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
     }
 }
 
-#[cfg_attr(not(feature = "library"), entry_point)]
-pub fn reply(deps: DepsMut, env: Env, msg: Reply) -> Result<Response, ContractError> {
-    match msg.id {
-        REPLY_MSG_SUCCESS => reply_msg_success(deps, env, msg),
-        _ => Err(ContractError::InvalidReply),
-    }
-}
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn migrate(deps: DepsMut, _env: Env, _msg: MigrateMsg) -> Result<Response, ContractError> {
@@ -178,14 +170,6 @@ pub fn migrate(deps: DepsMut, _env: Env, _msg: MigrateMsg) -> Result<Response, C
     Ok(Response::default().add_attribute("migrate", "successful"))
 }
 
-pub fn reply_msg_success(_deps: DepsMut, _env: Env, msg: Reply) -> Result<Response, ContractError> {
-    match msg.result {
-        cosmwasm_std::SubMsgResult::Ok(_) => Ok(Response::default()),
-        cosmwasm_std::SubMsgResult::Err(error) => {
-            Err(StdError::GenericErr { msg: error }).map_err(Into::<ContractError>::into)
-        }
-    }
-}
 
 mod execute {
     use std::str::from_utf8;
@@ -310,7 +294,7 @@ mod execute {
             funds,
         });
 
-        let sub_message = SubMsg::reply_always(wasm_execute_message, REPLY_MSG_SUCCESS);
+        let sub_message = SubMsg::new(wasm_execute_message);
         debug_println!("this is {:?}", info.sender);
 
         debug_println!("burn from {:?}", sub_message);
