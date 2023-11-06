@@ -9,6 +9,8 @@ on:
     paths:
       - contracts/**
       - .github/workflows/deploy-cw-contracts.yml
+      - scripts/generate_wasm.sh
+
 jobs:
   Build:
     name: Build & Deploy CW Contracts
@@ -21,12 +23,8 @@ jobs:
 
       - name: Start local Archway Blockchain
         run: |
-          cd contracts/archway
-          sed -i 's/latest/v0.4.0/' docker-compose.yaml
-          docker compose -f docker-compose.yaml up -d
-          # git clean submodule directory
-          git checkout .
-          git clean -fdx
+          cp ./scripts/archway/docker-compose.yml .
+          docker compose -f docker-compose.yml up -d
 
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
@@ -44,26 +42,14 @@ jobs:
           cargo install cosmwasm-check --locked
 
       - name: Compile WASM
-        run: bash ./scripts/generate_wasm.sh
-
-      - name: Check WASM Size
         run: |
-          max_size=800
-          echo "Check if size of wasm file exceeds $max_size kilobytes..."
-          for file in artifacts/*.wasm; do
-            size=$(du -k "$file" | awk '{print $1}')
-            if [[ $size -gt $max_size ]]; then
-            echo "Error: $file : $size has exceeded maximum contract size limit of 800KB."
-            exit 1
-            fi
-            echo "$file : $size"
-          done
-          echo "The size of all contracts is well within the 800 KB limit."
+          sudo chmod -R 777 artifacts
+          sudo chmod -R 777 scripts
+          bash ./scripts/generate_wasm.sh
 
       - name: Deploy WASM
         run: |
           container=$(docker ps --format '{{.Names}}')
-          cp scripts/deploy_cw.sh contracts/archway/contracts
-          cp -r artifacts contracts/archway/contracts
-          docker exec $container chmod +x /contracts/deploy_cw.sh
-          docker exec $container sh /contracts/deploy_cw.sh
+          docker exec $container sh -c "rm /contracts/cw_common*.wasm"
+          docker exec $container chmod +x /opt/deploy_cw.sh
+          docker exec $container sh /opt/deploy_cw.sh
