@@ -153,10 +153,11 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
         (string memory netTo, string memory dstAccount) = _to.parseNetworkAddress();
         string memory from = nid.networkAddress(msg.sender.toString());
         uint256 sn = getNextSn();
-         int256 msgSn = int256(sn);
-         if (needResponse) {
-             requests[sn] = Types.CallRequest(msg.sender, netTo, sources, _rollback, false);
-         }
+        int256 msgSn = 0;
+        if (needResponse) {
+            requests[sn] = Types.CallRequest(msg.sender, netTo, sources, _rollback, false);
+            msgSn = int256(sn);
+        }
         Types.CSMessageRequest memory reqMsg = Types.CSMessageRequest(
             from, dstAccount, sn, needResponse, _data, destinations);
         bytes memory _msg = reqMsg.encodeCSMessageRequest();
