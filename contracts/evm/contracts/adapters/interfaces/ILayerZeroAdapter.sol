@@ -18,12 +18,14 @@ interface ILayerZeroAdapter {
      * @param chainId The chain ID of the destination chain.
      * @param endpoint The endpoint or address of the destination chain.
      * @param gasLimit The gas limit for transactions on the destination chain.
+     * @param responseFee The fee required for a response from the destination chain, to be airdropped to the specified `endpoint`.
      */
     function configureConnection(
         string calldata networkId,
         uint16 chainId,
         bytes memory endpoint,
-        uint256 gasLimit
+        uint256 gasLimit,
+        uint256 responseFee
     ) external;
 
     /**
@@ -31,9 +33,19 @@ interface ILayerZeroAdapter {
      * @param networkId The network ID of the destination chain.
      * @param gasLimit The gas limit for transactions on the destination chain.
      */
-    function setGasLimit    (
+    function setGasLimit(
         string calldata networkId,
         uint256 gasLimit
+    ) external;
+
+    /**
+* @notice set or update response fee to a source chain.
+     * @param networkId The network ID of the destination chain.
+     * @param responseFee The fee required for a response from the destination chain, to be airdropped to the specified `endpoint`.
+     */
+    function setResponseFee(
+        string calldata networkId,
+        uint256 responseFee
     ) external;
 
     /**
