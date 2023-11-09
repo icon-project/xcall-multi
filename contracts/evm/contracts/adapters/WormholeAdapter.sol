@@ -22,6 +22,7 @@ contract WormholeAdapter is IWormholeAdapter, Initializable, IWormholeReceiver, 
     mapping(string => uint16) private chainIds;
     mapping(uint16 => string) private networkIds;
     mapping(string => uint256) private gasLimits;
+    mapping(string => uint256) private responseFees;
     mapping(string => bytes32) private remoteEndpoint;
     mapping(bytes32 => bool) public seenDeliveryVaaHashes;
     address private wormholeRelayer;
@@ -52,18 +53,21 @@ contract WormholeAdapter is IWormholeAdapter, Initializable, IWormholeReceiver, 
      * @param chainId The chain ID of the destination chain.
      * @param endpoint The endpoint or address of the destination chain.
      * @param gasLimit The gas limit for transactions on the destination chain.
+     * @param responseFee The fee required for a response from the destination chain, to be airdropped to the specified `endpoint`.
      */
     function configureConnection(
         string calldata networkId,
         uint16 chainId,
         bytes32 endpoint,
-        uint256 gasLimit
+        uint256 gasLimit,
+        uint256 responseFee
     ) external override onlyAdmin {
         require(bytes(networkIds[chainId]).length == 0, "Connection already configured");
         networkIds[chainId] = networkId;
         chainIds[networkId] = chainId;
         remoteEndpoint[networkId] = endpoint;
         gasLimits[networkId] = gasLimit;
+        responseFees[networkId] = responseFee;
     }
 
     /**
@@ -79,6 +83,19 @@ contract WormholeAdapter is IWormholeAdapter, Initializable, IWormholeReceiver, 
     }
 
     /**
+* @notice set or update response fee to a source chain.
+     * @param networkId The network ID of the destination chain.
+     * @param responseFee The response fee for transactions from the destination chain.
+     * @param responseFee The fee required for a response from the destination chain, to be airdropped to the specified `endpoint`.
+     */
+    function setResponseFee(
+        string calldata networkId,
+        uint256 responseFee
+    ) external override onlyAdmin {
+        responseFees[networkId] = responseFee;
+    }
+
+    /**
      * @notice Get the gas fee required to send a message to a specified destination network.
      * @param _to The network ID of the target chain.
      * @param _response Indicates whether the response fee is included (true) or not (false).
@@ -86,7 +103,11 @@ contract WormholeAdapter is IWormholeAdapter, Initializable, IWormholeReceiver, 
      */
     function getFee(string memory _to, bool _response) external view override returns (uint256 _fee) {
         uint256 gasLimit = gasLimits[_to];
-        (_fee,) = IWormholeRelayer(wormholeRelayer).quoteEVMDeliveryPrice(chainIds[_to], 0, gasLimit);
+        uint256 responseFee = 0;
+        if (_response) {
+            responseFee = responseFees[_to];
+        }
+        (_fee,) = IWormholeRelayer(wormholeRelayer).quoteEVMDeliveryPrice(chainIds[_to], responseFee, gasLimit);
     }
 
     /**
@@ -97,14 +118,13 @@ contract WormholeAdapter is IWormholeAdapter, Initializable, IWormholeReceiver, 
      * @param _msg The serialized bytes of the service message.
      */
     function sendMessage(
-        string calldata _to,
-        string calldata _svc,
+        string memory _to,
+        string memory _svc,
         int256 _sn,
         bytes calldata _msg
     ) external override payable {
         require(msg.sender == xCall, "Only xCall can send messages");
         uint256 fee = msg.value;
-
         if (_sn < 0) {
             fee = this.getFee(_to, false);
             if (address(this).balance < fee) {
@@ -119,7 +139,7 @@ contract WormholeAdapter is IWormholeAdapter, Initializable, IWormholeReceiver, 
             chainIds[_to],
             fromWormholeFormat(remoteEndpoint[_to]),
             abi.encodePacked(_msg),
-            0,
+            _sn > 0 ? responseFees[_to] : 0,
             gasLimits[_to]
         );
     }
@@ -169,8 +189,8 @@ contract WormholeAdapter is IWormholeAdapter, Initializable, IWormholeReceiver, 
     }
 
     /**
-       @notice Gets the address of admin
-       @return (Address) the address of admin
+    * @notice Gets the address of admin
+    * @return (Address) the address of admin
     */
     function admin(
     ) external view returns (

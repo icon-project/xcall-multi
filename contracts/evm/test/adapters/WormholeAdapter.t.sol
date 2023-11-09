@@ -85,7 +85,8 @@ contract WormholeAdapterTest is WormholeRelayerBasicTest {
             nidTarget,
             targetChain,
             toWormholeFormat(address(adapterTarget)),
-            5_000_000
+            5_000_000,
+            uint256(1e14)
         );
         vm.selectFork(targetFork);
         dappTarget.addConnection(nidSource, adapterTargetAdr, adapterSourceAdr);
@@ -94,7 +95,8 @@ contract WormholeAdapterTest is WormholeRelayerBasicTest {
             nidSource,
             sourceChain,
             toWormholeFormat(address(adapterSource)),
-            5_000_000
+            5_000_000,
+            uint256(1e14)
         );
     }
 
@@ -118,7 +120,8 @@ contract WormholeAdapterTest is WormholeRelayerBasicTest {
             nidTarget,
             targetChain,
             toWormholeFormat(address(adapterTarget)),
-            5_000_000
+            5_000_000,
+            uint256(1e14)
         );
 
         vm.prank(admin);
@@ -128,7 +131,8 @@ contract WormholeAdapterTest is WormholeRelayerBasicTest {
             nidTarget,
             targetChain,
             toWormholeFormat(address(adapterTarget)),
-            5_000_000
+            5_000_000,
+            uint256(1e14)
         );
 
     }
@@ -140,7 +144,7 @@ contract WormholeAdapterTest is WormholeRelayerBasicTest {
 
         string memory to = NetworkAddress.networkAddress(nidTarget, ParseAddress.toString(address(dappTarget)));
 
-        uint256 cost = adapterSource.getFee(nidTarget, false);
+        uint256 cost = adapterSource.getFee(nidTarget, true);
 
         bytes memory data = bytes("test");
         bytes memory rollback = bytes("");
@@ -160,7 +164,7 @@ contract WormholeAdapterTest is WormholeRelayerBasicTest {
 
         string memory to = NetworkAddress.networkAddress(nidTarget, ParseAddress.toString(address(dappTarget)));
 
-        uint256 cost = adapterSource.getFee(nidTarget, false);
+        uint256 cost = adapterSource.getFee(nidTarget, true);
 
         bytes memory data = bytes("rollback");
         bytes memory rollback = bytes("rollback-data");
@@ -175,7 +179,9 @@ contract WormholeAdapterTest is WormholeRelayerBasicTest {
         emit ResponseOnHold(1);
         xCallTarget.executeCall(1, data);
 
+
         // trigger response
+        cost = adapterTarget.getFee(nidSource, false);
         adapterTarget.triggerResponse{value: cost}(1);
         performDelivery();
 
