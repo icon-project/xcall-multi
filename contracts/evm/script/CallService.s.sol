@@ -5,6 +5,7 @@ import {UUPSProxy} from "@xcall/contracts/upgradeable/UUPSProxy.sol";
 import {console2} from "forge-std/console2.sol";
 
 import "@xcall/contracts/xcall/CallService.sol";
+import "@xcall/contracts/mocks/multi-protocol-dapp/MultiProtocolSampleDapp.sol";
 
 contract DeployCallService is Script {
     CallService private proxyXcall;
@@ -74,6 +75,21 @@ contract DeployCallService is Script {
         proxyXcall.setProtocolFee(protocolFee);
         proxyXcall.setProtocolFeeHandler(ownerAddress);
         proxyXcall.setDefaultConnection(iconNid, connection);
+    }
+
+    function deployMock(string memory chain) public broadcast(deployerPrivateKey){
+            chain = capitalizeString(chain);
+            address xcall = vm.envAddress(chain.concat("_XCALL"));
+
+            MultiProtocolSampleDapp mockdapp = new MultiProtocolSampleDapp();
+
+            UUPSProxy proxyMock = new UUPSProxy(
+                address(mockdapp),
+                abi.encodeWithSelector(
+                    MultiProtocolSampleDapp.initialize.selector,
+                    xcall
+                )
+            );
     }
 
     function upgradeContract(
