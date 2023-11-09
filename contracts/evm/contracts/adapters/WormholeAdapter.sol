@@ -85,7 +85,6 @@ contract WormholeAdapter is IWormholeAdapter, Initializable, IWormholeReceiver, 
     /**
 * @notice set or update response fee to a source chain.
      * @param networkId The network ID of the destination chain.
-     * @param responseFee The response fee for transactions from the destination chain.
      * @param responseFee The fee required for a response from the destination chain, to be airdropped to the specified `endpoint`.
      */
     function setResponseFee(
