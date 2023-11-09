@@ -9,7 +9,7 @@ use cw_xcall::{
     state::{CwCallService, EXECUTE_CALL_ID},
     types::{call_request::CallRequest, request::CSMessageRequest},
 };
-use cw_xcall_lib::network_address::NetworkAddress;
+use cw_xcall_lib::{network_address::NetworkAddress, message::msg_type::MessageType};
 mod account;
 mod setup;
 use crate::account::alice;
@@ -42,7 +42,7 @@ fn test_execute_call_with_wrong_data() {
         NetworkAddress::new("nid", "mockaddress"),
         Addr::unchecked("88bd05442686be0a5df7da33b6f1089ebfea3769b19dbb2477fe0cd6e0f123t7"),
         123,
-        false,
+        MessageType::BasicMessage,
         keccak256(&[104, 106, 108, 108, 111]).to_vec(),
         vec![],
     );
@@ -67,7 +67,7 @@ fn test_execute_call_having_request_id_without_rollback() {
         NetworkAddress::new("nid", "mockaddress"),
         Addr::unchecked("88bd05442686be0a5df7da33b6f1089ebfea3769b19dbb2477fe0cd6e0f123t7"),
         123,
-        false,
+        MessageType::BasicMessage,
         keccak256(&data).to_vec(),
         vec![],
     );
@@ -119,7 +119,7 @@ fn test_successful_reply_message() {
         NetworkAddress::new("nid", "mockaddress"),
         Addr::unchecked("88bd05442686be0a5df7da33b6f1089ebfea3769b19dbb2477fe0cd6e0f123t7"),
         123,
-        false,
+        MessageType::BasicMessage,
         vec![],
         vec![],
     );
@@ -154,7 +154,7 @@ fn test_failed_reply_message() {
         NetworkAddress::new("nid", "mockaddress"),
         Addr::unchecked("88bd05442686be0a5df7da33b6f1089ebfea3769b19dbb2477fe0cd6e0f123t7"),
         123,
-        false,
+        MessageType::BasicMessage,
         vec![],
         vec![],
     );

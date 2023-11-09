@@ -99,7 +99,7 @@ impl<'a> CwCallService<'a> {
         };
         let mut submsgs: Vec<SubMsg> = vec![];
         let sn: i64 = -(request.sequence_no() as i64);
-        if request.rollback() {
+        if request.need_response() {
             let message: CSMessage = response.into();
             let mut reply_address = request.protocols().clone();
             let from = request.from().clone();

@@ -1,7 +1,7 @@
 use super::*;
 use common::rlp::Nullable;
 use cosmwasm_std::Addr;
-use cw_xcall_lib::network_address::NetworkAddress;
+use cw_xcall_lib::{message::msg_type::MessageType, network_address::NetworkAddress};
 use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 
@@ -11,7 +11,7 @@ pub struct CSMessageRequest {
     to: Addr,
     sequence_no: u128,
     protocols: Vec<String>,
-    rollback: bool,
+    msg_type: MessageType,
     data: Nullable<Vec<u8>>,
 }
 
@@ -20,7 +20,7 @@ impl CSMessageRequest {
         from: NetworkAddress,
         to: Addr,
         sequence_no: u128,
-        rollback: bool,
+        msg_type: MessageType,
         data: Vec<u8>,
         protocols: Vec<String>,
     ) -> Self {
@@ -32,7 +32,7 @@ impl CSMessageRequest {
             from,
             to,
             sequence_no,
-            rollback,
+            msg_type,
             data: Nullable::new(data_bytes),
             protocols,
         }
@@ -50,8 +50,12 @@ impl CSMessageRequest {
         self.sequence_no
     }
 
-    pub fn rollback(&self) -> bool {
-        self.rollback
+    pub fn msg_type(&self) -> MessageType {
+        return self.msg_type.clone();
+    }
+
+    pub fn need_response(&self) -> bool {
+        return self.msg_type == MessageType::MessageWithRollback;
     }
 
     pub fn data(&self) -> Result<&[u8], ContractError> {
@@ -74,7 +78,7 @@ impl Encodable for CSMessageRequest {
         stream.append(&self.from.to_string());
         stream.append(&self.to.to_string());
         stream.append(&self.sequence_no);
-        stream.append(&self.rollback);
+        stream.append(&self.msg_type);
         stream.append(&self.data);
         stream.begin_list(self.protocols.len());
         for protocol in self.protocols.iter() {
@@ -94,7 +98,7 @@ impl Decodable for CSMessageRequest {
                 .map_err(|_e| rlp::DecoderError::RlpInvalidLength)?,
             to: Addr::unchecked(to_str),
             sequence_no: rlp.val_at(2)?,
-            rollback: rlp.val_at(3)?,
+            msg_type: rlp.val_at(3)?,
             data: rlp.val_at(4)?,
             protocols: list,
         })
@@ -170,7 +174,7 @@ mod tests {
             NetworkAddress::from_str("0x1.ETH/0xa").unwrap(),
             Addr::unchecked("cx0000000000000000000000000000000000000102"),
             21,
-            false,
+            1,
             data.clone(),
             vec![],
         );
@@ -182,7 +186,7 @@ mod tests {
             NetworkAddress::from_str("0x1.ETH/0xa").unwrap(),
             Addr::unchecked("cx0000000000000000000000000000000000000102"),
             21,
-            false,
+            1,
             data.clone(),
             vec!["abc".to_string(), "cde".to_string(), "efg".to_string()],
         );
@@ -194,7 +198,7 @@ mod tests {
             NetworkAddress::from_str("0x1.ETH/0xa").unwrap(),
             Addr::unchecked("cx0000000000000000000000000000000000000102"),
             21,
-            true,
+            1,
             data,
             vec!["abc".to_string(), "cde".to_string(), "efg".to_string()],
         );

@@ -64,7 +64,7 @@ impl<'a> CwCallService<'a> {
             request.from().clone(),
             request.to().clone(),
             request.sequence_no(),
-            request.rollback(),
+            request.msg_type(),
             keccak256(request.data().unwrap()).to_vec(),
             request.protocols().clone(),
         );
