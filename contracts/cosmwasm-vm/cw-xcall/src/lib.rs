@@ -28,7 +28,7 @@ use crate::{
         call_request::CallRequest,
         message::{CSMessage, CallServiceMessageType},
         request::CSMessageRequest,
-        response::{CSMessageResponse, CallServiceResponseType},
+        response::{CSMessageResult, CallServiceResponseType},
         storage_keys::StorageKey,
     },
 };

@@ -62,8 +62,8 @@ impl From<CSMessageRequest> for CSMessage {
     }
 }
 
-impl From<CSMessageResponse> for CSMessage {
-    fn from(value: CSMessageResponse) -> Self {
+impl From<CSMessageResult> for CSMessage {
+    fn from(value: CSMessageResult) -> Self {
         Self {
             message_type: CallServiceMessageType::CallServiceResponse,
             payload: rlp::encode(&value).to_vec(),

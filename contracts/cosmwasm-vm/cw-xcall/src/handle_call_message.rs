@@ -90,7 +90,7 @@ impl<'a> CwCallService<'a> {
         info: MessageInfo,
         data: &[u8],
     ) -> Result<Response, ContractError> {
-        let message: CSMessageResponse = rlp::decode(data).unwrap();
+        let message: CSMessageResult = rlp::decode(data).unwrap();
 
         let response_sequence_no = message.sequence_no();
 
@@ -190,7 +190,7 @@ impl<'a> CwCallService<'a> {
         info: MessageInfo,
         sn: u128,
     ) -> Result<Response, ContractError> {
-        let msg = CSMessageResponse::new(sn, CallServiceResponseType::CallServiceResponseFailure);
+        let msg = CSMessageResult::new(sn, CallServiceResponseType::CallServiceResponseFailure);
         self.handle_response(deps, info, &rlp::encode(&msg))
     }
 }

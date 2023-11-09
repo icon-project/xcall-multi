@@ -7,7 +7,7 @@ use crate::{
     state::{CwCallService, EXECUTE_CALL_ID},
     types::{
         message::CSMessage,
-        response::{CSMessageResponse, CallServiceResponseType},
+        response::{CSMessageResult, CallServiceResponseType},
     },
 };
 
@@ -82,7 +82,7 @@ impl<'a> CwCallService<'a> {
             cosmwasm_std::SubMsgResult::Ok(_res) => {
                 let code = CallServiceResponseType::CallServiceResponseSuccess.into();
 
-                let message_response = CSMessageResponse::new(
+                let message_response = CSMessageResult::new(
                     request.sequence_no(),
                     CallServiceResponseType::CallServiceResponseSuccess,
                 );
@@ -92,7 +92,7 @@ impl<'a> CwCallService<'a> {
             cosmwasm_std::SubMsgResult::Err(err) => {
                 let code = CallServiceResponseType::CallServiceResponseFailure;
                 let error_message = format!("CallService Reverted : {err}");
-                let message_response = CSMessageResponse::new(request.sequence_no(), code.clone());
+                let message_response = CSMessageResult::new(request.sequence_no(), code.clone());
                 let event = event_call_executed(req_id, code.into(), &error_message);
                 (message_response, event)
             }

@@ -13,4 +13,4 @@ use common::rlp::{Decodable, Encodable};
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{to_binary, Binary};
 use request::CSMessageRequest;
-use response::CSMessageResponse;
+use response::CSMessageResult;

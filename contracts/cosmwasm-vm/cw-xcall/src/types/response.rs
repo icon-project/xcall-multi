@@ -25,12 +25,12 @@ impl TryFrom<u8> for CallServiceResponseType {
 }
 
 #[cw_serde]
-pub struct CSMessageResponse {
+pub struct CSMessageResult {
     sequence_no: u128,
     response_code: CallServiceResponseType,
 }
 
-impl CSMessageResponse {
+impl CSMessageResult {
     pub fn new(sequence_no: u128, response_code: CallServiceResponseType) -> Self {
         Self {
             sequence_no,
@@ -52,7 +52,7 @@ impl CSMessageResponse {
     }
 }
 
-impl Encodable for CSMessageResponse {
+impl Encodable for CSMessageResult {
     fn rlp_append(&self, stream: &mut rlp::RlpStream) {
         let code: u8 = self.response_code.clone().into();
 
@@ -63,7 +63,7 @@ impl Encodable for CSMessageResponse {
     }
 }
 
-impl Decodable for CSMessageResponse {
+impl Decodable for CSMessageResult {
     fn decode(rlp: &rlp::Rlp) -> Result<Self, rlp::DecoderError> {
         let code: u8 = rlp.val_at(1)?;
 
@@ -74,7 +74,7 @@ impl Decodable for CSMessageResponse {
     }
 }
 
-impl TryFrom<&Vec<u8>> for CSMessageResponse {
+impl TryFrom<&Vec<u8>> for CSMessageResult {
     type Error = ContractError;
     fn try_from(value: &Vec<u8>) -> Result<Self, Self::Error> {
         let rlp = rlp::Rlp::new(value as &[u8]);
@@ -84,7 +84,7 @@ impl TryFrom<&Vec<u8>> for CSMessageResponse {
     }
 }
 
-impl TryFrom<&[u8]> for CSMessageResponse {
+impl TryFrom<&[u8]> for CSMessageResult {
     type Error = ContractError;
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
         let rlp = rlp::Rlp::new(value);
@@ -112,18 +112,18 @@ mod tests {
 
     use common::rlp;
 
-    use super::{CSMessageResponse, CallServiceResponseType};
+    use super::{CSMessageResult, CallServiceResponseType};
 
     #[test]
     fn test_cs_message_response_encoding() {
         let cs_response =
-            CSMessageResponse::new(1, CallServiceResponseType::CallServiceResponseSuccess);
+        CSMessageResult::new(1, CallServiceResponseType::CallServiceResponseSuccess);
         let encoded = rlp::encode(&cs_response);
 
         assert_eq!("c20101", hex::encode(encoded));
 
         let cs_response =
-            CSMessageResponse::new(2, CallServiceResponseType::CallServiceResponseFailure);
+        CSMessageResult::new(2, CallServiceResponseType::CallServiceResponseFailure);
         let encoded = rlp::encode(&cs_response);
 
         assert_eq!("c20200", hex::encode(encoded));
