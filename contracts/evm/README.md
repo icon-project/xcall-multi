@@ -1,4 +1,4 @@
-## Foundry
+## Solidity XCall
 
 **Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
 
@@ -48,16 +48,35 @@ $ anvil
 ### Deploy
 
 ```shell
-export PRIVATE_KEY=<your-private-key>
-
-$ forge script script/CallService.s.sol:CallServiceScript --rpc-url <your_rpc_url> --private-key <your_private_key>
-
-For Example: (deploying the contract on localnet) 
-$ forge script script/CallService.s.sol:CallServiceScript --fork-url http://localhost:8545 \
---private-key $PRIVATE_KEY --broadcast
-
+./deploy_script.sh --contract <contract> --<action> --env <environment> --chain <chain1> <chain2> ...
 ```
 
+Replace the placeholders with your specific values:
+
+- `<contract>`: Contract to deploy or upgrade
+- `<action>`: Choose either "--deploy" to deploy contracts or "--upgrade" to upgrade existing contracts.
+- `<environment>`: Select the deployment environment ("mainnet," "testnet," or "local").
+- `<chain1>`, `<chain2>`, ...: Specify one or more chains for deployment. Use "all" to deploy to all valid chains for the environment.
+
+### Valid Options
+
+- *Actions*: "deploy", "upgrade"
+- *Environments*: "mainnet", "testnet", "local"
+- *Contract Types*: "callservice"
+
+### Examples
+
+#### Deploy the "callservice" contract to mainnet on Ethereum and Binance chains:
+
+```shell
+./deploy_script.sh --contract callservice --deploy --env mainnet --chain ethereum binance
+```
+
+#### Upgrade the "callservice" contract to testnet on all available chains:
+
+```shell
+./deploy_script.sh --contract callservice --upgrade --env testnet --chain all
+```
 
 ### Cast
 Set the CONTRACT_ADDRESS variable in your terminal:
