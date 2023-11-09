@@ -96,7 +96,7 @@ contract DeployCallService is Script {
         string memory chain
     ) external broadcast(deployerPrivateKey) {
         proxyXcallAddress = vm.envAddress(
-            capitalizeString(chain).concat("_PROXY")
+            capitalizeString(chain).concat("_XCALL")
         );
         CallService xcall = new CallService();
         wrappedProxy = CallService(proxyXcallAddress);
