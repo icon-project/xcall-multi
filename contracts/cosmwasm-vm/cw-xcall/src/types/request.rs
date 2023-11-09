@@ -78,7 +78,7 @@ impl Encodable for CSMessageRequest {
         stream.append(&self.from.to_string());
         stream.append(&self.to.to_string());
         stream.append(&self.sequence_no);
-        stream.append(&self.msg_type);
+        stream.append(&self.msg_type.as_int());
         stream.append(&self.data);
         stream.begin_list(self.protocols.len());
         for protocol in self.protocols.iter() {
@@ -93,12 +93,13 @@ impl Decodable for CSMessageRequest {
         let list: Vec<String> = rlp_protocols.as_list()?;
         let str_from: String = rlp.val_at(0)?;
         let to_str: String = rlp.val_at(1)?;
+        let msg_type_int:u8=rlp.val_at(3)?;
         Ok(Self {
             from: NetworkAddress::from_str(&str_from)
                 .map_err(|_e| rlp::DecoderError::RlpInvalidLength)?,
             to: Addr::unchecked(to_str),
             sequence_no: rlp.val_at(2)?,
-            msg_type: rlp.val_at(3)?,
+            msg_type: MessageType::from_int(msg_type_int),
             data: rlp.val_at(4)?,
             protocols: list,
         })
@@ -166,6 +167,7 @@ mod tests {
     use cw_xcall_lib::network_address::NetworkAddress;
 
     use super::CSMessageRequest;
+    use cw_xcall_lib::message::msg_type::MessageType;
 
     #[test]
     fn test_csmessage_request_encoding() {
@@ -174,7 +176,7 @@ mod tests {
             NetworkAddress::from_str("0x1.ETH/0xa").unwrap(),
             Addr::unchecked("cx0000000000000000000000000000000000000102"),
             21,
-            1,
+            MessageType::BasicMessage,
             data.clone(),
             vec![],
         );
@@ -186,7 +188,7 @@ mod tests {
             NetworkAddress::from_str("0x1.ETH/0xa").unwrap(),
             Addr::unchecked("cx0000000000000000000000000000000000000102"),
             21,
-            1,
+            MessageType::BasicMessage,
             data.clone(),
             vec!["abc".to_string(), "cde".to_string(), "efg".to_string()],
         );
@@ -198,7 +200,7 @@ mod tests {
             NetworkAddress::from_str("0x1.ETH/0xa").unwrap(),
             Addr::unchecked("cx0000000000000000000000000000000000000102"),
             21,
-            1,
+            MessageType::BasicMessage,
             data,
             vec!["abc".to_string(), "cde".to_string(), "efg".to_string()],
         );
