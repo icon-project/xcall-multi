@@ -20,6 +20,10 @@ contract LayerZeroAdapter is ILayerZeroAdapter, Initializable, ILayerZeroReceive
     mapping(string => uint16) private chainIds;
     mapping(uint16 => string) private networkIds;
     mapping(string => bytes) private adapterParams;
+
+    mapping(string => uint256) private gasLimits;
+    mapping(string => uint256) private responseFees;
+
     mapping(string => bytes) private remoteEndpoint;
     address private layerZeroEndpoint;
     address private xCall;
@@ -54,22 +58,21 @@ contract LayerZeroAdapter is ILayerZeroAdapter, Initializable, ILayerZeroReceive
      * @param chainId The chain ID of the destination chain.
      * @param endpoint The endpoint or address of the destination chain.
      * @param gasLimit The gas limit for the connection on the destination chain.
+     * @param responseFee The fee required for a response from the destination chain, to be airdropped to the specified `endpoint`.
      */
     function configureConnection(
         string memory networkId,
         uint16 chainId,
         bytes memory endpoint,
-        uint256 gasLimit
+        uint256 gasLimit,
+        uint256 responseFee
     ) external override onlyAdmin {
         require(bytes(networkIds[chainId]).length == 0, "Connection already configured");
         networkIds[chainId] = networkId;
         chainIds[networkId] = chainId;
-        remoteEndpoint[networkId] = abi.encodePacked(endpoint, address(this));
-        if (gasLimit > 0) {
-            adapterParams[networkId] = abi.encodePacked(uint16(1), gasLimit);
-        } else {
-            adapterParams[networkId] = bytes("");
-        }
+        remoteEndpoint[networkId] = endpoint;
+        gasLimits[networkId] = gasLimit;
+        responseFees[networkId] = responseFee;
     }
 
     /**
@@ -81,11 +84,19 @@ contract LayerZeroAdapter is ILayerZeroAdapter, Initializable, ILayerZeroReceive
         string calldata networkId,
         uint256 gasLimit
     ) external override onlyAdmin {
-        if (gasLimit > 0) {
-            adapterParams[networkId] = abi.encodePacked(uint16(1), gasLimit);
-        } else {
-            adapterParams[networkId] = bytes("");
-        }
+        gasLimits[networkId] = gasLimit;
+    }
+
+    /**
+* @notice set or update response fee to a source chain.
+     * @param networkId The network ID of the destination chain.
+     * @param responseFee The fee required for a response from the destination chain, to be airdropped to the specified `endpoint`.
+     */
+    function setResponseFee(
+        string calldata networkId,
+        uint256 responseFee
+    ) external override onlyAdmin {
+        responseFees[networkId] = responseFee;
     }
 
     /**
@@ -95,7 +106,13 @@ contract LayerZeroAdapter is ILayerZeroAdapter, Initializable, ILayerZeroReceive
      * @return _fee The fee for sending a message to the given destination network.
      */
     function getFee(string memory _to, bool _response) external view override returns (uint256 _fee) {
-        (_fee,) = ILayerZeroEndpoint(layerZeroEndpoint).estimateFees(chainIds[_to], address(this), EMPTY_BYTES, false, adapterParams[_to]);
+        bytes memory params;
+        if (_response) {
+            params = abi.encodePacked(uint16(2), gasLimits[_to], responseFees[_to], remoteEndpoint[_to]);
+        } else {
+            params = abi.encodePacked(uint16(1), gasLimits[_to]);
+        }
+        (_fee,) = ILayerZeroEndpoint(layerZeroEndpoint).estimateFees(chainIds[_to], address(this), EMPTY_BYTES, false, params);
     }
 
     /**
@@ -112,8 +129,7 @@ contract LayerZeroAdapter is ILayerZeroAdapter, Initializable, ILayerZeroReceive
         bytes memory _msg
     ) external override payable {
         require(msg.sender == xCall, "Only xCall can send messages");
-        uint256 fee;
-
+        uint256 fee = msg.value;
         if (_sn < 0) {
             fee = this.getFee(_to, false);
             if (address(this).balance < fee) {
@@ -122,18 +138,22 @@ contract LayerZeroAdapter is ILayerZeroAdapter, Initializable, ILayerZeroReceive
                 emit ResponseOnHold(sn);
                 return;
             }
+        }
+        bytes memory params;
+        if (_sn > 0) {
+            params = abi.encodePacked(uint16(2), gasLimits[_to], responseFees[_to], remoteEndpoint[_to]);
         } else {
-            fee = msg.value;
+            params = abi.encodePacked(uint16(1), gasLimits[_to]);
         }
 
 
         ILayerZeroEndpoint(layerZeroEndpoint).send{value: fee}(
             chainIds[_to],
-            remoteEndpoint[_to],
+            abi.encodePacked(remoteEndpoint[_to], address(this)),
             abi.encodePacked(_msg),
             payable(address(this)),
             address(0x0),
-            adapterParams[_to]
+            params
         );
     }
 
@@ -152,7 +172,7 @@ contract LayerZeroAdapter is ILayerZeroAdapter, Initializable, ILayerZeroReceive
     ) public override {
         require(msg.sender == layerZeroEndpoint, "Invalid endpoint caller");
         string memory nid = networkIds[sourceChain];
-        require(keccak256(_srcAddress) == keccak256(abi.encodePacked(remoteEndpoint[nid])), "Source address mismatched");
+        require(keccak256(_srcAddress) == keccak256(abi.encodePacked(remoteEndpoint[nid], address(this))), "Source address mismatched");
         ICallService(xCall).handleMessage(nid, payload);
     }
 
@@ -166,13 +186,15 @@ contract LayerZeroAdapter is ILayerZeroAdapter, Initializable, ILayerZeroReceive
         delete pendingResponses[_sn];
         uint256 fee = msg.value;
 
+        bytes memory params = abi.encodePacked(uint16(1), gasLimits[resp.targetNetwork]);
+
         ILayerZeroEndpoint(layerZeroEndpoint).send{value: fee}(
             chainIds[resp.targetNetwork],
-            remoteEndpoint[resp.targetNetwork],
+            abi.encodePacked(remoteEndpoint[resp.targetNetwork], address(this)),
             abi.encodePacked(resp.msg),
             payable(address(this)),
             address(0x0),
-            adapterParams[resp.targetNetwork]
+            params
         );
     }
 

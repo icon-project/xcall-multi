@@ -100,7 +100,8 @@ contract LayerZeroAdapterTest is Test {
             nidTarget,
             DestinationChainID,
             abi.encodePacked(address(adapterTarget)),
-            uint256(900_000)
+            uint256(900_000),
+            uint256(1e10)
         );
 
         dappTarget.addConnection(nidSource, adapterTargetAdr, adapterSourceAdr);
@@ -109,7 +110,8 @@ contract LayerZeroAdapterTest is Test {
             nidSource,
             SourceChainID,
             abi.encodePacked(address(adapterSource)),
-            uint256(900_000)
+            uint256(900_000),
+            uint256(1e10)
         );
 
         sourceEndpoint.setDestLzEndpoint(address(adapterTarget), address(destinationEndpoint));
@@ -145,7 +147,8 @@ contract LayerZeroAdapterTest is Test {
             nidTarget,
             DestinationChainID,
             abi.encodePacked(address(adapterTarget)),
-            uint256(900_000)
+            uint256(900_000),
+            uint256(1e16)
         );
 
         vm.prank(admin);
@@ -155,7 +158,8 @@ contract LayerZeroAdapterTest is Test {
             nidTarget,
             DestinationChainID,
             abi.encodePacked(address(adapterTarget)),
-            uint256(900_000)
+            uint256(900_000),
+            uint256(1e16)
         );
 
     }
@@ -187,7 +191,7 @@ contract LayerZeroAdapterTest is Test {
 
         string memory to = NetworkAddress.networkAddress(nidTarget, ParseAddress.toString(address(dappTarget)));
 
-        uint256 cost = adapterSource.getFee(nidTarget, false);
+        uint256 cost = adapterSource.getFee(nidTarget, true);
 
         bytes memory data = bytes("rollback");
         bytes memory rollback = bytes("rollback-data");
@@ -200,6 +204,7 @@ contract LayerZeroAdapterTest is Test {
         emit ResponseOnHold(1);
         xCallTarget.executeCall(1, data);
 
+        cost = adapterTarget.getFee(nidSource, true);
         adapterTarget.triggerResponse{value: cost}(1);
 
         vm.expectEmit();
