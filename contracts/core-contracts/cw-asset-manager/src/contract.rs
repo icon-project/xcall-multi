@@ -121,6 +121,19 @@ mod exec {
 
     use super::*;
 
+    fn query_network_address(
+        deps: &DepsMut,
+        x_call_addr: &Addr,
+    ) -> Result<NetworkAddress, ContractError> {
+        let query_msg = GetNetworkAddress {};
+        let query = QueryRequest::Wasm(WasmQuery::Smart {
+            contract_addr: x_call_addr.to_string(),
+            msg: to_binary(&query_msg).map_err(ContractError::Std)?,
+        });
+
+        deps.querier.query(&query).map_err(ContractError::Std)
+    }
+
     pub fn setup(
         deps: DepsMut,
         source_xcall: String,
@@ -132,14 +145,7 @@ mod exec {
             .addr_validate(&source_xcall)
             .map_err(ContractError::Std)?;
 
-        // query network address of xcall
-        let query_msg = GetNetworkAddress {};
-        let query = QueryRequest::Wasm(WasmQuery::Smart {
-            contract_addr: x_call_addr.to_string(),
-            msg: to_binary(&query_msg).map_err(ContractError::Std)?,
-        });
-
-        let xcall_network_address: NetworkAddress = deps.querier.query(&query)?;
+        let xcall_network_address: NetworkAddress = query_network_address(&deps, &x_call_addr)?;
 
         if xcall_network_address.to_string().is_empty() {
             return Err(ContractError::XAddressNotFound);
@@ -298,8 +304,7 @@ mod exec {
         from: String,
         data: Vec<u8>,
     ) -> Result<Response, ContractError> {
-        let xcall = SOURCE_XCALL.load(deps.storage)?;
-        let x_call_addr = deps.api.addr_validate(xcall.as_ref())?;
+        let x_call_addr = SOURCE_XCALL.load(deps.storage)?;
         let x_network = X_CALL_NETWORK_ADDRESS.load(deps.storage)?;
 
         if info.sender != x_call_addr {
