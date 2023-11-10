@@ -10,7 +10,7 @@ pub mod call_message_rollback;
 pub mod envelope;
 pub mod msg_trait;
 pub mod msg_type;
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum AnyMessage {
     CallMessage(CallMessage),
     CallMessageWithRollback(CallMessageWithRollback),

@@ -4,7 +4,7 @@ use super::{
     call_message::CallMessage, call_message_rollback::CallMessageWithRollback, msg_trait::IMessage,
     msg_type::MessageType, AnyMessage,
 };
-
+#[derive(Clone, Debug, PartialEq)]
 pub struct Envelope {
     pub message: AnyMessage,
     pub sources: Vec<String>,
@@ -30,6 +30,7 @@ impl Encodable for Envelope {
         for source in self.sources.iter() {
             stream.append(source);
         }
+        stream.begin_list(self.destinations.len());
         for dest in self.destinations.iter() {
             stream.append(dest);
         }
@@ -66,5 +67,51 @@ pub fn decode_message(msg_type: MessageType, bytes: Vec<u8>) -> Result<AnyMessag
             let msg: CallMessageWithRollback = rlp::decode(&bytes)?;
             Ok(AnyMessage::CallMessageWithRollback(msg))
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use common::rlp::RlpStream;
+
+    #[test]
+    fn test_encoding_decoding_envelope_call_message() {
+        // Create a sample Envelope
+        let message = AnyMessage::CallMessage(CallMessage {
+            msg_type: MessageType::BasicMessage,
+            data: vec![1, 2, 3],
+        });
+        let sources = vec!["source1".to_string(), "source2".to_string()];
+        let destinations = vec!["dest1".to_string(), "dest2".to_string()];
+        let envelope = Envelope::new(message.clone(), sources.clone(), destinations.clone());
+        let encoded_data = rlp::encode(&envelope).to_vec();
+
+        assert_eq!(
+            "e60186c50183010203d087736f757263653187736f7572636532cc856465737431856465737432",
+            hex::encode(&encoded_data)
+        );
+        let decoded: Envelope = rlp::decode(&encoded_data).unwrap();
+
+        assert_eq!(envelope, decoded);
+    }
+
+    #[test]
+    fn test_encoding_decoding_envelope_call_message_rollback() {
+        // Create a sample Envelope
+        let message = AnyMessage::CallMessageWithRollback(CallMessageWithRollback {
+            msg_type: MessageType::MessageWithRollback,
+            data: vec![1, 2, 3],
+            rollback: vec![1, 2, 3],
+        });
+        let sources = vec!["source1".to_string(), "source2".to_string()];
+        let destinations = vec!["dest1".to_string(), "dest2".to_string()];
+        let envelope = Envelope::new(message.clone(), sources.clone(), destinations.clone());
+        let encoded_data = rlp::encode(&envelope).to_vec();
+
+        assert_eq!("ea028ac5028301020383010203d087736f757263653187736f7572636532cc856465737431856465737432",hex::encode(&encoded_data));
+        let decoded: Envelope = rlp::decode(&encoded_data).unwrap();
+
+        assert_eq!(envelope, decoded);
     }
 }
