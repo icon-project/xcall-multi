@@ -73,7 +73,6 @@ pub fn decode_message(msg_type: MessageType, bytes: Vec<u8>) -> Result<AnyMessag
 #[cfg(test)]
 mod tests {
     use super::*;
-    use common::rlp::RlpStream;
 
     #[test]
     fn test_encoding_decoding_envelope_call_message() {
@@ -84,7 +83,7 @@ mod tests {
         });
         let sources = vec!["source1".to_string(), "source2".to_string()];
         let destinations = vec!["dest1".to_string(), "dest2".to_string()];
-        let envelope = Envelope::new(message.clone(), sources.clone(), destinations.clone());
+        let envelope = Envelope::new(message, sources, destinations);
         let encoded_data = rlp::encode(&envelope).to_vec();
 
         assert_eq!(
@@ -106,7 +105,7 @@ mod tests {
         });
         let sources = vec!["source1".to_string(), "source2".to_string()];
         let destinations = vec!["dest1".to_string(), "dest2".to_string()];
-        let envelope = Envelope::new(message.clone(), sources.clone(), destinations.clone());
+        let envelope = Envelope::new(message, sources, destinations);
         let encoded_data = rlp::encode(&envelope).to_vec();
 
         assert_eq!("ea028ac5028301020383010203d087736f757263653187736f7572636532cc856465737431856465737432",hex::encode(&encoded_data));
