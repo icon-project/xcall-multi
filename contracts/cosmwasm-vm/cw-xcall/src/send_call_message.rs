@@ -48,7 +48,7 @@ impl<'a> CwCallService<'a> {
         match &envelope.message {
             AnyMessage::CallMessage(_m) => Ok(()),
             AnyMessage::CallMessageWithRollback(m) => {
-                if is_contract(deps.querier, caller) {
+                if !is_contract(deps.querier, caller) {
                     return Err(ContractError::RollbackNotPossible);
                 }
                 self.ensure_rollback_length(&m.rollback().unwrap())?;
