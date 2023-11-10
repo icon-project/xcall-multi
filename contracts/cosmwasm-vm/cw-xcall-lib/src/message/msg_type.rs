@@ -1,18 +1,16 @@
 use serde::Serialize;
 
-#[derive(Clone,Debug, Serialize, serde::Deserialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Serialize, serde::Deserialize, PartialEq, Eq)]
 pub enum MessageType {
     BasicMessage = 1,
     MessageWithRollback = 2,
 }
 
-
-
-impl Into<u8> for MessageType {
-    fn into(self) -> u8 {
-        match self {
-            Self::BasicMessage => 1,
-            Self::MessageWithRollback => 2,
+impl From<MessageType> for u8 {
+    fn from(val: MessageType) -> Self {
+        match val {
+            MessageType::BasicMessage => 1,
+            MessageType::MessageWithRollback => 2,
         }
     }
 }
@@ -28,12 +26,10 @@ impl From<u8> for MessageType {
 }
 
 impl MessageType {
-    pub fn as_int(&self)->u8 {
-        let int= self.clone().into();
-        int
+    pub fn as_int(&self) -> u8 {
+        self.clone().into()
     }
-    pub fn from_int(val:u8)->Self {
-        let msg=MessageType::from(val);
-        msg
+    pub fn from_int(val: u8) -> Self {
+        MessageType::from(val)
     }
 }

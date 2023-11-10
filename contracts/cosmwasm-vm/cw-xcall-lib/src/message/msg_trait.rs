@@ -1,4 +1,4 @@
-use common::rlp::{self, Decodable, DecoderError, Encodable};
+use common::rlp::DecoderError;
 
 use super::msg_type::MessageType;
 

@@ -1,4 +1,4 @@
-use common::rlp::{self, Decodable, DecoderError, Encodable};
+use common::rlp::DecoderError;
 
 use self::{
     call_message::CallMessage, call_message_rollback::CallMessageWithRollback, msg_trait::IMessage,

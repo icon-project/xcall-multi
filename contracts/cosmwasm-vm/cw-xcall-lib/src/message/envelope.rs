@@ -15,8 +15,8 @@ impl Envelope {
     pub fn new(msg: AnyMessage, sources: Vec<String>, destinations: Vec<String>) -> Self {
         Self {
             message: msg,
-            sources: sources,
-            destinations: destinations,
+            sources,
+            destinations,
         }
     }
 }

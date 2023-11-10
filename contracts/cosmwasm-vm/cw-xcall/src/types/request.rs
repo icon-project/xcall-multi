@@ -51,11 +51,11 @@ impl CSMessageRequest {
     }
 
     pub fn msg_type(&self) -> MessageType {
-        return self.msg_type.clone();
+        self.msg_type.clone()
     }
 
     pub fn need_response(&self) -> bool {
-        return self.msg_type == MessageType::MessageWithRollback;
+        self.msg_type == MessageType::MessageWithRollback
     }
 
     pub fn data(&self) -> Result<&[u8], ContractError> {
@@ -93,7 +93,7 @@ impl Decodable for CSMessageRequest {
         let list: Vec<String> = rlp_protocols.as_list()?;
         let str_from: String = rlp.val_at(0)?;
         let to_str: String = rlp.val_at(1)?;
-        let msg_type_int:u8=rlp.val_at(3)?;
+        let msg_type_int: u8 = rlp.val_at(3)?;
         Ok(Self {
             from: NetworkAddress::from_str(&str_from)
                 .map_err(|_e| rlp::DecoderError::RlpInvalidLength)?,
@@ -182,8 +182,8 @@ mod tests {
         );
 
         let encoded = rlp::encode(&msg);
-        
-       assert_eq!("f83f8b3078312e4554482f307861aa63783030303030303030303030303030303030303030303030303030303030303030303030303031303215018474657374c0",hex::encode(encoded));
+
+        assert_eq!("f83f8b3078312e4554482f307861aa63783030303030303030303030303030303030303030303030303030303030303030303030303031303215018474657374c0",hex::encode(encoded));
 
         let msg = CSMessageRequest::new(
             NetworkAddress::from_str("0x1.ETH/0xa").unwrap(),
@@ -195,8 +195,8 @@ mod tests {
         );
 
         let encoded = rlp::encode(&msg);
-       
-       assert_eq!("f84b8b3078312e4554482f307861aa63783030303030303030303030303030303030303030303030303030303030303030303030303031303215018474657374cc836162638363646583656667",hex::encode(encoded));
+
+        assert_eq!("f84b8b3078312e4554482f307861aa63783030303030303030303030303030303030303030303030303030303030303030303030303031303215018474657374cc836162638363646583656667",hex::encode(encoded));
 
         let msg = CSMessageRequest::new(
             NetworkAddress::from_str("0x1.ETH/0xa").unwrap(),
@@ -208,7 +208,7 @@ mod tests {
         );
 
         let encoded = rlp::encode(&msg);
-        
+
         assert_eq!("f84b8b3078312e4554482f307861aa63783030303030303030303030303030303030303030303030303030303030303030303030303031303215028474657374cc836162638363646583656667",hex::encode(encoded));
     }
 }

@@ -117,13 +117,13 @@ mod tests {
     #[test]
     fn test_cs_message_response_encoding() {
         let cs_response =
-        CSMessageResult::new(1, CallServiceResponseType::CallServiceResponseSuccess);
+            CSMessageResult::new(1, CallServiceResponseType::CallServiceResponseSuccess);
         let encoded = rlp::encode(&cs_response);
 
         assert_eq!("c20101", hex::encode(encoded));
 
         let cs_response =
-        CSMessageResult::new(2, CallServiceResponseType::CallServiceResponseFailure);
+            CSMessageResult::new(2, CallServiceResponseType::CallServiceResponseFailure);
         let encoded = rlp::encode(&cs_response);
 
         assert_eq!("c20200", hex::encode(encoded));

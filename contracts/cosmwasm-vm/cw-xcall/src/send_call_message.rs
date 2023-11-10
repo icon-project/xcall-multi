@@ -1,4 +1,3 @@
-use common::rlp::{self, Decodable};
 use cosmwasm_std::{coins, BankMsg};
 use cw_xcall_lib::message::call_message::CallMessage;
 use cw_xcall_lib::message::msg_trait::IMessage;
@@ -26,7 +25,7 @@ impl<'a> CwCallService<'a> {
         let msg = if rollback.is_some() {
             AnyMessage::CallMessageWithRollback(CallMessageWithRollback {
                 msg_type: MessageType::MessageWithRollback,
-                data: data,
+                data,
                 rollback: rollback.unwrap(),
             })
         } else {
@@ -36,7 +35,7 @@ impl<'a> CwCallService<'a> {
             })
         };
         let envelope = Envelope::new(msg, sources, destinations);
-        return self.send_call(deps, info, to, envelope);
+        self.send_call(deps, info, to, envelope)
     }
 
     pub fn validate_payload(

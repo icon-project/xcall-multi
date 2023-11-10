@@ -119,18 +119,12 @@ mod tests {
     #[test]
     fn test_csmessage_encoding() {
         let data = hex::decode("7465737431").unwrap();
-        let message = CSMessage::new(
-            super::CSMessageType::CSMessageRequest,
-            data.clone(),
-        );
+        let message = CSMessage::new(super::CSMessageType::CSMessageRequest, data.clone());
         let encoded = rlp::encode(&message);
 
         assert_eq!("c701857465737431", hex::encode(encoded));
 
-        let message = CSMessage::new(
-            crate::types::message::CSMessageType::CSMessageResult,
-            data,
-        );
+        let message = CSMessage::new(crate::types::message::CSMessageType::CSMessageResult, data);
         let encoded = rlp::encode(&message);
         assert_eq!("c702857465737431", hex::encode(encoded));
     }

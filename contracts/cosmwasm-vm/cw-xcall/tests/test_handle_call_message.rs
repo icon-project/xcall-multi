@@ -9,7 +9,7 @@ use cw_xcall::{
     state::{CwCallService, EXECUTE_CALL_ID},
     types::{call_request::CallRequest, request::CSMessageRequest},
 };
-use cw_xcall_lib::{network_address::NetworkAddress, message::msg_type::MessageType};
+use cw_xcall_lib::{message::msg_type::MessageType, network_address::NetworkAddress};
 mod account;
 mod setup;
 use crate::account::alice;
