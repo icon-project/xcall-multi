@@ -14,11 +14,11 @@ impl<'a> CwCallService<'a> {
         let call_service_message: CSMessage = CSMessage::try_from(message)?;
 
         match call_service_message.message_type() {
-            CallServiceMessageType::CallServiceRequest => {
+            CSMessageType::CSMessageRequest => {
                 self.handle_request(deps, info, from_nid, call_service_message.payload())
             }
-            CallServiceMessageType::CallServiceResponse => {
-                self.handle_response(deps, info, call_service_message.payload())
+            CSMessageType::CSMessageResult => {
+                self.handle_result(deps, info, call_service_message.payload())
             }
         }
     }
@@ -84,7 +84,7 @@ impl<'a> CwCallService<'a> {
             .add_event(event))
     }
 
-    pub fn handle_response(
+    pub fn handle_result(
         &self,
         deps: DepsMut,
         info: MessageInfo,
@@ -191,6 +191,6 @@ impl<'a> CwCallService<'a> {
         sn: u128,
     ) -> Result<Response, ContractError> {
         let msg = CSMessageResult::new(sn, CallServiceResponseType::CallServiceResponseFailure);
-        self.handle_response(deps, info, &rlp::encode(&msg))
+        self.handle_result(deps, info, &rlp::encode(&msg))
     }
 }

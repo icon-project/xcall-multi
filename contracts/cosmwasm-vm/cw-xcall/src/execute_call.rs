@@ -7,7 +7,7 @@ use crate::{
     state::{CwCallService, EXECUTE_CALL_ID},
     types::{
         message::CSMessage,
-        response::{CSMessageResult, CallServiceResponseType},
+        result::{CSMessageResult, CallServiceResponseType},
     },
 };
 
