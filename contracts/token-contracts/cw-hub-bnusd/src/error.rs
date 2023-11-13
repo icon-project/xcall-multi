@@ -16,14 +16,14 @@ pub enum ContractError {
     WrongNetwork,
     #[error("Invalid to Address")]
     InvalidToAddress,
+    #[error("Token amount can't be zero")]
+    InvalidAmount,
     #[error("OnlyCallService")]
     OnlyCallService,
     #[error("OnlyHub")]
     OnlyHub,
     #[error("Invalid Method")]
     InvalidMethod,
-    #[error("Invalid Reply")]
-    InvalidReply,
     #[error("Issue in Minting of Token")]
     MintError,
     #[error("Issue in Burning of Token")]

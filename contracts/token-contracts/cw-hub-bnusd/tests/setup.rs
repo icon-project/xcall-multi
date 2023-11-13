@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::str::FromStr;
 
 use cw_common::x_call_msg::XCallMsg as XCallExecuteMsg;
-use cw_hub_bnusd::contract::{execute, instantiate, query, reply};
+use cw_hub_bnusd::contract::{execute, instantiate, query};
 use cw_multi_test::App;
 use cw_multi_test::{Contract, ContractWrapper, Executor};
 use cw_xcall_ibc_connection::{
@@ -103,7 +103,7 @@ pub fn ibc_mock_core_setup() -> Box<dyn Contract<Empty>> {
     )
 }
 pub fn hub_token_contract_setup() -> Box<dyn Contract<Empty>> {
-    Box::new(ContractWrapper::new(execute, instantiate, query).with_reply(reply))
+    Box::new(ContractWrapper::new(execute, instantiate, query))
 }
 
 pub fn x_call_connection_setup() -> Box<dyn Contract<Empty>> {
