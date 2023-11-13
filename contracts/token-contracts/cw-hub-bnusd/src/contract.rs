@@ -1,8 +1,8 @@
 use std::str::FromStr;
 
 use crate::constants::{
-    REPLY_MSG_SUCCESS, TOKEN_DECIMALS, TOKEN_NAME, TOKEN_SYMBOL, TOKEN_TOTAL_SUPPLY,
-    X_CROSS_TRANSFER, X_CROSS_TRANSFER_REVERT,
+    TOKEN_DECIMALS, TOKEN_NAME, TOKEN_SYMBOL, TOKEN_TOTAL_SUPPLY, X_CROSS_TRANSFER,
+    X_CROSS_TRANSFER_REVERT,
 };
 use crate::error::ContractError;
 use crate::state::{
@@ -13,8 +13,8 @@ use cw_common::network_address::IconAddressValidation;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    to_binary, Addr, Binary, Deps, DepsMut, Empty, Env, MessageInfo, QueryRequest, Reply, Response,
-    StdError, StdResult, WasmQuery,
+    to_binary, Addr, Binary, Deps, DepsMut, Empty, Env, MessageInfo, QueryRequest, Response,
+    StdResult, WasmQuery,
 };
 
 use cw2::set_contract_version;
@@ -163,14 +163,6 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn reply(deps: DepsMut, env: Env, msg: Reply) -> Result<Response, ContractError> {
-    match msg.id {
-        REPLY_MSG_SUCCESS => reply_msg_success(deps, env, msg),
-        _ => Err(ContractError::InvalidReply),
-    }
-}
-
-#[cfg_attr(not(feature = "library"), entry_point)]
 pub fn migrate(deps: DepsMut, _env: Env, _msg: MigrateMsg) -> Result<Response, ContractError> {
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)
         .map_err(ContractError::Std)?;
@@ -178,20 +170,11 @@ pub fn migrate(deps: DepsMut, _env: Env, _msg: MigrateMsg) -> Result<Response, C
     Ok(Response::default().add_attribute("migrate", "successful"))
 }
 
-pub fn reply_msg_success(_deps: DepsMut, _env: Env, msg: Reply) -> Result<Response, ContractError> {
-    match msg.result {
-        cosmwasm_std::SubMsgResult::Ok(_) => Ok(Response::default()),
-        cosmwasm_std::SubMsgResult::Err(error) => {
-            Err(StdError::GenericErr { msg: error }).map_err(Into::<ContractError>::into)
-        }
-    }
-}
-
 mod execute {
     use std::str::from_utf8;
 
     use bytes::BytesMut;
-    use cosmwasm_std::{to_binary, Addr, CosmosMsg, SubMsg};
+    use cosmwasm_std::{ensure, to_binary, Addr, CosmosMsg, SubMsg};
     use cw_common::network_address::NetId;
     use cw_ibc_rlp_lib::rlp::{decode, encode};
     use debug_print::debug_println;
@@ -229,9 +212,6 @@ mod execute {
         from: NetworkAddress,
         data: Vec<u8>,
     ) -> Result<Response, ContractError> {
-        if !from.validate_foreign_addresses() {
-            return Err(ContractError::InvalidNetworkAddress);
-        }
         let xcall = X_CALL.load(deps.storage)?;
         if info.sender != xcall {
             return Err(ContractError::OnlyCallService);
@@ -276,6 +256,8 @@ mod execute {
         if !to.validate_foreign_addresses() {
             return Err(ContractError::InvalidNetworkAddress);
         }
+        ensure!(amount > 0, ContractError::InvalidAmount);
+
         let funds = info.funds.clone();
         let nid = NID.load(deps.storage)?;
         let hub_net: NetId = DESTINATION_TOKEN_NET.load(deps.storage)?;
@@ -313,7 +295,7 @@ mod execute {
             funds,
         });
 
-        let sub_message = SubMsg::reply_always(wasm_execute_message, REPLY_MSG_SUCCESS);
+        let sub_message = SubMsg::new(wasm_execute_message);
         debug_println!("this is {:?}", info.sender);
 
         debug_println!("burn from {:?}", sub_message);
@@ -335,9 +317,6 @@ mod execute {
         from: NetworkAddress,
         cross_transfer_data: CrossTransfer,
     ) -> Result<Response, ContractError> {
-        if !cross_transfer_data.from.validate_foreign_addresses() {
-            return Err(ContractError::InvalidNetworkAddress);
-        }
         let nid = NID.load(deps.storage)?;
 
         let hub_net: NetId = DESTINATION_TOKEN_NET.load(deps.storage)?;
@@ -393,6 +372,11 @@ mod execute {
         cross_transfer_revert_data: CrossTransferRevert,
     ) -> Result<Response, ContractError> {
         debug_println!("this is {:?},{:?}", cross_transfer_revert_data, from);
+        let xcall_network_address = X_CALL_NETWORK_ADDRESS.load(deps.storage)?;
+        if from != xcall_network_address {
+            return Err(ContractError::WrongAddress {});
+        }
+
         deps.api
             .addr_validate(cross_transfer_revert_data.from.as_ref())
             .map_err(ContractError::Std)?;

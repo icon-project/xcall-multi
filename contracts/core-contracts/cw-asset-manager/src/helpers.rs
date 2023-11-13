@@ -8,6 +8,7 @@ use crate::error::ContractError;
 #[derive(Debug)]
 pub enum DecodedStruct {
     WithdrawTo(WithdrawTo),
+    WithdrawNativeTo(WithdrawTo),
     DepositRevert(DepositRevert),
 }
 
@@ -43,6 +44,30 @@ pub fn decode_encoded_bytes(data: &[u8]) -> Result<(&str, DecodedStruct), Contra
 
             // Return the decoded struct as an OK variant
             Ok(("WithdrawTo", DecodedStruct::WithdrawTo(withdraw_to)))
+        }
+
+        "WithdrawNativeTo" => {
+            if rlp.item_count()? != 4 {
+                return Err(DecoderError::RlpInvalidLength.into());
+            }
+
+            // Extract the fields
+            let token: String = rlp.val_at(1)?;
+            let user_address: String = rlp.val_at(2)?;
+            let amount: u128 = rlp.val_at(3)?;
+
+            // Create a new WithdrawTo instance
+            let withdraw_to = WithdrawTo {
+                token_address: token,
+                user_address,
+                amount,
+            };
+
+            // Return the decoded struct as an OK variant
+            Ok((
+                "WithdrawNativeTo",
+                DecodedStruct::WithdrawNativeTo(withdraw_to),
+            ))
         }
 
         "DepositRevert" => {

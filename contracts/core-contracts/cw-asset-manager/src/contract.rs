@@ -8,7 +8,7 @@ use cosmwasm_std::{
 use cw2::set_contract_version;
 use cw20::{AllowanceResponse, Cw20ExecuteMsg, Cw20QueryMsg};
 
-use cw_common::asset_manager_msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
+use cw_common::asset_manager_msg::{ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg};
 use cw_common::network_address::IconAddressValidation;
 use cw_common::network_address::NetworkAddress;
 use cw_common::x_call_msg::{GetNetworkAddress, XCallMsg};
@@ -57,7 +57,14 @@ pub fn execute(
         ExecuteMsg::HandleCallMessage { from, data } => {
             exec::handle_xcall_msg(deps, env, info, from, data)
         }
-
+        ExecuteMsg::ConfigureNative {
+            native_token_address,
+            native_token_manager,
+        } => {
+            let owner = OWNER.load(deps.storage).map_err(ContractError::Std)?;
+            ensure_eq!(owner, info.sender, ContractError::OnlyOwner);
+            exec::setup_native_token(deps, native_token_address, native_token_manager)
+        }
         ExecuteMsg::Deposit {
             token_address,
             amount,
@@ -114,6 +121,19 @@ mod exec {
 
     use super::*;
 
+    fn query_network_address(
+        deps: &DepsMut,
+        x_call_addr: &Addr,
+    ) -> Result<NetworkAddress, ContractError> {
+        let query_msg = GetNetworkAddress {};
+        let query = QueryRequest::Wasm(WasmQuery::Smart {
+            contract_addr: x_call_addr.to_string(),
+            msg: to_binary(&query_msg).map_err(ContractError::Std)?,
+        });
+
+        deps.querier.query(&query).map_err(ContractError::Std)
+    }
+
     pub fn setup(
         deps: DepsMut,
         source_xcall: String,
@@ -125,14 +145,7 @@ mod exec {
             .addr_validate(&source_xcall)
             .map_err(ContractError::Std)?;
 
-        // query network address of xcall
-        let query_msg = GetNetworkAddress {};
-        let query = QueryRequest::Wasm(WasmQuery::Smart {
-            contract_addr: x_call_addr.to_string(),
-            msg: to_binary(&query_msg).map_err(ContractError::Std)?,
-        });
-
-        let xcall_network_address: NetworkAddress = deps.querier.query(&query)?;
+        let xcall_network_address: NetworkAddress = query_network_address(&deps, &x_call_addr)?;
 
         if xcall_network_address.to_string().is_empty() {
             return Err(ContractError::XAddressNotFound);
@@ -156,6 +169,25 @@ mod exec {
         NID.save(deps.storage, &nid)?;
         ICON_ASSET_MANAGER.save(deps.storage, &icon_asset_manager)?;
         ICON_NET_ID.save(deps.storage, &icon_asset_manager.nid())?;
+
+        Ok(Response::default())
+    }
+
+    pub fn setup_native_token(
+        deps: DepsMut,
+        native_token_address: String,
+        native_token_manager: String,
+    ) -> Result<Response, ContractError> {
+        let token_addr = deps
+            .api
+            .addr_validate(&native_token_address)
+            .map_err(ContractError::Std)?;
+        let token_manager_addr = deps
+            .api
+            .addr_validate(&native_token_manager)
+            .map_err(ContractError::Std)?;
+        NATIVE_TOKEN_ADDRESS.save(deps.storage, &token_addr)?;
+        NATIVE_TOKEN_MANAGER.save(deps.storage, &token_manager_addr)?;
 
         Ok(Response::default())
     }
@@ -272,8 +304,7 @@ mod exec {
         from: String,
         data: Vec<u8>,
     ) -> Result<Response, ContractError> {
-        let xcall = SOURCE_XCALL.load(deps.storage)?;
-        let x_call_addr = deps.api.addr_validate(xcall.as_ref())?;
+        let x_call_addr = SOURCE_XCALL.load(deps.storage)?;
         let x_network = X_CALL_NETWORK_ADDRESS.load(deps.storage)?;
 
         if info.sender != x_call_addr {
@@ -306,6 +337,19 @@ mod exec {
                 let amount = Uint128::from(data_struct.amount);
 
                 transfer_tokens(deps, account, token_address, amount)?
+            }
+
+            DecodedStruct::WithdrawNativeTo(data_struct) => {
+                let icon_am = ICON_ASSET_MANAGER.load(deps.storage)?;
+                if from != icon_am.to_string() {
+                    return Err(ContractError::OnlyIconAssetManager {});
+                }
+
+                let token_address = data_struct.token_address;
+                let account = data_struct.user_address;
+                let amount = Uint128::from(data_struct.amount);
+
+                swap_to_native(deps, account, token_address, amount)?
             }
         };
 
@@ -341,6 +385,68 @@ mod exec {
         };
         Ok(Response::new().add_submessage(sub_msg))
     }
+
+    #[cfg(feature = "archway")]
+    fn swap_to_native(
+        deps: DepsMut,
+        account: String,
+        token_address: String,
+        amount: Uint128,
+    ) -> Result<Response, ContractError> {
+        use crate::external::{ConfigResponse, Cw20HookMsg, StakingQueryMsg};
+
+        deps.api.addr_validate(&account)?;
+        deps.api.addr_validate(&token_address)?;
+        let query_msg = &StakingQueryMsg::ConfigInfo {};
+        let manager = NATIVE_TOKEN_MANAGER.load(deps.storage)?;
+        let query_resp: ConfigResponse = deps
+            .querier
+            .query_wasm_smart::<ConfigResponse>(manager.clone(), &query_msg)?;
+        let swap_contract = query_resp.swap_contract_addr;
+
+        let hook = &Cw20HookMsg::Swap {
+            belief_price: None,
+            max_spread: None,
+            to: Some(account.clone()),
+        };
+        let transfer_msg = &Cw20ExecuteMsg::Send {
+            contract: swap_contract.clone(),
+            amount,
+            msg: to_binary(hook)?,
+        };
+
+        let execute_msg: CosmosMsg = CosmosMsg::Wasm(WasmMsg::Execute {
+            contract_addr: token_address.clone(),
+            msg: to_binary(transfer_msg)?,
+            funds: vec![],
+        });
+
+        let sub_msg = SubMsg {
+            id: SUCCESS_REPLY_MSG,
+            msg: execute_msg,
+            gas_limit: None,
+            reply_on: cosmwasm_std::ReplyOn::Never,
+        };
+        Ok(Response::new().add_submessage(sub_msg))
+    }
+
+    #[cfg(not(any(feature = "archway")))]
+    fn swap_to_native(
+        deps: DepsMut,
+        account: String,
+        token_address: String,
+        amount: Uint128,
+    ) -> Result<Response, ContractError> {
+        transfer_tokens(deps, account, token_address, amount)
+    }
+}
+
+#[cfg_attr(not(feature = "library"), entry_point)]
+pub fn migrate(deps: DepsMut, _env: Env, _msg: MigrateMsg) -> Result<Response, ContractError> {
+    set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)
+        .map_err(ContractError::Std)?;
+
+    Ok(Response::default().add_attribute("migrate", "successful"))
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
@@ -638,6 +744,76 @@ mod tests {
         //check for error due to unknown xcall handle data
         let result = execute(deps.as_mut(), env, mocked_xcall_info, unknown_msg);
         assert!(result.is_err());
+    }
+
+    #[cfg(feature = "archway")]
+    #[test]
+    fn test_withdraw_native_archway() {
+        use cw_common::xcall_data_types::WithdrawNativeTo;
+
+        use crate::external::ConfigResponse;
+
+        let (mut deps, env, info, _) = test_setup();
+        let mocked_xcall_info = mock_info("xcall", &[]);
+
+        let staking = "staking";
+        let swap = "swap";
+        let token = "token1";
+        let account = "account1";
+
+        deps.querier.update_wasm(|r: &WasmQuery| match r {
+            WasmQuery::Smart {
+                contract_addr: _,
+                msg: _,
+            } => SystemResult::Ok(ContractResult::Ok(
+                to_binary(&ConfigResponse {
+                    admin: "".to_string(),
+                    pause_admin: "".to_string(),
+                    bond_denom: "".to_string(),
+                    liquid_token_addr: "".to_string(),
+                    swap_contract_addr: swap.to_string(),
+                    treasury_contract_addr: "".to_string(),
+                    team_wallet_addr: "".to_string(),
+                    commission_percentage: 1,
+                    team_percentage: 1,
+                    liquidity_percentage: 1,
+                    delegations: vec![],
+                    contract_state: false,
+                })
+                .unwrap(),
+            )),
+            _ => todo!(),
+        });
+
+        let resp = execute(
+            deps.as_mut(),
+            env.clone(),
+            info,
+            ExecuteMsg::ConfigureNative {
+                native_token_address: token.to_string(),
+                native_token_manager: staking.to_string(),
+            },
+        );
+        assert!(resp.is_ok());
+
+        let am_nw = "0x01.icon/cxc2d01de5013778d71d99f985e4e2ff3a9b48a66c";
+        let withdraw_msg = WithdrawNativeTo {
+            token_address: token.to_string(),
+            amount: 1000,
+            user_address: account.to_string(),
+        };
+
+        let exe_msg = ExecuteMsg::HandleCallMessage {
+            from: am_nw.to_string(),
+            data: withdraw_msg.rlp_bytes().to_vec(),
+        };
+        let resp = execute(
+            deps.as_mut(),
+            env.clone(),
+            mocked_xcall_info.clone(),
+            exe_msg,
+        );
+        assert!(resp.is_ok());
     }
 
     #[test]

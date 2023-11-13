@@ -27,6 +27,13 @@ pub struct WithdrawTo {
     pub amount: u128,
 }
 
+#[cw_serde]
+pub struct WithdrawNativeTo {
+    pub token_address: String,
+    pub user_address: String,
+    pub amount: u128,
+}
+
 //for testing
 impl Encodable for Deposit {
     //specify the encoding logic for struct's fields so that rlp_bytes() can alo use
@@ -57,6 +64,17 @@ impl Encodable for DepositRevert {
 impl Encodable for WithdrawTo {
     fn rlp_append(&self, s: &mut RlpStream) {
         let method = "WithdrawTo".to_string();
+        s.begin_list(4)
+            .append(&method)
+            .append(&self.token_address)
+            .append(&self.user_address)
+            .append(&self.amount);
+    }
+}
+
+impl Encodable for WithdrawNativeTo {
+    fn rlp_append(&self, s: &mut RlpStream) {
+        let method = "WithdrawNativeTo".to_string();
         s.begin_list(4)
             .append(&method)
             .append(&self.token_address)

@@ -25,6 +25,11 @@ pub enum ExecuteMsg {
         destination_asset_manager: String,
     },
 
+    ConfigureNative {
+        native_token_address: String,
+        native_token_manager: String,
+    },
+
     HandleCallMessage {
         from: String,
         data: Vec<u8>,
@@ -58,3 +63,6 @@ pub struct NetIdResponse {
     pub x_call_nid: String, //NetID
     pub icon_nid: String,   //NetID
 }
+
+#[cw_serde]
+pub struct MigrateMsg {}

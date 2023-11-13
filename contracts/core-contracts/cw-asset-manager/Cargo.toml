@@ -20,6 +20,8 @@ crate-type = ["cdylib", "rlib"]
 backtraces = ["cosmwasm-std/backtraces"]
 # use library feature to disable all instantiate/execute/query exports
 library = []
+default = ["archway"]
+archway = []
 
 [package.metadata.scripts]
 optimize = """docker run --rm -v "$(pwd)":/code \
