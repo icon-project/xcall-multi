@@ -77,6 +77,8 @@
      @External
      public void sendMessage(String to, String svc, BigInteger sn, byte[] msg) {
          Context.require(Context.getCaller().equals(xCall.get()), "Only xCall can send messages");
+         BigInteger fee = this.getFee(to, false);
+         Context.require(Context.value>fee,"Fee is not Sufficient")
          Message(to, sn, msg);
      }
  
