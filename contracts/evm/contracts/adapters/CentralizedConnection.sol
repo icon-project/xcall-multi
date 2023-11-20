@@ -68,12 +68,12 @@ contract XCallCentralizeConnection is Initializable, IConnection {
     function recvMessage(
         string memory srcNID,
         string memory sn,
-        bytes calldata msg
+        bytes calldata _msg
     ) public payable {
-        bytes32 hash = keccak256(abi.encodePacked(msg, sn));
+        bytes32 hash = keccak256(abi.encodePacked(_msg, sn));
         require(!seenDeliveryVaaHashes[hash], "Message already processed");
         seenDeliveryVaaHashes[hash] = true;
-        ICallService(xCall).handleMessage(srcNID, msg);
+        ICallService(xCall).handleMessage(srcNID, _msg);
     }
 
 
