@@ -2,7 +2,7 @@
 source .env
 # Define valid actions and environments
 valid_actions=("deploy" "upgrade")
-valid_contracts=("callservice", mock)
+valid_contracts=("callservice" "mock")
 valid_environments=("mainnet" "testnet" "local")
 valid_mainnet_chains=("ethereum" "binance" "avalanche" "arbitrum" "optimism" "base" "all")
 valid_testnet_chains=("sepolia" "bsc_testnet" "fuji" "arbitrum_goerli" "optimism_goerli" "base_goerli" "all")
