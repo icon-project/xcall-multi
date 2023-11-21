@@ -2,7 +2,10 @@ name: Pre-release
 on:
   push:
     tags:
-      - '*'
+      - "v[0-9]+.[0-9]+.[0-9]+"
+      - "v[0-9]+.[0-9]+.[0-9]+-alpha.[0-9]+"
+      - "v[0-9]+.[0-9]+.[0-9]+-beta.[0-9]+"
+      - "v[0-9]+.[0-9]+.[0-9]+-rc[0-9]+"
 permissions:
   contents: write
   packages: write
@@ -88,6 +91,19 @@ jobs:
       - name: Unzip Cosmwasm Artifacts
         run: unzip cosmwasm-contracts/cosmwasm-contracts.zip -d cosmwasm-contracts && rm -rf cosmwasm-contracts/cosmwasm-contracts.zip
 
+      - name: Remove extra files
+        run: |
+          find ./cosmwasm-contracts ! -name 'cw_xcall_[0-9].[0-9].[0-9].wasm' -type f -exec rm {} +
+          find ./javascore-contracts ! -name 'xcall-[0-9].[0-9].[0-9]-optimized.jar' -type f -exec rm {} +
+
+      - name: Generate checksum
+        uses: jmgilman/actions-generate-checksum@v1
+        with:
+          patterns: |
+            cosmwasm-contracts/*.wasm
+            javascore-contracts/*.jar
+          output: check256sums.txt
+
       - name: Changelog
         uses: scottbrenner/generate-changelog-action@master
         id: Changelog
@@ -96,31 +112,13 @@ jobs:
 
       - name: Create Release
         id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
         with:
-          tag_name: ${{ github.ref }}
-          release_name: Prerelease ${{ github.ref }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           body: |
             ${{ steps.Changelog.outputs.changelog }}
-          draft: false
-          prerelease: false
-
-      - name: Upload Javascore contracts to release
-        uses: svenstaro/upload-release-action@v2
-        with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: ./javascore-contracts/*
-          tag: ${{ github.ref }}
-          overwrite: true
-          file_glob: true
-
-      - name: Upload Cosmwasm contracts to release
-        uses: svenstaro/upload-release-action@v2
-        with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: ./cosmwasm-contracts/*
-          tag: ${{ github.ref }}
-          overwrite: true
-          file_glob: true
+          files: |
+            ./javascore-contracts/*.jar
+            ./cosmwasm-contracts/*.wasm
+            check256sums.txt

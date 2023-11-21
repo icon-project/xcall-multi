@@ -6,7 +6,7 @@ members = [
 
 [workspace.package]
 authors = ["Icon Foundation<foo@icon.foundation>"]
-repository = "https://github.com/icon-project/ibc-integration.git"
+repository = "https://github.com/icon-project/xcall-multi.git"
 version="0.2.0"
 
 [workspace.dependencies]
