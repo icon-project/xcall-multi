@@ -280,7 +280,7 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
         bytes calldata _msg
     ) external override {
         checkService(_svc);
-        this.handleMessage(_from, _msg);
+        handleMessage(_from, _msg);
     }
 
     function handleBTPError(
@@ -298,7 +298,7 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
     function handleMessage(
         string calldata _from,
         bytes calldata _msg
-    ) external override {
+    ) public override {
         Types.CSMessage memory csMsg = _msg.decodeCSMessage();
         require(!_from.compareTo(nid), "Invalid Network ID");
         if (csMsg.msgType == Types.CS_REQUEST) {
