@@ -6,6 +6,8 @@ import {console2} from "forge-std/console2.sol";
 
 import "@xcall/contracts/xcall/CallService.sol";
 import "@xcall/contracts/mocks/multi-protocol-dapp/MultiProtocolSampleDapp.sol";
+import "@xcall/contracts/adapters/LayerZeroAdapter.sol";
+import "@xcall/contracts/adapters/WormholeAdapter.sol";
 
 contract DeployCallService is Script {
     CallService private proxyXcall;
@@ -77,24 +79,65 @@ contract DeployCallService is Script {
         proxyXcall.setDefaultConnection(iconNid, connection);
     }
 
-    function deployMock(string memory chain) public broadcast(deployerPrivateKey){
-            chain = capitalizeString(chain);
-            address xcall = vm.envAddress(chain.concat("_XCALL"));
+    function deployMock(
+        string memory chain
+    ) public broadcast(deployerPrivateKey) {
+        chain = capitalizeString(chain);
+        address xcall = vm.envAddress(chain.concat("_XCALL"));
 
-            MultiProtocolSampleDapp mockdapp = new MultiProtocolSampleDapp();
+        MultiProtocolSampleDapp mockdapp = new MultiProtocolSampleDapp();
 
-            UUPSProxy proxyMock = new UUPSProxy(
-                address(mockdapp),
-                abi.encodeWithSelector(
-                    MultiProtocolSampleDapp.initialize.selector,
-                    xcall
-                )
-            );
+        UUPSProxy proxyMock = new UUPSProxy(
+            address(mockdapp),
+            abi.encodeWithSelector(
+                MultiProtocolSampleDapp.initialize.selector,
+                xcall
+            )
+        );
     }
 
-    function upgradeContract(
+    function deployLayerZero(
         string memory chain
-    ) external broadcast(deployerPrivateKey) {
+    ) public broadcast(deployerPrivateKey) {
+        chain = capitalizeString(chain);
+        address xcall = vm.envAddress(chain.concat("_XCALL"));
+        address layerzeroRelayer = vm.envAddress(
+            chain.concat("_LAYERZERO_RELAYER")
+        );
+        LayerZeroAdapter layerzeroAdapter = new LayerZeroAdapter();
+
+        UUPSProxy proxyLayerzeroAdapter = new UUPSProxy(
+            address(layerzeroAdapter),
+            abi.encodeWithSelector(
+                LayerZeroAdapter.initialize.selector,
+                layerzeroRelayer,
+                xcall
+            )
+        );
+    }
+
+    function deployWormHole(
+        string memory chain
+    ) public broadcast(deployerPrivateKey) {
+        chain = capitalizeString(chain);
+        address wormholeRelayer = vm.envAddress(
+            chain.concat("_WORMHOLE_RELAYER")
+        );
+        address xcall = vm.envAddress(chain.concat("_XCALL"));
+
+        WormholeAdapter wormholeAdapter = new WormholeAdapter();
+
+        UUPSProxy proxyWormholeAdapter = new UUPSProxy(
+            address(wormholeAdapter),
+            abi.encodeWithSelector(
+                WormholeAdapter.initialize.selector,
+                wormholeRelayer,
+                xcall
+            )
+        );
+    }
+
+    function upgradeContract(string memory chain, string memory contractName) external broadcast(deployerPrivateKey) {
         proxyXcallAddress = vm.envAddress(
             capitalizeString(chain).concat("_XCALL")
         );

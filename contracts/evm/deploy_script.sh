@@ -2,10 +2,10 @@
 source .env
 # Define valid actions and environments
 valid_actions=("deploy" "upgrade")
-valid_contracts=("callservice" "mock")
+valid_contracts=("callservice" "mock" "layerzero" "wormhole")
 valid_environments=("mainnet" "testnet" "local")
 valid_mainnet_chains=("ethereum" "binance" "avalanche" "arbitrum" "optimism" "base" "all")
-valid_testnet_chains=("sepolia" "bsc_testnet" "fuji" "arbitrum_goerli" "optimism_goerli" "base_goerli" "all")
+valid_testnet_chains=("sepolia" "bsctest" "fuji" "arbitrum_goerli" "optimism_goerli" "base_goerli" "all")
 valid_local_chains=("local" "all")
 
 # Initialize variables
@@ -98,6 +98,12 @@ if [ "$action" == "deploy" ]; then
         forge script DeployCallService  -s "deployContract(string memory env, string memory chain)" $env $chain --fork-url $chain --broadcast --verify --etherscan-api-key $chain
         elif [ "$contract" == "mock" ]; then
         forge script DeployCallService -s "deployMock(string memory chain)" $chain --fork-url $chain --broadcast --verify --etherscan-api-key $chain 
+        fi
+        elif [ "$contract" == "layerzero" ]; then
+        forge script DeployCallService -s "deployLayerZero(string memory chain)" $chain --fork-url $chain --broadcast --verify --etherscan-api-key $chain 
+        fi
+        elif [ "$contract" == "wormhole" ]; then
+        forge script DeployCallService -s "deployWormHole(string memory chain)" $chain --fork-url $chain --broadcast --verify --etherscan-api-key $chain 
         fi
     done
 elif [ "$action" == "upgrade" ]; then

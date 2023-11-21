@@ -5,13 +5,14 @@ libs = ["lib"]
 test = "test"
 
 [rpc_endpoints]
-local = "${LOCAL_RPC_URL}" 
+local = "${LOCALA_RPC_URL}" 
 sepolia = "${SEPOLIA_RPC_URL}"
-bsc_testnet = "${BSC_TESTNET_RPC_URL}"
+bsctest = "${BSC_TESTNET_RPC_URL}"
 fuji = "${FUJI_RPC_URL}"
 arbitrum_goerli = "${ARBITRUM_GOERLI_RPC_URL}"
 optimism_goerli = "${OPTIMISM_GOERLI_RPC_URL}"
 base_goerli = "${BASE_GOERLI_RPC_URL}"
+celotest = "${CELOTEST_RPC_URL}"
 
 # ethereum=
 # binance=
@@ -22,11 +23,12 @@ base_goerli = "${BASE_GOERLI_RPC_URL}"
 
 [etherscan]
 sepolia = { key = "${ETHERSCAN_API_KEY}"}
-binance_testnet = { key = "${BSCSCAN_API_KEY}"}
+bsctest = { key = "${BSCSCAN_API_KEY}", chain = "bsc-testnet" }
 fuji = { key = "${SNOWSCAN_API_KEY}"}
 arbitrum_goerli = { key = "${ARBITRUMSCAN_API_KEY}"}
 optimism_goerli = { key = "${OPTIMISMSCAN_API_KEY}"}
-base_goerli = { key = "${BASESCAN_API_KEY}"}
+base_goerli = { key = "${BASESCAN_API_KEY}", chain = "base-goerli"}
+celotest = {key="${CELOSCAN_API_KEY}", chain="celo"}
 
 # ethereum=
 # binance=
