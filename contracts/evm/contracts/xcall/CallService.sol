@@ -291,7 +291,7 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
         string calldata _msg
     ) external override {
         checkService(_svc);
-        this.handleError(_sn);
+        handleError(_sn);
     }
     /* ========================================= */
 
@@ -315,7 +315,7 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
 
     function handleError(
         uint256 _sn
-    ) external override {
+    ) public override {
         handleResponse(Types.CSMessageResponse(
             _sn,
             Types.CS_RESP_FAILURE
