@@ -8,6 +8,7 @@ import "@xcall/contracts/xcall/CallService.sol";
 import "@xcall/contracts/mocks/multi-protocol-dapp/MultiProtocolSampleDapp.sol";
 import "@xcall/contracts/adapters/LayerZeroAdapter.sol";
 import "@xcall/contracts/adapters/WormholeAdapter.sol";
+import {Upgrades} from "openzeppelin-foundry-upgrades/Upgrades.sol";
 
 contract DeployCallService is Script {
     CallService private proxyXcall;
@@ -59,19 +60,15 @@ contract DeployCallService is Script {
         connection = vm.envAddress(env.concat("_BMC_ADDRESS"));
         nid = vm.envString(chain.concat("_NID"));
 
-        CallService xcall = new CallService();
-        proxyContract = new UUPSProxy(
-            address(xcall),
-            abi.encodeWithSelector(CallService.initialize.selector, nid)
-        );
-        console2.log("CallService address:", address(xcall), "\n");
-        console2.log(
-            "CallService Proxy address:",
-            address(proxyContract),
-            "\n"
+        address proxy = Upgrades.deployUUPSProxy(
+            "CallService.sol",
+            abi.encodeCall(
+                CallService.initialize,
+                nid
+            )
         );
 
-        proxyXcall = CallService(address(proxyContract));
+        proxyXcall = CallService(address(proxy));
         proxyXcall.setProtocolFee(protocolFee);
         proxyXcall.setProtocolFeeHandler(ownerAddress);
         proxyXcall.setDefaultConnection(iconNid, connection);
@@ -85,7 +82,7 @@ contract DeployCallService is Script {
 
         MultiProtocolSampleDapp mockdapp = new MultiProtocolSampleDapp();
 
-        UUPSProxy proxyMock = new UUPSProxy(
+        address proxyMock = Upgrades.deployUUPSProxy(
             address(mockdapp),
             abi.encodeWithSelector(
                 MultiProtocolSampleDapp.initialize.selector,

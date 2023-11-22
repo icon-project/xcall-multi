@@ -3,6 +3,8 @@ src = "contracts"
 out = "out"
 libs = ["lib"]
 test = "test"
+build_info = true
+extra_output = ["storageLayout"]
 
 [rpc_endpoints]
 local = "${LOCALA_RPC_URL}" 
