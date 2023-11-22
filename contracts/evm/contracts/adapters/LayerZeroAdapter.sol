@@ -3,6 +3,8 @@ pragma solidity >=0.8.0;
 pragma abicoder v2;
 
 import "openzeppelin-contracts-upgradeable/contracts/proxy/utils/Initializable.sol";
+import "openzeppelin-contracts-upgradeable/contracts/proxy/utils/UUPSUpgradeable.sol";
+
 import "@xcall/utils/Types.sol";
 import "@iconfoundation/btp2-solidity-library/interfaces/ICallService.sol";
 import "@lz-contracts/interfaces/ILayerZeroReceiver.sol";
@@ -14,7 +16,7 @@ import "@xcall/contracts/xcall/interfaces/IConnection.sol";
  * @title LayerZeroAdapter
  * @dev A contract serves as a cross-chain xcall adapter, enabling communication between xcall on different blockchain networks via LayerZero.
  */
-contract LayerZeroAdapter is ILayerZeroAdapter, Initializable, ILayerZeroReceiver, IConnection {
+contract LayerZeroAdapter is ILayerZeroAdapter, Initializable, ILayerZeroReceiver, IConnection, UUPSUpgradeable {
     bytes constant private EMPTY_BYTES = new bytes(2048);
     mapping(uint256 => Types.PendingResponse) private pendingResponses;
     mapping(string => uint16) private chainIds;
@@ -218,4 +220,10 @@ contract LayerZeroAdapter is ILayerZeroAdapter, Initializable, ILayerZeroReceive
     }
 
     fallback() external payable {}
+
+          /* ========== UUPS ========== */
+    //solhint-disable-next-line no-empty-blocks
+    function _authorizeUpgrade(address) internal override onlyAdmin {}
+
+    function getImplementation() external view returns (address) {}
 }

@@ -3,6 +3,8 @@ pragma solidity >=0.8.0;
 pragma abicoder v2;
 
 import "openzeppelin-contracts-upgradeable/contracts/proxy/utils/Initializable.sol";
+import "openzeppelin-contracts-upgradeable/contracts/proxy/utils/UUPSUpgradeable.sol";
+
 import "wormhole-solidity-sdk/interfaces/IWormholeRelayer.sol";
 import "wormhole-solidity-sdk/interfaces/IWormholeReceiver.sol";
 import "wormhole-solidity-sdk/Utils.sol";
@@ -17,7 +19,7 @@ import "@iconfoundation/btp2-solidity-library/interfaces/ICallService.sol";
  * @title WormholeAdapter
  * @dev This contract serves as a cross-chain xcall adapter, enabling communication between xcall on different blockchain networks via Wormhole.
  */
-contract WormholeAdapter is IWormholeAdapter, Initializable, IWormholeReceiver, IConnection {
+contract WormholeAdapter is IWormholeAdapter, Initializable, IWormholeReceiver, IConnection, UUPSUpgradeable {
     mapping(uint256 => Types.PendingResponse) private pendingResponses;
     mapping(string => uint16) private chainIds;
     mapping(uint16 => string) private networkIds;
@@ -200,4 +202,10 @@ contract WormholeAdapter is IWormholeAdapter, Initializable, IWormholeReceiver, 
         }
         return adminAddress;
     }
+
+          /* ========== UUPS ========== */
+    //solhint-disable-next-line no-empty-blocks
+    function _authorizeUpgrade(address) internal override onlyAdmin {}
+
+    function getImplementation() external view returns (address) {}
 }

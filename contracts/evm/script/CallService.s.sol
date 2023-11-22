@@ -11,15 +11,13 @@ import "@xcall/contracts/adapters/WormholeAdapter.sol";
 
 contract DeployCallService is Script {
     CallService private proxyXcall;
-    CallService private wrappedProxy;
-
     using Strings for string;
 
     UUPSProxy internal proxyContract;
 
     uint256 internal deployerPrivateKey;
     address internal ownerAddress;
-    address internal proxyXcallAddress;
+    address internal proxyAddress;
 
     string internal nid;
     string internal iconNid;
@@ -137,12 +135,32 @@ contract DeployCallService is Script {
         );
     }
 
-    function upgradeContract(string memory chain, string memory contractName) external broadcast(deployerPrivateKey) {
-        proxyXcallAddress = vm.envAddress(
-            capitalizeString(chain).concat("_XCALL")
-        );
-        CallService xcall = new CallService();
-        wrappedProxy = CallService(proxyXcallAddress);
-        wrappedProxy.upgradeTo(address(xcall));
+    // "callservice" "mock" "layerzero" "wormhole"
+    function upgradeContract(
+        string memory chain,
+        string memory contractName
+    ) external broadcast(deployerPrivateKey) {
+        if (contractName.compareTo("callservice")) {
+            proxyAddress = vm.envAddress(
+                capitalizeString(chain).concat("_XCALL")
+            );
+            CallService xcall = new CallService();
+            CallService wrappedProxy = CallService(proxyAddress);
+            wrappedProxy.upgradeTo(address(xcall));
+        } else if (contractName.compareTo("layerzero")) {
+            proxyAddress = vm.envAddress(
+                capitalizeString(chain).concat("_LAYERZERO_ADAPTER")
+            );
+            LayerZeroAdapter layerzero = new LayerZeroAdapter();
+            LayerZeroAdapter wrappedProxy = LayerZeroAdapter(payable(proxyAddress));
+            wrappedProxy.upgradeTo(address(layerzero));
+        } else if (contractName.compareTo("wormhole")) {
+            proxyAddress = vm.envAddress(
+                capitalizeString(chain).concat("_WORMHOLE_ADAPTER")
+            );
+            WormholeAdapter wormhole = new WormholeAdapter();
+            WormholeAdapter wrappedProxy = WormholeAdapter(proxyAddress);
+            wrappedProxy.upgradeTo(address(wormhole));
+        }
     }
 }
