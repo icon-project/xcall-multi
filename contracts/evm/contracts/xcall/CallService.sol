@@ -347,7 +347,7 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
     ) internal {
         Types.CSMessageRequest memory req = msgPayload.decodeCSMessageRequest();
         string memory fromNID = req.from.nid();
-        require(netFrom.compareTo(fromNID));
+        require(netFrom.compareTo(fromNID),"Invalid NID");
 
         bytes32 dataHash = keccak256(req.data);
         if (req.protocols.length > 1) {
