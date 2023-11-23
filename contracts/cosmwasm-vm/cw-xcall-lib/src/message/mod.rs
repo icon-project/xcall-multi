@@ -38,40 +38,10 @@ impl IMessage for AnyMessage {
         }
     }
 
-    fn should_persist(&self) -> bool {
-        match self {
-            AnyMessage::CallMessage(m) => m.should_persist(),
-            AnyMessage::CallMessageWithRollback(m) => m.should_persist(),
-        }
-    }
-
     fn to_bytes(&self) -> Result<Vec<u8>, DecoderError> {
         match self {
             AnyMessage::CallMessage(m) => m.to_bytes(),
             AnyMessage::CallMessageWithRollback(m) => m.to_bytes(),
         }
     }
-
-    // fn from_bytes(bytes:Vec<u8>)->Result<Self,DecoderError> {
-    //     todo!()
-    // }
 }
-
-// impl Encodable for AnyMessage {
-//     fn rlp_append(&self, s: &mut common::rlp::RlpStream) {
-//         match self{
-//             AnyMessage::CallMessage(m)=>{
-//                 s.append(&rlp::encode(m));
-//             },
-//             AnyMessage::CallMessageWithRollback(m)=>{
-//                 s.append(&rlp::encode(m));
-//             }
-//         }
-//     }
-// }
-
-// impl Decodable for AnyMessage {
-//     fn decode(rlp: &rlp::Rlp) -> Result<Self, rlp::DecoderError> {
-
-//     }
-// }

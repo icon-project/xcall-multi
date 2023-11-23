@@ -41,18 +41,7 @@ impl IMessage for CallMessage {
         &self.msg_type
     }
 
-    fn should_persist(&self) -> bool {
-        false
-    }
-
     fn to_bytes(&self) -> Result<Vec<u8>, DecoderError> {
         Ok(rlp::encode(self).to_vec())
     }
-
-    // fn from_bytes(bytes: Vec<u8>) -> Result<Self, rlp::DecoderError> {
-    //     let rlp = rlp::Rlp::new(&bytes);
-    //     let msg = Self::decode(&rlp)?;
-
-    //     Ok(msg)
-    // }
 }

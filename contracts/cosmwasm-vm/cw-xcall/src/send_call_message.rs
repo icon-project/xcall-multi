@@ -77,7 +77,7 @@ impl<'a> CwCallService<'a> {
             confirmed_sources = vec![default.to_string()]
         }
 
-        if envelope.message.should_persist() {
+        if envelope.message.rollback().is_some() {
             let rollback_data = envelope.message.rollback().unwrap();
             let request = CallRequest::new(
                 caller.clone(),
