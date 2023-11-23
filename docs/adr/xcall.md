@@ -18,6 +18,13 @@ A network address is represented as a string with "networkId" and "account" sepa
 A networkId is a unique id of a network, and there can't be two networks with the same id connected to the same xCall
 network.
 
+```
+NetworkAddress {
+    String account,
+    String net
+}
+```
+
 ### Connections
 
 XCall is designed to utilize a wide range of bridging protocols that facilitate data transfer, known as connections.
@@ -41,7 +48,7 @@ destination networkAddress `_to`.
  * @param _data The xCall envelope
  * @return The serial number of the request
  */
-payable external sendCall(String _to, byte[] _data) returns Integer;
+payable external sendCall(String _to, byte[] _data) returns Integer
 ```
 
 ##### Message Envelope Structure
@@ -61,6 +68,7 @@ Envelope {
 ##### Message Objects
 All Message objects have a TypeId specifying its type
 
+A CallMessage will try to execute on the destination chain, and will be removed even if the execution fails and no response will be relayed back
 ```
 TypeId = 1
 CallMessage {
@@ -76,7 +84,6 @@ CallMessageWithRollback {
     byte[] rollback,
 
 }
-
 ```
 
 #### Legacy send Interface
@@ -103,9 +110,9 @@ The `_rollback` data is limited to  1024KB.
  */
 payable external sendCallMessage(String _to,
                                 byte[] _data,
-                                @Optional bytes _rollback,
+                                @Optional byte[] _rollback,
                                 @Optional String[] _sources
-                                @Optional String[] _destinations) return Integer;
+                                @Optional String[] _destinations) return Integer
 ```
 
 ### Events
@@ -222,7 +229,7 @@ Then `xcall` compares it with the saved hash value to validate its integrity.
  * @param _reqId The request Id
  * @param _data The calldata
  */
-external executeCall(BigInteger _reqId, byte[] _data);
+external executeCall(BigInteger _reqId, byte[] _data)
 ```
 
 The user on the source chain recognizes the rollback situation and invokes the following method on xcall with the
@@ -236,7 +243,7 @@ It should be reverted when there is no failure response with the call request.
  *
  * @param _sn The serial number of the previous request
  */
-external executeRollback(BigInteger _sn);
+external executeRollback(BigInteger _sn)
 ```
 
 #### Handling
@@ -254,8 +261,8 @@ If only using default protocols, implementing only the two parameter versions of
  * @param _data The calldata delivered from the caller
  * @param _protocols The contract addresses that delivered the data, if omitted the default protocol was used
  */
-external handleCallMessage(String _from, byte[] _data);
-external handleCallMessage(String _from, byte[] _data, @Optional String[] _protocols);
+external handleCallMessage(String _from, byte[] _data)
+external handleCallMessage(String _from, byte[] _data, @Optional String[] _protocols)
 ```
 
 In case of rollback, the `_from` will be the network address of the xCall contract.
@@ -299,7 +306,7 @@ If rollback was specified and the call was successful, the success can be verifi
  *
  * @return If the '_sn' has received a success response
  */
-external readonly verifySuccess(BigInteger _sn) returns boolean;
+external readonly verifySuccess(BigInteger _sn) returns boolean
 ```
 
 ### Fee Management
@@ -320,7 +327,7 @@ Sending a message through xCall has two types of fees. One for using the protoco
  */
 external readonly getFee(String _net,
                           boolean _rollback
-                          @Optional String[] _sources) returns Integer;
+                          @Optional String[] _sources) returns Integer
 ```
 
 ```
@@ -329,7 +336,7 @@ external readonly getFee(String _net,
  *
  * @return the xCall protocol fee
  */
-external readonly getProtocolFee() Returns Integer;
+external readonly getProtocolFee() Returns Integer
 ```
 
 ### Security Considerations
@@ -394,37 +401,37 @@ RLP encoding order is the same as the order they are defined in below.
 
 ```
 CSMessageRequest {
-    String from;
-    String to;
-    BigInteger sn;
+    String from
+    String to
+    BigInteger sn
     int messageType
     // RLP encoded message
-    bytes message;
-    String[] protocols;
+    byte[] message
+    String[] protocols
 }
 ```
 
-##### CSMessageResponse
+##### CSMessageResult
 
 ```
-int SUCCESS = 1;
-int FAILURE = 0;
+int SUCCESS = 1
+int FAILURE = 0
 CSMessageResult {
-    BigInteger sn;
-    int code;
+    BigInteger sn
+    int code
 }
 ```
 
 ##### CSMessage
 
 ```
-int REQUEST = 1;
-int RESULT = 2;
+int REQUEST = 1
+int RESULT = 2
 CSMessage {
   // The message type, either REQUEST or RESULT
-  int type;
+  int type
   // RLP encoded bytes of the Message
-  bytes data;
+  byte[] data
 }
 ```
 
@@ -432,11 +439,11 @@ CSMessage {
 
 ```
 RollbackData {
-    Address from;
-    String netTo;
-    String[] protocols;
-    bytes rollback;
-    boolean enabled = false; // defaults to false
+    Address from
+    String netTo
+    String[] protocols
+    byte[] rollback
+    boolean enabled = false // defaults to false
 }
 ```
 
@@ -452,7 +459,7 @@ reqId: <current incoming message sequence>
 rollbacks: sn -> RollbackData
 proxyReqs: reqId -> CSMessageRequest
 
-# default values should be false in case of boolean storage
+// default values should be false in case of boolean storage
 pendingMessages: msgHash -> connection address -> boolean
 successfulResponses: sn -> boolean
 
@@ -465,13 +472,10 @@ feeHandler: <Address>
 ### Contract initialization
 
 ```
-function init(String networkId) {
+function init(String networkId):
     NID = networkId
-    if admin == null
-        admin = getCaller();
-    feeHandler = getCaller();
-
-}
+    admin = getCaller()
+    feeHandler = getCaller()
 ```
 
 ### Communication
@@ -486,16 +490,16 @@ function init(String networkId) {
 ```
 payable external sendCall(String _to, byte[] _data) returns Integer {
     caller = getCaller()
-    Envelope envelope = Envelope.decode(_data)
+    envelope = Envelope.decode(_data)
     sn++
-    from = NetworkAddress(NID, caller).toString()
+    from = NetworkAddress(NID, caller)
     to = NetworkAddress(_to)
 
     needResponse, msg = preProcessMessage(sn, to, envelope)
 
     msgReq = CSMessageRequest(from, to.account(), sn, envelope.type, msg, envelope.destinations)
     msg = CSMessage(CSMessage.REQUEST, msgReq.toBytes()).toBytes()
-    require(msg.length <= MAX_DATA_SIZE, "MaxDataSizeExceeded")
+    assert msg.length <= MAX_DATA_SIZE
 
     sendSn = needResponse ? sn : 0
     if protocolConfig.sources == []:
@@ -508,8 +512,8 @@ payable external sendCall(String _to, byte[] _data) returns Integer {
             src->sendMessage(fee, to.net(), "xcall-multi", sendSn, msg)
 
 
-    remainingBalance = getBalance();
-    require(remainingBalance >= getProtocolFee())
+    remainingBalance = getBalance()
+    assert remainingBalance >= getProtocolFee()
     transfer(feeHandler, balance)
     emit CallMessageSent(caller, dst.toString(), sn)
 
@@ -529,34 +533,36 @@ payable external sendCall(String _to, byte[] _data) returns Integer {
 ```
 payable external function sendCallMessage(String _to,
                                           byte[] _data,
-                                          @Optional bytes _rollback,
+                                          @Optional byte[] _rollback,
                                           @Optional String[] _sources
                                           @Optional String[] _destinations) returns Integer {
     if (_rollback == null || _rollback.length == 0):
-        msg = new CallMessage(_data);
+        msg = new CallMessage(_data)
     else:
         msg = new CallMessageWithRollback(_data, _rollback)
+
+    envelope = new Envelope(msg, _sources, _destinations)
+    return sendCall(_to, envelope.toBytes())
 
     envelope = new XCallEnvelope(msg, _sources, _destinations)
     return sendCall(_to, envelope.toBytes());
 
-    
 }
 ```
 
 Internal method where message types can implement type specific logic.
 ```
-internal function preProcessMessage(int sn, NetworkAddress to, XCallEnvelope envelope) return (boolean, byte[]) {
+internal function preProcessMessage(int sn, NetworkAddress to, Envelope envelope) return (boolean, byte[]) {
     switch (envelope.type) {
         case CallMessage.Type:
-            return false, message;
+            return false, message
         case CallMessageWithRollback.Type:
-            require(caller.isContract(), "RollbackNotPossible");
-            msg = CallMessageWithRollback(message);
-            req = CallRequest(caller, to.net(), envelope.sources, msg.rollback);
-            rollbacks[sn] = req;
+            assert caller.isContract()
+            msg = CallMessageWithRollback(message)
+            req = CallRequest(caller, to.net(), envelope.sources, msg.rollback)
+            rollbacks[sn] = req
 
-            return true, msg.data;
+            return true, msg.data
     }
 }
 ```
@@ -565,17 +571,17 @@ internal function preProcessMessage(int sn, NetworkAddress to, XCallEnvelope env
 
 `handleMessage` is the external function used by connections to deliver messages.
 ```
-external function handleMessage(String _fromNid, bytes _msg) {
-    msg = CSMessage.decode(_msg);
+external function handleMessage(String _fromNid, byte[] _msg) {
+    msg = CSMessage.decode(_msg)
     switch (msg.type) :
         case CSMessage.REQUEST:
-            handleRequest(_fromNid, msg.data);
-            break;
+            handleRequest(_fromNid, msg.data)
+            break
         case CSMessage.RESULT:
-            handleResponse(msg.data);
-            break;
+            handleResult(msg.data)
+            break
         default:
-            Context.revert("UnknownMsgType(" + msg.type + ")");
+            Context.revert("UnknownMsgType(" + msg.type + ")")
 }
 ```
 
@@ -583,16 +589,15 @@ external function handleMessage(String _fromNid, bytes _msg) {
 
 ```
 external function handleError(BigInteger _sn) {
-        CSMessageResponse res = CSMessageResponse(_sn, CSMessageResponse.FAILURE);
-        handleResponse(res.toBytes());
+        CSMessageResult res = CSMessageResult(_sn, CSMessageResult.FAILURE)
+        handleResult(res.toBytes())
 }
 ```
 
 `handleBTPMessage` Can be added to natively support the BTP protocol without a standalone connection.
 
 ```
-external function handleBTPMessage(String _from, _svc String, Integer _sn, bytes _msg) {
-    // verify svc is as registered
+external function handleBTPMessage(String _from, _svc String, Integer _sn, byte[] _msg) {
     handleMessage(_from, _msg)
 }
  ```
@@ -601,7 +606,6 @@ external function handleBTPMessage(String _from, _svc String, Integer _sn, bytes
 
 ```
 external function handleBTPError(String _src, String _svc, BigInteger _sn, long _code, String _msg) {
-    // verify svc is as registered
     handleError(_sn)
 }
 ```
@@ -618,68 +622,63 @@ internal function verifyProtocols(String srcNet, String[] protocols, byte[] data
         for (protocol : protocols):
             pendingMessages[_hash][protocol] = null
     else if (protocols.length == 1):
-        require(source == protocols[0])
+        assert source == protocols[0]
     else:
-        require(source == defaultConnection[srcNet])
-    
+        assert source == defaultConnection[srcNet]
+
     return true
 }
 ```
 
 ```
-internal function handleRequest(String srcNet, bytes data) {
-    msgReq = CSMessageRequest.decode(data);
+internal function handleRequest(String srcNet, byte[] data) {
+    msgReq = CSMessageRequest.decode(data)
     if !verifyProtocols(srcNet, msgReq.protocolConfig, hash(data)):
-        return;
+        return
 
-    reqId = getNextReqId();
-    from = NetworkAddress(msgReq.from);
-    require(from.net() == srcNet);
-    emit CallMessage(msgReq.from, msgReq.to, msgReq.sn, reqId, msgReq.data);
+    reqId = getNextReqId()
+    from = NetworkAddress(msgReq.from)
+    assert from.net == srcNet
+    emit CallMessage(msgReq.from, msgReq.to, msgReq.sn, reqId, msgReq.data)
     msgReq.data = hash(msgReq.data)
-    proxyReqs[reqId] = msgReq;
+    proxyReqs[reqId] = msgReq
 }
 ```
 
 ```
-internal function handleResponse(data bytes) {
-        response = CSMessageResponse.decode(data);
-        resSn = response.sn;
-        req = rollbacks[resSn];
+internal function handleResult(data byte[]) {
+        result = CSMessageResult.decode(data)
+        resSn = result.sn
+        req = rollbacks[resSn]
 
         if req == null:
-            return; // just ignore
+            return
 
         if !verifyProtocols(req.netTo, req.protocolConfig, hash(data)):
-            return;
+            return
 
-        emit ResponseMessage(resSn, response.getCode());
-        switch response.getCode():
-            case CSMessageResponse.SUCCESS:
-                rollbacks[resSn] = null;
-                successfulResponses[resSn] = 1;
-                break;
-            case CSMessageResponse.FAILURE:
+        emit ResponseMessage(resSn, result.getCode())
+        switch result.getCode():
+            case CSMessageResult.SUCCESS:
+                rollbacks[resSn] = null
+                successfulResponses[resSn] = 1
+                break
+            case CSMessageResult.FAILURE:
             default:
-                // emit rollback event
-                require(req.rollback != null, "NoRollbackData");
-                req.enabled = true;
-                rollbacks[resSn] = req;
-                emit RollbackMessage(resSn);
+                assert req.rollback != null
+                req.enabled = true
+                rollbacks[resSn] = req
+                emit RollbackMessage(resSn)
 }
 ```
 
 #### Message Execution
 
-In case of a two-message call,
-the function should allow the call to fail and send a new message to roll back the message.
-While if a one way message fails, re-execution should be allowed.
-
 ```
 external function executeCall(Integer _reqId, byte[] _data) {
-        req = proxyReqs[_reqId];
-        require(req != null, "InvalidRequestId");
-        proxyReqs[_reqId] == null;
+        req = proxyReqs[_reqId]
+        assert req != null
+        proxyReqs[_reqId] == null
 
         assert hash(_data) == req.data
         executeCallRequest(_reqId, r)
@@ -692,13 +691,13 @@ Method where  message specific execution logic is handled.
 internal function executeMessage(int reqId, CallRequest req) {
     switch (req.type) {
         case CallMessage.Type:
-            tryExecute(reqId, req.from, req.data, req.protocols);
+            tryExecute(reqId, req.from, req.data, req.protocols)
         case CallMessageWithRollback.Type:
-            code = tryExecute(reqId, req.from, req.data, req.protocols);
-            response = new CSMessageResponse(req.sn, code);
-            msg = CSMessage(CSMessage.RESULT, response.toBytes());
+            code = tryExecute(reqId, req.from, req.data, req.protocols)
+            result = new CSMessageResult(req.sn, code)
+            msg = CSMessage(CSMessage.RESULT, result.toBytes())
 
-            sn = req.sn.negate();
+            sn = req.sn.negate()
             if req.protocols == []:
                 protocol = defaultConnection[from.net()]
                 protocol->sendMessage(from.net(), "xcall-multi", sn, msg.toBytes())
@@ -706,46 +705,47 @@ internal function executeMessage(int reqId, CallRequest req) {
                 for (String protocol : req.protocols):
                     protocol->sendMessage(from.net(), "xcall-multi", sn, msg.toBytes())
         default:
-            revert;
+            revert
     }
 }
 ```
 
 ```
 external function executeRollback(Integer _sn) {
-    req = rollbacks.get(_sn);
-    require(req != null, "InvalidSerialNum");
-    require(req.enabled, "RollbackNotEnabled");
-    rollbacks[_sn] = null;
+    req = rollbacks.get(_sn)
+    assert req != null
+    assert req.enabled
+    rollbacks[_sn] = null
 
     if req.protocols == []:
-        req.to->handleCallMessage(getNetworkAddress(), req.rollback, req.protocols);
+        req.to->handleCallMessage(getNetworkAddress(), req.rollback, req.protocols)
     else:
-        req.to->handleCallMessage(getNetworkAddress(), req.rollback, req.protocols);
+        req.to->handleCallMessage(getNetworkAddress(), req.rollback, req.protocols)
 
-    emit RollbackExecuted(_sn);
+    emit RollbackExecuted(_sn)
 }
 
 ```
 ```
-internal function tryExecuteCall(int id, String from, bytes data, String[] protocols) returns String {
+internal function tryExecuteCall(int id, String from, byte[] data, String[] protocols) returns String {
     try:
-        executeCall(id, from, data, protocols);
+        executeCall(id, from, data, protocols)
     catch Error as e:
-         emit CallExecuted(id, CSMessageResponse.FAILURE, e.message);
-         return CSMessageResponse.FAILURE;
-    return CSMessageResponse.SUCCESS;
+         emit CallExecuted(id, CSMessageResult.FAILURE, e.message)
+         return CSMessageResult.FAILURE
+
+    return CSMessageResult.SUCCESS
 }
 ```
 
 ```
-internal function executeCall(int id, String from, bytes data, String[] protocols) {
+internal function executeCall(int id, String from, byte[] data, String[] protocols) {
     if req.protocols == []:
-        req.to->handleCallMessage(from, data);
+        req.to->handleCallMessage(from, data)
     else:
-        req.to->handleCallMessage(from, data, protocols);
+        req.to->handleCallMessage(from, data, protocols)
 
-    emit CallExecuted(id, CSMessageResponse.SUCCESS, "");
+    emit CallExecuted(id, CSMessageResult.SUCCESS, "")
 }
 ```
 
@@ -773,19 +773,19 @@ adminOnly function setDefaultConnection(String _nid, Address _connection){
 
 ```
 external readonly function  getNetworkAddress() returns String {
-    return NetworkAddress(NID, this.address);
+    return NetworkAddress(NID, this.address)
 }
 ```
 
 ```
 external readonly function  getNetworkId() returns String {
-    return NID;
+    return NID
 }
 ```
 
 ```
 external readonly function  getProtocolFee() returns Integer {
-    return protocolFee;
+    return protocolFee
 }
 ```
 
@@ -794,7 +794,7 @@ external readonly function getFee(String _net,
                                   boolean _rollback
                                   @Optional String[] _sources)
                                         returns Integer {
-    fee = protocolFee;
+    fee = protocolFee
     if _sources == [] {
         return defaultConnection[_net]->getFee(_net, _rollback) + fee
     }
@@ -808,7 +808,7 @@ external readonly function getFee(String _net,
 
 ```
 external readonly function  verifySuccess(Integer sn) returns boolean {
-    return successfulResponses[sn];
+    return successfulResponses[sn]
 }
 ```
 
