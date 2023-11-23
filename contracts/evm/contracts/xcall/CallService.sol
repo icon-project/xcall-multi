@@ -299,8 +299,8 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
         string calldata _from,
         bytes calldata _msg
     ) public override {
-        Types.CSMessage memory csMsg = _msg.decodeCSMessage();
         require(!_from.compareTo(nid), "Invalid Network ID");
+        Types.CSMessage memory csMsg = _msg.decodeCSMessage();
         if (csMsg.msgType == Types.CS_REQUEST) {
             handleRequest(_from, csMsg.payload);
         } else if (csMsg.msgType == Types.CS_RESPONSE) {
