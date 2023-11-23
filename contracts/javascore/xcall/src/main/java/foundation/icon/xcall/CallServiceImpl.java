@@ -145,31 +145,6 @@ public class CallServiceImpl implements CallService, FeeManage {
     }
 
     @Override
-    @Payable
-    @External
-    public BigInteger sendCallMessage(String _to,
-                                      byte[] _data,
-                                      @Optional byte[] _rollback,
-                                      @Optional String[] _sources,
-                                      @Optional String[] _destinations) {
-
-        if (_sources == null || _destinations == null) {
-            _sources = new String[0];
-            _destinations = new String[0];
-        }
-
-        Message msg;
-        if (_rollback == null || _rollback.length == 0) {
-            msg = new CallMessage(_data);
-        } else {
-            msg = new CallMessageWithRollback(_data, _rollback);
-        }
-
-        XCallEnvelope envelope = new XCallEnvelope(msg, _sources, _destinations);
-        return sendCall(_to, envelope.toBytes());
-    }
-
-    @Override
     @External
     public void executeCall(BigInteger _reqId, byte[] _data) {
         CSMessageRequest req = proxyReqs.get(_reqId);
