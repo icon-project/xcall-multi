@@ -4,6 +4,7 @@ use serde::Serialize;
 pub enum MessageType {
     BasicMessage = 1,
     MessageWithRollback = 2,
+    PersistedMessge=3,
 }
 
 impl From<MessageType> for u8 {
@@ -11,6 +12,7 @@ impl From<MessageType> for u8 {
         match val {
             MessageType::BasicMessage => 1,
             MessageType::MessageWithRollback => 2,
+            MessageType::PersistedMessge=> 3,
         }
     }
 }
@@ -20,6 +22,7 @@ impl From<u8> for MessageType {
         match value {
             1 => MessageType::BasicMessage,
             2 => MessageType::MessageWithRollback,
+            3=> MessageType::PersistedMessge,
             _ => panic!("unsupported message type"),
         }
     }

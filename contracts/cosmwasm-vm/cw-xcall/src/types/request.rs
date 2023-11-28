@@ -58,6 +58,10 @@ impl CSMessageRequest {
         self.msg_type == MessageType::MessageWithRollback
     }
 
+    pub fn allow_retry(&self)->bool {
+        self.msg_type==MessageType::PersistedMessge
+    }
+
     pub fn data(&self) -> Result<&[u8], ContractError> {
         Ok(self
             .data

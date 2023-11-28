@@ -2,7 +2,7 @@ use common::rlp::{self, Decodable, DecoderError, Encodable};
 
 use super::{
     call_message::CallMessage, call_message_rollback::CallMessageWithRollback, msg_trait::IMessage,
-    msg_type::MessageType, AnyMessage,
+    msg_type::MessageType, AnyMessage, call_message_persisted::CallMessagePersisted,
 };
 #[derive(Clone, Debug, PartialEq)]
 pub struct Envelope {
@@ -66,6 +66,10 @@ pub fn decode_message(msg_type: MessageType, bytes: Vec<u8>) -> Result<AnyMessag
         MessageType::MessageWithRollback => {
             let msg: CallMessageWithRollback = rlp::decode(&bytes)?;
             Ok(AnyMessage::CallMessageWithRollback(msg))
+        },
+        MessageType::PersistedMessge => {
+            let msg : CallMessagePersisted= rlp::decode(&bytes)?;
+            Ok(AnyMessage::CallMessagePersisted(msg))
         }
     }
 }
