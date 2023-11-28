@@ -12,7 +12,7 @@ pub struct CallMessageWithRollback {
 impl Encodable for CallMessageWithRollback {
     fn rlp_append(&self, stream: &mut RlpStream) {
         stream
-            .begin_list(2)
+            .begin_list(3)
             .append(&Into::<u8>::into(self.msg_type.clone()))
             .append(&self.data)
             .append(&self.rollback);
