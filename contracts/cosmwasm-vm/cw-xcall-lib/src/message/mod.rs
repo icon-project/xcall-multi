@@ -3,10 +3,12 @@ use common::rlp::DecoderError;
 use self::{
     call_message::CallMessage, call_message_rollback::CallMessageWithRollback, msg_trait::IMessage,
     msg_type::MessageType,
+    
 };
 
 pub mod call_message;
 pub mod call_message_rollback;
+pub mod call_message_persisted;
 pub mod envelope;
 pub mod msg_trait;
 pub mod msg_type;
