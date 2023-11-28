@@ -40,21 +40,33 @@
  public class XCallCentralizeConnection {
      protected final VarDB<Address> admin = Context.newVarDB("admin", Address.class);
      protected final VarDB<Address> xCall = Context.newVarDB("callService", Address.class);
+     protected final VarDB<Address> relayer = Context.newVarDB("relayer", Address.class);
  
      protected final DictDB<String, BigInteger> messageFees = Context.newDictDB("messageFees", BigInteger.class);
      protected final DictDB<String, BigInteger> responseFees = Context.newDictDB("responseFees", BigInteger.class);
      protected final DictDB<byte[], Boolean> seenDeliveryVaaHashes = Context.newDictDB("seenDeliveryVaaHashes", Boolean.class);
  
-     public XCallCentralizeConnection(Address _xCall) {
+     public XCallCentralizeConnection(Address _xCall, Address _relayer) {
          if ( xCall.get() == null ) {
              xCall.set(_xCall);
              admin.set(Context.getCaller());
+             relayer.set(_relayer);
          }
      }
  
      @EventLog(indexed=1)
      public void Message(String targetNetwork, BigInteger sn, byte[] msg) {}
  
+    @External
+    public void setRelayer(Address _relayer) {
+        Context.require(Context.getCaller().equals(admin.get()), "Only admin can set relayer");
+        relayer.set(_relayer);
+    }
+
+    @External(readonly = true)
+    public Address getRelayer() {
+        return relayer.get();
+    }
  
      @External
      public void setFee(String networkId, BigInteger messageFee, BigInteger responseFee) {
@@ -78,7 +90,7 @@
      public void sendMessage(String to, String svc, BigInteger sn, byte[] msg) {
          Context.require(Context.getCaller().equals(xCall.get()), "Only xCall can send messages");
          BigInteger fee = this.getFee(to, false);
-         Context.require(Context.value>fee,"Fee is not Sufficient")
+         Context.require(Context.getValue().compareTo(fee)>0,"Fee is not Sufficient");
          Message(to, sn, msg);
      }
  
@@ -93,7 +105,8 @@
  
      @External
      public void setAdmin(Address address) {
-         admin.set(address);
+        Context.require(Context.getCaller().equals(admin.get()), "Only admin can set admin");
+        admin.set(address);
      }
  
      @External(readonly = true)

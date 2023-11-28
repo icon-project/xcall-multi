@@ -16,6 +16,7 @@ contract XCallCentralizeConnection is Initializable, IConnection {
     mapping(bytes32 => bool) public seenDeliveryVaaHashes;
     address private xCall;
     address private adminAddress;
+    address private relayer;
 
 
     event Message(string targetNetwork,int256 sn,bytes msg);
@@ -26,11 +27,19 @@ contract XCallCentralizeConnection is Initializable, IConnection {
         _;
     }
 
-    function initialize(address _xCall ) public initializer {
+    function initialize(address _xCall, address _relayer ) public initializer {
         adminAddress = msg.sender;
         xCall = _xCall;
+        relayer = _relayer;
     }
 
+    function setRelayer(address _relayer) external onlyAdmin {
+        relayer = _relayer;
+    }
+
+    function getRelayer() public view returns (address _relayer) {
+        return relayer;
+    }
 
     function setFee(
         string calldata networkId,
@@ -40,6 +49,7 @@ contract XCallCentralizeConnection is Initializable, IConnection {
         messageFees[networkId] = messageFee;
         responseFees[networkId] = responseFee;
     }
+
 
 
     function getFee(string memory _to, bool _response) external view override returns (uint256 _fee) {
@@ -69,7 +79,7 @@ contract XCallCentralizeConnection is Initializable, IConnection {
         string memory srcNID,
         string memory sn,
         bytes calldata _msg
-    ) public payable {
+    ) public {
         bytes32 hash = keccak256(abi.encodePacked(_msg, sn));
         require(!seenDeliveryVaaHashes[hash], "Message already processed");
         seenDeliveryVaaHashes[hash] = true;
