@@ -2,7 +2,7 @@ use common::utils::keccak256;
 use cosmwasm_std::{
     from_binary,
     testing::{mock_dependencies, mock_env, mock_info},
-    Addr, Coin, CosmosMsg, Reply, SubMsgResponse, SubMsgResult, WasmMsg, to_binary,
+    to_binary, Addr, Coin, CosmosMsg, Reply, SubMsgResponse, SubMsgResult, WasmMsg,
 };
 
 use cw_xcall::{
@@ -278,7 +278,6 @@ fn execute_rollback_failure() {
     }
 }
 
-
 #[test]
 fn test_persisted_message_not_removed_on_error() {
     let mut mock_deps = deps();
@@ -309,14 +308,13 @@ fn test_persisted_message_not_removed_on_error() {
         .store_execute_request_id(mock_deps.as_mut().storage, request_id)
         .unwrap();
 
-    let response = contract.reply(mock_deps.as_mut(), env, msg).unwrap();
+    let _response = contract.reply(mock_deps.as_mut(), env, msg).unwrap();
 
-    let req= contract.get_proxy_request(mock_deps.as_ref().storage, request_id).unwrap();
-    assert_eq!(req,proxy_requests);
-
-    
+    let req = contract
+        .get_proxy_request(mock_deps.as_ref().storage, request_id)
+        .unwrap();
+    assert_eq!(req, proxy_requests);
 }
-
 
 #[test]
 fn test_persisted_message_removed_on_success() {
@@ -326,7 +324,10 @@ fn test_persisted_message_removed_on_success() {
 
     let msg = Reply {
         id: EXECUTE_CALL_ID,
-        result: SubMsgResult::Ok(SubMsgResponse { events: vec![], data: to_binary(&1).ok() }),
+        result: SubMsgResult::Ok(SubMsgResponse {
+            events: vec![],
+            data: to_binary(&1).ok(),
+        }),
     };
 
     let contract = CwCallService::default();
@@ -348,10 +349,10 @@ fn test_persisted_message_removed_on_success() {
         .store_execute_request_id(mock_deps.as_mut().storage, request_id)
         .unwrap();
 
-    let response = contract.reply(mock_deps.as_mut(), env, msg).unwrap();
+    let _response = contract.reply(mock_deps.as_mut(), env, msg).unwrap();
 
-    let req= contract.get_proxy_request(mock_deps.as_ref().storage, request_id).ok();
-    assert_eq!(req,None);
-
-    
+    let req = contract
+        .get_proxy_request(mock_deps.as_ref().storage, request_id)
+        .ok();
+    assert_eq!(req, None);
 }

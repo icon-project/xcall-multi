@@ -3,7 +3,7 @@ use common::rlp::{self, Decodable, DecoderError, Encodable, RlpStream};
 use super::{msg_trait::IMessage, msg_type::MessageType};
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct CallMessagePersisted{
+pub struct CallMessagePersisted {
     pub msg_type: MessageType,
     pub data: Vec<u8>,
 }

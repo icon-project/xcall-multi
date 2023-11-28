@@ -1,14 +1,13 @@
 use common::rlp::DecoderError;
 
 use self::{
-    call_message::CallMessage, call_message_rollback::CallMessageWithRollback, msg_trait::IMessage,
-    msg_type::MessageType, call_message_persisted::CallMessagePersisted,
-    
+    call_message::CallMessage, call_message_persisted::CallMessagePersisted,
+    call_message_rollback::CallMessageWithRollback, msg_trait::IMessage, msg_type::MessageType,
 };
 
 pub mod call_message;
-pub mod call_message_rollback;
 pub mod call_message_persisted;
+pub mod call_message_rollback;
 pub mod envelope;
 pub mod msg_trait;
 pub mod msg_type;
@@ -17,7 +16,7 @@ pub mod msg_type;
 pub enum AnyMessage {
     CallMessage(CallMessage),
     CallMessageWithRollback(CallMessageWithRollback),
-    CallMessagePersisted(CallMessagePersisted)
+    CallMessagePersisted(CallMessagePersisted),
 }
 
 impl IMessage for AnyMessage {
@@ -25,7 +24,7 @@ impl IMessage for AnyMessage {
         match self {
             AnyMessage::CallMessage(m) => m.rollback(),
             AnyMessage::CallMessageWithRollback(m) => m.rollback(),
-            AnyMessage::CallMessagePersisted(m)=>m.rollback(),
+            AnyMessage::CallMessagePersisted(m) => m.rollback(),
         }
     }
 
@@ -33,7 +32,7 @@ impl IMessage for AnyMessage {
         match self {
             AnyMessage::CallMessage(m) => m.data(),
             AnyMessage::CallMessageWithRollback(m) => m.data(),
-            AnyMessage::CallMessagePersisted(m)=>m.data(),
+            AnyMessage::CallMessagePersisted(m) => m.data(),
         }
     }
 
@@ -41,7 +40,7 @@ impl IMessage for AnyMessage {
         match self {
             AnyMessage::CallMessage(m) => m.msg_type(),
             AnyMessage::CallMessageWithRollback(m) => m.msg_type(),
-            AnyMessage::CallMessagePersisted(m)=>m.msg_type(),
+            AnyMessage::CallMessagePersisted(m) => m.msg_type(),
         }
     }
 
@@ -49,7 +48,7 @@ impl IMessage for AnyMessage {
         match self {
             AnyMessage::CallMessage(m) => m.to_bytes(),
             AnyMessage::CallMessageWithRollback(m) => m.to_bytes(),
-            AnyMessage::CallMessagePersisted(m)=> m.to_bytes(),
+            AnyMessage::CallMessagePersisted(m) => m.to_bytes(),
         }
     }
 }
