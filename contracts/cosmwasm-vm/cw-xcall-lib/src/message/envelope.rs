@@ -113,7 +113,7 @@ mod tests {
         let envelope = Envelope::new(message, sources, destinations);
         let encoded_data = rlp::encode(&envelope).to_vec();
 
-        assert_eq!("ea028ac5028301020383010203d087736f757263653187736f7572636532cc856465737431856465737432",hex::encode(&encoded_data));
+        assert_eq!("ea028ac9028301020383010203d087736f757263653187736f7572636532cc856465737431856465737432",hex::encode(&encoded_data));
         let decoded: Envelope = rlp::decode(&encoded_data).unwrap();
 
         assert_eq!(envelope, decoded);
