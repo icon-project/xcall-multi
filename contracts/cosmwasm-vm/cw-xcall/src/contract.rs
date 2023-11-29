@@ -197,12 +197,19 @@ impl<'a> CwCallService<'a> {
         &self,
         deps: DepsMut,
         _env: Env,
-        _msg: MigrateMsg,
+        msg: MigrateMsg,
     ) -> Result<Response, ContractError> {
+        if let Some(network_id)= msg.network_id {
+            let mut config= self.get_config(deps.as_ref().storage)?;
+            config.network_id=network_id;
+            self.store_config(deps.storage, &config)?;
+
+        }
         set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)
             .map_err(ContractError::Std)?;
         Ok(Response::default().add_attribute("migrate", "successful"))
     }
+
 }
 
 impl<'a> CwCallService<'a> {
@@ -261,7 +268,7 @@ mod tests {
         let env = mock_env();
 
         let contract = CwCallService::default();
-        let result = contract.migrate(mock_deps.as_mut(), env, MigrateMsg {});
+        let result = contract.migrate(mock_deps.as_mut(), env, MigrateMsg {network_id:None});
         assert!(result.is_ok());
         let expected = ContractVersion {
             contract: CONTRACT_NAME.to_string(),
