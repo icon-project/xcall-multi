@@ -7,7 +7,7 @@ build_info = true
 extra_output = ["storageLayout"]
 
 [rpc_endpoints]
-local = "${LOCALA_RPC_URL}" 
+local = "${LOCAL_RPC_URL}" 
 sepolia = "${SEPOLIA_RPC_URL}"
 bsctest = "${BSC_TESTNET_RPC_URL}"
 fuji = "${FUJI_RPC_URL}"

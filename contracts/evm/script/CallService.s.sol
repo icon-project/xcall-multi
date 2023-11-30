@@ -1,20 +1,20 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.18;
+pragma solidity >=0.8.18;
 import {Script} from "forge-std/Script.sol";
-import {UUPSProxy} from "@xcall/contracts/upgradeable/UUPSProxy.sol";
 import {console2} from "forge-std/console2.sol";
 
 import "@xcall/contracts/xcall/CallService.sol";
 import "@xcall/contracts/mocks/multi-protocol-dapp/MultiProtocolSampleDapp.sol";
 import "@xcall/contracts/adapters/LayerZeroAdapter.sol";
 import "@xcall/contracts/adapters/WormholeAdapter.sol";
-import {Upgrades} from "openzeppelin-foundry-upgrades/Upgrades.sol";
+import "openzeppelin-foundry-upgrades/Upgrades.sol";
 
+///
 contract DeployCallService is Script {
     CallService private proxyXcall;
     using Strings for string;
 
-    UUPSProxy internal proxyContract;
+    // UUPSProxy internal proxyContract;
 
     uint256 internal deployerPrivateKey;
     address internal ownerAddress;
@@ -60,8 +60,9 @@ contract DeployCallService is Script {
         connection = vm.envAddress(env.concat("_BMC_ADDRESS"));
         nid = vm.envString(chain.concat("_NID"));
 
-        address proxy = Upgrades.deployUUPSProxy(
+        address proxy = Upgrades.deployTransparentProxy(
             "CallService.sol",
+            msg.sender,
             abi.encodeCall(
                 CallService.initialize,
                 nid
@@ -74,22 +75,23 @@ contract DeployCallService is Script {
         proxyXcall.setDefaultConnection(iconNid, connection);
     }
 
-    function deployMock(
-        string memory chain
-    ) public broadcast(deployerPrivateKey) {
-        chain = capitalizeString(chain);
-        address xcall = vm.envAddress(chain.concat("_XCALL"));
+    // function deployMock(
+    //     string memory chain
+    // ) public broadcast(deployerPrivateKey) {
+    //     chain = capitalizeString(chain);
+    //     address xcall = vm.envAddress(chain.concat("_XCALL"));
 
-        MultiProtocolSampleDapp mockdapp = new MultiProtocolSampleDapp();
+    //     MultiProtocolSampleDapp mockdapp = new MultiProtocolSampleDapp();
 
-        address proxyMock = Upgrades.deployUUPSProxy(
-            address(mockdapp),
-            abi.encodeWithSelector(
-                MultiProtocolSampleDapp.initialize.selector,
-                xcall
-            )
-        );
-    }
+    //     address proxyMock = Upgrades.deployTransparentProxy(
+    //         address(mockdapp),
+    //         msg.sender,
+    //         abi.encodeWithSelector(
+    //             MultiProtocolSampleDapp.initialize.selector,
+    //             xcall
+    //         )
+    //     );
+    // }
 
     function deployLayerZero(
         string memory chain
@@ -101,63 +103,63 @@ contract DeployCallService is Script {
         );
         LayerZeroAdapter layerzeroAdapter = new LayerZeroAdapter();
 
-        UUPSProxy proxyLayerzeroAdapter = new UUPSProxy(
-            address(layerzeroAdapter),
-            abi.encodeWithSelector(
-                LayerZeroAdapter.initialize.selector,
-                layerzeroRelayer,
-                xcall
-            )
-        );
+        // UUPSProxy proxyLayerzeroAdapter = new UUPSProxy(
+        //     address(layerzeroAdapter),
+        //     abi.encodeWithSelector(
+        //         LayerZeroAdapter.initialize.selector,
+        //         layerzeroRelayer,
+        //         xcall
+        //     )
+        // );
     }
 
-    function deployWormHole(
-        string memory chain
-    ) public broadcast(deployerPrivateKey) {
-        chain = capitalizeString(chain);
-        address wormholeRelayer = vm.envAddress(
-            chain.concat("_WORMHOLE_RELAYER")
-        );
-        address xcall = vm.envAddress(chain.concat("_XCALL"));
+    // function deployWormHole(
+    //     string memory chain
+    // ) public broadcast(deployerPrivateKey) {
+    //     chain = capitalizeString(chain);
+    //     address wormholeRelayer = vm.envAddress(
+    //         chain.concat("_WORMHOLE_RELAYER")
+    //     );
+    //     address xcall = vm.envAddress(chain.concat("_XCALL"));
 
-        WormholeAdapter wormholeAdapter = new WormholeAdapter();
+    //     WormholeAdapter wormholeAdapter = new WormholeAdapter();
 
-        UUPSProxy proxyWormholeAdapter = new UUPSProxy(
-            address(wormholeAdapter),
-            abi.encodeWithSelector(
-                WormholeAdapter.initialize.selector,
-                wormholeRelayer,
-                xcall
-            )
-        );
-    }
+    //     UUPSProxy proxyWormholeAdapter = new UUPSProxy(
+    //         address(wormholeAdapter),
+    //         abi.encodeWithSelector(
+    //             WormholeAdapter.initialize.selector,
+    //             wormholeRelayer,
+    //             xcall
+    //         )
+    //     );
+    // }
 
-    // "callservice" "mock" "layerzero" "wormhole"
-    function upgradeContract(
-        string memory chain,
-        string memory contractName
-    ) external broadcast(deployerPrivateKey) {
-        if (contractName.compareTo("callservice")) {
-            proxyAddress = vm.envAddress(
-                capitalizeString(chain).concat("_XCALL")
-            );
-            CallService xcall = new CallService();
-            CallService wrappedProxy = CallService(proxyAddress);
-            wrappedProxy.upgradeTo(address(xcall));
-        } else if (contractName.compareTo("layerzero")) {
-            proxyAddress = vm.envAddress(
-                capitalizeString(chain).concat("_LAYERZERO_ADAPTER")
-            );
-            LayerZeroAdapter layerzero = new LayerZeroAdapter();
-            LayerZeroAdapter wrappedProxy = LayerZeroAdapter(payable(proxyAddress));
-            wrappedProxy.upgradeTo(address(layerzero));
-        } else if (contractName.compareTo("wormhole")) {
-            proxyAddress = vm.envAddress(
-                capitalizeString(chain).concat("_WORMHOLE_ADAPTER")
-            );
-            WormholeAdapter wormhole = new WormholeAdapter();
-            WormholeAdapter wrappedProxy = WormholeAdapter(proxyAddress);
-            wrappedProxy.upgradeTo(address(wormhole));
-        }
-    }
+//     // "callservice" "mock" "layerzero" "wormhole"
+//     function upgradeContract(
+//         string memory chain,
+//         string memory contractName
+//     ) external broadcast(deployerPrivateKey) {
+//         if (contractName.compareTo("callservice")) {
+//             proxyAddress = vm.envAddress(
+//                 capitalizeString(chain).concat("_XCALL")
+//             );
+//             CallService xcall = new CallService();
+//             CallService wrappedProxy = CallService(proxyAddress);
+//             wrappedProxy.upgradeTo(address(xcall));
+//         } else if (contractName.compareTo("layerzero")) {
+//             proxyAddress = vm.envAddress(
+//                 capitalizeString(chain).concat("_LAYERZERO_ADAPTER")
+//             );
+//             LayerZeroAdapter layerzero = new LayerZeroAdapter();
+//             LayerZeroAdapter wrappedProxy = LayerZeroAdapter(payable(proxyAddress));
+//             wrappedProxy.upgradeTo(address(layerzero));
+//         } else if (contractName.compareTo("wormhole")) {
+//             proxyAddress = vm.envAddress(
+//                 capitalizeString(chain).concat("_WORMHOLE_ADAPTER")
+//             );
+//             WormholeAdapter wormhole = new WormholeAdapter();
+//             WormholeAdapter wrappedProxy = WormholeAdapter(proxyAddress);
+//             wrappedProxy.upgradeTo(address(wormhole));
+//         }
+//     }
 }
