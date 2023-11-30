@@ -24,14 +24,14 @@ impl<'a> CwCallService<'a> {
     ) -> Result<Response, ContractError> {
         let msg = if rollback.is_some() {
             AnyMessage::CallMessageWithRollback(CallMessageWithRollback {
-                msg_type: MessageType::MessageWithRollback,
+               
                 data,
                 rollback: rollback.unwrap(),
             })
         } else {
             AnyMessage::CallMessage(CallMessage {
                 data,
-                msg_type: MessageType::BasicMessage,
+               
             })
         };
         let envelope = Envelope::new(msg, sources, destinations);

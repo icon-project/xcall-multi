@@ -55,7 +55,7 @@ impl CSMessageRequest {
     }
 
     pub fn need_response(&self) -> bool {
-        self.msg_type == MessageType::MessageWithRollback
+        self.msg_type == MessageType::CallMessageWithRollback
     }
 
     pub fn data(&self) -> Result<&[u8], ContractError> {
@@ -176,7 +176,7 @@ mod tests {
             NetworkAddress::from_str("0x1.ETH/0xa").unwrap(),
             Addr::unchecked("cx0000000000000000000000000000000000000102"),
             21,
-            MessageType::BasicMessage,
+            MessageType::CallMessage,
             data.clone(),
             vec![],
         );
@@ -189,7 +189,7 @@ mod tests {
             NetworkAddress::from_str("0x1.ETH/0xa").unwrap(),
             Addr::unchecked("cx0000000000000000000000000000000000000102"),
             21,
-            MessageType::BasicMessage,
+            MessageType::CallMessage,
             data.clone(),
             vec!["abc".to_string(), "cde".to_string(), "efg".to_string()],
         );
@@ -202,7 +202,7 @@ mod tests {
             NetworkAddress::from_str("0x1.ETH/0xa").unwrap(),
             Addr::unchecked("cx0000000000000000000000000000000000000102"),
             21,
-            MessageType::MessageWithRollback,
+            MessageType::CallMessageWithRollback,
             data,
             vec!["abc".to_string(), "cde".to_string(), "efg".to_string()],
         );

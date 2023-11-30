@@ -59,11 +59,11 @@ impl Decodable for Envelope {
 
 pub fn decode_message(msg_type: MessageType, bytes: Vec<u8>) -> Result<AnyMessage, DecoderError> {
     match msg_type {
-        MessageType::BasicMessage => {
+        MessageType::CallMessage => {
             let msg: CallMessage = rlp::decode(&bytes)?;
             Ok(AnyMessage::CallMessage(msg))
         }
-        MessageType::MessageWithRollback => {
+        MessageType::CallMessageWithRollback => {
             let msg: CallMessageWithRollback = rlp::decode(&bytes)?;
             Ok(AnyMessage::CallMessageWithRollback(msg))
         }
@@ -78,7 +78,7 @@ mod tests {
     fn test_encoding_decoding_envelope_call_message() {
         // Create a sample Envelope
         let message = AnyMessage::CallMessage(CallMessage {
-            msg_type: MessageType::BasicMessage,
+         
             data: vec![1, 2, 3],
         });
         let sources = vec!["source1".to_string(), "source2".to_string()];
@@ -99,7 +99,7 @@ mod tests {
     fn test_encoding_decoding_envelope_call_message_rollback() {
         // Create a sample Envelope
         let message = AnyMessage::CallMessageWithRollback(CallMessageWithRollback {
-            msg_type: MessageType::MessageWithRollback,
+         
             data: vec![1, 2, 3],
             rollback: vec![1, 2, 3],
         });
