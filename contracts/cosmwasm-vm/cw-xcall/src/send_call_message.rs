@@ -1,7 +1,7 @@
 use cosmwasm_std::{coins, BankMsg};
 use cw_xcall_lib::message::call_message::CallMessage;
 use cw_xcall_lib::message::msg_trait::IMessage;
-use cw_xcall_lib::message::msg_type::MessageType;
+
 use cw_xcall_lib::message::AnyMessage;
 use cw_xcall_lib::message::{call_message_rollback::CallMessageWithRollback, envelope::Envelope};
 use cw_xcall_lib::network_address::NetworkAddress;
@@ -24,15 +24,11 @@ impl<'a> CwCallService<'a> {
     ) -> Result<Response, ContractError> {
         let msg = if rollback.is_some() {
             AnyMessage::CallMessageWithRollback(CallMessageWithRollback {
-               
                 data,
                 rollback: rollback.unwrap(),
             })
         } else {
-            AnyMessage::CallMessage(CallMessage {
-                data,
-               
-            })
+            AnyMessage::CallMessage(CallMessage { data })
         };
         let envelope = Envelope::new(msg, sources, destinations);
         self.send_call(deps, info, to, envelope)

@@ -78,7 +78,6 @@ mod tests {
     fn test_encoding_decoding_envelope_call_message() {
         // Create a sample Envelope
         let message = AnyMessage::CallMessage(CallMessage {
-         
             data: vec![1, 2, 3],
         });
         let sources = vec!["source1".to_string(), "source2".to_string()];
@@ -87,7 +86,7 @@ mod tests {
         let encoded_data = rlp::encode(&envelope).to_vec();
 
         assert_eq!(
-            "e60186c50183010203d087736f757263653187736f7572636532cc856465737431856465737432",
+            "e50185c483010203d087736f757263653187736f7572636532cc856465737431856465737432",
             hex::encode(&encoded_data)
         );
         let decoded: Envelope = rlp::decode(&encoded_data).unwrap();
@@ -99,7 +98,6 @@ mod tests {
     fn test_encoding_decoding_envelope_call_message_rollback() {
         // Create a sample Envelope
         let message = AnyMessage::CallMessageWithRollback(CallMessageWithRollback {
-         
             data: vec![1, 2, 3],
             rollback: vec![1, 2, 3],
         });
@@ -108,7 +106,10 @@ mod tests {
         let envelope = Envelope::new(message, sources, destinations);
         let encoded_data = rlp::encode(&envelope).to_vec();
 
-        assert_eq!("ea028ac5028301020383010203d087736f757263653187736f7572636532cc856465737431856465737432",hex::encode(&encoded_data));
+        assert_eq!(
+            "e90289c88301020383010203d087736f757263653187736f7572636532cc856465737431856465737432",
+            hex::encode(&encoded_data)
+        );
         let decoded: Envelope = rlp::decode(&encoded_data).unwrap();
 
         assert_eq!(envelope, decoded);

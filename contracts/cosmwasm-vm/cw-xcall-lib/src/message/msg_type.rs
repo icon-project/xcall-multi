@@ -2,8 +2,8 @@ use serde::Serialize;
 
 #[derive(Clone, Debug, Serialize, serde::Deserialize, PartialEq, Eq)]
 pub enum MessageType {
-    CallMessage  = 1,
-    CallMessageWithRollback  = 2,
+    CallMessage = 1,
+    CallMessageWithRollback = 2,
 }
 
 impl From<MessageType> for u8 {

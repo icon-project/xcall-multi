@@ -31,8 +31,6 @@ impl IMessage for AnyMessage {
         }
     }
 
-   
-
     fn to_bytes(&self) -> Result<Vec<u8>, DecoderError> {
         match self {
             AnyMessage::CallMessage(m) => m.to_bytes(),
@@ -44,9 +42,8 @@ impl IMessage for AnyMessage {
 impl AnyMessage {
     pub fn msg_type(&self) -> &MessageType {
         match self {
-            AnyMessage::CallMessage(m) => &MessageType::CallMessage,
-            AnyMessage::CallMessageWithRollback(m) => &MessageType::CallMessageWithRollback,
+            AnyMessage::CallMessage(_m) => &MessageType::CallMessage,
+            AnyMessage::CallMessageWithRollback(_m) => &MessageType::CallMessageWithRollback,
         }
     }
-
 }
