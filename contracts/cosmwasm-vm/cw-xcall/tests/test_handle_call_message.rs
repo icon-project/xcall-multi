@@ -296,7 +296,7 @@ fn test_persisted_message_not_removed_on_error() {
         NetworkAddress::new("nid", "mockaddress"),
         Addr::unchecked("88bd05442686be0a5df7da33b6f1089ebfea3769b19dbb2477fe0cd6e0f123t7"),
         123,
-        MessageType::PersistedMessge,
+        MessageType::CallMessagePersisted,
         vec![],
         vec![],
     );
@@ -337,7 +337,7 @@ fn test_persisted_message_removed_on_success() {
         NetworkAddress::new("nid", "mockaddress"),
         Addr::unchecked("88bd05442686be0a5df7da33b6f1089ebfea3769b19dbb2477fe0cd6e0f123t7"),
         123,
-        MessageType::PersistedMessge,
+        MessageType::CallMessagePersisted,
         vec![],
         vec![],
     );

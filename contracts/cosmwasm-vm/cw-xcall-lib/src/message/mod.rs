@@ -50,7 +50,7 @@ impl AnyMessage {
         match self {
             AnyMessage::CallMessage(_m) => &MessageType::CallMessage,
             AnyMessage::CallMessageWithRollback(_m) => &MessageType::CallMessageWithRollback,
-            AnyMessage::CallMessagePersisted(_m)=>&MessageType::CallMessagePersisted,
+            AnyMessage::CallMessagePersisted(_m) => &MessageType::CallMessagePersisted,
         }
     }
 }

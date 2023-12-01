@@ -37,10 +37,6 @@ impl IMessage for CallMessagePersisted {
         self.data.clone()
     }
 
-    fn msg_type(&self) -> &MessageType {
-        &self.msg_type
-    }
-
     fn to_bytes(&self) -> Result<Vec<u8>, DecoderError> {
         Ok(rlp::encode(self).to_vec())
     }
