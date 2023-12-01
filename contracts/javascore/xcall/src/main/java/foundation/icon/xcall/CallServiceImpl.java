@@ -40,20 +40,31 @@ public class CallServiceImpl implements CallService, FeeManage {
     public static final int MAX_ROLLBACK_SIZE = 1024;
     public static String NID;
 
-    private final VarDB<BigInteger> sn = Context.newVarDB("sn", BigInteger.class);
-    private final VarDB<BigInteger> reqId = Context.newVarDB("reqId", BigInteger.class);
+    public static final String SN = "sn";
+    public static final String REQUEST_ID = "reqId";
+    public static final String ROLLBACKS = "requests";
+    public static final String PROXY_REQUESTS = "proxyReqs";
+    public static final String PENDING_MESSAGES = "pendingMessages";
+    public static final String SUCCESSFUL_RESPONSES = "successfulResponses";
+    public static final String DEFAULT_CONNECTION  = "defaultConnection";
+    public static final String ADMIN  = "admin";
+    public static final String PROTOCOL_FEE  = "protocolFee";
+    public static final String FEE_HANDLER  = "feeHandler";
 
-    private final DictDB<BigInteger, RollbackData> rollbacks = Context.newDictDB("rollbacks", RollbackData.class);
-    private final DictDB<BigInteger, CSMessageRequest> proxyReqs = Context.newDictDB("proxyReqs", CSMessageRequest.class);
-    private final BranchDB<byte[], DictDB<String, Boolean>> pendingMessages = Context.newBranchDB("pendingMessages", Boolean.class);
-    private final DictDB<BigInteger, Boolean> successfulResponses = Context.newDictDB("successfulResponses", Boolean.class);
+    private final VarDB<BigInteger> sn = Context.newVarDB(SN, BigInteger.class);
+    private final VarDB<BigInteger> reqId = Context.newVarDB(REQUEST_ID, BigInteger.class);
 
-    private final DictDB<String, Address> defaultConnection = Context.newDictDB("defaultConnection", Address.class);
+    private final DictDB<BigInteger, RollbackData> rollbacks = Context.newDictDB(ROLLBACKS, RollbackData.class);
+    private final DictDB<BigInteger, CSMessageRequest> proxyReqs = Context.newDictDB(PROXY_REQUESTS, CSMessageRequest.class);
+    private final BranchDB<byte[], DictDB<String, Boolean>> pendingMessages = Context.newBranchDB(PENDING_MESSAGES, Boolean.class);
+    private final DictDB<BigInteger, Boolean> successfulResponses = Context.newDictDB(SUCCESSFUL_RESPONSES, Boolean.class);
+
+    private final DictDB<String, Address> defaultConnection = Context.newDictDB(DEFAULT_CONNECTION, Address.class);
 
     // for fee-related operations
-    private final VarDB<Address> admin = Context.newVarDB("admin", Address.class);
-    private final VarDB<BigInteger> protocolFee = Context.newVarDB("protocolFee", BigInteger.class);
-    private final VarDB<Address> feeHandler = Context.newVarDB("feeHandler", Address.class);
+    private final VarDB<Address> admin = Context.newVarDB(ADMIN, Address.class);
+    private final VarDB<BigInteger> protocolFee = Context.newVarDB(PROTOCOL_FEE, BigInteger.class);
+    private final VarDB<Address> feeHandler = Context.newVarDB(FEE_HANDLER, Address.class);
 
     public CallServiceImpl(String networkId) {
         NID = networkId;
