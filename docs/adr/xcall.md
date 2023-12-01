@@ -544,8 +544,7 @@ payable external function sendCallMessage(String _to,
     envelope = new Envelope(msg, _sources, _destinations)
     return sendCall(_to, envelope.toBytes())
 
-    envelope = new XCallEnvelope(msg, _sources, _destinations)
-    return sendCall(_to, envelope.toBytes());
+
 
 }
 ```

@@ -36,19 +36,21 @@ impl IMessage for AnyMessage {
         }
     }
 
-    fn msg_type(&self) -> &MessageType {
-        match self {
-            AnyMessage::CallMessage(m) => m.msg_type(),
-            AnyMessage::CallMessageWithRollback(m) => m.msg_type(),
-            AnyMessage::CallMessagePersisted(m) => m.msg_type(),
-        }
-    }
-
     fn to_bytes(&self) -> Result<Vec<u8>, DecoderError> {
         match self {
             AnyMessage::CallMessage(m) => m.to_bytes(),
             AnyMessage::CallMessageWithRollback(m) => m.to_bytes(),
             AnyMessage::CallMessagePersisted(m) => m.to_bytes(),
+        }
+    }
+}
+
+impl AnyMessage {
+    pub fn msg_type(&self) -> &MessageType {
+        match self {
+            AnyMessage::CallMessage(_m) => &MessageType::CallMessage,
+            AnyMessage::CallMessageWithRollback(_m) => &MessageType::CallMessageWithRollback,
+            AnyMessage::CallMessagePersisted(_m)=>&MessageType::CallMessagePersisted,
         }
     }
 }
