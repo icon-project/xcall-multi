@@ -133,7 +133,6 @@ public class CallServiceImpl implements CallService, FeeManage {
         return sn;
     }
 
-    @Override
     @Payable
     @External
     public BigInteger sendCallMessage(String _to,

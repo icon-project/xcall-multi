@@ -18,11 +18,11 @@ impl<'a> CwCallService<'a> {
 
         let call_service_message: CSMessage = CSMessage::try_from(message)?;
         match call_service_message.message_type() {
-            CallServiceMessageType::CallServiceRequest => {
+            CSMessageType::CSMessageRequest => {
                 self.handle_request(deps, info, from_nid, call_service_message.payload())
             }
-            CallServiceMessageType::CallServiceResponse => {
-                self.handle_response(deps, info, call_service_message.payload())
+            CSMessageType::CSMessageResult => {
+                self.handle_result(deps, info, call_service_message.payload())
             }
         }
     }
@@ -68,7 +68,7 @@ impl<'a> CwCallService<'a> {
             request.from().clone(),
             request.to().clone(),
             request.sequence_no(),
-            request.rollback(),
+            request.msg_type(),
             keccak256(request.data().unwrap()).to_vec(),
             request.protocols().clone(),
         );
@@ -88,13 +88,13 @@ impl<'a> CwCallService<'a> {
             .add_event(event))
     }
 
-    pub fn handle_response(
+    pub fn handle_result(
         &self,
         deps: DepsMut,
         info: MessageInfo,
         data: &[u8],
     ) -> Result<Response, ContractError> {
-        let message: CSMessageResponse = rlp::decode(data).unwrap();
+        let message: CSMessageResult = rlp::decode(data).unwrap();
 
         let response_sequence_no = message.sequence_no();
 
@@ -194,7 +194,7 @@ impl<'a> CwCallService<'a> {
         info: MessageInfo,
         sn: u128,
     ) -> Result<Response, ContractError> {
-        let msg = CSMessageResponse::new(sn, CallServiceResponseType::CallServiceResponseFailure);
-        self.handle_response(deps, info, &rlp::encode(&msg))
+        let msg = CSMessageResult::new(sn, CallServiceResponseType::CallServiceResponseFailure);
+        self.handle_result(deps, info, &rlp::encode(&msg))
     }
 }
