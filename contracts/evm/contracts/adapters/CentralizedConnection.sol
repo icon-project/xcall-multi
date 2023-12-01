@@ -8,7 +8,7 @@ import "@xcall/contracts/xcall/interfaces/IConnection.sol";
 import "@iconfoundation/btp2-solidity-library/interfaces/ICallService.sol";
 
 
-contract XCallCentralizeConnection is Initializable, IConnection {
+contract CentralizedConnection is Initializable, IConnection {
 
     mapping(string => uint256) private messageFees;
     mapping(string => uint256) private responseFees;
