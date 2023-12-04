@@ -95,7 +95,7 @@ if [ "$action" == "deploy" ]; then
     for chain in "${chains[@]}"; do
         echo "Deploying on $chain"
         if [ "$contract" == "callservice" ]; then
-        forge script DeployCallService  -s "deployContract(string memory env, string memory chain)" $env $chain --fork-url $chain --broadcast --sender ${ADMIN} --verify --etherscan-api-key $chain
+        forge script DeployCallService  -s "deployContract(string memory env, string memory chain)" $env $chain --fork-url $chain --broadcast --sender ${ADMIN} --verify --etherscan-api-key $chain --ffi
         elif [ "$contract" == "mock" ]; then
         forge script DeployCallService -s "deployMock(string memory chain)" $chain --fork-url $chain --broadcast --verify --etherscan-api-key $chain 
         fi
@@ -105,7 +105,8 @@ elif [ "$action" == "upgrade" ]; then
     for chain in "${chains[@]}"; do
         echo "Upgrading on $chain"
         if [ "$contract" == "callservice" ]; then
-        forge script DeployCallService  -s "upgradeContract(string memory chain, string memory contractName)" $chain "CallServiceV2.sol" --fork-url $chain --broadcast --sender ${ADMIN} --verify --etherscan-api-key $chain --ffi        elif [ "$contract" == "mock" ]; then
+        forge script DeployCallService  -s "upgradeContract(string memory chain, string memory contractName)" $chain "CallServiceV2.sol" --fork-url $chain --broadcast --sender ${ADMIN} --verify --etherscan-api-key $chain --ffi        
+        elif [ "$contract" == "mock" ]; then
         echo "Mock Contract is not upgradeable!"
         fi
     done
