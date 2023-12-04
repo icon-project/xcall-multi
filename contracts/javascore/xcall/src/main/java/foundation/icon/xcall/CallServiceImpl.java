@@ -44,7 +44,8 @@ public class CallServiceImpl implements CallService, FeeManage {
     public static final String REQUEST_ID = "reqId";
     public static final String ROLLBACKS = "requests";
     public static final String PROXY_REQUESTS = "proxyReqs";
-    public static final String PENDING_MESSAGES = "pendingMessages";
+    public static final String PENDING_REQUESTS = "pendingReqs";
+    public static final String PENDING_RESPONSES = "pendingResponses";
     public static final String SUCCESSFUL_RESPONSES = "successfulResponses";
     public static final String DEFAULT_CONNECTION  = "defaultConnection";
     public static final String ADMIN  = "admin";
@@ -56,7 +57,8 @@ public class CallServiceImpl implements CallService, FeeManage {
 
     private final DictDB<BigInteger, RollbackData> rollbacks = Context.newDictDB(ROLLBACKS, RollbackData.class);
     private final DictDB<BigInteger, CSMessageRequest> proxyReqs = Context.newDictDB(PROXY_REQUESTS, CSMessageRequest.class);
-    private final BranchDB<byte[], DictDB<String, Boolean>> pendingMessages = Context.newBranchDB(PENDING_MESSAGES, Boolean.class);
+    private final BranchDB<byte[], DictDB<String, Boolean>> pendingReqs = Context.newBranchDB(PENDING_REQUESTS, Boolean.class);
+    private final BranchDB<byte[], DictDB<String, Boolean>> pendingResponses = Context.newBranchDB(PENDING_RESPONSES, Boolean.class);
     private final DictDB<BigInteger, Boolean> successfulResponses = Context.newDictDB(SUCCESSFUL_RESPONSES, Boolean.class);
 
     private final DictDB<String, Address> defaultConnection = Context.newDictDB(DEFAULT_CONNECTION, Address.class);
@@ -428,7 +430,9 @@ public class CallServiceImpl implements CallService, FeeManage {
         String from = msgReq.getFrom();
         Context.require(NetworkAddress.valueOf(from).net().equals(netFrom));
 
-        if (!verifyProtocols(netFrom, msgReq.getProtocols(), data)) {
+        byte[] hash = Context.hash("sha-256", data);
+        DictDB<String, Boolean> pending = pendingReqs.at(hash);
+        if (!verifyProtocols(netFrom, msgReq.getProtocols(), pending)) {
             return;
         }
 
@@ -451,7 +455,10 @@ public class CallServiceImpl implements CallService, FeeManage {
             Context.println("handleResult: no request for " + resSn);
             return; // just ignore
         }
-        if (!verifyProtocols(req.getTo(), req.getProtocols(), data)) {
+
+        byte[] hash = Context.hash("sha-256", data);
+        DictDB<String, Boolean> pending = pendingResponses.at(hash);
+        if (!verifyProtocols(req.getTo(), req.getProtocols(), pending)) {
             return;
         }
 
@@ -471,20 +478,18 @@ public class CallServiceImpl implements CallService, FeeManage {
         }
     }
 
-    private boolean verifyProtocols(String fromNid, String[] protocols, byte[] data) {
+    private boolean verifyProtocols(String fromNid, String[] protocols, DictDB<String, Boolean>  pendingDb) {
         Address caller = Context.getCaller();
         if (protocols.length > 1) {
-            byte[] hash = Context.hash("sha-256", data);
-            DictDB<String, Boolean> pending = pendingMessages.at(hash);
-            pending.set(caller.toString(), true);
+            pendingDb.set(caller.toString(), true);
             for (String protocol : protocols) {
-                if (!pending.getOrDefault(protocol, false)) {
+                if (!pendingDb.getOrDefault(protocol, false)) {
                     return false;
                 }
             }
 
             for (String protocol : protocols) {
-                pending.set(protocol, null);
+                pendingDb.set(protocol, null);
             }
         } else if (protocols.length == 1) {
             Context.require(caller.toString().equals(protocols[0]), "ProtocolSourceMismatch");

@@ -7,6 +7,8 @@ use self::{
 
 pub mod call_message;
 pub mod call_message_persisted;
+
+pub mod call_message;
 pub mod call_message_rollback;
 pub mod envelope;
 pub mod msg_trait;

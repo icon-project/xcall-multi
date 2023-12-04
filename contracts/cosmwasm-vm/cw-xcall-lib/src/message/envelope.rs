@@ -1,9 +1,8 @@
 use common::rlp::{self, Decodable, DecoderError, Encodable};
 
 use super::{
-    call_message::CallMessage, call_message_persisted::CallMessagePersisted,
-    call_message_rollback::CallMessageWithRollback, msg_trait::IMessage, msg_type::MessageType,
-    AnyMessage,
+    call_message::CallMessage, call_message_rollback::CallMessageWithRollback, msg_trait::IMessage,
+    msg_type::MessageType, AnyMessage, call_message_persisted::CallMessagePersisted,
 };
 #[derive(Clone, Debug, PartialEq)]
 pub struct Envelope {
