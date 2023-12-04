@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.18;
+pragma solidity >=0.8.18;
 import {Script} from "forge-std/Script.sol";
-import {UUPSProxy} from "@xcall/contracts/upgradeable/UUPSProxy.sol";
 import {console2} from "forge-std/console2.sol";
+import {Upgrades} from "openzeppelin-foundry-upgrades/Upgrades.sol";
 
 import "@xcall/contracts/xcall/CallService.sol";
 import "@xcall/contracts/mocks/multi-protocol-dapp/MultiProtocolSampleDapp.sol";
@@ -13,11 +13,8 @@ contract DeployCallService is Script {
 
     using Strings for string;
 
-    UUPSProxy internal proxyContract;
-
     uint256 internal deployerPrivateKey;
     address internal ownerAddress;
-    address internal proxyXcallAddress;
 
     string internal nid;
     string internal iconNid;
@@ -59,47 +56,26 @@ contract DeployCallService is Script {
         connection = vm.envAddress(env.concat("_BMC_ADDRESS"));
         nid = vm.envString(chain.concat("_NID"));
 
-        CallService xcall = new CallService();
-        proxyContract = new UUPSProxy(
-            address(xcall),
-            abi.encodeWithSelector(CallService.initialize.selector, nid)
+        address proxy = Upgrades.deployTransparentProxy(
+            "CallService.sol",
+            msg.sender,
+            abi.encodeCall(CallService.initialize, "abc")
         );
-        console2.log("CallService address:", address(xcall), "\n");
-        console2.log(
-            "CallService Proxy address:",
-            address(proxyContract),
-            "\n"
-        );
+        console2.log("CallService address:", proxy, "\n");
 
-        proxyXcall = CallService(address(proxyContract));
+        proxyXcall = CallService(proxy);
         proxyXcall.setProtocolFee(protocolFee);
         proxyXcall.setProtocolFeeHandler(ownerAddress);
         proxyXcall.setDefaultConnection(iconNid, connection);
     }
 
-    function deployMock(string memory chain) public broadcast(deployerPrivateKey){
-            chain = capitalizeString(chain);
-            address xcall = vm.envAddress(chain.concat("_XCALL"));
-
-            MultiProtocolSampleDapp mockdapp = new MultiProtocolSampleDapp();
-
-            UUPSProxy proxyMock = new UUPSProxy(
-                address(mockdapp),
-                abi.encodeWithSelector(
-                    MultiProtocolSampleDapp.initialize.selector,
-                    xcall
-                )
-            );
-    }
-
     function upgradeContract(
-        string memory chain
+        string memory chain,
+        string memory contractName
     ) external broadcast(deployerPrivateKey) {
-        proxyXcallAddress = vm.envAddress(
+        address proxy = vm.envAddress(
             capitalizeString(chain).concat("_XCALL")
         );
-        CallService xcall = new CallService();
-        wrappedProxy = CallService(proxyXcallAddress);
-        wrappedProxy.upgradeTo(address(xcall));
+        Upgrades.upgradeProxy(proxy, contractName,"");
     }
 }

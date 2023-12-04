@@ -17,10 +17,9 @@ import "@iconfoundation/btp2-solidity-library/utils/Integers.sol";
 import "@iconfoundation/btp2-solidity-library/utils/ParseAddress.sol";
 import "@iconfoundation/btp2-solidity-library/utils/Strings.sol";
 import "openzeppelin-contracts-upgradeable/contracts/proxy/utils/Initializable.sol";
-import "openzeppelin-contracts-upgradeable/contracts/proxy/utils/UUPSUpgradeable.sol";
 
 
-contract CallService is IBSH, ICallService, IFeeManage, Initializable, UUPSUpgradeable {
+contract CallService is IBSH, ICallService, IFeeManage, Initializable {
     using Strings for string;
     using Integers for uint;
     using ParseAddress for address;
@@ -525,10 +524,4 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable, UUPSUpgra
     function verifySuccess(uint256 _sn) external view returns (bool) {
         return successfulResponses[_sn];
     }
-    
-        /* ========== UUPS ========== */
-    //solhint-disable-next-line no-empty-blocks
-    function _authorizeUpgrade(address) internal override onlyAdmin {}
-
-    function getImplementation() external view returns (address) {}
 }
