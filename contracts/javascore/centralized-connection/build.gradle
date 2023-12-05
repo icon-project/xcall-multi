@@ -6,7 +6,7 @@ dependencies {
 
 optimizedJar {
     dependsOn(project(':xcall-lib').jar)
-    mainClassName = 'xcall.adapter.centralized.XCallCentralizeConnection'
+    mainClassName = 'xcall.adapter.centralized.CentralizeConnection'
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     from {
         configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
