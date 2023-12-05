@@ -6,9 +6,15 @@ import "openzeppelin-contracts-upgradeable/contracts/proxy/utils/Initializable.s
 import "@xcall/utils/Types.sol";
 import "@xcall/contracts/xcall/interfaces/IConnection.sol";
 import "@iconfoundation/btp2-solidity-library/interfaces/ICallService.sol";
+import {console2} from "forge-std/Test.sol";
+import "@iconfoundation/btp2-solidity-library/utils/Strings.sol";
+import "@iconfoundation/btp2-solidity-library/utils/ParseAddress.sol";
 
 
 contract CentralizedConnection is Initializable, IConnection {
+    using Strings for string;
+    using ParseAddress for address;
+    using ParseAddress for string;
 
     mapping(string => uint256) private messageFees;
     mapping(string => uint256) private responseFees;
@@ -27,7 +33,7 @@ contract CentralizedConnection is Initializable, IConnection {
         _;
     }
 
-    function initialize(address _xCall, address _relayer ) public initializer {
+    function initialize(address _relayer, address _xCall) public initializer {
         adminAddress = msg.sender;
         xCall = _xCall;
         relayer = _relayer;
@@ -68,11 +74,11 @@ contract CentralizedConnection is Initializable, IConnection {
         int256 _sn,
         bytes calldata _msg
     ) external override payable {
-        require(msg.sender == xCall, "Only xCall can send messages");
+        console2.log(msg.sender);
+        require(msg.sender == xCall, Strings.concat(msg.sender.toString(), (xCall).toString()));
         uint256 fee = this.getFee(_to,false);
         require(msg.value >= fee,"Fee is not Sufficient"); 
         emit Message(_to, _sn, _msg);
-
     }
 
     function recvMessage(
@@ -80,6 +86,7 @@ contract CentralizedConnection is Initializable, IConnection {
         string memory sn,
         bytes calldata _msg
     ) public {
+        require(msg.sender==relayer, "Only relayer can call this function");
         bytes32 hash = keccak256(abi.encodePacked(_msg, sn));
         require(!seenDeliveryVaaHashes[hash], "Message already processed");
         seenDeliveryVaaHashes[hash] = true;
