@@ -419,6 +419,7 @@ int FAILURE = 0
 CSMessageResult {
     BigInteger sn
     int code
+    byte[] message
 }
 ```
 
@@ -444,6 +445,17 @@ RollbackData {
     String[] protocols
     byte[] rollback
     boolean enabled = false // defaults to false
+}
+```
+
+##### ExecuteResult
+
+```
+int SUCCESS = 1
+int FAILURE = 0
+ExecuteResult {
+    int code
+    byte[] reply
 }
 ```
 
@@ -691,8 +703,8 @@ internal function executeMessage(int reqId, CallRequest req) {
         case CallMessage.Type:
             tryExecute(reqId, req.from, req.data, req.protocols)
         case CallMessageWithRollback.Type:
-            code = tryExecute(reqId, req.from, req.data, req.protocols)
-            result = new CSMessageResult(req.sn, code)
+            executeResult = tryExecute(reqId, req.from, req.data, req.protocols)
+            result = new CSMessageResult(req.sn, executeResult.code,executeResult.reply)
             msg = CSMessage(CSMessage.RESULT, result.toBytes())
 
             sn = req.sn.negate()
@@ -725,25 +737,27 @@ external function executeRollback(Integer _sn) {
 
 ```
 ```
-internal function tryExecuteCall(int id, String from, byte[] data, String[] protocols) returns String {
+internal function tryExecuteCall(int id, String from, byte[] data, String[] protocols) returns ExecuteResult {
     try:
-        executeCall(id, from, data, protocols)
+        let reply= executeCall(id, from, data, protocols)
     catch Error as e:
          emit CallExecuted(id, CSMessageResult.FAILURE, e.message)
-         return CSMessageResult.FAILURE
+         return ExecuteResult(CSMessageResult.FAILURE,null)
 
-    return CSMessageResult.SUCCESS
+    return ExecuteResult(CSMessageResult.SUCCESS,reply)
 }
 ```
 
 ```
-internal function executeCall(int id, String from, byte[] data, String[] protocols) {
+internal function executeCall(int id, String from, byte[] data, String[] protocols)returns byte[] {
+    let reply=[];
     if req.protocols == []:
-        req.to->handleCallMessage(from, data)
+        reply= req.to->handleCallMessage(from, data)
     else:
-        req.to->handleCallMessage(from, data, protocols)
-
-    emit CallExecuted(id, CSMessageResult.SUCCESS, "")
+        reply= req.to->handleCallMessage(from, data, protocols)
+     
+    emit CallExecuted(id, CSMessageResult.SUCCESS, keccak256(reply))
+    return reply;
 }
 ```
 
