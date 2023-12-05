@@ -2,7 +2,7 @@
 source .env
 # Define valid actions and environments
 valid_actions=("deploy" "upgrade")
-valid_contracts=("callservice" "mock")
+valid_contracts=("callservice" "mock" "wormhole" "layerzero" "centralized")
 valid_environments=("mainnet" "testnet" "local")
 valid_mainnet_chains=("ethereum" "binance" "avalanche" "arbitrum" "optimism" "base" "all")
 valid_testnet_chains=("sepolia" "bsc_testnet" "fuji" "arbitrum_goerli" "optimism_goerli" "base_goerli" "all")
@@ -13,6 +13,7 @@ action=""
 env=""
 chains=()
 contract=""
+contractVersion=""
 
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do
@@ -20,6 +21,10 @@ while [[ $# -gt 0 ]]; do
         --contract)
             shift
             contract="$1"
+            ;;
+        --version)
+            shift
+            contractVersion="$1"
             ;;
         --deploy)
             action="deploy"
@@ -44,20 +49,26 @@ while [[ $# -gt 0 ]]; do
     shift
 done
 
-if [[ ! " ${valid_actions[@]} " =~ " ${action} " ]]; then
-    echo "Invalid action. Allowed values are: ${valid_actions[*]}"
-    exit 1
-fi
-
 if [[ ! " ${valid_contracts[@]} " =~ " ${contract} " ]]; then
     echo "Invalid action. Allowed values are: ${valid_contracts[*]}"
     exit 1
 fi
 
+if [[ ! " ${valid_actions[@]} " =~ " ${action} " ]]; then
+    echo "Invalid action. Allowed values are: ${valid_actions[*]}"
+    exit 1
+fi
 
 if [[ ! " ${valid_environments[@]} " =~ " ${env} " ]]; then
     echo "Invalid env parameter. Allowed values are: ${valid_environments[*]}"
     exit 1
+fi
+
+if [ "$action" == "upgrade" ]; then
+    if [ "$contractVersion" == "" ]; then
+        echo "Missing contract version, add --version <contract> (like --version CallServiceV2.sol)"
+        exit 1
+    fi
 fi
 
 if [ ${#chains[@]} -eq 0 ]; then
@@ -94,20 +105,18 @@ if [ "$action" == "deploy" ]; then
     echo "Deploying $contract on $env:"
     for chain in "${chains[@]}"; do
         echo "Deploying on $chain"
-        if [ "$contract" == "callservice" ]; then
-        forge script DeployCallService  -s "deployContract(string memory env, string memory chain)" $env $chain --fork-url $chain --broadcast --sender ${ADMIN} --verify --etherscan-api-key $chain --ffi
-        elif [ "$contract" == "mock" ]; then
-        forge script DeployCallService -s "deployMock(string memory chain)" $chain --fork-url $chain --broadcast --verify --etherscan-api-key $chain 
-        fi
+        rm -rf out
+        forge script DeployCallService  -s "deployContract(string memory env, string memory chain, string memory contractA)" $env $chain $contract --fork-url $chain --broadcast --sender ${ADMIN} --verify --etherscan-api-key $chain --ffi
     done
 elif [ "$action" == "upgrade" ]; then
     echo "Upgrading $contract on $env:"
     for chain in "${chains[@]}"; do
+        rm -rf out
         echo "Upgrading on $chain"
-        if [ "$contract" == "callservice" ]; then
-        forge script DeployCallService  -s "upgradeContract(string memory chain, string memory contractName)" $chain "CallServiceV2.sol" --fork-url $chain --broadcast --sender ${ADMIN} --verify --etherscan-api-key $chain --ffi        
-        elif [ "$contract" == "mock" ]; then
+        if [ "$contract" == "mock" ]; then
         echo "Mock Contract is not upgradeable!"
+        else
+        forge script DeployCallService  -s "upgradeContract(string memory chain, string memory contractName, string memory contractA)" $chain $contractVersion $contract --fork-url $chain --broadcast --sender ${ADMIN} --verify --etherscan-api-key $chain --ffi        
         fi
     done
 fi

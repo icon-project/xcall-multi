@@ -48,7 +48,7 @@ $ anvil
 ### Deploy
 
 ```shell
-./deploy_script.sh --contract <contract> --<action> --env <environment> --chain <chain1> <chain2> ...
+./deploy_script.sh --contract <contract> --<action> --env <environment> --chain <chain1> <chain2> ... --version <filename-version>
 ```
 
 Replace the placeholders with your specific values:
@@ -57,12 +57,13 @@ Replace the placeholders with your specific values:
 - `<action>`: Choose either "--deploy" to deploy contracts or "--upgrade" to upgrade existing contracts.
 - `<environment>`: Select the deployment environment ("mainnet," "testnet," or "local").
 - `<chain1>`, `<chain2>`, ...: Specify one or more chains for deployment. Use "all" to deploy to all valid chains for the environment.
+- `filename-version`: filename of new contract to upgrade like, CallServiceV2.sol (only needed in upgrade)
 
 ### Valid Options
 
 - *Actions*: "deploy", "upgrade"
 - *Environments*: "mainnet", "testnet", "local"
-- *Contract Types*: "callservice"
+- *Contract Types*: "callservice" "wormhole" "layerzero" "centralized" "mock"
 
 ### Examples
 
@@ -75,7 +76,7 @@ Replace the placeholders with your specific values:
 #### Upgrade the "callservice" contract to testnet on all available chains:
 
 ```shell
-./deploy_script.sh --contract callservice --upgrade --env testnet --chain all
+./deploy_script.sh --contract callservice --upgrade --env testnet --chain all --version CallServiceV2.sol
 ```
 
 ### Cast

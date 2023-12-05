@@ -19,8 +19,6 @@ contract DeployCallService is Script {
     address internal ownerAddress;
 
     string internal nid;
-    string internal iconNid;
-    address internal connection;
     uint256 internal protocolFee;
 
     constructor() {
@@ -50,47 +48,40 @@ contract DeployCallService is Script {
 
     function deployContract(
         string memory env,
-        string memory chain
+        string memory chain,
+        string memory contractA
     ) external broadcast(deployerPrivateKey) {
         env = capitalizeString(env);
         chain = capitalizeString(chain);
-        iconNid = vm.envString(env.concat("_ICON_NID"));
-        connection = vm.envAddress(env.concat("_BMC_ADDRESS"));
         nid = vm.envString(chain.concat("_NID"));
 
-        address proxy = Upgrades.deployTransparentProxy(
-            "CallService.sol",
-            msg.sender,
-            abi.encodeCall(CallService.initialize, nid)
-        );
-        console2.log("CallService address:", proxy, "\n");
+        if (contractA.compareTo("callservice")) {
+            address proxy = Upgrades.deployTransparentProxy(
+                "CallService.sol",
+                msg.sender,
+                abi.encodeCall(CallService.initialize, nid)
+            );
+            console2.log("CallService address:", proxy, "\n");
 
-        proxyXcall = CallService(proxy);
-        proxyXcall.setProtocolFee(protocolFee);
-        proxyXcall.setProtocolFeeHandler(ownerAddress);
-        proxyXcall.setDefaultConnection(iconNid, connection);
-    }
-
-    function deployAdapter(
-        string memory adapter,
-        string memory env,
-        string memory chain
-    ) public broadcast(deployerPrivateKey) {
-        chain = capitalizeString(chain);
-        address xcall = vm.envAddress(chain.concat("_XCALL"));
-        if (adapter.compareTo("btp")) {
-            console2.log(adapter);
-        } else if (adapter.compareTo("wormhole")) {
+            proxyXcall = CallService(proxy);
+            proxyXcall.setProtocolFee(protocolFee);
+            proxyXcall.setProtocolFeeHandler(ownerAddress);
+        } else if (contractA.compareTo("wormhole")) {
+            address xcall = vm.envAddress(chain.concat("_XCALL"));
             address wormholeRelayer = vm.envAddress(
                 chain.concat("_WORMHOLE_RELAYER")
             );
 
-        address proxy = Upgrades.deployTransparentProxy(
-            "WormholeAdapter.sol",
-            msg.sender,
-            abi.encodeCall(WormholeAdapter.initialize, (wormholeRelayer, xcall))
-        );
-        } else if (adapter.compareTo("layerzero")) {
+            address proxy = Upgrades.deployTransparentProxy(
+                "WormholeAdapter.sol",
+                msg.sender,
+                abi.encodeCall(
+                    WormholeAdapter.initialize,
+                    (wormholeRelayer, xcall)
+                )
+            );
+        } else if (contractA.compareTo("layerzero")) {
+            address xcall = vm.envAddress(chain.concat("_XCALL"));
             address layerzeroRelayer = vm.envAddress(
                 chain.concat("_LAYERZERO_RELAYER")
             );
@@ -98,27 +89,63 @@ contract DeployCallService is Script {
             address proxy = Upgrades.deployTransparentProxy(
                 "LayerZeroAdapter.sol",
                 msg.sender,
-                abi.encodeCall(LayerZeroAdapter.initialize, (layerzeroRelayer, xcall))
+                abi.encodeCall(
+                    LayerZeroAdapter.initialize,
+                    (layerzeroRelayer, xcall)
+                )
             );
-        } else if (adapter.compareTo("centralized")) {
+        } else if (contractA.compareTo("centralized")) {
+            address xcall = vm.envAddress(chain.concat("_XCALL"));
+            address wormholeRelayer = vm.envAddress(
+                chain.concat("_WORMHOLE_RELAYER")
+            );
 
+            address proxy = Upgrades.deployTransparentProxy(
+                "WormholeAdapter.sol",
+                msg.sender,
+                abi.encodeCall(
+                    WormholeAdapter.initialize,
+                    (wormholeRelayer, xcall)
+                )
+            );
+        } else if(contractA.compareTo("mock")) {
+            address xcall = vm.envAddress(chain.concat("_XCALL"));
+            address proxy = Upgrades.deployTransparentProxy(
+                "MultiProtocolSampleDapp.sol",
+                msg.sender,
+                abi.encodeCall(
+                    MultiProtocolSampleDapp.initialize,
+                    xcall
+                )
+            );
         }
     }
 
-    function upgradeContract(string memory chain, string memory contractName, string memory contractA) external broadcast(deployerPrivateKey) {
-
-        if (contractA.compareTo("callservice")){
-            address proxy = vm.envAddress(capitalizeString(chain).concat("_XCALL"));
-            Upgrades.upgradeProxy(proxy, contractName,"");
-        } else if(contractA.compareTo("wormhole")){
-            address proxy = vm.envAddress(capitalizeString(chain).concat("_WORMHOLE_ADAPTER"));
-            Upgrades.upgradeProxy(proxy, contractName,"");
-        } else if(contractA.compareTo("layerzero")){
-            address proxy = vm.envAddress(capitalizeString(chain).concat("_LAYERZERO_ADAPTER"));
-            Upgrades.upgradeProxy(proxy, contractName,"");
-        } else if(contractA.compareTo("centralized")){
-            address proxy = vm.envAddress(capitalizeString(chain).concat("_XCALL"));
-            Upgrades.upgradeProxy(proxy, contractName,"");
+    function upgradeContract(
+        string memory chain,
+        string memory contractName,
+        string memory contractA
+    ) external broadcast(deployerPrivateKey) {
+        if (contractA.compareTo("callservice")) {
+            address proxy = vm.envAddress(
+                capitalizeString(chain).concat("_XCALL")
+            );
+            Upgrades.upgradeProxy(proxy, contractName, "");
+        } else if (contractA.compareTo("wormhole")) {
+            address proxy = vm.envAddress(
+                capitalizeString(chain).concat("_WORMHOLE_ADAPTER")
+            );
+            Upgrades.upgradeProxy(proxy, contractName, "");
+        } else if (contractA.compareTo("layerzero")) {
+            address proxy = vm.envAddress(
+                capitalizeString(chain).concat("_LAYERZERO_ADAPTER")
+            );
+            Upgrades.upgradeProxy(proxy, contractName, "");
+        } else if (contractA.compareTo("centralized")) {
+            address proxy = vm.envAddress(
+                capitalizeString(chain).concat("_XCALL")
+            );
+            Upgrades.upgradeProxy(proxy, contractName, "");
         }
     }
 }
