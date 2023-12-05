@@ -458,6 +458,8 @@ ExecuteResult {
     byte[] reply
 }
 ```
+- `code`: an integer representing the execution result code.
+- `reply`: an array of bytes representing the reply data from dapp.
 
 ### Storage
 
@@ -656,6 +658,15 @@ internal function handleRequest(String srcNet, byte[] data) {
 ```
 
 ```
+internal function handleReply(String from,String to,BigInteger sn, byte[] data) {
+    reqId = getNextReqId()
+    emit CallMessage(from, to, sn, reqId,data)
+    msgReq.data = hash(msgReq.data)
+    proxyReqs[reqId] = msgReq
+}
+```
+
+```
 internal function handleResult(data byte[]) {
         result = CSMessageResult.decode(data)
         resSn = result.sn
@@ -672,6 +683,8 @@ internal function handleResult(data byte[]) {
             case CSMessageResult.SUCCESS:
                 rollbacks[resSn] = null
                 successfulResponses[resSn] = 1
+                if result.getMessage() != null:
+                    handleReply(req.netTo,req.from,result.sn.negate(),result.getMessage())
                 break
             case CSMessageResult.FAILURE:
             default:
