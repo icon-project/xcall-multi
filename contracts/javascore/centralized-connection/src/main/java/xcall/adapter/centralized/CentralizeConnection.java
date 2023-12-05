@@ -37,7 +37,7 @@
  import score.annotation.Optional;
  import score.annotation.Payable;
  
- public class XCallCentralizeConnection {
+ public class CentralizeConnection {
      protected final VarDB<Address> admin = Context.newVarDB("admin", Address.class);
      protected final VarDB<Address> xCall = Context.newVarDB("callService", Address.class);
      protected final VarDB<Address> relayer = Context.newVarDB("relayer", Address.class);
