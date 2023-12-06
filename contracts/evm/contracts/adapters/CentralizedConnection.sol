@@ -6,7 +6,6 @@ import "openzeppelin-contracts-upgradeable/contracts/proxy/utils/Initializable.s
 import "@xcall/utils/Types.sol";
 import "@xcall/contracts/xcall/interfaces/IConnection.sol";
 import "@iconfoundation/btp2-solidity-library/interfaces/ICallService.sol";
-import {console2} from "forge-std/Test.sol";
 pragma solidity ^0.8.0;
 
 
@@ -16,21 +15,20 @@ contract CentralizedConnection is Initializable, IConnection {
     mapping(string => uint256) private responseFees;
     mapping(string => mapping(uint256 => uint256)) receipts;
     address private xCall;
-    //relayer = admin
-    address private relayer;
+    address private adminAddress;
 
 
     event Message(string targetNetwork,int256 sn,bytes _msg);
 
 
-    modifier onlyRelayer() {
+    modifier onlyAdmin() {
         require(msg.sender == this.admin(), "OnlyRelayer");
         _;
     }
 
     function initialize(address _relayer, address _xCall) public initializer {
         xCall = _xCall;
-        relayer = _relayer;
+        adminAddress = _relayer;
     }
 
     /**
@@ -43,14 +41,14 @@ contract CentralizedConnection is Initializable, IConnection {
         string calldata networkId,
         uint256 messageFee,
         uint256 responseFee
-    ) external onlyRelayer {
+    ) external onlyAdmin {
         messageFees[networkId] = messageFee;
         responseFees[networkId] = responseFee;
     }
 
     /**
      @notice Gets the fee to the target network
-    @param to       String Network Id of target chain
+    @param to String Network Id of target chain
     @param response Boolean ( Whether the responding fee is included )
     @return fee Integer (The fee of sending a message to a given destination network )
     */
@@ -77,7 +75,6 @@ contract CentralizedConnection is Initializable, IConnection {
         int256 sn,
         bytes calldata _msg
     ) external override payable {
-        console2.log(msg.sender);
         require(msg.sender == xCall, "Only Xcall can call sendMessage");
         emit Message(to, sn, _msg);
     }
@@ -92,8 +89,7 @@ contract CentralizedConnection is Initializable, IConnection {
         string memory srcNetwork,
         uint256 sn,
         bytes calldata _msg
-    ) public onlyRelayer {
-        require(msg.sender==relayer, "Only relayer can call this function");
+    ) public onlyAdmin {
         require(receipts[srcNetwork][sn]==0,"Duplicate Message");
         receipts[srcNetwork][sn]=1;
         ICallService(xCall).handleMessage(srcNetwork, _msg);
@@ -103,15 +99,15 @@ contract CentralizedConnection is Initializable, IConnection {
      @notice Sends the balance of the contract to the owner(relayer)
 
     */
-    function claimFees() public onlyRelayer {
-        payable(relayer).transfer(address(this).balance);
+    function claimFees() public onlyAdmin {
+        payable(adminAddress).transfer(address(this).balance);
     }
 
     /**
      @notice Revert a messages, used in special cases where message can't just be dropped
      @param sn  Integer ( serial number of the message )
      */
-    function revertMessage(uint256 sn) public onlyRelayer {
+    function revertMessage(uint256 sn) public onlyAdmin {
         ICallService(xCall).handleError(sn);
     }
 
@@ -129,8 +125,8 @@ contract CentralizedConnection is Initializable, IConnection {
         @notice Set the address of the admin.
         @param _address The address of the admin.
      */
-    function setAdmin(address _address) external onlyRelayer {
-        relayer = _address;
+    function setAdmin(address _address) external onlyAdmin {
+        adminAddress = _address;
     }
 
     /**
@@ -141,7 +137,7 @@ contract CentralizedConnection is Initializable, IConnection {
     ) external view returns (
         address
     ) {
-        return relayer;
+        return adminAddress;
     }
 
 
