@@ -89,8 +89,8 @@ contract CentralizedConnection is Initializable, IConnection {
         string memory srcNetwork,
         uint256 sn,
         bytes calldata _msg
-    ) public onlyAdmin {
-        require(receipts[srcNetwork][sn],"Duplicate Message");
+    ) public {
+        require(!receipts[srcNetwork][sn],"Duplicate Message");
         receipts[srcNetwork][sn]=true;
         ICallService(xCall).handleMessage(srcNetwork, _msg);
     }

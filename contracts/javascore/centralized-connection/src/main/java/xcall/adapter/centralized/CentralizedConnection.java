@@ -125,7 +125,7 @@
      @External
      public void recvMessage(String srcNetwork, BigInteger sn, byte[] msg) {
         OnlyAdmin();
-        Context.require(receipts.at(srcNetwork).getOrDefault(sn, false),"Duplicate Message");
+        Context.require(!receipts.at(srcNetwork).getOrDefault(sn, false),"Duplicate Message");
         receipts.at(srcNetwork).set(sn, true);
         Context.call(xCall.get(), "handleMessage", srcNetwork, msg);
      }
