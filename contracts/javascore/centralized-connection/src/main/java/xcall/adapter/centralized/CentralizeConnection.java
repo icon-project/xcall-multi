@@ -17,64 +17,78 @@
  package xcall.adapter.centralized;
 
  import java.math.BigInteger;
- import score.ByteArrayObjectWriter;
  import score.Context;
- import score.ObjectReader;
- import score.ObjectWriter;
- 
- 
+
  import score.Address;
  import score.BranchDB;
- import score.Context;
  import score.DictDB;
- import score.RevertedException;
- import score.UserRevertedException;
  import score.VarDB;
  
  
  import score.annotation.EventLog;
  import score.annotation.External;
- import score.annotation.Optional;
  import score.annotation.Payable;
  
  public class CentralizeConnection {
-     protected final VarDB<Address> admin = Context.newVarDB("admin", Address.class);
      protected final VarDB<Address> xCall = Context.newVarDB("callService", Address.class);
-     protected final VarDB<Address> relayer = Context.newVarDB("relayer", Address.class);
+     protected final VarDB<Address> adminAddress = Context.newVarDB("relayer", Address.class);
  
      protected final DictDB<String, BigInteger> messageFees = Context.newDictDB("messageFees", BigInteger.class);
      protected final DictDB<String, BigInteger> responseFees = Context.newDictDB("responseFees", BigInteger.class);
-     protected final DictDB<byte[], Boolean> seenDeliveryVaaHashes = Context.newDictDB("seenDeliveryVaaHashes", Boolean.class);
+     protected final BranchDB<String, DictDB<BigInteger, BigInteger>> receipts = Context.newBranchDB("receipts", BigInteger.class);
  
-     public XCallCentralizeConnection(Address _xCall, Address _relayer) {
-         if ( xCall.get() == null ) {
+     public void XCallCentralizeConnection(Address _relayer, Address _xCall) {
+         if (xCall.get() == null ) {
              xCall.set(_xCall);
-             admin.set(Context.getCaller());
-             relayer.set(_relayer);
+             adminAddress.set(_relayer);
          }
      }
  
-     @EventLog(indexed=1)
+     @EventLog(indexed=2)
      public void Message(String targetNetwork, BigInteger sn, byte[] msg) {}
  
+    /**
+     * Sets the admin address.
+     *
+     * @param  _relayer  the new admin address
+     */
     @External
-    public void setRelayer(Address _relayer) {
-        Context.require(Context.getCaller().equals(admin.get()), "Only admin can set relayer");
-        relayer.set(_relayer);
+    public void setAdmin(Address _relayer) {
+        OnlyAdmin();
+        adminAddress.set(_relayer);
     }
 
-    @External(readonly = true)
-    public Address getRelayer() {
-        return relayer.get();
-    }
- 
-     @External
-     public void setFee(String networkId, BigInteger messageFee, BigInteger responseFee) {
-         Context.require(Context.getCaller().equals(admin.get()), "Only admin can set fees");
-         messageFees.set(networkId, messageFee);
-         responseFees.set(networkId, responseFee);
+     /**
+      * Retrieves the admin address.
+      *
+      * @return The admin address.
+      */
+     @External(readonly = true)
+     public Address admin() {
+         return adminAddress.get();
      }
  
+     /**
+      * Sets the fee to the target network
+      *
+      * @param  networkId      String Network Id of target chain
+      * @param  messageFee     The fee needed to send a Message 
+      * @param  responseFee    The fee of the response 
+      */
+     @External
+     public void setFee(String networkId, BigInteger messageFee, BigInteger responseFee) {
+        OnlyAdmin();
+        messageFees.set(networkId, messageFee);
+        responseFees.set(networkId, responseFee);
+     }
+ 
+     /**
+      * Returns the fee associated with the given destination address.
+      *
+      * @param  to       String Network Id of target chain
+      * @param  response whether the responding fee is included
+      * @return          The fee of sending a message to a given destination network
+      */
      @External(readonly = true)
      public BigInteger getFee(String to, boolean response) {
          BigInteger messageFee = messageFees.get(to);
@@ -85,40 +99,78 @@
          return messageFee;
      }
  
+     /**
+      * Sends a message to the specified network.
+      *
+      * @param  to     Network Id of destination network 
+      * @param  svc    name of the service 
+      * @param  sn     positive for two-way message, zero for one-way message, negative for response
+      * @param  msg    serialized bytes of Service Message 
+      */
      @Payable
      @External
      public void sendMessage(String to, String svc, BigInteger sn, byte[] msg) {
          Context.require(Context.getCaller().equals(xCall.get()), "Only xCall can send messages");
-         BigInteger fee = this.getFee(to, false);
-         Context.require(Context.getValue().compareTo(fee)>0,"Fee is not Sufficient");
          Message(to, sn, msg);
      }
  
+     /**
+      * Receives a message from a source network.
+      *
+      * @param  srcNetwork  the source network id from which the message is received
+      * @param  sn          the serial number of the message
+      * @param  msg         serialized bytes of Service Message 
+      */
      @Payable
      @External
-     public void recvMessage(String srcNID, String sn, byte[] msg) {
-         byte[] hash = Context.hash("keccak-256",encodePacked(msg,sn));
-         Context.require(seenDeliveryVaaHashes.getOrDefault(hash,null)==null, "Message already processed");
-         seenDeliveryVaaHashes.set(hash, true);
-         Context.call(xCall.get(), "handleMessage", srcNID, msg);
+     public void recvMessage(String srcNetwork, BigInteger sn, byte[] msg) {
+        OnlyAdmin();
+        Context.require(receipts.at(srcNetwork).getOrDefault(sn, null)==null,"Duplicate Message");
+        receipts.at(srcNetwork).set(sn, BigInteger.ONE);
+        Context.call(xCall.get(), "handleMessage", srcNetwork, msg);
      }
- 
+
+     /**
+      * Reverts a message.
+      *
+      * @param  sn  the serial number of message representing the message to revert
+      */
      @External
-     public void setAdmin(Address address) {
-        Context.require(Context.getCaller().equals(admin.get()), "Only admin can set admin");
-        admin.set(address);
+     public void revertMessage(BigInteger sn) {
+        OnlyAdmin();
+        Context.call(xCall.get(), "handleError", sn);
      }
- 
-     @External(readonly = true)
-     public Address admin() {
-         return admin.get();
+
+     /**
+      * Claim the fees.
+      *
+      */
+     @External
+     public void claimFees() {
+         OnlyAdmin();
+         Context.transfer(admin(), Context.getBalance(Context.getAddress()));
      }
- 
-     public static byte[] encodePacked(Object... params) {
-         StringBuilder result = new StringBuilder();
-         for (Object param : params) {
-             result.append(param.toString());
-         }
-         return result.toString().getBytes();
+
+     /**
+      * Get the receipts for a given source network and serial number.
+      *
+      * @param  srcNetwork  the source network id
+      * @param  sn          the serial number of message
+      * @return             the receipt if is has been recived or not
+      */
+     @External
+     public BigInteger getReceipts(String srcNetwork, BigInteger sn) {
+         OnlyAdmin();
+         return receipts.at(srcNetwork).getOrDefault(sn, BigInteger.ZERO);
      }
+
+    /**
+     * Checks if the caller of the function is the admin.
+     *
+     * @return  true if the caller is the admin, false otherwise
+     */
+     private boolean OnlyAdmin() {
+         return Context.getCaller().equals(adminAddress.get());
+     }
+
  }
