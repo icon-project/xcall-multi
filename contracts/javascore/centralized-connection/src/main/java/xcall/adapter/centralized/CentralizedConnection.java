@@ -37,7 +37,7 @@
      protected final DictDB<String, BigInteger> responseFees = Context.newDictDB("responseFees", BigInteger.class);
      protected final BranchDB<String, DictDB<BigInteger, BigInteger>> receipts = Context.newBranchDB("receipts", BigInteger.class);
  
-     public void CentralizedConnection(Address _relayer, Address _xCall) {
+     public CentralizedConnection(Address _relayer, Address _xCall) {
          if (xCall.get() == null ) {
              xCall.set(_xCall);
              adminAddress.set(_relayer);
