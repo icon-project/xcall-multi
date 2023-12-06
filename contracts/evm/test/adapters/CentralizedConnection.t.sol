@@ -87,10 +87,6 @@ contract CentralizedConnectionTest is Test {
         _setupSource();
         _setupTarget();
 
-        console2.log("------>setting up connections<-------");
-        adapterSource.setAdmin(admin);
-        adapterTarget.setAdmin(admin);
-
         vm.stopPrank();
 
         // deal some gas
@@ -100,23 +96,20 @@ contract CentralizedConnectionTest is Test {
 
 
     function testSetAdmin() public {
-        vm.prank(admin);
+        vm.prank(source_relayer);
         adapterSource.setAdmin(user);
         assertEq(adapterSource.admin(), user);
     }
 
     function testSetAdminUnauthorized() public {
         vm.prank(user);
-        vm.expectRevert("OnlyAdmin");
+        vm.expectRevert("OnlyRelayer");
         adapterSource.setAdmin(user);
     }
-
 
     function testSendMessage() public {
 
         vm.startPrank(user);
-
-        console2.log(abi.encodePacked(address(adapterTarget)).length);
         string memory to = NetworkAddress.networkAddress(nidTarget, ParseAddress.toString(address(dappTarget)));
 
         uint256 cost = adapterSource.getFee(nidTarget, false);
