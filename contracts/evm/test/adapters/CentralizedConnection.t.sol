@@ -6,22 +6,18 @@ import {LZEndpointMock} from "@lz-contracts/mocks/LZEndpointMock.sol";
 import "@xcall/contracts/adapters/CentralizedConnection.sol";
 import "@xcall/contracts/xcall/CallService.sol";
 import "@xcall/contracts/mocks/multi-protocol-dapp/MultiProtocolSampleDapp.sol";
-
+import "@xcall/utils/Types.sol";
 
 contract CentralizedConnectionTest is Test {
+    using RLPEncodeStruct for Types.CSMessage;
+    using RLPEncodeStruct for Types.CSMessageRequest;
+    using RLPEncodeStruct for Types.CSMessageResponse;
 
-    event CallExecuted(
-        uint256 indexed _reqId,
-        int _code,
-        string _msg
-    );
+    event CallExecuted(uint256 indexed _reqId, int _code, string _msg);
 
-    event RollbackExecuted(
-        uint256 indexed _sn
-    );
+    event RollbackExecuted(uint256 indexed _sn);
 
-    event Message(string targetNetwork,int256 sn,bytes msg);
-
+    event Message(string targetNetwork, int256 sn, bytes msg);
 
     event ResponseOnHold(uint256 indexed _sn);
 
@@ -44,8 +40,10 @@ contract CentralizedConnectionTest is Test {
     address public admin = address(uint160(uint256(keccak256("admin"))));
     address public user = address(uint160(uint256(keccak256("user"))));
 
-    address public source_relayer = address(uint160(uint256(keccak256("source_relayer"))));
-    address public destination_relayer= address(uint160(uint256(keccak256("destination_relayer"))));
+    address public source_relayer =
+        address(uint160(uint256(keccak256("source_relayer"))));
+    address public destination_relayer =
+        address(uint160(uint256(keccak256("destination_relayer"))));
 
     function _setupSource() internal {
         console2.log("------>setting up source<-------");
@@ -84,6 +82,7 @@ contract CentralizedConnectionTest is Test {
      */
     function setUp() public {
         vm.startPrank(owner);
+
         _setupSource();
         _setupTarget();
 
@@ -93,7 +92,6 @@ contract CentralizedConnectionTest is Test {
         vm.deal(admin, 10 ether);
         vm.deal(user, 10 ether);
     }
-
 
     function testSetAdmin() public {
         vm.prank(source_relayer);
@@ -108,9 +106,11 @@ contract CentralizedConnectionTest is Test {
     }
 
     function testSendMessage() public {
-
         vm.startPrank(user);
-        string memory to = NetworkAddress.networkAddress(nidTarget, ParseAddress.toString(address(dappTarget)));
+        string memory to = NetworkAddress.networkAddress(
+            nidTarget,
+            ParseAddress.toString(address(dappTarget))
+        );
 
         uint256 cost = adapterSource.getFee(nidTarget, false);
 
@@ -121,4 +121,187 @@ contract CentralizedConnectionTest is Test {
         vm.stopPrank();
     }
 
+    function testRecvMessage() public {
+        bytes memory data = bytes("test");
+        string memory iconDapp = NetworkAddress.networkAddress(
+            nidSource,
+            "0xa"
+        );
+        Types.CSMessageRequest memory request = Types.CSMessageRequest(
+            iconDapp,
+            ParseAddress.toString(address(dappSource)),
+            1,
+            false,
+            data,
+            new string[](0)
+        );
+        Types.CSMessage memory message = Types.CSMessage(
+            Types.CS_REQUEST,
+            request.encodeCSMessageRequest()
+        );
+
+        vm.startPrank(destination_relayer);
+        adapterTarget.recvMessage(
+            nidSource,
+            1,
+            RLPEncodeStruct.encodeCSMessage(message)
+        );
+        vm.stopPrank();
+    }
+
+    function testRecvMessageUnAuthorized() public {
+        bytes memory data = bytes("test");
+        string memory iconDapp = NetworkAddress.networkAddress(
+            nidSource,
+            "0xa"
+        );
+        Types.CSMessageRequest memory request = Types.CSMessageRequest(
+            iconDapp,
+            ParseAddress.toString(address(dappSource)),
+            1,
+            false,
+            data,
+            new string[](0)
+        );
+        Types.CSMessage memory message = Types.CSMessage(
+            Types.CS_REQUEST,
+            request.encodeCSMessageRequest()
+        );
+
+        vm.startPrank(user);
+        vm.expectRevert("OnlyRelayer");
+        adapterTarget.recvMessage(
+            nidSource,
+            1,
+            RLPEncodeStruct.encodeCSMessage(message)
+        );
+        vm.stopPrank();
+    }
+
+    function testRecvMessageDuplicateMsg() public {
+        bytes memory data = bytes("test");
+        string memory iconDapp = NetworkAddress.networkAddress(
+            nidSource,
+            "0xa"
+        );
+        Types.CSMessageRequest memory request = Types.CSMessageRequest(
+            iconDapp,
+            ParseAddress.toString(address(dappSource)),
+            1,
+            false,
+            data,
+            new string[](0)
+        );
+        Types.CSMessage memory message = Types.CSMessage(
+            Types.CS_REQUEST,
+            request.encodeCSMessageRequest()
+        );
+
+        vm.startPrank(destination_relayer);
+        adapterTarget.recvMessage(
+            nidSource,
+            1,
+            RLPEncodeStruct.encodeCSMessage(message)
+        );
+
+        vm.expectRevert("Duplicate Message");
+        adapterTarget.recvMessage(
+            nidSource,
+            1,
+            RLPEncodeStruct.encodeCSMessage(message)
+        );
+        vm.stopPrank();
+    }
+
+    function testRevertMessage() public {
+        vm.startPrank(destination_relayer);
+        adapterTarget.revertMessage(1);
+        vm.stopPrank();
+    }
+
+    function testRevertMessageUnauthorized() public {
+        vm.startPrank(user);
+        vm.expectRevert("OnlyRelayer");
+        adapterTarget.revertMessage(1);
+        vm.stopPrank();
+    }
+
+    function testSetFees() public {
+        vm.prank(source_relayer);
+        adapterSource.setFee(nidTarget, 5 ether, 5 ether);
+
+        assertEq(adapterSource.getFee(nidTarget, true), 10 ether);
+        assertEq(adapterSource.getFee(nidTarget, false), 5 ether);
+    }
+
+    function testSetFeesUnauthorized() public {
+        vm.prank(user);
+
+        vm.expectRevert("OnlyRelayer");
+        adapterSource.setFee(nidTarget, 5 ether, 5 ether);
+    }
+
+    function testClaimFeesUnauthorized() public {
+        vm.prank(user);
+
+        vm.expectRevert("OnlyRelayer");
+        adapterSource.claimFees();
+    }
+
+    function testClaimFees() public {
+        testSetFees();
+        vm.startPrank(user);
+        string memory to = NetworkAddress.networkAddress(
+            nidTarget,
+            ParseAddress.toString(address(dappTarget))
+        );
+
+        uint256 cost = adapterSource.getFee(nidTarget, true);
+
+        bytes memory data = bytes("test");
+        bytes memory rollback = bytes("rollback");
+
+        dappSource.sendMessage{value: cost}(to, data, rollback);
+        vm.stopPrank();
+
+        assert(address(adapterSource).balance == 10 ether);
+
+        vm.startPrank(source_relayer);
+        adapterSource.claimFees();
+        vm.stopPrank();
+
+        assert(source_relayer.balance == 10 ether);
+    }
+
+    function testGetReceipt() public {
+        bytes memory data = bytes("test");
+        string memory iconDapp = NetworkAddress.networkAddress(
+            nidSource,
+            "0xa"
+        );
+        Types.CSMessageRequest memory request = Types.CSMessageRequest(
+            iconDapp,
+            ParseAddress.toString(address(dappSource)),
+            1,
+            false,
+            data,
+            new string[](0)
+        );
+        Types.CSMessage memory message = Types.CSMessage(
+            Types.CS_REQUEST,
+            request.encodeCSMessageRequest()
+        );
+
+        assert(adapterTarget.getReceipt(nidSource, 1) == false);
+
+        vm.startPrank(destination_relayer);
+        adapterTarget.recvMessage(
+            nidSource,
+            1,
+            RLPEncodeStruct.encodeCSMessage(message)
+        );
+        vm.stopPrank();
+
+        assert(adapterTarget.getReceipt(nidSource, 1) == true);
+    }
 }
