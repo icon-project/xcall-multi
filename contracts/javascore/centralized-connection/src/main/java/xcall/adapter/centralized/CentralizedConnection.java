@@ -111,6 +111,14 @@
      @External
      public void sendMessage(String to, String svc, BigInteger sn, byte[] msg) {
          Context.require(Context.getCaller().equals(xCall.get()), "Only xCall can send messages");
+         BigInteger fee = BigInteger.ZERO;
+         if(sn.compareTo(BigInteger.ZERO)>=0) {
+             fee = getFee(to, true);
+         } else {
+            fee = getFee(to, false);
+         }
+
+         Context.require(Context.getValue().compareTo(fee) >= 0, "Insufficient balance");
          Message(to, sn, msg);
      }
  
