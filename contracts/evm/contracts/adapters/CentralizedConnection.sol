@@ -13,7 +13,7 @@ contract CentralizedConnection is Initializable, IConnection {
 
     mapping(string => uint256) private messageFees;
     mapping(string => uint256) private responseFees;
-    mapping(string => mapping(uint256 => uint256)) receipts;
+    mapping(string => mapping(uint256 => bool)) receipts;
     address private xCall;
     address private adminAddress;
 
@@ -90,8 +90,8 @@ contract CentralizedConnection is Initializable, IConnection {
         uint256 sn,
         bytes calldata _msg
     ) public onlyAdmin {
-        require(receipts[srcNetwork][sn]==0,"Duplicate Message");
-        receipts[srcNetwork][sn]=1;
+        require(receipts[srcNetwork][sn],"Duplicate Message");
+        receipts[srcNetwork][sn]=true;
         ICallService(xCall).handleMessage(srcNetwork, _msg);
     }
 
@@ -117,7 +117,7 @@ contract CentralizedConnection is Initializable, IConnection {
      @param sn Integer ( serial number of the message )
      @return boolean if is has been recived or not
      */
-    function getReceipt(string memory srcNetwork, uint256 sn) public view returns (uint256) {
+    function getReceipt(string memory srcNetwork, uint256 sn) public view returns (bool) {
         return receipts[srcNetwork][sn];
     }
 

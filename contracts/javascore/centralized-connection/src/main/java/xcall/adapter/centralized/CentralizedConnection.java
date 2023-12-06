@@ -35,7 +35,7 @@
  
      protected final DictDB<String, BigInteger> messageFees = Context.newDictDB("messageFees", BigInteger.class);
      protected final DictDB<String, BigInteger> responseFees = Context.newDictDB("responseFees", BigInteger.class);
-     protected final BranchDB<String, DictDB<BigInteger, BigInteger>> receipts = Context.newBranchDB("receipts", BigInteger.class);
+     protected final BranchDB<String, DictDB<BigInteger, Boolean>> receipts = Context.newBranchDB("receipts", Boolean.class);
  
      public CentralizedConnection(Address _relayer, Address _xCall) {
          if (xCall.get() == null ) {
@@ -125,8 +125,8 @@
      @External
      public void recvMessage(String srcNetwork, BigInteger sn, byte[] msg) {
         OnlyAdmin();
-        Context.require(receipts.at(srcNetwork).getOrDefault(sn, null)==null,"Duplicate Message");
-        receipts.at(srcNetwork).set(sn, BigInteger.ONE);
+        Context.require(receipts.at(srcNetwork).getOrDefault(sn, false),"Duplicate Message");
+        receipts.at(srcNetwork).set(sn, true);
         Context.call(xCall.get(), "handleMessage", srcNetwork, msg);
      }
 
@@ -159,9 +159,9 @@
       * @return             the receipt if is has been recived or not
       */
      @External
-     public BigInteger getReceipts(String srcNetwork, BigInteger sn) {
+     public boolean getReceipts(String srcNetwork, BigInteger sn) {
          OnlyAdmin();
-         return receipts.at(srcNetwork).getOrDefault(sn, BigInteger.ZERO);
+         return receipts.at(srcNetwork).getOrDefault(sn, false);
      }
 
     /**
