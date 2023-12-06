@@ -29,7 +29,7 @@
  import score.annotation.External;
  import score.annotation.Payable;
  
- public class CentralizeConnection {
+ public class CentralizedConnection {
      protected final VarDB<Address> xCall = Context.newVarDB("callService", Address.class);
      protected final VarDB<Address> adminAddress = Context.newVarDB("relayer", Address.class);
  
@@ -37,7 +37,7 @@
      protected final DictDB<String, BigInteger> responseFees = Context.newDictDB("responseFees", BigInteger.class);
      protected final BranchDB<String, DictDB<BigInteger, BigInteger>> receipts = Context.newBranchDB("receipts", BigInteger.class);
  
-     public void XCallCentralizeConnection(Address _relayer, Address _xCall) {
+     public void CentralizedConnection(Address _relayer, Address _xCall) {
          if (xCall.get() == null ) {
              xCall.set(_xCall);
              adminAddress.set(_relayer);
