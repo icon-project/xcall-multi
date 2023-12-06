@@ -8,18 +8,14 @@ import "@xcall/contracts/xcall/interfaces/IConnection.sol";
 import "@iconfoundation/btp2-solidity-library/interfaces/ICallService.sol";
 pragma solidity ^0.8.0;
 
-
 contract CentralizedConnection is Initializable, IConnection {
-
     mapping(string => uint256) private messageFees;
     mapping(string => uint256) private responseFees;
     mapping(string => mapping(uint256 => bool)) receipts;
     address private xCall;
     address private adminAddress;
 
-
-    event Message(string targetNetwork,int256 sn,bytes _msg);
-
+    event Message(string targetNetwork, int256 sn, bytes _msg);
 
     modifier onlyAdmin() {
         require(msg.sender == this.admin(), "OnlyRelayer");
@@ -52,7 +48,10 @@ contract CentralizedConnection is Initializable, IConnection {
     @param response Boolean ( Whether the responding fee is included )
     @return fee Integer (The fee of sending a message to a given destination network )
     */
-    function getFee(string memory to, bool response) external view override returns (uint256 fee) {
+    function getFee(
+        string memory to,
+        bool response
+    ) external view override returns (uint256 fee) {
         uint256 messageFee = messageFees[to];
         if (response == true) {
             uint256 responseFee = responseFees[to];
@@ -74,8 +73,15 @@ contract CentralizedConnection is Initializable, IConnection {
         string calldata svc,
         int256 sn,
         bytes calldata _msg
-    ) external override payable {
+    ) external payable override {
         require(msg.sender == xCall, "Only Xcall can call sendMessage");
+        uint256 fee;
+        if (sn >= 0) {
+            fee = this.getFee(to, true);
+        } else {
+            fee = this.getFee(to, false);
+        }
+        require(msg.value >= fee, "Fee is not Sufficient");
         emit Message(to, sn, _msg);
     }
 
@@ -89,9 +95,9 @@ contract CentralizedConnection is Initializable, IConnection {
         string memory srcNetwork,
         uint256 sn,
         bytes calldata _msg
-    ) public {
-        require(!receipts[srcNetwork][sn],"Duplicate Message");
-        receipts[srcNetwork][sn]=true;
+    ) public onlyAdmin {
+        require(!receipts[srcNetwork][sn], "Duplicate Message");
+        receipts[srcNetwork][sn] = true;
         ICallService(xCall).handleMessage(srcNetwork, _msg);
     }
 
@@ -117,7 +123,10 @@ contract CentralizedConnection is Initializable, IConnection {
      @param sn Integer ( serial number of the message )
      @return boolean if is has been recived or not
      */
-    function getReceipt(string memory srcNetwork, uint256 sn) public view returns (bool) {
+    function getReceipt(
+        string memory srcNetwork,
+        uint256 sn
+    ) public view returns (bool) {
         return receipts[srcNetwork][sn];
     }
 
@@ -133,12 +142,7 @@ contract CentralizedConnection is Initializable, IConnection {
        @notice Gets the address of admin
        @return (Address) the address of admin
     */
-    function admin(
-    ) external view returns (
-        address
-    ) {
+    function admin() external view returns (address) {
         return adminAddress;
     }
-
-
 }
