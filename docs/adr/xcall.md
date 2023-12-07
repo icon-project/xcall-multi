@@ -419,7 +419,6 @@ int FAILURE = 0
 CSMessageResult {
     BigInteger sn
     int code
-    byte[] message
 }
 ```
 
