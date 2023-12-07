@@ -481,6 +481,7 @@ admin: <admin>
 defaultConnection: networkId -> Address
 protocolFee: <protocolFee>
 feeHandler: <Address>
+replyState: networkId->sn
 ```
 
 ### Contract initialization
@@ -514,6 +515,9 @@ payable external sendCall(String _to, byte[] _data) returns Integer {
     msgReq = CSMessageRequest(from, to.account(), sn, envelope.type, msg, envelope.destinations)
     msg = CSMessage(CSMessage.REQUEST, msgReq.toBytes()).toBytes()
     assert msg.length <= MAX_DATA_SIZE
+    if resplyState[to.net()]!=null{
+        sn=replyState[to.net()].negate();
+    }
 
     sendSn = needResponse ? sn : 0
     if protocolConfig.sources == []:
@@ -530,6 +534,7 @@ payable external sendCall(String _to, byte[] _data) returns Integer {
     assert remainingBalance >= getProtocolFee()
     transfer(feeHandler, balance)
     emit CallMessageSent(caller, dst.toString(), sn)
+    replyState[to.net()]==null;
 
     return sn
 }
@@ -570,6 +575,7 @@ internal function preProcessMessage(int sn, NetworkAddress to, Envelope envelope
             return false, message
         case CallMessageWithRollback.Type:
             assert caller.isContract()
+            assert replyState[to.net()]==null
             msg = CallMessageWithRollback(message)
             req = CallRequest(caller, to.net(), envelope.sources, msg.rollback)
             rollbacks[sn] = req
@@ -658,15 +664,6 @@ internal function handleRequest(String srcNet, byte[] data) {
 ```
 
 ```
-internal function handleReply(String from,String to,BigInteger sn, byte[] data) {
-    reqId = getNextReqId()
-    emit CallMessage(from, to, sn, reqId,data)
-    msgReq.data = hash(msgReq.data)
-    proxyReqs[reqId] = msgReq
-}
-```
-
-```
 internal function handleResult(data byte[]) {
         result = CSMessageResult.decode(data)
         resSn = result.sn
@@ -683,8 +680,6 @@ internal function handleResult(data byte[]) {
             case CSMessageResult.SUCCESS:
                 rollbacks[resSn] = null
                 successfulResponses[resSn] = 1
-                if result.getMessage() != null:
-                    handleReply(req.netTo,req.from,result.sn.negate(),result.getMessage())
                 break
             case CSMessageResult.FAILURE:
             default:
@@ -716,8 +711,10 @@ internal function executeMessage(int reqId, CallRequest req) {
         case CallMessage.Type:
             tryExecute(reqId, req.from, req.data, req.protocols)
         case CallMessageWithRollback.Type:
-            executeResult = tryExecute(reqId, req.from, req.data, req.protocols)
-            result = new CSMessageResult(req.sn, executeResult.code,executeResult.reply)
+            replyState[from.net()]=req.sn;
+            code = tryExecute(reqId, req.from, req.data, req.protocols)
+            replyState[from.net()]=null;
+            result = new CSMessageResult(req.sn, code)
             msg = CSMessage(CSMessage.RESULT, result.toBytes())
 
             sn = req.sn.negate()
@@ -750,27 +747,25 @@ external function executeRollback(Integer _sn) {
 
 ```
 ```
-internal function tryExecuteCall(int id, String from, byte[] data, String[] protocols) returns ExecuteResult {
+internal function tryExecuteCall(int id, String from, byte[] data, String[] protocols) returns String {
     try:
-        let reply= executeCall(id, from, data, protocols)
+        executeCall(id, from, data, protocols)
     catch Error as e:
          emit CallExecuted(id, CSMessageResult.FAILURE, e.message)
-         return ExecuteResult(CSMessageResult.FAILURE,null)
+         return CSMessageResult.FAILURE
 
-    return ExecuteResult(CSMessageResult.SUCCESS,reply)
+    return CSMessageResult.SUCCESS
 }
 ```
 
 ```
-internal function executeCall(int id, String from, byte[] data, String[] protocols)returns byte[] {
-    let reply=[];
+internal function executeCall(int id, String from, byte[] data, String[] protocols) {
     if req.protocols == []:
-        reply= req.to->handleCallMessage(from, data)
+        req.to->handleCallMessage(from, data)
     else:
-        reply= req.to->handleCallMessage(from, data, protocols)
-     
-    emit CallExecuted(id, CSMessageResult.SUCCESS, keccak256(reply))
-    return reply;
+        req.to->handleCallMessage(from, data, protocols)
+
+    emit CallExecuted(id, CSMessageResult.SUCCESS, "")
 }
 ```
 
@@ -819,6 +814,10 @@ external readonly function getFee(String _net,
                                   boolean _rollback
                                   @Optional String[] _sources)
                                         returns Integer {
+
+    if replyState[_net]!=null {
+        return 0;
+    }                                  
     fee = protocolFee
     if _sources == [] {
         return defaultConnection[_net]->getFee(_net, _rollback) + fee
