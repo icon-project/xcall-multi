@@ -448,19 +448,6 @@ RollbackData {
 }
 ```
 
-##### ExecuteResult
-
-```
-int SUCCESS = 1
-int FAILURE = 0
-ExecuteResult {
-    int code
-    byte[] reply
-}
-```
-- `code`: an integer representing the execution result code.
-- `reply`: an array of bytes representing the reply data from dapp.
-
 ### Storage
 
 ```
@@ -515,11 +502,10 @@ payable external sendCall(String _to, byte[] _data) returns Integer {
     msgReq = CSMessageRequest(from, to.account(), sn, envelope.type, msg, envelope.destinations)
     msg = CSMessage(CSMessage.REQUEST, msgReq.toBytes()).toBytes()
     assert msg.length <= MAX_DATA_SIZE
-    if resplyState[to.net()]!=null{
-        sn=replyState[to.net()].negate();
-    }
-
     sendSn = needResponse ? sn : 0
+     if resplyState[to.net()]!=null{
+        sendSn=replyState[to.net()].negate();
+    }
     if protocolConfig.sources == []:
         src = defaultConnection[to.net()]
         fee = src->getFee(to.net(), needResponse)
@@ -716,7 +702,7 @@ internal function executeMessage(int reqId, CallRequest req) {
             replyState[from.net()]=null;
             result = new CSMessageResult(req.sn, code)
             msg = CSMessage(CSMessage.RESULT, result.toBytes())
-
+            // do we really need this now?
             sn = req.sn.negate()
             if req.protocols == []:
                 protocol = defaultConnection[from.net()]
