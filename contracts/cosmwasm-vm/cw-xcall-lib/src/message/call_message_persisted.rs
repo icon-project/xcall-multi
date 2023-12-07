@@ -4,26 +4,22 @@ use super::{msg_trait::IMessage, msg_type::MessageType};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct CallMessagePersisted {
-    pub msg_type: MessageType,
     pub data: Vec<u8>,
 }
 
 impl Encodable for CallMessagePersisted {
     fn rlp_append(&self, stream: &mut RlpStream) {
         stream
-            .begin_list(2)
-            .append(&Into::<u8>::into(self.msg_type.clone()))
+            .begin_list(1)
             .append(&self.data);
     }
 }
 
 impl Decodable for CallMessagePersisted {
     fn decode(rlp: &rlp::Rlp) -> Result<Self, rlp::DecoderError> {
-        let msg_type: u8 = rlp.val_at(0)?;
 
         Ok(Self {
-            msg_type: MessageType::from(msg_type),
-            data: rlp.val_at(1)?,
+            data: rlp.val_at(0)?,
         })
     }
 }
