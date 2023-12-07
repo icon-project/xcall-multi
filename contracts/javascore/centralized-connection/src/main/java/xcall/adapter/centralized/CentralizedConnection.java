@@ -166,9 +166,8 @@
       * @param  sn          the serial number of message
       * @return             the receipt if is has been recived or not
       */
-     @External
+     @External(readonly = true)
      public boolean getReceipts(String srcNetwork, BigInteger sn) {
-         OnlyAdmin();
          return receipts.at(srcNetwork).getOrDefault(sn, false);
      }
 
