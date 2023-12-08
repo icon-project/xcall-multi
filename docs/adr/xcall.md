@@ -566,7 +566,7 @@ internal function preProcessMessage(int sn, NetworkAddress to, Envelope envelope
             assert caller.isContract()
             assert replyState[to.net()]==null
             msg = CallMessageWithRollback(message)
-            req = CallRequest(caller, to.net(), envelope.sources, msg.rollback)
+            req = RollbackData(caller, to.net(), envelope.sources, msg.rollback)
             rollbacks[sn] = req
 
             return true, msg.data
@@ -652,10 +652,13 @@ internal function handleRequest(String srcNet, byte[] data) {
 }
 ```
 ```
-internal function handleReply(String from,String to,BigInteger sn, byte[] msgReq) {
+internal function handleReply(RollbackData rollback, CSMessageRequest reply) {
+    assert rollback.from==reply.to;
+    assert rollback.netTo=reply.from.netId;
+
     reqId = getNextReqId()
-    emit CallMessage(from, to, sn, reqId,data)
-    msgReq.data = hash(msgReq.data)
+    emit CallMessage(reply.from, reply.to, reply.sn, reqId,reply.data)
+    reply.data = hash(reply.data)
     proxyReqs[reqId] = msgReq
 }
 ```
@@ -675,11 +678,11 @@ internal function handleResult(data byte[]) {
         emit ResponseMessage(resSn, result.getCode())
         switch result.getCode():
             case CSMessageResult.SUCCESS:
+                if result.getMessage()!=null {
+                    handleReply(req,result.getMessage());
+                }
                 rollbacks[resSn] = null
                 successfulResponses[resSn] = 1
-                if result.getMessage()!=null {
-                    handleReply(req.netTo,req.from,resSn,result.getMessage());
-                }
                 break
             case CSMessageResult.FAILURE:
             default:
