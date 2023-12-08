@@ -419,6 +419,7 @@ int FAILURE = 0
 CSMessageResult {
     BigInteger sn
     int code
+    byte[] message
 }
 ```
 
@@ -467,7 +468,8 @@ admin: <admin>
 defaultConnection: networkId -> Address
 protocolFee: <protocolFee>
 feeHandler: <Address>
-replyState: networkId->sn
+replyState: networkId->CallRequest,
+dappReply: Address->CSMessage
 ```
 
 ### Contract initialization
@@ -501,10 +503,14 @@ payable external sendCall(String _to, byte[] _data) returns Integer {
     msgReq = CSMessageRequest(from, to.account(), sn, envelope.type, msg, envelope.destinations)
     msg = CSMessage(CSMessage.REQUEST, msgReq.toBytes()).toBytes()
     assert msg.length <= MAX_DATA_SIZE
-    sendSn = needResponse ? sn : 0
+    
      if resplyState[to.net()]!=null{
-        sendSn=replyState[to.net()].negate();
+        replyState[to.net()]=null;
+        dappReply[caller]=msg;
+        emit CallMessageSent(caller, dst.toString(), sn)
+        return sn;
     }
+    sendSn = needResponse ? sn : 0
     if protocolConfig.sources == []:
         src = defaultConnection[to.net()]
         fee = src->getFee(to.net(), needResponse)
@@ -647,6 +653,14 @@ internal function handleRequest(String srcNet, byte[] data) {
     proxyReqs[reqId] = msgReq
 }
 ```
+```
+internal function handleReply(String from,String to,BigInteger sn, byte[] msgReq) {
+    reqId = getNextReqId()
+    emit CallMessage(from, to, sn, reqId,data)
+    msgReq.data = hash(msgReq.data)
+    proxyReqs[reqId] = msgReq
+}
+```
 
 ```
 internal function handleResult(data byte[]) {
@@ -665,6 +679,9 @@ internal function handleResult(data byte[]) {
             case CSMessageResult.SUCCESS:
                 rollbacks[resSn] = null
                 successfulResponses[resSn] = 1
+                if result.getMessage()!=null {
+                    handleReply(req.netTo,req.from,resSn,result.getMessage());
+                }
                 break
             case CSMessageResult.FAILURE:
             default:
@@ -684,7 +701,7 @@ external function executeCall(Integer _reqId, byte[] _data) {
         proxyReqs[_reqId] == null
 
         assert hash(_data) == req.data
-        executeCallRequest(_reqId, r)
+        executeMessage(_reqId, r)
     }
 
 ```
@@ -696,12 +713,13 @@ internal function executeMessage(int reqId, CallRequest req) {
         case CallMessage.Type:
             tryExecute(reqId, req.from, req.data, req.protocols)
         case CallMessageWithRollback.Type:
-            replyState[from.net()]=req.sn;
+            replyState[from.net()]=req;
             code = tryExecute(reqId, req.from, req.data, req.protocols)
             replyState[from.net()]=null;
-            result = new CSMessageResult(req.sn, code)
+            let reply= dappReply[req.to];
+            result = new CSMessageResult(req.sn, code,reply);
             msg = CSMessage(CSMessage.RESULT, result.toBytes())
-            // do we really need this now?
+            dappReply[req.to]=null;
             sn = req.sn.negate()
             if req.protocols == []:
                 protocol = defaultConnection[from.net()]
