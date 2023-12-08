@@ -94,8 +94,8 @@ impl<'a> CwCallService<'a> {
                 let error_message = format!("CallService Reverted : {err}");
                 let message_response = CSMessageResult::new(request.sequence_no(), code.clone());
                 let event = event_call_executed(req_id, code.into(), &error_message);
-                if !request.allow_retry() {
-                    self.remove_proxy_request(deps.storage, req_id);
+                if request.allow_retry() {
+                    return Err(ContractError::ReplyError { code: msg.id, msg: err })
                 }
                 (message_response, event)
             }
