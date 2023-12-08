@@ -96,7 +96,7 @@ impl<'a> CwCallService<'a> {
         let event = event_xcall_message_sent(caller.to_string(), to.to_string(), sequence_no);
         // if contract is in reply state
         if self.get_execute_request_id(deps.as_ref().storage).is_ok() {
-            self.save_call_reply(deps.storage, caller.clone(), &call_request)?;
+            self.save_call_reply(deps.storage, caller, &call_request)?;
             self.remove_execute_request_id(deps.storage);
             let res = self.send_call_response(event, sequence_no);
             return Ok(res);
@@ -157,10 +157,10 @@ impl<'a> CwCallService<'a> {
     }
 
     fn send_call_response(&self, event: Event, sequence_no: u128) -> Response {
-        return Response::new()
+        Response::new()
             .add_attribute("action", "xcall-service")
             .add_attribute("method", "send_packet")
             .add_attribute("sequence_no", sequence_no.to_string())
-            .add_event(event);
+            .add_event(event)
     }
 }

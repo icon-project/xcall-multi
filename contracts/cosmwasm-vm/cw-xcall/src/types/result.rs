@@ -1,6 +1,4 @@
-use common::rlp::Nullable;
-
-use super::{message::CSMessage, *};
+use super::*;
 
 #[cw_serde]
 pub enum CallServiceResponseType {
@@ -63,7 +61,7 @@ impl CSMessageResult {
         if self.message.is_empty() {
             return None;
         }
-        return rlp::decode(&self.message).ok();
+        rlp::decode(&self.message).ok()
     }
 }
 

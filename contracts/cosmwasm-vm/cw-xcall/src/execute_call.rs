@@ -83,7 +83,7 @@ impl<'a> CwCallService<'a> {
                 let code = CallServiceResponseType::CallServiceResponseSuccess.into();
                 let reply = self
                     .pop_call_reply(deps.storage, request.to().clone())
-                    .map(|msg| return rlp::encode(&msg).to_vec());
+                    .map(|msg| rlp::encode(&msg).to_vec());
                 let message_response = CSMessageResult::new(
                     request.sequence_no(),
                     CallServiceResponseType::CallServiceResponseSuccess,

@@ -385,7 +385,7 @@ impl<'a> CwCallService<'a> {
         msg: &CSMessageRequest,
     ) -> Result<(), ContractError> {
         self.call_reply
-            .save(store, caller, &msg)
+            .save(store, caller, msg)
             .map_err(ContractError::Std)
     }
 
@@ -396,6 +396,6 @@ impl<'a> CwCallService<'a> {
     ) -> Option<CSMessageRequest> {
         let reply = self.get_call_reply(store, caller.clone());
         self.call_reply.remove(store, caller);
-        return reply;
+        reply
     }
 }
