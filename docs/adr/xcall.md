@@ -469,7 +469,7 @@ defaultConnection: networkId -> Address
 protocolFee: <protocolFee>
 feeHandler: <Address>
 replyState: networkId->CallRequest,
-dappReply: Address->CSMessage
+callReply: Address->CSMessageRequest
 ```
 
 ### Contract initialization
@@ -504,9 +504,9 @@ payable external sendCall(String _to, byte[] _data) returns Integer {
     msg = CSMessage(CSMessage.REQUEST, msgReq.toBytes()).toBytes()
     assert msg.length <= MAX_DATA_SIZE
     
-     if resplyState[to.net()]!=null{
+     if isReply(_to.netId,envelope.sources) && !needResponse{
         replyState[to.net()]=null;
-        dappReply[caller]=msg;
+        callReply[caller]=msg;
         emit CallMessageSent(caller, dst.toString(), sn)
         return sn;
     }
@@ -525,8 +525,6 @@ payable external sendCall(String _to, byte[] _data) returns Integer {
     assert remainingBalance >= getProtocolFee()
     transfer(feeHandler, balance)
     emit CallMessageSent(caller, dst.toString(), sn)
-    replyState[to.net()]==null;
-
     return sn
 }
 
@@ -716,10 +714,10 @@ internal function executeMessage(int reqId, CallRequest req) {
             replyState[from.net()]=req;
             code = tryExecute(reqId, req.from, req.data, req.protocols)
             replyState[from.net()]=null;
-            let reply= dappReply[req.to];
+            let reply= callReply[req.to];
             result = new CSMessageResult(req.sn, code,reply);
             msg = CSMessage(CSMessage.RESULT, result.toBytes())
-            dappReply[req.to]=null;
+            callReply[req.to]=null;
             sn = req.sn.negate()
             if req.protocols == []:
                 protocol = defaultConnection[from.net()]
@@ -769,6 +767,16 @@ internal function executeCall(int id, String from, byte[] data, String[] protoco
         req.to->handleCallMessage(from, data, protocols)
 
     emit CallExecuted(id, CSMessageResult.SUCCESS, "")
+}
+```
+
+```
+internal function isReply(String netId,String[] sources) {
+    if replyState[netId]!=null {
+       request=replyState[netId];
+       return request.fromNid == netid && request.protocols.equals(sources);
+    }
+    return false;
 }
 ```
 
