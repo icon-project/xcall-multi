@@ -47,6 +47,9 @@ impl<'a> CwCallService<'a> {
                     return Err(ContractError::RollbackNotPossible);
                 }
                 self.ensure_rollback_length(&m.rollback().unwrap())?;
+                if self.get_execute_request_id(deps.storage).is_ok() {
+                    return Err(ContractError::MessageTypeNotAllowed);
+                }
                 Ok(())
             }
         }
@@ -65,20 +68,15 @@ impl<'a> CwCallService<'a> {
         self.validate_payload(deps.as_ref(), &caller, &envelope)?;
 
         let sequence_no = self.get_next_sn(deps.storage)?;
-        let mut confirmed_sources = envelope.sources.clone();
-        let from = NetworkAddress::new(&nid, caller.as_ref());
 
-        if confirmed_sources.is_empty() {
-            let default = self.get_default_connection(deps.as_ref().storage, to.nid())?;
-            confirmed_sources = vec![default.to_string()]
-        }
+        let from = NetworkAddress::new(&nid, caller.as_ref());
 
         if envelope.message.rollback().is_some() {
             let rollback_data = envelope.message.rollback().unwrap();
             let request = CallRequest::new(
                 caller.clone(),
                 to.clone(),
-                envelope.sources,
+                envelope.sources.clone(),
                 rollback_data,
                 false,
             );
@@ -93,9 +91,22 @@ impl<'a> CwCallService<'a> {
             envelope.message.data(),
             envelope.destinations,
         );
-
         let need_response = call_request.need_response();
 
+        let event = event_xcall_message_sent(caller.to_string(), to.to_string(), sequence_no);
+        // if contract is in reply state
+        if self.get_execute_request_id(deps.as_ref().storage).is_ok() {
+            self.save_call_reply(deps.storage, caller.clone(), &call_request)?;
+            self.remove_execute_request_id(deps.storage);
+            let res = self.send_call_response(event, sequence_no);
+            return Ok(res);
+        }
+
+        let mut confirmed_sources = envelope.sources;
+        if confirmed_sources.is_empty() {
+            let default = self.get_default_connection(deps.as_ref().storage, to.nid())?;
+            confirmed_sources = vec![default.to_string()]
+        }
         let message: CSMessage = call_request.into();
         let sn: i64 = if need_response { sequence_no as i64 } else { 0 };
         let mut total_spent = 0_u128;
@@ -129,14 +140,11 @@ impl<'a> CwCallService<'a> {
         }
         let remaining = total_paid - total_spent;
 
-        let event = event_xcall_message_sent(caller.to_string(), to.to_string(), sequence_no);
         println!("{LOG_PREFIX} Sent Bank Message");
-        let mut res = Response::new()
-            .add_submessages(submessages)
-            .add_attribute("action", "xcall-service")
-            .add_attribute("method", "send_packet")
-            .add_attribute("sequence_no", sequence_no.to_string())
-            .add_event(event);
+        let mut res = self
+            .send_call_response(event, sequence_no)
+            .add_submessages(submessages);
+
         if remaining > 0 {
             let msg = BankMsg::Send {
                 to_address: fee_handler,
@@ -146,5 +154,13 @@ impl<'a> CwCallService<'a> {
         }
 
         Ok(res)
+    }
+
+    fn send_call_response(&self, event: Event, sequence_no: u128) -> Response {
+        return Response::new()
+            .add_attribute("action", "xcall-service")
+            .add_attribute("method", "send_packet")
+            .add_attribute("sequence_no", sequence_no.to_string())
+            .add_event(event);
     }
 }

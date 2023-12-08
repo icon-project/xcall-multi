@@ -42,4 +42,6 @@ pub enum ContractError {
     DataMismatch,
     #[error("CallAlreadyInProgress")]
     CallAlreadyInProgress,
+    #[error("MessageTypeNotAllowed")]
+    MessageTypeNotAllowed,
 }
