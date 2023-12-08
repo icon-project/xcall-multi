@@ -45,8 +45,8 @@ impl<'a> CwCallService<'a> {
         rollback: bool,
         sources: Vec<String>,
     ) -> Result<u128, ContractError> {
-        if self.get_execute_request_id(deps.storage).is_ok() {
-            return Ok(0);
+        if !rollback && self.is_reply(deps, nid.clone(), &sources) {
+            return Ok(0_u128);
         }
 
         let protocol_fee = self.get_protocol_fee(deps.storage);

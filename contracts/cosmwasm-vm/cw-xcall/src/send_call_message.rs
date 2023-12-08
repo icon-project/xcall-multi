@@ -4,7 +4,7 @@ use cw_xcall_lib::message::msg_trait::IMessage;
 
 use cw_xcall_lib::message::AnyMessage;
 use cw_xcall_lib::message::{call_message_rollback::CallMessageWithRollback, envelope::Envelope};
-use cw_xcall_lib::network_address::NetworkAddress;
+use cw_xcall_lib::network_address::{NetId, NetworkAddress};
 
 use crate::{assertion::is_contract, types::LOG_PREFIX};
 
@@ -47,9 +47,6 @@ impl<'a> CwCallService<'a> {
                     return Err(ContractError::RollbackNotPossible);
                 }
                 self.ensure_rollback_length(&m.rollback().unwrap())?;
-                if self.get_execute_request_id(deps.storage).is_ok() {
-                    return Err(ContractError::MessageTypeNotAllowed);
-                }
                 Ok(())
             }
         }
@@ -95,7 +92,9 @@ impl<'a> CwCallService<'a> {
 
         let event = event_xcall_message_sent(caller.to_string(), to.to_string(), sequence_no);
         // if contract is in reply state
-        if self.get_execute_request_id(deps.as_ref().storage).is_ok() {
+        if envelope.message.rollback().is_none()
+            && self.is_reply(deps.as_ref(), to.nid(), &envelope.sources)
+        {
             self.save_call_reply(deps.storage, caller, &call_request)?;
             self.remove_execute_request_id(deps.storage);
             let res = self.send_call_response(event, sequence_no);
@@ -162,5 +161,28 @@ impl<'a> CwCallService<'a> {
             .add_attribute("method", "send_packet")
             .add_attribute("sequence_no", sequence_no.to_string())
             .add_event(event)
+    }
+
+    pub fn is_reply(&self, deps: Deps, to: NetId, sources: &Vec<String>) -> bool {
+        if let Some(reqid) = self.get_execute_request_id(deps.storage).ok() {
+            let request = self.get_proxy_request(deps.storage, reqid).unwrap();
+            if request.from().nid() != to {
+                return false;
+            }
+            return self.are_equal(request.protocols(), &sources);
+        }
+        return false;
+    }
+
+    fn are_equal(&self, protocols: &Vec<String>, sources: &Vec<String>) -> bool {
+        if protocols.len() != sources.len() {
+            return false;
+        }
+        for protocol in protocols.into_iter() {
+            if !sources.contains(protocol) {
+                return false;
+            }
+        }
+        return true;
     }
 }
