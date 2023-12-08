@@ -829,7 +829,7 @@ external readonly function getFee(String _net,
                                   @Optional String[] _sources)
                                         returns Integer {
 
-    if replyState[_net]!=null {
+    if isReply[_net,sources]&& !_rollback {
         return 0;
     }                                  
     fee = protocolFee
