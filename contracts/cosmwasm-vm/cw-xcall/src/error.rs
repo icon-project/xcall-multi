@@ -44,4 +44,6 @@ pub enum ContractError {
     CallAlreadyInProgress,
     #[error("MessageTypeNotAllowed")]
     MessageTypeNotAllowed,
+    #[error("InvalidReplyReceived")]
+    InvalidReplyReceived
 }
