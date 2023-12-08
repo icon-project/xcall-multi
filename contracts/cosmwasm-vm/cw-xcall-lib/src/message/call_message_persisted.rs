@@ -1,6 +1,6 @@
 use common::rlp::{self, Decodable, DecoderError, Encodable, RlpStream};
 
-use super::{msg_trait::IMessage, msg_type::MessageType};
+use super::msg_trait::IMessage;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct CallMessagePersisted {
@@ -9,15 +9,12 @@ pub struct CallMessagePersisted {
 
 impl Encodable for CallMessagePersisted {
     fn rlp_append(&self, stream: &mut RlpStream) {
-        stream
-            .begin_list(1)
-            .append(&self.data);
+        stream.begin_list(1).append(&self.data);
     }
 }
 
 impl Decodable for CallMessagePersisted {
     fn decode(rlp: &rlp::Rlp) -> Result<Self, rlp::DecoderError> {
-
         Ok(Self {
             data: rlp.val_at(0)?,
         })

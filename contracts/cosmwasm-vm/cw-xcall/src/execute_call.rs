@@ -95,7 +95,10 @@ impl<'a> CwCallService<'a> {
                 let message_response = CSMessageResult::new(request.sequence_no(), code.clone());
                 let event = event_call_executed(req_id, code.into(), &error_message);
                 if request.allow_retry() {
-                    return Err(ContractError::ReplyError { code: msg.id, msg: err })
+                    return Err(ContractError::ReplyError {
+                        code: msg.id,
+                        msg: err,
+                    });
                 }
                 (message_response, event)
             }
