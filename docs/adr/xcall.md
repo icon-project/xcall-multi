@@ -720,7 +720,7 @@ internal function executeMessage(int reqId, CallRequest req) {
             let reply= callReply[req.to];
             result = new CSMessageResult(req.sn, code,reply);
             msg = CSMessage(CSMessage.RESULT, result.toBytes())
-            callReply[req.to]=null;
+            callReply[req.to] = null;
             sn = req.sn.negate()
             if req.protocols == []:
                 protocol = defaultConnection[from.net()]
