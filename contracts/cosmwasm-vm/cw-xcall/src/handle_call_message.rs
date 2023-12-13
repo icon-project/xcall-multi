@@ -44,7 +44,7 @@ impl<'a> CwCallService<'a> {
             request.sequence_no(),
             request.msg_type(),
             keccak256(request.data().unwrap()).to_vec(),
-            request.protocols().clone(),
+            rollback.protocols().clone(),
         );
         self.store_proxy_request(deps.storage, request_id, &req)?;
 
