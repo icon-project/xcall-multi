@@ -468,7 +468,7 @@ admin: <admin>
 defaultConnection: networkId -> Address
 protocolFee: <protocolFee>
 feeHandler: <Address>
-replyState: networkId->CallRequest,
+replyState: CallRequest,
 callReply: Address->CSMessageRequest
 ```
 
@@ -505,7 +505,7 @@ payable external sendCall(String _to, byte[] _data) returns Integer {
     assert msg.length <= MAX_DATA_SIZE
     
      if isReply(_to.netId,envelope.sources) && !needResponse{
-        replyState[to.net()]=null;
+        replyState = null;
         callReply[caller]=msg;
         emit CallMessageSent(caller, dst.toString(), sn)
         return sn;
@@ -564,7 +564,7 @@ internal function preProcessMessage(int sn, NetworkAddress to, Envelope envelope
             return false, message
         case CallMessageWithRollback.Type:
             assert caller.isContract()
-            assert replyState[to.net()]==null
+            assert replyState == null
             msg = CallMessageWithRollback(message)
             req = RollbackData(caller, to.net(), envelope.sources, msg.rollback)
             rollbacks[sn] = req
@@ -654,7 +654,8 @@ internal function handleRequest(String srcNet, byte[] data) {
 ```
 internal function handleReply(RollbackData rollback, CSMessageRequest reply) {
     assert rollback.from==reply.to;
-    assert rollback.netTo=reply.from.netId;
+    assert rollback.netTo==reply.from.netId;
+    assert rollback.protocols==reply.protocols
 
     reqId = getNextReqId()
     emit CallMessage(reply.from, reply.to, reply.sn, reqId,reply.data)
@@ -714,9 +715,9 @@ internal function executeMessage(int reqId, CallRequest req) {
         case CallMessage.Type:
             tryExecute(reqId, req.from, req.data, req.protocols)
         case CallMessageWithRollback.Type:
-            replyState[from.net()]=req;
+            replyState = req;
             code = tryExecute(reqId, req.from, req.data, req.protocols)
-            replyState[from.net()]=null;
+            replyState = null;
             let reply= callReply[req.to];
             result = new CSMessageResult(req.sn, code, reply);
             msg = CSMessage(CSMessage.RESULT, result.toBytes())
@@ -774,10 +775,9 @@ internal function executeCall(int id, String from, byte[] data, String[] protoco
 ```
 
 ```
-internal function isReply(String netId,String[] sources) {
-    if replyState[netId] != null:
-       request = replyState[netId];
-       return request.fromNid == netid && request.protocols.equals(sources);
+internal function isReply(String netId, String[] sources) {
+    if replyState != null:
+       return replyState.fromNid == netid && replyState.protocols.equals(sources);
   
     return false;
 }
