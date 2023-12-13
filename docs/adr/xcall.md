@@ -775,10 +775,10 @@ internal function executeCall(int id, String from, byte[] data, String[] protoco
 
 ```
 internal function isReply(String netId,String[] sources) {
-    if replyState[netId]!=null {
-       request=replyState[netId];
+    if replyState[netId] != null:
+       request = replyState[netId];
        return request.fromNid == netid && request.protocols.equals(sources);
-    }
+  
     return false;
 }
 ```
