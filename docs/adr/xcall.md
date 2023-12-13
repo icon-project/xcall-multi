@@ -718,7 +718,7 @@ internal function executeMessage(int reqId, CallRequest req) {
             code = tryExecute(reqId, req.from, req.data, req.protocols)
             replyState[from.net()]=null;
             let reply= callReply[req.to];
-            result = new CSMessageResult(req.sn, code,reply);
+            result = new CSMessageResult(req.sn, code, reply);
             msg = CSMessage(CSMessage.RESULT, result.toBytes())
             callReply[req.to] = null;
             sn = req.sn.negate()
