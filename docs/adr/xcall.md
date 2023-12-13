@@ -504,12 +504,12 @@ payable external sendCall(String _to, byte[] _data) returns Integer {
     msg = CSMessage(CSMessage.REQUEST, msgReq.toBytes()).toBytes()
     assert msg.length <= MAX_DATA_SIZE
     
-     if isReply(_to.netId,envelope.sources) && !needResponse{
-        replyState = null;
-        callReply[caller]=msg;
+     if isReply(_to.netId,envelope.sources) && !needResponse:
+        replyState = null
+        callReply[caller]=msg
         emit CallMessageSent(caller, dst.toString(), sn)
-        return sn;
-    }
+        return sn
+    
     sendSn = needResponse ? sn : 0
     if protocolConfig.sources == []:
         src = defaultConnection[to.net()]
@@ -653,8 +653,8 @@ internal function handleRequest(String srcNet, byte[] data) {
 ```
 ```
 internal function handleReply(RollbackData rollback, CSMessageRequest reply) {
-    assert rollback.from==reply.to;
-    assert rollback.netTo==reply.from.netId;
+    assert rollback.from==reply.to
+    assert rollback.netTo==reply.from.netId
     assert rollback.protocols==reply.protocols
 
     reqId = getNextReqId()
@@ -679,9 +679,9 @@ internal function handleResult(data byte[]) {
         emit ResponseMessage(resSn, result.getCode())
         switch result.getCode():
             case CSMessageResult.SUCCESS:
-                if result.getMessage()!=null {
-                    handleReply(req,result.getMessage());
-                }
+                if result.getMessage()!=null:
+                    handleReply(req,result.getMessage())
+                
                 rollbacks[resSn] = null
                 successfulResponses[resSn] = 1
                 break
@@ -715,13 +715,13 @@ internal function executeMessage(int reqId, CallRequest req) {
         case CallMessage.Type:
             tryExecute(reqId, req.from, req.data, req.protocols)
         case CallMessageWithRollback.Type:
-            replyState = req;
+            replyState = req
             code = tryExecute(reqId, req.from, req.data, req.protocols)
-            replyState = null;
-            let reply= callReply[req.to];
-            result = new CSMessageResult(req.sn, code, reply);
+            replyState = null
+            let reply= callReply[req.to]
+            result = new CSMessageResult(req.sn, code, reply)
             msg = CSMessage(CSMessage.RESULT, result.toBytes())
-            callReply[req.to] = null;
+            callReply[req.to] = null
             sn = req.sn.negate()
             if req.protocols == []:
                 protocol = defaultConnection[from.net()]
@@ -777,9 +777,9 @@ internal function executeCall(int id, String from, byte[] data, String[] protoco
 ```
 internal function isReply(String netId, String[] sources) {
     if replyState != null:
-       return replyState.fromNid == netid && replyState.protocols.equals(sources);
+       return replyState.fromNid == netid && replyState.protocols.equals(sources)
   
-    return false;
+    return false
 }
 ```
 
@@ -830,7 +830,7 @@ external readonly function getFee(String _net,
                                         returns Integer {
 
     if isReply(_net, sources) && !_rollback {
-        return 0;
+        return 0
     }                                  
     fee = protocolFee
     if _sources == [] {
