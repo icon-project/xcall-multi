@@ -14,6 +14,7 @@ contract CentralizedConnection is Initializable, IConnection {
     mapping(string => mapping(uint256 => bool)) receipts;
     address private xCall;
     address private adminAddress;
+    uint256 private connSn;
 
     event Message(string targetNetwork, int256 sn, bytes _msg);
 
@@ -82,22 +83,23 @@ contract CentralizedConnection is Initializable, IConnection {
             fee = this.getFee(to, false);
         }
         require(msg.value >= fee, "Fee is not Sufficient");
+        connSn++;
         emit Message(to, sn, _msg);
     }
 
     /**
      @notice Sends the message to a xCall.
      @param srcNetwork  String ( Network Id )
-     @param sn Integer ( serial number of the message )
+     @param _connSn Integer ( serial number of the message )
      @param _msg Bytes ( serialized bytes of Service Message )
      */
     function recvMessage(
         string memory srcNetwork,
-        uint256 sn,
+        uint256 _connSn,
         bytes calldata _msg
     ) public onlyAdmin {
-        require(!receipts[srcNetwork][sn], "Duplicate Message");
-        receipts[srcNetwork][sn] = true;
+        require(!receipts[srcNetwork][_connSn], "Duplicate Message");
+        receipts[srcNetwork][_connSn] = true;
         ICallService(xCall).handleMessage(srcNetwork, _msg);
     }
 

@@ -31,6 +31,7 @@ import score.annotation.Payable;
 public class CentralizedConnection {
     protected final VarDB<Address> xCall = Context.newVarDB("callService", Address.class);
     protected final VarDB<Address> adminAddress = Context.newVarDB("relayer", Address.class);
+    private final VarDB<BigInteger> connSn = Context.newVarDB("connSn", BigInteger.class);
 
     protected final DictDB<String, BigInteger> messageFees = Context.newDictDB("messageFees", BigInteger.class);
     protected final DictDB<String, BigInteger> responseFees = Context.newDictDB("responseFees", BigInteger.class);
@@ -41,11 +42,12 @@ public class CentralizedConnection {
         if (xCall.get() == null) {
             xCall.set(_xCall);
             adminAddress.set(_relayer);
+            connSn.set(BigInteger.ZERO);
         }
     }
 
     @EventLog(indexed = 2)
-    public void Message(String targetNetwork, BigInteger sn, byte[] msg) {
+    public void Message(String targetNetwork, BigInteger connSn, byte[] msg) {
     }
 
     /**
@@ -114,29 +116,30 @@ public class CentralizedConnection {
     public void sendMessage(String to, String svc, BigInteger sn, byte[] msg) {
         Context.require(Context.getCaller().equals(xCall.get()), "Only xCall can send messages");
         BigInteger fee = BigInteger.ZERO;
-        if (sn.compareTo(BigInteger.ZERO) >= 0) {
+        if (sn.compareTo(BigInteger.ZERO) > 0) {
             fee = getFee(to, true);
         } else {
             fee = getFee(to, false);
         }
+        connSn.set(connSn.get().add(BigInteger.ONE));
 
         Context.require(Context.getValue().compareTo(fee) >= 0, "Insufficient balance");
-        Message(to, sn, msg);
+        Message(to, connSn.get(), msg);
     }
 
     /**
      * Receives a message from a source network.
      *
      * @param srcNetwork the source network id from which the message is received
-     * @param sn         the serial number of the message
+     * @param _connSn    the serial number of the message
      * @param msg        serialized bytes of Service Message
      */
     @Payable
     @External
-    public void recvMessage(String srcNetwork, BigInteger sn, byte[] msg) {
+    public void recvMessage(String srcNetwork, BigInteger _connSn, byte[] msg) {
         OnlyAdmin();
-        Context.require(!receipts.at(srcNetwork).getOrDefault(sn, false), "Duplicate Message");
-        receipts.at(srcNetwork).set(sn, true);
+        Context.require(!receipts.at(srcNetwork).getOrDefault(_connSn, false), "Duplicate Message");
+        receipts.at(srcNetwork).set(_connSn, true);
         Context.call(xCall.get(), "handleMessage", srcNetwork, msg);
     }
 
