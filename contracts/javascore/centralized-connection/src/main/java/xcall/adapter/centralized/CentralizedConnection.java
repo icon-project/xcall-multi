@@ -94,9 +94,9 @@ public class CentralizedConnection {
      */
     @External(readonly = true)
     public BigInteger getFee(String to, boolean response) {
-        BigInteger messageFee = messageFees.get(to);
+        BigInteger messageFee = messageFees.getOrDefault(to,BigInteger.ZERO);
         if (response) {
-            BigInteger responseFee = responseFees.get(to);
+            BigInteger responseFee = responseFees.getOrDefault(to, BigInteger.ZERO);
             return messageFee.add(responseFee);
         }
         return messageFee;
@@ -108,7 +108,7 @@ public class CentralizedConnection {
      * @param to  Network Id of destination network
      * @param svc name of the service
      * @param sn  positive for two-way message, zero for one-way message, negative
-     *            for response
+     *            for response(for xcall message)
      * @param msg serialized bytes of Service Message
      */
     @Payable
@@ -118,7 +118,7 @@ public class CentralizedConnection {
         BigInteger fee = BigInteger.ZERO;
         if (sn.compareTo(BigInteger.ZERO) > 0) {
             fee = getFee(to, true);
-        } else {
+        } else if(sn.equals(BigInteger.ZERO)) {
             fee = getFee(to, false);
         }
         connSn.set(connSn.get().add(BigInteger.ONE));
@@ -131,7 +131,7 @@ public class CentralizedConnection {
      * Receives a message from a source network.
      *
      * @param srcNetwork the source network id from which the message is received
-     * @param _connSn    the serial number of the message
+     * @param _connSn    the serial number of the connection message
      * @param msg        serialized bytes of Service Message
      */
     @Payable
@@ -146,7 +146,7 @@ public class CentralizedConnection {
     /**
      * Reverts a message.
      *
-     * @param sn the serial number of message representing the message to revert
+     * @param sn the serial number of xcall message representing the message to revert
      */
     @External
     public void revertMessage(BigInteger sn) {
@@ -168,12 +168,12 @@ public class CentralizedConnection {
      * Get the receipts for a given source network and serial number.
      *
      * @param srcNetwork the source network id
-     * @param sn         the serial number of message
+     * @param _connSn the serial number of connection message
      * @return the receipt if is has been recived or not
      */
     @External(readonly = true)
-    public boolean getReceipts(String srcNetwork, BigInteger sn) {
-        return receipts.at(srcNetwork).getOrDefault(sn, false);
+    public boolean getReceipts(String srcNetwork, BigInteger _connSn) {
+        return receipts.at(srcNetwork).getOrDefault(_connSn, false);
     }
 
     /**
