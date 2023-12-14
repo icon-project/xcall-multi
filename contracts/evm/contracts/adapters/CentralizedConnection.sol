@@ -78,7 +78,7 @@ contract CentralizedConnection is Initializable, IConnection {
         uint256 fee;
         if (sn > 0) {
             fee = this.getFee(to, true);
-        } else if(sn == 0) {
+        } else if (sn == 0) {
             fee = this.getFee(to, false);
         }
         require(msg.value >= fee, "Fee is not Sufficient");

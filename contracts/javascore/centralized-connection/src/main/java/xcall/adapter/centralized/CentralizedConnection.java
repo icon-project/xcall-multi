@@ -94,7 +94,7 @@ public class CentralizedConnection {
      */
     @External(readonly = true)
     public BigInteger getFee(String to, boolean response) {
-        BigInteger messageFee = messageFees.getOrDefault(to,BigInteger.ZERO);
+        BigInteger messageFee = messageFees.getOrDefault(to, BigInteger.ZERO);
         if (response) {
             BigInteger responseFee = responseFees.getOrDefault(to, BigInteger.ZERO);
             return messageFee.add(responseFee);
@@ -118,13 +118,15 @@ public class CentralizedConnection {
         BigInteger fee = BigInteger.ZERO;
         if (sn.compareTo(BigInteger.ZERO) > 0) {
             fee = getFee(to, true);
-        } else if(sn.equals(BigInteger.ZERO)) {
+        } else if (sn.equals(BigInteger.ZERO)) {
             fee = getFee(to, false);
         }
-        connSn.set(connSn.get().add(BigInteger.ONE));
+
+        BigInteger nextConnSn = connSn.get().add(BigInteger.ONE);
+        connSn.set(nextConnSn);
 
         Context.require(Context.getValue().compareTo(fee) >= 0, "Insufficient balance");
-        Message(to, connSn.get(), msg);
+        Message(to, nextConnSn, msg);
     }
 
     /**
@@ -146,7 +148,8 @@ public class CentralizedConnection {
     /**
      * Reverts a message.
      *
-     * @param sn the serial number of xcall message representing the message to revert
+     * @param sn the serial number of xcall message representing the message to
+     *           revert
      */
     @External
     public void revertMessage(BigInteger sn) {
@@ -168,7 +171,7 @@ public class CentralizedConnection {
      * Get the receipts for a given source network and serial number.
      *
      * @param srcNetwork the source network id
-     * @param _connSn the serial number of connection message
+     * @param _connSn    the serial number of connection message
      * @return the receipt if is has been recived or not
      */
     @External(readonly = true)
