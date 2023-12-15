@@ -28,7 +28,7 @@ pub struct CwCallService<'a> {
     pending_responses: Map<'a, (Vec<u8>, String), bool>,
     successful_responses: Map<'a, u128, bool>,
     callback_data: Map<'a, u64, Vec<u8>>,
-    call_reply: Map<'a, Addr, CSMessageRequest>,
+    call_reply: Item<'a, CSMessageRequest>,
 }
 
 impl<'a> Default for CwCallService<'a> {
@@ -53,7 +53,7 @@ impl<'a> CwCallService<'a> {
             successful_responses: Map::new(StorageKey::SuccessfulResponses.as_str()),
             config: Item::new(StorageKey::Config.as_str()),
             callback_data: Map::new(StorageKey::Callbackdata.as_str()),
-            call_reply: Map::new(StorageKey::CallReply.as_str()),
+            call_reply: Item::new(StorageKey::CallReply.as_str()),
         }
     }
 
@@ -374,28 +374,21 @@ impl<'a> CwCallService<'a> {
         Ok(data)
     }
 
-    pub fn get_call_reply(&self, store: &dyn Storage, caller: Addr) -> Option<CSMessageRequest> {
-        self.call_reply.load(store, caller).ok()
+    pub fn get_call_reply(&self, store: &dyn Storage) -> Option<CSMessageRequest> {
+        self.call_reply.load(store).ok()
     }
 
     pub fn save_call_reply(
         &self,
         store: &mut dyn Storage,
-        caller: Addr,
         msg: &CSMessageRequest,
     ) -> Result<(), ContractError> {
-        self.call_reply
-            .save(store, caller, msg)
-            .map_err(ContractError::Std)
+        self.call_reply.save(store, msg).map_err(ContractError::Std)
     }
 
-    pub fn pop_call_reply(
-        &self,
-        store: &mut dyn Storage,
-        caller: Addr,
-    ) -> Option<CSMessageRequest> {
-        let reply = self.get_call_reply(store, caller.clone());
-        self.call_reply.remove(store, caller);
+    pub fn pop_call_reply(&self, store: &mut dyn Storage) -> Option<CSMessageRequest> {
+        let reply = self.get_call_reply(store);
+        self.call_reply.remove(store);
         reply
     }
 }

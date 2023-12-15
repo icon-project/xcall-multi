@@ -95,8 +95,7 @@ impl<'a> CwCallService<'a> {
         if envelope.message.rollback().is_none()
             && self.is_reply(deps.as_ref(), to.nid(), &envelope.sources)
         {
-            self.save_call_reply(deps.storage, caller, &call_request)?;
-            self.remove_execute_request_id(deps.storage);
+            self.save_call_reply(deps.storage, &call_request)?;
             let res = self.send_call_response(event, sequence_no);
             return Ok(res);
         }
@@ -164,6 +163,10 @@ impl<'a> CwCallService<'a> {
     }
 
     pub fn is_reply(&self, deps: Deps, to: NetId, sources: &Vec<String>) -> bool {
+        if self.get_call_reply(deps.storage).is_some() {
+            return false;
+        }
+
         if let Some(reqid) = self.get_execute_request_id(deps.storage).ok() {
             let request = self.get_proxy_request(deps.storage, reqid).unwrap();
             if request.from().nid() != to {

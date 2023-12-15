@@ -30,11 +30,11 @@ impl<'a> CwCallService<'a> {
     pub fn handle_reply(
         &self,
         deps: DepsMut,
-        rollback:CallRequest,
+        rollback: CallRequest,
         request: CSMessageRequest,
     ) -> Result<Event, ContractError> {
-        if !(rollback.from()==request.to() && rollback.to()==request.from()){
-            return Err(ContractError::InvalidReplyReceived)
+        if !(rollback.from() == request.to() && rollback.to() == request.from()) {
+            return Err(ContractError::InvalidReplyReceived);
         }
         let request_id = self.increment_last_request_id(deps.storage)?;
 
@@ -174,7 +174,7 @@ impl<'a> CwCallService<'a> {
                     .add_event(response_event);
                 if result.get_message().is_some() {
                     let reply = result.get_message().unwrap();
-                    let event = self.handle_reply(deps,call_request, reply)?;
+                    let event = self.handle_reply(deps, call_request, reply)?;
                     res = res.add_event(event);
                 }
 

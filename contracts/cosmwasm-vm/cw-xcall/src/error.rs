@@ -45,5 +45,5 @@ pub enum ContractError {
     #[error("MessageTypeNotAllowed")]
     MessageTypeNotAllowed,
     #[error("InvalidReplyReceived")]
-    InvalidReplyReceived
+    InvalidReplyReceived,
 }
