@@ -54,7 +54,11 @@ cosmwasm-check  artifacts/archway/cw_xcall.wasm
 
 # Update version
 get_version() {
-    local cargo_toml="contracts/cosmwasm-vm/$1/Cargo.toml"
+    if [ "$1" == "cw-xcall" ]; then
+      local cargo_toml="./Cargo.toml"
+    else
+      local cargo_toml="contracts/cosmwasm-vm/$1/Cargo.toml"
+    fi
     grep -m 1 "version" "$cargo_toml" | awk -F '"' '{print $2}'
 }
 
@@ -63,7 +67,6 @@ rename_wasm_with_version() {
     local project_path="$1"
     local version=$(get_version "$project_path")
     local wasm_file="artifacts/archway/${project_path//-/_}.wasm"
-
     if [[ -f "$wasm_file" ]]; then
         cp "$wasm_file" "${wasm_file%.wasm}_latest.wasm"
         mv "$wasm_file" "${wasm_file%.wasm}_${version}.wasm"
