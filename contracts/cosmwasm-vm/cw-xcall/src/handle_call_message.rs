@@ -33,7 +33,7 @@ impl<'a> CwCallService<'a> {
         rollback: CallRequest,
         request: CSMessageRequest,
     ) -> Result<Event, ContractError> {
-        if !(rollback.from() == request.to() && rollback.to() == request.from()) {
+        if !(rollback.from() == request.to() && rollback.to().nid() == request.from().nid()) {
             return Err(ContractError::InvalidReplyReceived);
         }
         let request_id = self.increment_last_request_id(deps.storage)?;
