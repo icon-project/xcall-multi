@@ -31,6 +31,7 @@ import score.annotation.Payable;
 public class CentralizedConnection {
     protected final VarDB<Address> xCall = Context.newVarDB("callService", Address.class);
     protected final VarDB<Address> adminAddress = Context.newVarDB("relayer", Address.class);
+    private final VarDB<BigInteger> connSn = Context.newVarDB("connSn", BigInteger.class);
 
     protected final DictDB<String, BigInteger> messageFees = Context.newDictDB("messageFees", BigInteger.class);
     protected final DictDB<String, BigInteger> responseFees = Context.newDictDB("responseFees", BigInteger.class);
@@ -41,11 +42,12 @@ public class CentralizedConnection {
         if (xCall.get() == null) {
             xCall.set(_xCall);
             adminAddress.set(_relayer);
+            connSn.set(BigInteger.ZERO);
         }
     }
 
     @EventLog(indexed = 2)
-    public void Message(String targetNetwork, BigInteger sn, byte[] msg) {
+    public void Message(String targetNetwork, BigInteger connSn, byte[] msg) {
     }
 
     /**
@@ -92,9 +94,9 @@ public class CentralizedConnection {
      */
     @External(readonly = true)
     public BigInteger getFee(String to, boolean response) {
-        BigInteger messageFee = messageFees.get(to);
+        BigInteger messageFee = messageFees.getOrDefault(to, BigInteger.ZERO);
         if (response) {
-            BigInteger responseFee = responseFees.get(to);
+            BigInteger responseFee = responseFees.getOrDefault(to, BigInteger.ZERO);
             return messageFee.add(responseFee);
         }
         return messageFee;
@@ -106,7 +108,7 @@ public class CentralizedConnection {
      * @param to  Network Id of destination network
      * @param svc name of the service
      * @param sn  positive for two-way message, zero for one-way message, negative
-     *            for response
+     *            for response(for xcall message)
      * @param msg serialized bytes of Service Message
      */
     @Payable
@@ -114,36 +116,40 @@ public class CentralizedConnection {
     public void sendMessage(String to, String svc, BigInteger sn, byte[] msg) {
         Context.require(Context.getCaller().equals(xCall.get()), "Only xCall can send messages");
         BigInteger fee = BigInteger.ZERO;
-        if (sn.compareTo(BigInteger.ZERO) >= 0) {
+        if (sn.compareTo(BigInteger.ZERO) > 0) {
             fee = getFee(to, true);
-        } else {
+        } else if (sn.equals(BigInteger.ZERO)) {
             fee = getFee(to, false);
         }
 
+        BigInteger nextConnSn = connSn.get().add(BigInteger.ONE);
+        connSn.set(nextConnSn);
+
         Context.require(Context.getValue().compareTo(fee) >= 0, "Insufficient balance");
-        Message(to, sn, msg);
+        Message(to, nextConnSn, msg);
     }
 
     /**
      * Receives a message from a source network.
      *
      * @param srcNetwork the source network id from which the message is received
-     * @param sn         the serial number of the message
+     * @param _connSn    the serial number of the connection message
      * @param msg        serialized bytes of Service Message
      */
     @Payable
     @External
-    public void recvMessage(String srcNetwork, BigInteger sn, byte[] msg) {
+    public void recvMessage(String srcNetwork, BigInteger _connSn, byte[] msg) {
         OnlyAdmin();
-        Context.require(!receipts.at(srcNetwork).getOrDefault(sn, false), "Duplicate Message");
-        receipts.at(srcNetwork).set(sn, true);
+        Context.require(!receipts.at(srcNetwork).getOrDefault(_connSn, false), "Duplicate Message");
+        receipts.at(srcNetwork).set(_connSn, true);
         Context.call(xCall.get(), "handleMessage", srcNetwork, msg);
     }
 
     /**
      * Reverts a message.
      *
-     * @param sn the serial number of message representing the message to revert
+     * @param sn the serial number of xcall message representing the message to
+     *           revert
      */
     @External
     public void revertMessage(BigInteger sn) {
@@ -165,12 +171,12 @@ public class CentralizedConnection {
      * Get the receipts for a given source network and serial number.
      *
      * @param srcNetwork the source network id
-     * @param sn         the serial number of message
+     * @param _connSn    the serial number of connection message
      * @return the receipt if is has been recived or not
      */
     @External(readonly = true)
-    public boolean getReceipts(String srcNetwork, BigInteger sn) {
-        return receipts.at(srcNetwork).getOrDefault(sn, false);
+    public boolean getReceipts(String srcNetwork, BigInteger _connSn) {
+        return receipts.at(srcNetwork).getOrDefault(_connSn, false);
     }
 
     /**
