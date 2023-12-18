@@ -6,7 +6,6 @@ import "openzeppelin-contracts-upgradeable/contracts/proxy/utils/Initializable.s
 import "@xcall/utils/Types.sol";
 import "@xcall/contracts/xcall/interfaces/IConnection.sol";
 import "@iconfoundation/btp2-solidity-library/interfaces/ICallService.sol";
-pragma solidity ^0.8.0;
 
 contract CentralizedConnection is Initializable, IConnection {
     mapping(string => uint256) private messageFees;
@@ -14,8 +13,9 @@ contract CentralizedConnection is Initializable, IConnection {
     mapping(string => mapping(uint256 => bool)) receipts;
     address private xCall;
     address private adminAddress;
+    uint256 public connSn;
 
-    event Message(string targetNetwork, int256 sn, bytes _msg);
+    event Message(string targetNetwork, uint256 sn, bytes _msg);
 
     modifier onlyAdmin() {
         require(msg.sender == this.admin(), "OnlyRelayer");
@@ -65,7 +65,7 @@ contract CentralizedConnection is Initializable, IConnection {
      @param sn : positive for two-way message, zero for one-way message, negative for response
      @param to  String ( Network Id of destination network )
      @param svc String ( name of the service )
-     @param sn  Integer ( serial number of the message )
+     @param sn  Integer ( serial number of the xcall message )
      @param _msg Bytes ( serialized bytes of Service Message )
      */
     function sendMessage(
@@ -76,28 +76,29 @@ contract CentralizedConnection is Initializable, IConnection {
     ) external payable override {
         require(msg.sender == xCall, "Only Xcall can call sendMessage");
         uint256 fee;
-        if (sn >= 0) {
+        if (sn > 0) {
             fee = this.getFee(to, true);
-        } else {
+        } else if (sn == 0) {
             fee = this.getFee(to, false);
         }
         require(msg.value >= fee, "Fee is not Sufficient");
-        emit Message(to, sn, _msg);
+        connSn++;
+        emit Message(to, connSn, _msg);
     }
 
     /**
      @notice Sends the message to a xCall.
      @param srcNetwork  String ( Network Id )
-     @param sn Integer ( serial number of the message )
+     @param _connSn Integer ( connection message sn )
      @param _msg Bytes ( serialized bytes of Service Message )
      */
     function recvMessage(
         string memory srcNetwork,
-        uint256 sn,
+        uint256 _connSn,
         bytes calldata _msg
     ) public onlyAdmin {
-        require(!receipts[srcNetwork][sn], "Duplicate Message");
-        receipts[srcNetwork][sn] = true;
+        require(!receipts[srcNetwork][_connSn], "Duplicate Message");
+        receipts[srcNetwork][_connSn] = true;
         ICallService(xCall).handleMessage(srcNetwork, _msg);
     }
 
@@ -111,7 +112,7 @@ contract CentralizedConnection is Initializable, IConnection {
 
     /**
      @notice Revert a messages, used in special cases where message can't just be dropped
-     @param sn  Integer ( serial number of the message )
+     @param sn  Integer ( serial number of the  xcall message )
      */
     function revertMessage(uint256 sn) public onlyAdmin {
         ICallService(xCall).handleError(sn);
@@ -120,14 +121,14 @@ contract CentralizedConnection is Initializable, IConnection {
     /**
      @notice Gets a message receipt
      @param srcNetwork String ( Network Id )
-     @param sn Integer ( serial number of the message )
+     @param _connSn Integer ( connection message sn )
      @return boolean if is has been recived or not
      */
     function getReceipt(
         string memory srcNetwork,
-        uint256 sn
+        uint256 _connSn
     ) public view returns (bool) {
-        return receipts[srcNetwork][sn];
+        return receipts[srcNetwork][_connSn];
     }
 
     /**
