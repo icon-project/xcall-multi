@@ -503,13 +503,13 @@ payable external sendCall(String _to, byte[] _data) returns Integer {
     msgReq = CSMessageRequest(from, to.account(), sn, envelope.type, msg, envelope.destinations)
     msg = CSMessage(CSMessage.REQUEST, msgReq.toBytes()).toBytes()
     assert msg.length <= MAX_DATA_SIZE
-    
+
      if isReply(_to.netId,envelope.sources) && !needResponse:
         replyState = null
         callReply[caller]=msg
         emit CallMessageSent(caller, dst.toString(), sn)
         return sn
-    
+
     sendSn = needResponse ? sn : 0
     if protocolConfig.sources == []:
         src = defaultConnection[to.net()]
@@ -671,7 +671,7 @@ internal function handleResult(data byte[]) {
         req = rollbacks[resSn]
 
         if req == null:
-            return
+            throw "CallRequest Not Found For {resSn}"
 
         if !verifyProtocols(req.netTo, req.protocolConfig, hash(data)):
             return
@@ -681,7 +681,7 @@ internal function handleResult(data byte[]) {
             case CSMessageResult.SUCCESS:
                 if result.getMessage()!=null:
                     handleReply(req,result.getMessage())
-                
+
                 rollbacks[resSn] = null
                 successfulResponses[resSn] = 1
                 break
@@ -778,7 +778,7 @@ internal function executeCall(int id, String from, byte[] data, String[] protoco
 internal function isReply(String netId, String[] sources) {
     if replyState != null:
        return replyState.fromNid == netid && replyState.protocols.equals(sources)
-  
+
     return false
 }
 ```
@@ -831,7 +831,7 @@ external readonly function getFee(String _net,
 
     if isReply(_net, sources) && !_rollback {
         return 0
-    }                                  
+    }
     fee = protocolFee
     if _sources == [] {
         return defaultConnection[_net]->getFee(_net, _rollback) + fee
