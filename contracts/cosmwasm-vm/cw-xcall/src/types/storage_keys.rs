@@ -17,6 +17,7 @@ pub enum StorageKey {
     SuccessfulResponses,
     Config,
     Callbackdata,
+    CallReply,
 }
 
 impl StorageKey {
@@ -37,6 +38,7 @@ impl StorageKey {
             StorageKey::SuccessfulResponses => "successful_responses",
             StorageKey::Config => "config",
             StorageKey::Callbackdata => "callback_data",
+            StorageKey::CallReply => "call_reply",
         }
     }
 }

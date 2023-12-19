@@ -45,6 +45,10 @@ impl<'a> CwCallService<'a> {
         rollback: bool,
         sources: Vec<String>,
     ) -> Result<u128, ContractError> {
+        if !rollback && self.is_reply(deps, nid.clone(), &sources) {
+            return Ok(0_u128);
+        }
+
         let protocol_fee = self.get_protocol_fee(deps.storage);
         let mut sources = sources;
         if sources.is_empty() {
