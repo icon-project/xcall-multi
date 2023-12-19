@@ -167,25 +167,25 @@ impl<'a> CwCallService<'a> {
             return false;
         }
 
-        if let Some(reqid) = self.get_execute_request_id(deps.storage).ok() {
+        if let Ok(reqid) = self.get_execute_request_id(deps.storage) {
             let request = self.get_proxy_request(deps.storage, reqid).unwrap();
             if request.from().nid() != to {
                 return false;
             }
-            return self.are_equal(request.protocols(), &sources);
+            return self.are_equal(request.protocols(), sources);
         }
-        return false;
+        false
     }
 
     fn are_equal(&self, protocols: &Vec<String>, sources: &Vec<String>) -> bool {
         if protocols.len() != sources.len() {
             return false;
         }
-        for protocol in protocols.into_iter() {
+        for protocol in protocols.iter() {
             if !sources.contains(protocol) {
                 return false;
             }
         }
-        return true;
+        true
     }
 }

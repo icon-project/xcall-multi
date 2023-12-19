@@ -131,10 +131,8 @@ impl<'a> CwCallService<'a> {
 
         let mut call_request = self
             .get_call_request(deps.storage, response_sequence_no)
-            .map_err(|_e| {
-                return ContractError::CallRequestNotFound {
-                    sn: response_sequence_no,
-                };
+            .map_err(|_e| ContractError::CallRequestNotFound {
+                sn: response_sequence_no,
             })?;
 
         let source = info.sender.to_string();
