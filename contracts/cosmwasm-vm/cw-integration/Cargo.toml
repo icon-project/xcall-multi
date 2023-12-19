@@ -24,7 +24,8 @@ cw-xcall-ibc-connection = { workspace=true }
 cw-mock-ibc-core = { workspace=true }
 cw-mock-dapp = { workspace=true}
 cw-mock-dapp-multi = { workspace=true }
-cw-xcall-lib={workspace=true}
+## xcall connection uses the alpha tag need to update
+cw-xcall-lib={package="cw-xcall-lib", git="https://github.com/icon-project/xCall.git", tag="v0.1.0-alpha.5"}
 cw-xcall = {workspace=true}
 anyhow="*"
 

@@ -3,9 +3,12 @@ use std::str::FromStr;
 
 use anyhow::Error as AppError;
 
+use cosmwasm_std::IbcChannel;
+use cosmwasm_std::IbcEndpoint;
 use cw_multi_test::AppResponse;
 use cw_multi_test::Executor;
 
+use cw_xcall_lib::network_address::NetId;
 use cw_xcall_lib::network_address::NetworkAddress;
 use setup::{
     init_mock_ibc_core_contract, init_xcall_app_contract, init_xcall_ibc_connection_contract,
@@ -13,11 +16,13 @@ use setup::{
 };
 
 use crate::setup::get_event;
+use crate::setup::mock_ibc_config;
 use crate::setup::setup_context;
 const MOCK_CONTRACT_TO_ADDR: &str = "cosmoscontract";
 
 fn setup_contracts(mut ctx: TestContext) -> TestContext {
     ctx = init_mock_ibc_core_contract(ctx);
+    ctx.set_ibc_core(ctx.sender.clone());
     ctx = init_xcall_app_contract(ctx);
     ctx = init_xcall_ibc_connection_contract(ctx);
     ctx
@@ -62,6 +67,62 @@ pub fn call_set_xcall_host(ctx: &mut TestContext) -> Result<AppResponse, AppErro
     )
 }
 
+pub fn call_set_default_connection(
+    ctx: &mut TestContext,
+    nid: String,
+) -> Result<AppResponse, AppError> {
+    ctx.app.execute_contract(
+        ctx.sender.clone(),
+        ctx.get_xcall_app(),
+        &cw_xcall_lib::xcall_msg::ExecuteMsg::SetDefaultConnection {
+            nid: NetId::from(nid),
+            address: ctx.get_xcall_ibc_connection(),
+        },
+        &[],
+    )
+}
+
+pub fn call_configure_connection(
+    ctx: &mut TestContext,
+    connection_id: String,
+    nid: String,
+    client_id: String,
+) -> Result<AppResponse, AppError> {
+    ctx.app.execute_contract(
+        ctx.sender.clone(),
+        ctx.get_xcall_ibc_connection(),
+        &cw_common::xcall_connection_msg::ExecuteMsg::ConfigureConnection {
+            connection_id,
+            counterparty_port_id: "xcall".to_string(),
+            counterparty_nid: NetId::from_str(&nid).unwrap(),
+            client_id,
+            timeout_height: 10,
+        },
+        &[],
+    )
+}
+
+
+
+pub fn call_channel_connect(ctx: &mut TestContext)->Result<AppResponse, AppError> {
+    let ibc_config=mock_ibc_config();
+    let channel= IbcChannel::new(
+        ibc_config.src_endpoint().clone(),
+        ibc_config.dst_endpoint().clone(),
+        cosmwasm_std::IbcOrder::Unordered,
+        "ics-20",
+        "connection-1");
+
+
+    ctx.app.execute_contract(
+        ctx.sender.clone(),
+        ctx.get_xcall_ibc_connection(),
+        &cw_common::xcall_connection_msg::ExecuteMsg::IbcChannelConnect { msg: cosmwasm_std::IbcChannelConnectMsg::OpenConfirm { 
+            channel} },
+        &[]
+    )
+}
+
 // not possible without handshake
 #[ignore]
 #[test]
@@ -69,9 +130,14 @@ fn send_packet_success() {
     let mut ctx = setup_test();
     call_set_xcall_host(&mut ctx).unwrap();
     let src = ctx.get_xcall_ibc_connection().to_string();
+    let mock_ibc_config=mock_ibc_config();
+    
+    let nid="0x3.icon";
+    call_configure_connection(&mut ctx, "connection-1".to_string(), nid.to_string(), "client-1".to_string()).unwrap();
+    call_channel_connect(&mut ctx).unwrap();
     let result = call_send_call_message(
         &mut ctx,
-        &format!("nid/{MOCK_CONTRACT_TO_ADDR}"),
+        &format!("{nid}/{MOCK_CONTRACT_TO_ADDR}"),
         vec![src],
         vec!["somedestination".to_string()],
         vec![1, 2, 3],
@@ -83,3 +149,9 @@ fn send_packet_success() {
     let event = get_event(&result, "wasm-xcall_app_send_call_message_reply").unwrap();
     assert_eq!("success", event.get("status").unwrap());
 }
+// test different message types against xcall
+
+
+
+
+

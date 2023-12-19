@@ -6,7 +6,6 @@ use cosmwasm_std::{
     Addr, Attribute, Empty, Event, IbcEndpoint, MessageInfo, OwnedDeps,
 };
 use cw_common::ibc_types::IbcEventType;
-use cw_integration::TestSteps;
 use cw_multi_test::{App, AppResponse, Contract, ContractWrapper, Executor};
 use cw_xcall_ibc_connection::state::IbcConfig;
 
@@ -85,13 +84,13 @@ pub fn deps() -> OwnedDeps<MockStorage, MockApi, MockQuerier, Empty> {
 
 pub fn mock_ibc_config() -> IbcConfig {
     let src = IbcEndpoint {
-        port_id: "our-port".to_string(),
-        channel_id: "channel-1".to_string(),
+        port_id: "xcall".to_string(),
+        channel_id: "our-channel-id".to_string(),
     };
 
     let dst = IbcEndpoint {
-        port_id: "their-port".to_string(),
-        channel_id: "channel-3".to_string(),
+        port_id: "xcall".to_string(),
+        channel_id: "their-channel-id".to_string(),
     };
 
     IbcConfig::new(src, dst)
@@ -154,35 +153,6 @@ pub fn init_mock_dapp_contract(mut ctx: TestContext) -> TestContext {
 
     ctx
 }
-
-// pub fn ibc_core_contract() -> Box<dyn Contract<Empty>> {
-//     let contract = ContractWrapper::new(
-//         cw_ibc_core::execute,
-//         cw_ibc_core::instantiate,
-//         cw_ibc_core::query,
-//     )
-//     .with_reply(cw_ibc_core::reply);
-//     Box::new(contract)
-// }
-
-// pub fn init_ibc_core_contract(mut ctx: TestContext) -> TestContext {
-//     let ibc_core_code_id = ctx.app.store_code(ibc_core_contract());
-//     let ibc_core_addr = ctx
-//         .app
-//         .instantiate_contract(
-//             ibc_core_code_id,
-//             ctx.sender.clone(),
-//             &cw_common::core_msg::InstantiateMsg {},
-//             &[],
-//             "IBCCore",
-//             ctx.admin.clone(),
-//         )
-//         .unwrap();
-
-//     ctx.set_ibc_core(ibc_core_addr);
-
-//     ctx
-// }
 
 pub fn init_mock_ibc_core_contract(mut ctx: TestContext) -> TestContext {
     let ibc_core_code_id = ctx.app.store_code(mock_ibc_core_contract());
@@ -267,7 +237,7 @@ pub fn init_xcall_ibc_connection_contract(mut ctx: TestContext) -> TestContext {
             Some(ctx.sender.clone().to_string()),
         )
         .unwrap();
-    
+
     ctx.set_xcall_ibc_connection(ibc_connection_contract_addr);
     ctx
 }
