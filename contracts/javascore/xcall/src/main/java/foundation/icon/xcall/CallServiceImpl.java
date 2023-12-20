@@ -32,6 +32,7 @@ import java.util.Arrays;
 import foundation.icon.xcall.messages.CallMessage;
 import foundation.icon.xcall.messages.CallMessageWithRollback;
 import foundation.icon.xcall.messages.Message;
+import foundation.icon.xcall.messages.PersistentMessage;
 import foundation.icon.xcall.messages.XCallEnvelope;
 
 
@@ -316,7 +317,6 @@ public class CallServiceImpl implements CallService, FeeManage {
     public void CallMessageSent(Address _from, String _to, BigInteger _sn) {
     }
 
-
     private void sendMessage(String[] _sources, String netTo, int msgType, BigInteger sn, byte[] data) {
         Address[] sources = prepareProtocols(_sources, netTo);
         CSMessage msg = new CSMessage(msgType, data);
@@ -383,6 +383,7 @@ public class CallServiceImpl implements CallService, FeeManage {
     private ProcessResult preProcessMessage(BigInteger sn, NetworkAddress to, XCallEnvelope envelope) {
         switch (envelope.getType()) {
             case CallMessage.TYPE:
+            case PersistentMessage.TYPE:
                 return new ProcessResult(false, envelope.getMessage());
             case CallMessageWithRollback.TYPE:
                 Address caller = Context.getCaller();
@@ -403,6 +404,9 @@ public class CallServiceImpl implements CallService, FeeManage {
         switch (req.getType() ) {
             case CallMessage.TYPE:
                 tryExecuteCall(reqId, to, req.getFrom(), data, protocols);
+                break;
+            case PersistentMessage.TYPE:
+                _executeCall(reqId, to, req.getFrom(), data, protocols);
                 break;
             case CallMessageWithRollback.TYPE: {
                 int code =  tryExecuteCall(reqId, to, req.getFrom(), data, protocols);
@@ -451,10 +455,7 @@ public class CallServiceImpl implements CallService, FeeManage {
         BigInteger resSn = msgRes.getSn();
         RollbackData req = rollbacks.get(resSn);
 
-        if (req == null) {
-            Context.println("handleResult: no request for " + resSn);
-            return; // just ignore
-        }
+        Context.require(req != null, "CallRequest Not Found For " + resSn.toString());
 
         byte[] hash = Context.hash("sha-256", data);
         DictDB<String, Boolean> pending = pendingResponses.at(hash);

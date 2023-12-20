@@ -25,6 +25,9 @@ import com.iconloop.score.test.ServiceManager;
 import com.iconloop.score.test.TestBase;
 
 import foundation.icon.xcall.messages.CallMessageWithRollback;
+import foundation.icon.xcall.messages.Message;
+import foundation.icon.xcall.messages.PersistentMessage;
+import foundation.icon.xcall.messages.XCallEnvelope;
 import score.UserRevertedException;
 import xcall.icon.test.MockContract;
 
@@ -122,6 +125,25 @@ public class CallServiceTest extends TestBase {
         CSMessage msg = new CSMessage(CSMessage.REQUEST, request.toBytes());
         verify(connection1.mock).sendMessage(eq(ethNid), eq(CallService.NAME), eq(BigInteger.ZERO), aryEq(msg.toBytes()));
         verify(connection2.mock).sendMessage(eq(ethNid), eq(CallService.NAME), eq(BigInteger.ZERO), aryEq(msg.toBytes()));
+        verify(xcallSpy).CallMessageSent(dapp.getAddress(), ethDapp.toString(), BigInteger.ONE);
+    }
+
+
+    @Test
+    public void sendMessage_persistent() {
+        // Arrange
+        byte[] data = "test".getBytes();
+        Message message = new PersistentMessage(data);
+        XCallEnvelope envelope = new XCallEnvelope(message);
+        xcall.invoke(owner, "setDefaultConnection", ethDapp.net(), baseConnection.getAddress());
+
+        // Act
+        xcall.invoke(dapp.account, "sendCall", ethDapp.toString(), envelope.toBytes());
+
+        // Assert
+        CSMessageRequest request = new CSMessageRequest(iconDappAddress.toString(), ethDapp.account.toString(), BigInteger.ONE, PersistentMessage.TYPE, data, null);
+        CSMessage msg = new CSMessage(CSMessage.REQUEST, request.toBytes());
+        verify(baseConnection.mock).sendMessage(eq(ethNid), eq(CallService.NAME), eq(BigInteger.ZERO), aryEq(msg.toBytes()));
         verify(xcallSpy).CallMessageSent(dapp.getAddress(), ethDapp.toString(), BigInteger.ONE);
     }
 
@@ -341,6 +363,39 @@ public class CallServiceTest extends TestBase {
         msg = new CSMessage(CSMessage.RESULT, msgRes.toBytes());
         verify(baseConnection.mock).sendMessage(ethNid, CallService.NAME, BigInteger.ONE.negate(), msg.toBytes());
         verify(xcallSpy).CallExecuted(BigInteger.ONE, 0, "score.RevertedException");
+    }
+
+    @Test
+    public void executeCall_persistent_failedExecution() {
+        // Arrange
+        byte[] data = "test".getBytes();
+        CSMessageRequest request = new CSMessageRequest(ethDapp.toString(), dapp.getAddress().toString(), BigInteger.ONE, PersistentMessage.TYPE, data, baseSource);
+        CSMessage msg = new CSMessage(CSMessage.REQUEST, request.toBytes());
+        xcall.invoke(baseConnection.account, "handleMessage", ethNid, msg.toBytes());
+        // Act
+        doThrow(new UserRevertedException()).when(dapp.mock).handleCallMessage(ethDapp.toString(), data, new String[]{baseConnection.getAddress().toString()});
+        assertThrows(Exception.class, () -> xcall.invoke(user, "executeCall", BigInteger.ONE, data));
+    }
+
+    @Test
+    public void executeCall_persistent() throws Exception {
+        // Arrange
+        byte[] data = "test".getBytes();
+        MockContract<DefaultCallServiceReceiver> defaultDapp = new MockContract<>(DefaultCallServiceReceiverScoreInterface.class, DefaultCallServiceReceiver.class, sm, owner);
+        CSMessageRequest request = new CSMessageRequest(ethDapp.toString(), defaultDapp.getAddress().toString(), BigInteger.ONE, PersistentMessage.TYPE, data, null);
+        CSMessage msg = new CSMessage(CSMessage.REQUEST, request.toBytes());
+
+        xcall.invoke(owner, "setDefaultConnection", ethDapp.net(), baseConnection.getAddress());
+        xcall.invoke(baseConnection.account, "handleMessage", ethNid, msg.toBytes());
+
+        // Act
+        xcall.invoke(user, "executeCall", BigInteger.ONE, data);
+
+        // Assert
+        verify(defaultDapp.mock).handleCallMessage(ethDapp.toString(), data);
+        verify(xcallSpy).CallExecuted(BigInteger.ONE, 1, "");
+        Exception e = assertThrows(Exception.class, () -> xcall.invoke(user, "executeCall", BigInteger.ONE, data));
+        assertEquals("Reverted(0): InvalidRequestId", e.getMessage());
     }
 
     @Test
