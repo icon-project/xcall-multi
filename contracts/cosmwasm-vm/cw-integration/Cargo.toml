@@ -16,6 +16,7 @@ ibc = { version = "0.32.0", default-features = false, features = ["parity-scale-
 prost = { workspace=true}
 strum="*"
 strum_macros = "0.24"
+cw-xcall-lib={package = "cw-xcall-lib",workspace=true}
 
 [dev-dependencies]
 hex = "0.4.3"
@@ -25,7 +26,8 @@ cw-mock-ibc-core = { workspace=true }
 cw-mock-dapp = { workspace=true}
 cw-mock-dapp-multi = { workspace=true }
 ## xcall connection uses the alpha tag need to update
-cw-xcall-lib={package="cw-xcall-lib", git="https://github.com/icon-project/xCall.git", tag="v0.1.0-alpha.5"}
+xcall-lib={package="cw-xcall-lib", git="https://github.com/icon-project/xCall.git", tag="v0.1.0-alpha.5"}
+
 cw-xcall = {workspace=true}
 anyhow="*"
 

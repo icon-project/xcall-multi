@@ -46,6 +46,9 @@ pub fn execute(
         ExecuteMsg::SendCallMessage { to, data, rollback } => {
             call_service.send_call_message(deps, info, to, data, rollback)
         }
+        ExecuteMsg::SendCall { to, envelope }=>{
+             call_service.send_call(deps, info, to, envelope)
+        },
         ExecuteMsg::HandleCallMessage {
             from,
             data,

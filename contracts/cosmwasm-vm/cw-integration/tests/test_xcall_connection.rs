@@ -7,10 +7,15 @@ use cosmwasm_std::Addr;
 use cosmwasm_std::IbcChannel;
 use cosmwasm_std::IbcEndpoint;
 use cw_multi_test::AppResponse;
+
 use cw_multi_test::Executor;
 
-use cw_xcall_lib::network_address::NetId;
-use cw_xcall_lib::network_address::NetworkAddress;
+use cw_xcall_lib::message::AnyMessage;
+use cw_xcall_lib::message::call_message_rollback::CallMessageWithRollback;
+use cw_xcall_lib::message::envelope::Envelope;
+use setup::init_mock_dapp_multi_contract;
+use xcall_lib::network_address::NetId;
+use xcall_lib::network_address::NetworkAddress;
 use setup::{
     init_mock_ibc_core_contract, init_xcall_app_contract, init_xcall_ibc_connection_contract,
     TestContext,
@@ -26,6 +31,7 @@ fn setup_contracts(mut ctx: TestContext) -> TestContext {
    // ctx.set_ibc_core(ctx.sender.clone());
     ctx = init_xcall_app_contract(ctx);
     ctx = init_xcall_ibc_connection_contract(ctx);
+    ctx= init_mock_dapp_multi_contract(ctx);
     ctx
 }
 
@@ -46,12 +52,29 @@ pub fn call_send_call_message(
     ctx.app.execute_contract(
         ctx.sender.clone(),
         ctx.get_xcall_app(),
-        &cw_xcall_lib::xcall_msg::ExecuteMsg::SendCallMessage {
+        &xcall_lib::xcall_msg::ExecuteMsg::SendCallMessage {
             to: NetworkAddress::from_str(to).unwrap(),
             data,
             rollback,
             sources: Some(sources),
             destinations: Some(destinations),
+        },
+        &[],
+    )
+}
+
+
+pub fn call_dapp_send_call(
+    ctx: &mut TestContext,
+    to: String,
+    envelope:Envelope,
+) -> Result<AppResponse, AppError> {
+    ctx.app.execute_contract(
+        ctx.sender.clone(),
+        ctx.get_dapp(),
+        &cw_xcall_lib::xcall_msg::ExecuteMsg::SendCall{
+            to: cw_xcall_lib::network_address::NetworkAddress::from_str(&to).unwrap(),
+            envelope,
         },
         &[],
     )
@@ -75,7 +98,7 @@ pub fn call_set_default_connection(
     ctx.app.execute_contract(
         ctx.sender.clone(),
         ctx.get_xcall_app(),
-        &cw_xcall_lib::xcall_msg::ExecuteMsg::SetDefaultConnection {
+        &xcall_lib::xcall_msg::ExecuteMsg::SetDefaultConnection {
             nid: NetId::from(nid),
             address: ctx.get_xcall_ibc_connection(),
         },
@@ -125,8 +148,7 @@ pub fn call_register_connection(ctx: &mut TestContext)->Result<AppResponse, AppE
     &cw_mock_ibc_core::msg::ExecuteMsg::RegisterXcall { address:ctx.get_xcall_ibc_connection() },&[])
 }
 
-// not possible without handshake
-#[ignore]
+
 #[test]
 fn test_xcall_send_call_message() {
     let mut ctx = setup_test();
@@ -151,6 +173,34 @@ fn test_xcall_send_call_message() {
     let event = get_event(&result, "wasm-CallMessageSent").unwrap();
     println!("{event:?}");
     assert_eq!(&format!("{nid}/{MOCK_CONTRACT_TO_ADDR}"), event.get("to").unwrap());
+}
+
+#[test]
+fn test_xcall_send_call() {
+    let mut ctx = setup_test();
+    call_set_xcall_host(&mut ctx).unwrap();
+    call_register_connection(&mut ctx).unwrap();
+    let src = ctx.get_xcall_ibc_connection().to_string();
+    let dapp=ctx.get_dapp().to_string();
+    
+    let nid="0x3.icon";
+    call_configure_connection(&mut ctx, "connection-1".to_string(), nid.to_string(), "client-1".to_string()).unwrap();
+    call_channel_connect(&mut ctx).unwrap();
+    let message=AnyMessage::CallMessageWithRollback(CallMessageWithRollback{
+        data: vec![1,2,3],
+        rollback: "rollback-reply".as_bytes().to_vec(),
+    });
+    let envelope= Envelope::new(message, vec![src], vec!["somedestination".to_string()]);
+    let result = call_dapp_send_call(
+        &mut ctx,
+        format!("{nid}/{dapp}"),
+        envelope
+       
+    );
+    println!("{result:?}");
+    assert!(result.is_ok());
+    let result = result.unwrap();
+   
 }
 
 

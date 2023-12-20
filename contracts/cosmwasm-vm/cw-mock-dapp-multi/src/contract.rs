@@ -1,6 +1,6 @@
 use std::str::from_utf8;
 
-use cw_xcall_lib::{network_address::NetworkAddress, xcall_msg::ExecuteMsg};
+use cw_xcall_lib::{network_address::NetworkAddress, xcall_msg::ExecuteMsg, message::envelope::Envelope};
 
 use super::*;
 
@@ -67,6 +67,35 @@ impl<'a> CwMockService<'a> {
             .add_attribute("Action", "SendMessage")
             .add_message(message))
     }
+
+    pub fn send_call( &self,
+        deps: DepsMut,
+        info: MessageInfo,
+        to: NetworkAddress,
+        envelope:Envelope)-> Result<Response, ContractError> {
+            let address = self
+            .xcall_address()
+            .load(deps.storage)
+            .map_err(|_e| ContractError::ModuleAddressNotFound)?;
+
+            let msg = ExecuteMsg::SendCall {
+                to,
+               envelope
+            };
+            let message: CosmosMsg<Empty> = CosmosMsg::Wasm(WasmMsg::Execute {
+                contract_addr: address,
+                msg: to_binary(&msg).unwrap(),
+                funds: info.funds,
+            });
+    
+            println!("{:?}", message);
+    
+            Ok(Response::new()
+                .add_attribute("Action", "SendMessage")
+                .add_message(message))
+
+
+        }
 
     pub fn handle_call_message(
         &self,
