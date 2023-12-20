@@ -3,6 +3,7 @@ use std::str::FromStr;
 
 use anyhow::Error as AppError;
 
+use cosmwasm_std::Addr;
 use cosmwasm_std::IbcChannel;
 use cosmwasm_std::IbcEndpoint;
 use cw_multi_test::AppResponse;
@@ -22,7 +23,7 @@ const MOCK_CONTRACT_TO_ADDR: &str = "cosmoscontract";
 
 fn setup_contracts(mut ctx: TestContext) -> TestContext {
     ctx = init_mock_ibc_core_contract(ctx);
-    ctx.set_ibc_core(ctx.sender.clone());
+   // ctx.set_ibc_core(ctx.sender.clone());
     ctx = init_xcall_app_contract(ctx);
     ctx = init_xcall_ibc_connection_contract(ctx);
     ctx
@@ -113,24 +114,25 @@ pub fn call_channel_connect(ctx: &mut TestContext)->Result<AppResponse, AppError
         "ics-20",
         "connection-1");
 
+    ctx.app.execute_contract(ctx.sender.clone(), ctx.get_ibc_core(), 
+    &cw_mock_ibc_core::msg::ExecuteMsg::IbcConfig { msg:cosmwasm_std::IbcChannelConnectMsg::OpenConfirm { channel: channel } }, &[])
+}
 
-    ctx.app.execute_contract(
-        ctx.sender.clone(),
-        ctx.get_xcall_ibc_connection(),
-        &cw_common::xcall_connection_msg::ExecuteMsg::IbcChannelConnect { msg: cosmwasm_std::IbcChannelConnectMsg::OpenConfirm { 
-            channel} },
-        &[]
-    )
+pub fn call_register_connection(ctx: &mut TestContext)->Result<AppResponse, AppError> {
+    
+
+    ctx.app.execute_contract(ctx.sender.clone(), ctx.get_ibc_core(), 
+    &cw_mock_ibc_core::msg::ExecuteMsg::RegisterXcall { address:ctx.get_xcall_ibc_connection() },&[])
 }
 
 // not possible without handshake
 #[ignore]
 #[test]
-fn send_packet_success() {
+fn test_xcall_send_call_message() {
     let mut ctx = setup_test();
     call_set_xcall_host(&mut ctx).unwrap();
+    call_register_connection(&mut ctx).unwrap();
     let src = ctx.get_xcall_ibc_connection().to_string();
-    let mock_ibc_config=mock_ibc_config();
     
     let nid="0x3.icon";
     call_configure_connection(&mut ctx, "connection-1".to_string(), nid.to_string(), "client-1".to_string()).unwrap();
@@ -146,10 +148,10 @@ fn send_packet_success() {
     println!("{result:?}");
     assert!(result.is_ok());
     let result = result.unwrap();
-    let event = get_event(&result, "wasm-xcall_app_send_call_message_reply").unwrap();
-    assert_eq!("success", event.get("status").unwrap());
+    let event = get_event(&result, "wasm-CallMessageSent").unwrap();
+    println!("{event:?}");
+    assert_eq!(&format!("{nid}/{MOCK_CONTRACT_TO_ADDR}"), event.get("to").unwrap());
 }
-// test different message types against xcall
 
 
 
