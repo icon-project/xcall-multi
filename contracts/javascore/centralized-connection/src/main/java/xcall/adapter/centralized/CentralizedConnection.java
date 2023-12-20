@@ -136,7 +136,6 @@ public class CentralizedConnection {
      * @param _connSn    the serial number of the connection message
      * @param msg        serialized bytes of Service Message
      */
-    @Payable
     @External
     public void recvMessage(String srcNetwork, BigInteger _connSn, byte[] msg) {
         OnlyAdmin();
