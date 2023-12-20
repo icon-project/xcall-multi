@@ -26,6 +26,10 @@ impl CSMessage {
     pub fn payload(&self) -> &[u8] {
         &self.payload
     }
+
+    pub fn as_bytes(&self)->Vec<u8>{
+        rlp::encode(&self.clone()).to_vec()
+    }
 }
 
 impl Encodable for CSMessage {

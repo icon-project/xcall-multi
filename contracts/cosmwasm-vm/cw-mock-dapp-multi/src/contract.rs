@@ -99,6 +99,7 @@ impl<'a> CwMockService<'a> {
 
     pub fn handle_call_message(
         &self,
+        deps:DepsMut,
         info: MessageInfo,
         from: NetworkAddress,
         data: Vec<u8>,
@@ -114,6 +115,9 @@ impl<'a> CwMockService<'a> {
             })?;
             if "rollback" == msg_data {
                 return Err(ContractError::RevertFromDAPP);
+            }
+            if "reply-response" == msg_data {
+                self.send_call_message(deps, info, from.clone(), vec![1,2,3],None).unwrap();
             }
             Ok(Response::new()
                 .add_attribute("from", from.to_string())

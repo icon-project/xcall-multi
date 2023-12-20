@@ -53,7 +53,7 @@ pub fn execute(
             from,
             data,
             protocols,
-        } => call_service.handle_call_message(info, from, data, protocols),
+        } => call_service.handle_call_message(deps,info, from, data, protocols),
         ExecuteMsg::AddConnection {
             src_endpoint,
             dest_endpoint,

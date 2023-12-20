@@ -107,6 +107,7 @@ fn test_handle_message() {
     ctx.instantiate(deps.as_mut(), env, info.clone(), msg)
         .unwrap();
     let res = ctx.handle_call_message(
+        deps.as_mut(),
         info,
         NetworkAddress::from_str("netid/xcall").unwrap(),
         "helloError".as_bytes().to_vec(),
@@ -131,6 +132,7 @@ fn test_handle_message_fail_revert() {
     ctx.instantiate(deps.as_mut(), env, info.clone(), msg)
         .unwrap();
     ctx.handle_call_message(
+        deps.as_mut(),
         info,
         NetworkAddress::from_str("netid/xcall").unwrap(),
         "rollback".as_bytes().to_vec(),
@@ -159,6 +161,7 @@ fn test_handle_message_pass_true() {
         rollback: vec![1, 2, 3],
     };
     let res = ctx.handle_call_message(
+        deps.as_mut(),
         info,
         NetworkAddress::from_str("netid/hugobyte").unwrap(),
         to_vec(&rollback_data).unwrap(),
