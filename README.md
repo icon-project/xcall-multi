@@ -44,6 +44,12 @@ For building dapps with xcall-multi see official developer [docs](https://www.xc
 | neutron-1      | <pre><code> neutron1g28ca6axwkar5fuhhfcgua2807njh795nvrz6qf75u3xpv805y7sugakf9 </pre></code> | <pre><code> neutron1gfmvnlrpd6mu7p254udqvky6r2nu3dq0p82yc7jg8ytq6ku2lzhstk8c3t </pre></code> |
 | pion-1         | <pre><code> neutron164uehrt5zp6y9atz3x595zwad2vtk7gr5tpvmnj8nqqlc9a0g4xs4sqg0m </pre></code> | <pre><code> neutron155tl944k8e5rrlgcp5m2eekv027m6f4fz6re2ayyf0hz8d64fwuswpdgjj </pre></code> |
 
+| Injective       | xcall-multi Address                          | xcall-connection Address                      |
+| --------------- | -------------------------------------------- | --------------------------------------------- |
+| injective-888   | `inj1k5nwz0ctk98k7zwn95jjy2klhfpgufklnt0sgq` | `inj1mxqp64mphz2t79hz7dr4xl9593v7mrpy3srehm`  |
+
+
+
 ## IBC Relayer Path Configuration
 | Relayer  | Path           | Source Chain ID  | Destination Chain ID | 
 | -------- | -------------- | ---------------- | -------------------- |
@@ -52,6 +58,8 @@ For building dapps with xcall-multi see official developer [docs](https://www.xc
 | Berlin   | icon-archway   | ibc-icon         | constantine-3        |
 | Lisbon   | icon-archway   | lisbon           | constantine-3        |
 |          | icon-neutron   | lisbon           | pion-1               |
+|          | icon-injective | lisbon           | injective-888        |
+
 
 ## Chain Network IDs
 | Chain    | Network               | IDs       |
@@ -63,6 +71,8 @@ For building dapps with xcall-multi see official developer [docs](https://www.xc
 |          | Constantine-3 Testnet | archway   |
 | Neutron  | Mainnet               | neutron-1 |
 |          | Pion Testnet          | neutron   |
+|Injective | injective-888         | injective |
+
 
 ### Project Structure
 | Directory | Description |
