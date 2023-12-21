@@ -182,7 +182,7 @@ dependencies = [
 [[package]]
 name = "common"
 version = "0.1.0"
-source = "git+https://github.com/icon-project/IBC-Integration.git?branch=fix/update-mock-ibc-core#0516251be83951e5c94db26d9ac79d058b414cf1"
+source = "git+https://github.com/icon-project/IBC-Integration.git?branch=fix/update-mock-ibc-core#3ab51610d017cb338ac55b55a8b01332133b5b62"
 dependencies = [
  "bytes",
  "cosmwasm-schema",
@@ -216,13 +216,12 @@ dependencies = [
 [[package]]
 name = "common"
 version = "0.1.0"
-source = "git+https://github.com/icon-project/IBC-Integration.git?branch=main#72917636e5aeb338b37ff9417c15179be86c76fb"
+source = "git+https://github.com/icon-project/IBC-Integration.git?branch=main#4dd548051114457baf6a0534b8c2cca74d56ee30"
 dependencies = [
  "bytes",
  "cosmwasm-schema",
  "cosmwasm-std",
- "cw-storage-plus 1.1.0",
- "debug_print",
+ "cw-storage-plus 1.0.1",
  "derive_more",
  "displaydoc",
  "dyn-clone",
@@ -408,7 +407,7 @@ dependencies = [
 [[package]]
 name = "cw-common"
 version = "0.1.0"
-source = "git+https://github.com/icon-project/IBC-Integration.git?branch=fix/update-mock-ibc-core#0516251be83951e5c94db26d9ac79d058b414cf1"
+source = "git+https://github.com/icon-project/IBC-Integration.git?branch=fix/update-mock-ibc-core#3ab51610d017cb338ac55b55a8b01332133b5b62"
 dependencies = [
  "bech32",
  "bytes",
@@ -496,7 +495,7 @@ dependencies = [
 [[package]]
 name = "cw-mock-ibc-core"
 version = "0.1.0"
-source = "git+https://github.com/icon-project/IBC-Integration.git?branch=fix/update-mock-ibc-core#0516251be83951e5c94db26d9ac79d058b414cf1"
+source = "git+https://github.com/icon-project/IBC-Integration.git?branch=fix/update-mock-ibc-core#3ab51610d017cb338ac55b55a8b01332133b5b62"
 dependencies = [
  "common 0.1.0 (git+https://github.com/icon-project/IBC-Integration.git?branch=fix/update-mock-ibc-core)",
  "cosmwasm-schema",
@@ -673,7 +672,7 @@ dependencies = [
 [[package]]
 name = "cw-xcall-ibc-connection"
 version = "0.1.0"
-source = "git+https://github.com/icon-project/IBC-Integration.git?branch=fix/update-mock-ibc-core#0516251be83951e5c94db26d9ac79d058b414cf1"
+source = "git+https://github.com/icon-project/IBC-Integration.git?branch=fix/update-mock-ibc-core#3ab51610d017cb338ac55b55a8b01332133b5b62"
 dependencies = [
  "common 0.1.0 (git+https://github.com/icon-project/IBC-Integration.git?branch=fix/update-mock-ibc-core)",
  "cosmwasm-schema",
@@ -836,7 +835,7 @@ checksum = "487585f4d0c6655fe74905e2504d8ad6908e4db67f744eb140876906c2f3175d"
 dependencies = [
  "proc-macro2 1.0.70",
  "quote 1.0.33",
- "syn 2.0.41",
+ "syn 2.0.42",
 ]
 
 [[package]]
@@ -1938,7 +1937,7 @@ checksum = "43576ca501357b9b071ac53cdc7da8ef0cbd9493d8df094cd821777ea6e894d3"
 dependencies = [
  "proc-macro2 1.0.70",
  "quote 1.0.33",
- "syn 2.0.41",
+ "syn 2.0.42",
 ]
 
 [[package]]
@@ -1982,7 +1981,7 @@ checksum = "bcec881020c684085e55a25f7fd888954d56609ef363479dc5a1305eb0d40cab"
 dependencies = [
  "proc-macro2 1.0.70",
  "quote 1.0.33",
- "syn 2.0.41",
+ "syn 2.0.42",
 ]
 
 [[package]]
@@ -2130,9 +2129,9 @@ dependencies = [
 
 [[package]]
 name = "syn"
-version = "2.0.41"
+version = "2.0.42"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "44c8b28c477cc3bf0e7966561e3460130e1255f7a1cf71931075f1c5e7a7e269"
+checksum = "5b7d0a2c048d661a1a59fcd7355baa232f7ed34e0ee4df2eef3c1c1c0d3852d8"
 dependencies = [
  "proc-macro2 1.0.70",
  "quote 1.0.33",
@@ -2215,7 +2214,7 @@ dependencies = [
 [[package]]
 name = "test-utils"
 version = "0.1.0"
-source = "git+https://github.com/icon-project/IBC-Integration.git?branch=main#72917636e5aeb338b37ff9417c15179be86c76fb"
+source = "git+https://github.com/icon-project/IBC-Integration.git?branch=main#4dd548051114457baf6a0534b8c2cca74d56ee30"
 dependencies = [
  "common 0.1.0 (git+https://github.com/icon-project/IBC-Integration.git?branch=main)",
  "cosmwasm-std",
@@ -2245,7 +2244,7 @@ checksum = "f9456a42c5b0d803c8cd86e73dd7cc9edd429499f37a3550d286d5e86720569f"
 dependencies = [
  "proc-macro2 1.0.70",
  "quote 1.0.33",
- "syn 2.0.41",
+ "syn 2.0.42",
 ]
 
 [[package]]
@@ -2543,5 +2542,5 @@ checksum = "ce36e65b0d2999d2aafac989fb249189a141aee1f53c612c1f37d72631959f69"
 dependencies = [
  "proc-macro2 1.0.70",
  "quote 1.0.33",
- "syn 2.0.41",
+ "syn 2.0.42",
 ]

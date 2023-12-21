@@ -1,7 +1,10 @@
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::Addr;
 
-use crate::{network_address::{NetId, NetworkAddress}, message::envelope::Envelope};
+use crate::{
+    message::envelope::Envelope,
+    network_address::{NetId, NetworkAddress},
+};
 
 #[cw_serde]
 pub enum ExecuteMsg {
@@ -23,9 +26,8 @@ pub enum ExecuteMsg {
         destinations: Option<Vec<String>>,
     },
     SendCall {
-        envelope:Envelope,
-        to:NetworkAddress,
-
+        envelope: Envelope,
+        to: NetworkAddress,
     },
     HandleMessage {
         from_nid: NetId,

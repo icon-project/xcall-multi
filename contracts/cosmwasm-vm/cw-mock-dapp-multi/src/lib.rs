@@ -44,16 +44,17 @@ pub fn execute(
     let call_service = CwMockService::default();
     match msg {
         ExecuteMsg::SendCallMessage { to, data, rollback } => {
-            call_service.send_call_message(deps, info, to, data, rollback)
+            let submsg = call_service.send_call_message(deps, info, to, data, rollback)?;
+            Ok(Response::new()
+                .add_submessage(submsg)
+                .add_attribute("Action", "SendMessage"))
         }
-        ExecuteMsg::SendCall { to, envelope }=>{
-             call_service.send_call(deps, info, to, envelope)
-        },
+        ExecuteMsg::SendCall { to, envelope } => call_service.send_call(deps, info, to, envelope),
         ExecuteMsg::HandleCallMessage {
             from,
             data,
             protocols,
-        } => call_service.handle_call_message(deps,info, from, data, protocols),
+        } => call_service.handle_call_message(deps, info, from, data, protocols),
         ExecuteMsg::AddConnection {
             src_endpoint,
             dest_endpoint,

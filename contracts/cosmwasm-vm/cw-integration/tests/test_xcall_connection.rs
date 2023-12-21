@@ -3,13 +3,12 @@ use std::str::FromStr;
 
 use anyhow::Error as AppError;
 
-use common::rlp;
 use common::rlp::Nullable;
-use cosmwasm_std::Addr;
+
 use cosmwasm_std::IbcChannel;
-use cosmwasm_std::IbcEndpoint;
+
 use cw_common::raw_types::channel::RawPacket;
-use cw_mock_dapp_multi::state::Connection;
+
 use cw_multi_test::AppResponse;
 
 use cw_multi_test::Executor;
@@ -17,19 +16,19 @@ use cw_multi_test::Executor;
 use cw_xcall::types::message::CSMessage;
 use cw_xcall::types::request::CSMessageRequest;
 use cw_xcall_ibc_connection::types::message::Message;
-use cw_xcall_lib::message::AnyMessage;
 use cw_xcall_lib::message::call_message_rollback::CallMessageWithRollback;
 use cw_xcall_lib::message::envelope::Envelope;
+use cw_xcall_lib::message::AnyMessage;
 
+use cw_common::ProstMessage;
 use cw_xcall_lib::message::msg_type::MessageType;
 use cw_xcall_lib::network_address::NetworkAddress;
-use cw_common::ProstMessage;
 use setup::init_mock_dapp_multi_contract;
-use xcall_lib::network_address::NetId;
 use setup::{
     init_mock_ibc_core_contract, init_xcall_app_contract, init_xcall_ibc_connection_contract,
     TestContext,
 };
+use xcall_lib::network_address::NetId;
 
 use crate::setup::get_event;
 use crate::setup::mock_ibc_config;
@@ -38,10 +37,10 @@ const MOCK_CONTRACT_TO_ADDR: &str = "cosmoscontract";
 
 fn setup_contracts(mut ctx: TestContext) -> TestContext {
     ctx = init_mock_ibc_core_contract(ctx);
-   // ctx.set_ibc_core(ctx.sender.clone());
+    // ctx.set_ibc_core(ctx.sender.clone());
     ctx = init_xcall_app_contract(ctx);
     ctx = init_xcall_ibc_connection_contract(ctx);
-    ctx= init_mock_dapp_multi_contract(ctx);
+    ctx = init_mock_dapp_multi_contract(ctx);
     ctx
 }
 
@@ -75,29 +74,26 @@ pub fn call_send_call_message(
 
 pub fn call_execute_call_message(
     ctx: &mut TestContext,
-     request_id:u128,
-     data:Vec<u8>,
+    request_id: u128,
+    data: Vec<u8>,
 ) -> Result<AppResponse, AppError> {
     ctx.app.execute_contract(
         ctx.sender.clone(),
         ctx.get_xcall_app(),
-        &xcall_lib::xcall_msg::ExecuteMsg::ExecuteCall { 
-            request_id,
-            data},
+        &xcall_lib::xcall_msg::ExecuteMsg::ExecuteCall { request_id, data },
         &[],
     )
 }
 
-
 pub fn call_dapp_send_call(
     ctx: &mut TestContext,
     to: String,
-    envelope:Envelope,
+    envelope: Envelope,
 ) -> Result<AppResponse, AppError> {
     ctx.app.execute_contract(
         ctx.sender.clone(),
         ctx.get_dapp(),
-        &cw_xcall_lib::xcall_msg::ExecuteMsg::SendCall{
+        &cw_xcall_lib::xcall_msg::ExecuteMsg::SendCall {
             to: cw_xcall_lib::network_address::NetworkAddress::from_str(&to).unwrap(),
             envelope,
         },
@@ -107,14 +103,18 @@ pub fn call_dapp_send_call(
 
 pub fn call_dapp_add_connection(
     ctx: &mut TestContext,
-    src_endpoint:String,
-    dest_endpoint:String,
-    network_id:String,
+    src_endpoint: String,
+    dest_endpoint: String,
+    network_id: String,
 ) -> Result<AppResponse, AppError> {
     ctx.app.execute_contract(
         ctx.sender.clone(),
         ctx.get_dapp(),
-        &cw_mock_dapp_multi::msg::ExecuteMsg::AddConnection { src_endpoint, dest_endpoint, network_id},
+        &cw_mock_dapp_multi::msg::ExecuteMsg::AddConnection {
+            src_endpoint,
+            dest_endpoint,
+            network_id,
+        },
         &[],
     )
 }
@@ -165,45 +165,65 @@ pub fn call_configure_connection(
     )
 }
 
-
-
-pub fn call_ibc_channel_connect(ctx: &mut TestContext)->Result<AppResponse, AppError> {
-    let ibc_config=mock_ibc_config();
-    let channel= IbcChannel::new(
+pub fn call_ibc_channel_connect(ctx: &mut TestContext) -> Result<AppResponse, AppError> {
+    let ibc_config = mock_ibc_config();
+    let channel = IbcChannel::new(
         ibc_config.src_endpoint().clone(),
         ibc_config.dst_endpoint().clone(),
         cosmwasm_std::IbcOrder::Unordered,
         "ics-20",
-        "connection-1");
+        "connection-1",
+    );
 
-    ctx.app.execute_contract(ctx.sender.clone(), ctx.get_ibc_core(), 
-    &cw_mock_ibc_core::msg::ExecuteMsg::IbcConfig { msg:cosmwasm_std::IbcChannelConnectMsg::OpenConfirm { channel: channel } }, &[])
+    ctx.app.execute_contract(
+        ctx.sender.clone(),
+        ctx.get_ibc_core(),
+        &cw_mock_ibc_core::msg::ExecuteMsg::IbcConfig {
+            msg: cosmwasm_std::IbcChannelConnectMsg::OpenConfirm { channel },
+        },
+        &[],
+    )
 }
 
-pub fn call_ibc_receive_packet(ctx: &mut TestContext,msg:Vec<u8>)->Result<AppResponse, AppError> {
-    let ibc_config=mock_ibc_config();
-    let packet=RawPacket{
+pub fn call_ibc_receive_packet(
+    ctx: &mut TestContext,
+    msg: Vec<u8>,
+) -> Result<AppResponse, AppError> {
+    let ibc_config = mock_ibc_config();
+    let packet = RawPacket {
         sequence: 1,
         source_port: ibc_config.dst_endpoint().port_id.to_string(),
         source_channel: ibc_config.dst_endpoint().channel_id.to_string(),
         destination_port: ibc_config.src_endpoint().port_id.to_string(),
         destination_channel: ibc_config.src_endpoint().channel_id.to_string(),
         data: msg,
-        timeout_height: Some(cw_common::raw_types::RawHeight { revision_number: 0, revision_height: 12345}),
+        timeout_height: Some(cw_common::raw_types::RawHeight {
+            revision_number: 0,
+            revision_height: 12345,
+        }),
         timeout_timestamp: 17747483838282,
     };
-    let packet_bytes= hex::encode(packet.encode_to_vec());
-    ctx.app.execute_contract(ctx.sender.clone(), ctx.get_ibc_core(), 
-    &cw_mock_ibc_core::msg::ExecuteMsg::ReceivePacket { message: packet_bytes }, &[])
+    let packet_bytes = hex::encode(packet.encode_to_vec());
+    ctx.app.execute_contract(
+        ctx.sender.clone(),
+        ctx.get_ibc_core(),
+        &cw_mock_ibc_core::msg::ExecuteMsg::ReceivePacket {
+            message: packet_bytes,
+        },
+        &[],
+    )
 }
 
-pub fn call_register_connection(ctx: &mut TestContext)->Result<AppResponse, AppError> {
-    
-
-    ctx.app.execute_contract(ctx.sender.clone(), ctx.get_ibc_core(), 
-    &cw_mock_ibc_core::msg::ExecuteMsg::RegisterXcall { address:ctx.get_xcall_ibc_connection() },&[])
+pub fn call_register_connection(ctx: &mut TestContext) -> Result<AppResponse, AppError> {
+    ctx.app.execute_contract(
+        ctx.sender.clone(),
+        ctx.get_ibc_core(),
+        &cw_mock_ibc_core::msg::ExecuteMsg::RegisterXcall {
+            address: ctx.get_xcall_ibc_connection(),
+        },
+        &[],
+    )
 }
-
 
 #[test]
 fn test_xcall_send_call_message() {
@@ -211,9 +231,15 @@ fn test_xcall_send_call_message() {
     call_set_xcall_host(&mut ctx).unwrap();
     call_register_connection(&mut ctx).unwrap();
     let src = ctx.get_xcall_ibc_connection().to_string();
-    
-    let nid="0x3.icon";
-    call_configure_connection(&mut ctx, "connection-1".to_string(), nid.to_string(), "client-1".to_string()).unwrap();
+
+    let nid = "0x3.icon";
+    call_configure_connection(
+        &mut ctx,
+        "connection-1".to_string(),
+        nid.to_string(),
+        "client-1".to_string(),
+    )
+    .unwrap();
     call_ibc_channel_connect(&mut ctx).unwrap();
     let result = call_send_call_message(
         &mut ctx,
@@ -228,7 +254,10 @@ fn test_xcall_send_call_message() {
     let result = result.unwrap();
     let event = get_event(&result, "wasm-CallMessageSent").unwrap();
     println!("{event:?}");
-    assert_eq!(&format!("{nid}/{MOCK_CONTRACT_TO_ADDR}"), event.get("to").unwrap());
+    assert_eq!(
+        &format!("{nid}/{MOCK_CONTRACT_TO_ADDR}"),
+        event.get("to").unwrap()
+    );
 }
 
 #[test]
@@ -237,32 +266,29 @@ fn test_xcall_send_call() {
     call_set_xcall_host(&mut ctx).unwrap();
     call_register_connection(&mut ctx).unwrap();
     let src = ctx.get_xcall_ibc_connection().to_string();
-    let dapp=ctx.get_dapp().to_string();
-    
-    let nid="0x3.icon";
-    call_configure_connection(&mut ctx, "connection-1".to_string(), nid.to_string(), "client-1".to_string()).unwrap();
+    let dapp = ctx.get_dapp().to_string();
+
+    let nid = "0x3.icon";
+    call_configure_connection(
+        &mut ctx,
+        "connection-1".to_string(),
+        nid.to_string(),
+        "client-1".to_string(),
+    )
+    .unwrap();
     call_ibc_channel_connect(&mut ctx).unwrap();
-    let message=AnyMessage::CallMessageWithRollback(CallMessageWithRollback{
-        data: vec![1,2,3],
+    let message = AnyMessage::CallMessageWithRollback(CallMessageWithRollback {
+        data: vec![1, 2, 3],
         rollback: "rollback-reply".as_bytes().to_vec(),
     });
-    let envelope= Envelope::new(message, vec![src], vec!["somedestination".to_string()]);
-    let result = call_dapp_send_call(
-        &mut ctx,
-        format!("{nid}/{dapp}"),
-        envelope
-       
-    );
+    let envelope = Envelope::new(message, vec![src], vec!["somedestination".to_string()]);
+    let result = call_dapp_send_call(&mut ctx, format!("{nid}/{dapp}"), envelope);
     println!("{result:?}");
     assert!(result.is_ok());
     let result = result.unwrap();
     let event = get_event(&result, "wasm-CallMessageSent").unwrap();
     println!("{event:?}");
     assert_eq!(&format!("{nid}/{dapp}"), event.get("to").unwrap());
-
-
-
-   
 }
 
 #[test]
@@ -271,47 +297,46 @@ fn test_rollback_reply() {
     call_set_xcall_host(&mut ctx).unwrap();
     call_register_connection(&mut ctx).unwrap();
     let src = ctx.get_xcall_ibc_connection().to_string();
-    let dapp=ctx.get_dapp().to_string();
-    
-    let nid="0x3.icon";
-    call_configure_connection(&mut ctx, "connection-1".to_string(), nid.to_string(), "client-1".to_string()).unwrap();
+    let _dapp = ctx.get_dapp().to_string();
+
+    let nid = "0x3.icon";
+    call_configure_connection(
+        &mut ctx,
+        "connection-1".to_string(),
+        nid.to_string(),
+        "client-1".to_string(),
+    )
+    .unwrap();
     call_ibc_channel_connect(&mut ctx).unwrap();
     call_dapp_add_connection(&mut ctx, src, "somedest".to_string(), nid.to_string()).unwrap();
-    let data="reply-response".as_bytes().to_vec();
-    let msg=CSMessageRequest::new(
-        NetworkAddress::from_str(&format!("{nid}/{MOCK_CONTRACT_TO_ADDR}")).unwrap(), 
-        ctx.get_dapp(), 1, MessageType::CallMessageWithRollback, 
-    data.clone(), vec![ctx.get_xcall_ibc_connection().to_string()]);
-    let request= CSMessage {
+    let data = "reply-response".as_bytes().to_vec();
+    let msg = CSMessageRequest::new(
+        NetworkAddress::from_str(&format!("{nid}/{MOCK_CONTRACT_TO_ADDR}")).unwrap(),
+        ctx.get_dapp(),
+        1,
+        MessageType::CallMessageWithRollback,
+        data.clone(),
+        vec![ctx.get_xcall_ibc_connection().to_string()],
+    );
+    let request = CSMessage {
         message_type: cw_xcall::types::message::CSMessageType::CSMessageRequest,
         payload: msg.as_bytes(),
     };
 
-    let msg= Message {
+    let msg = Message {
         sn: Nullable::new(Some(1_i64)),
         fee: 0_u128,
-        data:request.as_bytes(),
+        data: request.as_bytes(),
     };
-    let bytes:Vec<u8>= common::rlp::encode(&msg).to_vec();
+    let bytes: Vec<u8> = common::rlp::encode(&msg).to_vec();
 
     call_ibc_receive_packet(&mut ctx, bytes).unwrap();
 
-    let result= call_execute_call_message(&mut ctx, 1, data);
+    let result = call_execute_call_message(&mut ctx, 1, data);
     println!("{result:?}");
-   // assert!(result.is_ok());
-
-
-
-
-
-
-
-
-
-   
+    assert!(result.is_ok());
+    let result = result.unwrap();
+    let event = get_event(&result, "wasm-write_acknowledgement").unwrap();
+    println!("{event:?}");
+   // assert_eq!(&format!("{nid}/{dapp}"), event.get("to").unwrap());
 }
-
-
-
-
-

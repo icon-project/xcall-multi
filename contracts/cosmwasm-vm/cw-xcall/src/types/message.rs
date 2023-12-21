@@ -27,7 +27,7 @@ impl CSMessage {
         &self.payload
     }
 
-    pub fn as_bytes(&self)->Vec<u8>{
+    pub fn as_bytes(&self) -> Vec<u8> {
         rlp::encode(&self.clone()).to_vec()
     }
 }

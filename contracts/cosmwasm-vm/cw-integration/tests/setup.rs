@@ -1,4 +1,4 @@
-use std::{collections::HashMap, str::FromStr};
+use std::collections::HashMap;
 
 use cosmwasm_std::{
     coins,
@@ -29,7 +29,6 @@ pub struct TestContext {
 }
 
 impl TestContext {
-   
     pub fn get_dapp(&self) -> Addr {
         return self.contracts.get(&TestApps::Dapp).unwrap().clone();
     }
@@ -48,7 +47,6 @@ impl TestContext {
             .clone();
     }
 
-  
     pub fn set_dapp(&mut self, addr: Addr) -> Option<Addr> {
         self.contracts.insert(TestApps::Dapp, addr)
     }
@@ -62,8 +60,6 @@ impl TestContext {
     pub fn set_xcall_ibc_connection(&mut self, addr: Addr) -> Option<Addr> {
         self.contracts.insert(TestApps::XcallIbcConnection, addr)
     }
-
-
 
     pub fn list_contracts(&self) {
         println!("IbcHost {}", self.get_ibc_core());
