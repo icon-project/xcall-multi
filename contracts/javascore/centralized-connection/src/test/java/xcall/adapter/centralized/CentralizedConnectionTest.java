@@ -178,6 +178,18 @@ public class CentralizedConnectionTest extends TestBase {
     UserRevertedException e = assertThrows(UserRevertedException.class,() -> connection.invoke(callservice.account, "sendMessage", nidTarget,
     "xcall", BigInteger.ONE, "null".getBytes()));
     assertEquals(e.getMessage(), "Reverted(0): Insufficient balance");
+
+    try (MockedStatic<Context> contextMock = Mockito.mockStatic(Context.class, Mockito.CALLS_REAL_METHODS)) {
+        contextMock.when(() -> Context.getValue()).thenReturn(BigInteger.valueOf(20));
+        connection.invoke(callservice.account, "sendMessage", nidTarget,"xcall", BigInteger.ONE, "null".getBytes());
+    }
+
+    
+    try (MockedStatic<Context> contextMock = Mockito.mockStatic(Context.class, Mockito.CALLS_REAL_METHODS)) {
+        contextMock.when(() -> Context.getBalance(connection.getAddress())).thenReturn(BigInteger.valueOf(20));
+        contextMock.when(() -> Context.transfer(source_relayer.getAddress(),BigInteger.valueOf(20))).then(invocationOnMock -> null);
+        connection.invoke(source_relayer, "claimFees");
+    }
     }
 
     @Test
