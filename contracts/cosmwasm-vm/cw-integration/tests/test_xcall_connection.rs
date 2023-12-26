@@ -5,6 +5,7 @@ use anyhow::Error as AppError;
 
 use common::rlp::Nullable;
 
+use cosmwasm_std::Addr;
 use cosmwasm_std::IbcChannel;
 
 use cw_common::raw_types::channel::RawPacket;
@@ -15,6 +16,8 @@ use cw_multi_test::Executor;
 
 use cw_xcall::types::message::CSMessage;
 use cw_xcall::types::request::CSMessageRequest;
+use cw_xcall::types::result::CSMessageResult;
+use cw_xcall::types::result::CallServiceResponseType;
 use cw_xcall_ibc_connection::types::message::Message;
 use cw_xcall_lib::message::call_message_rollback::CallMessageWithRollback;
 use cw_xcall_lib::message::envelope::Envelope;
@@ -331,6 +334,21 @@ fn test_rollback_reply() {
     let bytes: Vec<u8> = common::rlp::encode(&msg).to_vec();
 
     call_ibc_receive_packet(&mut ctx, bytes).unwrap();
+    let expected_reply = CSMessageRequest::new(
+        NetworkAddress::from_str("nid/contract3").unwrap(),
+        Addr::unchecked("cosmoscontract"),
+        1,
+        MessageType::CallMessage,
+        vec![1, 2, 3],
+        vec!["somedest".to_string()],
+    );
+    let reply_message = CSMessageResult::new(
+        expected_reply.sequence_no(),
+        CallServiceResponseType::CallServiceResponseSuccess,
+        Some(expected_reply.as_bytes()),
+    );
+    let message: CSMessage = reply_message.into();
+    let expected_hex = hex::encode(message.as_bytes());
 
     let result = call_execute_call_message(&mut ctx, 1, data);
     println!("{result:?}");
@@ -338,5 +356,5 @@ fn test_rollback_reply() {
     let result = result.unwrap();
     let event = get_event(&result, "wasm-write_acknowledgement").unwrap();
     println!("{event:?}");
-   // assert_eq!(&format!("{nid}/{dapp}"), event.get("to").unwrap());
+    assert_eq!(&expected_hex, event.get("data").unwrap());
 }
