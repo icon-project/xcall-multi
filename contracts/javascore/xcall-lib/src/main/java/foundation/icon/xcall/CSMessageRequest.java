@@ -31,7 +31,7 @@ public class CSMessageRequest {
     private final BigInteger sn;
     private final int type;
     private byte[] data;
-    private final String[] protocols;
+    private String[] protocols;
 
 
     public CSMessageRequest(String from, String to, BigInteger sn, int type, byte[] data, String[] protocols) {
@@ -53,6 +53,10 @@ public class CSMessageRequest {
 
     public String getTo() {
         return to;
+    }
+
+    public void setProtocols(String[] protocols) {
+        this.protocols = protocols;
     }
 
     public String[] getProtocols() {
@@ -133,5 +137,10 @@ public class CSMessageRequest {
     public static CSMessageRequest fromBytes(byte[] bytes) {
         ObjectReader reader = Context.newByteArrayObjectReader("RLPn", bytes);
         return readObject(reader);
+    }
+
+
+    public void setData(byte[] data) {
+        this.data = data;
     }
 }
