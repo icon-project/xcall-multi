@@ -46,4 +46,6 @@ pub enum ContractError {
     MessageTypeNotAllowed,
     #[error("InvalidReplyReceived")]
     InvalidReplyReceived,
+    #[error("CallRequest Not Found For {sn}")]
+    CallRequestNotFound { sn: u128 },
 }

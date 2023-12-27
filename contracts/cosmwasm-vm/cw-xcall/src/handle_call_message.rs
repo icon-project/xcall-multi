@@ -129,11 +129,11 @@ impl<'a> CwCallService<'a> {
 
         let response_sequence_no = result.sequence_no();
 
-        let mut call_request = self.get_call_request(deps.storage, response_sequence_no)?;
-
-        if call_request.is_null() {
-            return Ok(Response::new());
-        }
+        let mut call_request = self
+            .get_call_request(deps.storage, response_sequence_no)
+            .map_err(|_e| ContractError::CallRequestNotFound {
+                sn: response_sequence_no,
+            })?;
 
         let source = info.sender.to_string();
         let source_valid = self.is_valid_source(
