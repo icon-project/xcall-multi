@@ -16,12 +16,12 @@
 
 package foundation.icon.xcall;
 
+import java.math.BigInteger;
+
 import score.ByteArrayObjectWriter;
 import score.Context;
 import score.ObjectReader;
 import score.ObjectWriter;
-
-import java.math.BigInteger;
 
 public class CSMessageResult {
     public static final int SUCCESS = 1;
@@ -29,10 +29,12 @@ public class CSMessageResult {
 
     private final BigInteger sn;
     private final int code;
+    private final byte[] msg;
 
-    public CSMessageResult(BigInteger sn, int code) {
+    public CSMessageResult(BigInteger sn, int code, byte[] msg) {
         this.sn = sn;
         this.code = code;
+        this.msg = msg;
     }
 
     public BigInteger getSn() {
@@ -43,21 +45,29 @@ public class CSMessageResult {
         return code;
     }
 
+    public byte[] getMsg() {
+        return msg;
+    }
+
     public static void writeObject(ObjectWriter w, CSMessageResult m) {
-        w.beginList(2);
+        w.beginList(3);
         w.write(m.sn);
         w.write(m.code);
+        w.writeNullable(m.msg);
         w.end();
     }
 
     public static CSMessageResult readObject(ObjectReader r) {
         r.beginList();
-        CSMessageResult m = new CSMessageResult(
-                r.readBigInteger(),
-                r.readInt()
-        );
+        BigInteger sn = r.readBigInteger();
+        int code = r.readInt();
+        byte[] msg = null;
+        if (r.hasNext()) {
+            msg = r.readNullable(byte[].class);
+        }
+
         r.end();
-        return m;
+        return new CSMessageResult(sn, code, msg);
     }
 
     public byte[] toBytes() {
