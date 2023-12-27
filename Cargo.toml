@@ -29,10 +29,10 @@ hex ={ version = "0.4.3", default-features = false }
 debug_print = "1.0.0"
 cw-xcall-lib = { path="contracts/cosmwasm-vm/cw-xcall-lib" }
 cw-xcall={ path="contracts/cosmwasm-vm/cw-xcall" }
-cw-xcall-ibc-connection = { git="https://github.com/icon-project/IBC-Integration.git", branch = "fix/update-mock-ibc-core" }
-cw-mock-ibc-core = { git="https://github.com/icon-project/IBC-Integration.git", branch = "fix/update-mock-ibc-core"}
-common = { git="https://github.com/icon-project/IBC-Integration.git", branch = "fix/update-mock-ibc-core" }
-cw-common={ git="https://github.com/icon-project/IBC-Integration.git", branch = "fix/update-mock-ibc-core" }
+cw-xcall-ibc-connection = { git="https://github.com/icon-project/IBC-Integration.git", branch = "main" }
+cw-mock-ibc-core = { git="https://github.com/icon-project/IBC-Integration.git", branch = "main"}
+common = { git="https://github.com/icon-project/IBC-Integration.git", branch = "main" }
+cw-common={ git="https://github.com/icon-project/IBC-Integration.git", branch = "main" }
 
 cw-mock-dapp = {path="contracts/cosmwasm-vm/cw-mock-dapp"}
 cw-mock-dapp-multi = { path="contracts/cosmwasm-vm/cw-mock-dapp-multi"}

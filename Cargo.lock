@@ -182,46 +182,13 @@ dependencies = [
 [[package]]
 name = "common"
 version = "0.1.0"
-source = "git+https://github.com/icon-project/IBC-Integration.git?branch=fix/update-mock-ibc-core#3ab51610d017cb338ac55b55a8b01332133b5b62"
+source = "git+https://github.com/icon-project/IBC-Integration.git?branch=main#9a9095926b9141217473745d21ad06c277313015"
 dependencies = [
  "bytes",
  "cosmwasm-schema",
  "cosmwasm-std",
  "cw-storage-plus 1.1.0",
  "debug_print",
- "derive_more",
- "displaydoc",
- "dyn-clone",
- "hex",
- "hex-literal",
- "ibc-proto",
- "ics23",
- "pbjson",
- "pbjson-types",
- "prost 0.11.9",
- "prost-types",
- "rlp-derive",
- "rustc-hex",
- "safe-regex",
- "serde",
- "serde-json-wasm 0.5.1",
- "serde_json",
- "sha2 0.10.6",
- "sha3",
- "subtle-encoding",
- "tendermint",
- "time",
-]
-
-[[package]]
-name = "common"
-version = "0.1.0"
-source = "git+https://github.com/icon-project/IBC-Integration.git?branch=main#4dd548051114457baf6a0534b8c2cca74d56ee30"
-dependencies = [
- "bytes",
- "cosmwasm-schema",
- "cosmwasm-std",
- "cw-storage-plus 1.0.1",
  "derive_more",
  "displaydoc",
  "dyn-clone",
@@ -406,12 +373,12 @@ dependencies = [
 
 [[package]]
 name = "cw-common"
-version = "0.1.0"
-source = "git+https://github.com/icon-project/IBC-Integration.git?branch=fix/update-mock-ibc-core#3ab51610d017cb338ac55b55a8b01332133b5b62"
+version = "0.1.1"
+source = "git+https://github.com/icon-project/IBC-Integration.git?branch=main#9a9095926b9141217473745d21ad06c277313015"
 dependencies = [
  "bech32",
  "bytes",
- "common 0.1.0 (git+https://github.com/icon-project/IBC-Integration.git?branch=fix/update-mock-ibc-core)",
+ "common",
  "cosmwasm-schema",
  "cosmwasm-std",
  "cw-storage-plus 1.1.0",
@@ -432,7 +399,7 @@ name = "cw-integration"
 version = "0.2.0"
 dependencies = [
  "anyhow",
- "common 0.1.0 (git+https://github.com/icon-project/IBC-Integration.git?branch=fix/update-mock-ibc-core)",
+ "common",
  "cosmwasm-schema",
  "cosmwasm-std",
  "cw-common",
@@ -456,7 +423,7 @@ dependencies = [
 name = "cw-mock-dapp"
 version = "0.1.0"
 dependencies = [
- "common 0.1.0 (git+https://github.com/icon-project/IBC-Integration.git?branch=main)",
+ "common",
  "cosmwasm",
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -476,7 +443,7 @@ dependencies = [
 name = "cw-mock-dapp-multi"
 version = "0.1.0"
 dependencies = [
- "common 0.1.0 (git+https://github.com/icon-project/IBC-Integration.git?branch=main)",
+ "common",
  "cosmwasm",
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -494,10 +461,10 @@ dependencies = [
 
 [[package]]
 name = "cw-mock-ibc-core"
-version = "0.1.0"
-source = "git+https://github.com/icon-project/IBC-Integration.git?branch=fix/update-mock-ibc-core#3ab51610d017cb338ac55b55a8b01332133b5b62"
+version = "0.1.1"
+source = "git+https://github.com/icon-project/IBC-Integration.git?branch=main#9a9095926b9141217473745d21ad06c277313015"
 dependencies = [
- "common 0.1.0 (git+https://github.com/icon-project/IBC-Integration.git?branch=fix/update-mock-ibc-core)",
+ "common",
  "cosmwasm-schema",
  "cosmwasm-std",
  "cosmwasm-storage",
@@ -616,7 +583,7 @@ name = "cw-xcall"
 version = "0.1.0"
 source = "git+https://github.com/icon-project/xCall.git?tag=v0.1.0-alpha.5#7f250bc9c6560591ccc16289cb8159dd100bbe76"
 dependencies = [
- "common 0.1.0 (git+https://github.com/icon-project/IBC-Integration.git?branch=main)",
+ "common",
  "cosmwasm-schema",
  "cosmwasm-std",
  "cosmwasm-storage",
@@ -634,7 +601,7 @@ name = "cw-xcall"
 version = "0.2.0"
 dependencies = [
  "anyhow",
- "common 0.1.0 (git+https://github.com/icon-project/IBC-Integration.git?branch=main)",
+ "common",
  "cosmwasm",
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -654,9 +621,9 @@ dependencies = [
 [[package]]
 name = "cw-xcall"
 version = "0.2.0"
-source = "git+https://github.com/icon-project/xCall.git?branch=main#7a8de783c527796be5e2e3e642c6edeb500f65ec"
+source = "git+https://github.com/icon-project/xCall.git?branch=main#1b64d8d3b932842bdc68d7fabc3842a7695860ed"
 dependencies = [
- "common 0.1.0 (git+https://github.com/icon-project/IBC-Integration.git?branch=main)",
+ "common",
  "cosmwasm-schema",
  "cosmwasm-std",
  "cosmwasm-storage",
@@ -671,10 +638,10 @@ dependencies = [
 
 [[package]]
 name = "cw-xcall-ibc-connection"
-version = "0.1.0"
-source = "git+https://github.com/icon-project/IBC-Integration.git?branch=fix/update-mock-ibc-core#3ab51610d017cb338ac55b55a8b01332133b5b62"
+version = "0.1.1"
+source = "git+https://github.com/icon-project/IBC-Integration.git?branch=main#9a9095926b9141217473745d21ad06c277313015"
 dependencies = [
- "common 0.1.0 (git+https://github.com/icon-project/IBC-Integration.git?branch=fix/update-mock-ibc-core)",
+ "common",
  "cosmwasm-schema",
  "cosmwasm-std",
  "cosmwasm-storage",
@@ -695,7 +662,7 @@ name = "cw-xcall-lib"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "common 0.1.0 (git+https://github.com/icon-project/IBC-Integration.git?branch=fix/update-mock-ibc-core)",
+ "common",
  "cosmwasm",
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -730,7 +697,7 @@ dependencies = [
 [[package]]
 name = "cw-xcall-lib"
 version = "0.1.0"
-source = "git+https://github.com/icon-project/xCall.git?branch=main#7a8de783c527796be5e2e3e642c6edeb500f65ec"
+source = "git+https://github.com/icon-project/xCall.git?branch=main#1b64d8d3b932842bdc68d7fabc3842a7695860ed"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -2214,9 +2181,9 @@ dependencies = [
 [[package]]
 name = "test-utils"
 version = "0.1.0"
-source = "git+https://github.com/icon-project/IBC-Integration.git?branch=main#4dd548051114457baf6a0534b8c2cca74d56ee30"
+source = "git+https://github.com/icon-project/IBC-Integration.git?branch=main#9a9095926b9141217473745d21ad06c277313015"
 dependencies = [
- "common 0.1.0 (git+https://github.com/icon-project/IBC-Integration.git?branch=main)",
+ "common",
  "cosmwasm-std",
  "cw-multi-test 0.16.4",
  "hex",
