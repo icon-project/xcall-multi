@@ -18,6 +18,7 @@ import "@iconfoundation/btp2-solidity-library/utils/ParseAddress.sol";
 import "@iconfoundation/btp2-solidity-library/utils/Strings.sol";
 import "openzeppelin-contracts-upgradeable/contracts/proxy/utils/Initializable.sol";
 
+
 contract CallService is IBSH, ICallService, IFeeManage, Initializable {
     using Strings for string;
     using Integers for uint;
@@ -376,7 +377,7 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
         bytes calldata _msg
     ) external override {
         checkService(_svc);
-        this.handleMessage(_from, _msg);
+        handleMessage(_from, _msg);
     }
 
     function handleBTPError(
@@ -387,7 +388,7 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
         string calldata _msg
     ) external override {
         checkService(_svc);
-        this.handleError(_sn);
+        handleError(_sn);
     }
 
     /* ========================================= */
@@ -395,9 +396,9 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
     function handleMessage(
         string calldata _from,
         bytes calldata _msg
-    ) external override {
-        Types.CSMessage memory csMsg = _msg.decodeCSMessage();
+    ) public override {
         require(!_from.compareTo(nid), "Invalid Network ID");
+        Types.CSMessage memory csMsg = _msg.decodeCSMessage();
         if (csMsg.msgType == Types.CS_REQUEST) {
             handleRequest(_from, csMsg.payload);
         } else if (csMsg.msgType == Types.CS_RESULT) {
@@ -410,7 +411,7 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
         }
     }
 
-    function handleError(uint256 _sn) external override {
+    function handleError(uint256 _sn) public override {
         handlResult(Types.CSMessageResult(_sn, Types.CS_RESP_FAILURE));
     }
 
@@ -436,7 +437,8 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
     ) internal {
         Types.CSMessageRequest memory req = msgPayload.decodeCSMessageRequest();
         string memory fromNID = req.from.nid();
-        require(netFrom.compareTo(fromNID),"invalidNetwork");
+        require(netFrom.compareTo(fromNID),"Invalid NID");
+
         bytes32 dataHash = keccak256(req.data);
         if (req.protocols.length > 1) {
             pendingReqs[dataHash][msg.sender.toString()] = true;
