@@ -238,20 +238,6 @@ pub fn init_xcall_ibc_connection_contract(mut ctx: TestContext) -> TestContext {
     ctx
 }
 
-// pub fn raw_payload_to_map(payloads: Vec<RawPayload>) -> HashMap<TestSteps, RawPayload> {
-//     let mut map = HashMap::<TestSteps, RawPayload>::new();
-//     for payload in payloads {
-//         let key = TestSteps::from_str(&payload.step).unwrap();
-//         map.insert(key, payload);
-//     }
-//     map
-// }
-
-// pub fn get_icon_to_archway_payloads() -> HashMap<TestSteps, RawPayload> {
-//     let payloads = load_raw_payloads_icon_to_archway();
-//     return raw_payload_to_map(payloads);
-// }
-
 pub fn setup_context() -> TestContext {
     let router = App::default();
     let sender = Addr::unchecked("sender");
