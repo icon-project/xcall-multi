@@ -9,9 +9,14 @@ library Types {
     string constant NAME = "xcallM";
 
     int constant CS_REQUEST = 1;
-    int constant CS_RESPONSE = 2;
+    int constant CS_RESULT = 2;
 
-    struct CallRequest {
+    int constant CALL_MESSAGE_TYPE = 1;
+    int constant CALL_MESSAGE_ROLLBACK_TYPE = 2;
+
+ 
+
+    struct RollbackData {
         address from;
         string to;
         string[] sources;
@@ -28,25 +33,15 @@ library Types {
         string from;
         string to;
         uint256 sn;
-        bool rollback;
+        int messageType;
         bytes data;
-        string[] protocols;
-
-    }
-
-    struct ProxyRequest {
-        string from;
-        string to;
-        uint256 sn;
-        bool rollback;
-        bytes32 hash;
         string[] protocols;
     }
 
     int constant CS_RESP_SUCCESS = 1;
     int constant CS_RESP_FAILURE = 0;
 
-    struct CSMessageResponse {
+    struct CSMessageResult {
         uint256 sn;
         int code;
     }
@@ -54,6 +49,29 @@ library Types {
     struct PendingResponse {
         bytes msg;
         string targetNetwork;
+    }
+
+    struct XCallEnvelope {
+        int messageType;
+        bytes message;
+        string[] sources;
+        string[] destinations;
+    }
+
+    struct CallMessage {
+        int messageType;
+        bytes data;
+    }
+
+    struct CallMessageWithRollback {
+        int messageType;
+        bytes data;
+        bytes rollback;
+    }
+
+    struct ProcessResult {
+        bool needResponse;
+        bytes data;
     }
 
 }
