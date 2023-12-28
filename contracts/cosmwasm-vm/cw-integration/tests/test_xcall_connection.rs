@@ -336,7 +336,7 @@ fn test_rollback_reply() {
     call_ibc_receive_packet(&mut ctx, bytes).unwrap();
     let expected_reply = CSMessageRequest::new(
         NetworkAddress::from_str("nid/contract3").unwrap(),
-        Addr::unchecked("cosmoscontract"),
+        Addr::unchecked(MOCK_CONTRACT_TO_ADDR),
         1,
         MessageType::CallMessage,
         vec![1, 2, 3],
