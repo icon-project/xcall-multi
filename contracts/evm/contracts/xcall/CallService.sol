@@ -181,12 +181,12 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
             address conn = defaultConnections[netTo];
             require(conn != address(0), "NoDefaultConnection");
             uint256 requiredFee = _getFee(conn, netTo, sn);
-            sendBTPMessage(conn, requiredFee, netTo, msgType, sn, data);
+            sendToConnection(conn, requiredFee, netTo, msgType, sn, data);
         } else {
             for (uint i = 0; i < sources.length; i++) {
                 address conn = sources[i].parseAddress("IllegalArgument");
                 uint256 requiredFee = _getFee(conn, netTo, sn);
-                sendBTPMessage(
+                sendToConnection(
                     conn,
                     requiredFee,
                     netTo,
@@ -410,7 +410,7 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
         handlResult(Types.CSMessageResult(_sn, Types.CS_RESP_FAILURE));
     }
 
-    function sendBTPMessage(
+    function sendToConnection(
         address connection,
         uint256 value,
         string memory netTo,
