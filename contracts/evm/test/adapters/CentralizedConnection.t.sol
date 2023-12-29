@@ -11,7 +11,6 @@ import "@xcall/utils/Types.sol";
 contract CentralizedConnectionTest is Test {
     using RLPEncodeStruct for Types.CSMessage;
     using RLPEncodeStruct for Types.CSMessageRequest;
-    using RLPEncodeStruct for Types.CSMessageResponse;
 
     event CallExecuted(uint256 indexed _reqId, int _code, string _msg);
 
@@ -131,7 +130,7 @@ contract CentralizedConnectionTest is Test {
             iconDapp,
             ParseAddress.toString(address(dappSource)),
             1,
-            false,
+            Types.CALL_MESSAGE_TYPE,
             data,
             new string[](0)
         );
@@ -159,7 +158,7 @@ contract CentralizedConnectionTest is Test {
             iconDapp,
             ParseAddress.toString(address(dappSource)),
             1,
-            false,
+            Types.CALL_MESSAGE_TYPE,
             data,
             new string[](0)
         );
@@ -188,7 +187,7 @@ contract CentralizedConnectionTest is Test {
             iconDapp,
             ParseAddress.toString(address(dappSource)),
             1,
-            false,
+            Types.CALL_MESSAGE_TYPE,
             data,
             new string[](0)
         );
@@ -283,7 +282,7 @@ contract CentralizedConnectionTest is Test {
             iconDapp,
             ParseAddress.toString(address(dappSource)),
             1,
-            false,
+            Types.CALL_MESSAGE_TYPE,
             data,
             new string[](0)
         );
