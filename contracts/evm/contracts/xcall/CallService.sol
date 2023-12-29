@@ -212,7 +212,6 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
                 .message
                 .decodeCallMessageWithRollback();
             require(msg.sender.code.length > 0, "RollbackNotPossible");
-            emit Abc(_msg.data, _msg.rollback);
             Types.RollbackData memory req = Types.RollbackData(
                 caller,
                 to.nid(),
@@ -232,8 +231,6 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
         require(balance >= fee, "InsufficientBalance");
         feeHandler.transfer(balance);
     }
-
-    event Abc(bytes data, bytes rollback);
 
     function _sendCallMessage(
         string memory _to,
@@ -255,7 +252,6 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
             destinations
         );
         } else {
-            emit Abc(_data, _rollback);
             Types.CallMessageWithRollback memory _msg = Types.CallMessageWithRollback(
                 Types.CALL_MESSAGE_ROLLBACK_TYPE,
                 _data,
