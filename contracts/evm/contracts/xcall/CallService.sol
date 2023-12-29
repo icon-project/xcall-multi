@@ -43,7 +43,7 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
 
     // mapping(uint256 => Types.RollbackData) private requests;
     mapping(uint256 => Types.RollbackData) private rollbacks;
-    mapping(uint256 => Types.CSMessageRequest) private proxyReqs;
+    mapping(uint256 => Types.ProxyRequest) private proxyReqs;
 
     mapping(uint256 => bool) private successfulResponses;
 
@@ -269,9 +269,9 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
     }
 
     function executeCall(uint256 _reqId, bytes memory _data) external override {
-        Types.CSMessageRequest memory req = proxyReqs[_reqId];
+        Types.ProxyRequest memory req = proxyReqs[_reqId];
         require(bytes(req.from).length > 0, "InvalidRequestId");
-        require(keccak256(req.data) == keccak256(_data), "DataHashMismatch");
+        require(req.hash == keccak256(_data), "DataHashMismatch");
         // cleanup
         delete proxyReqs[_reqId];
 
@@ -447,7 +447,15 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
             require(msg.sender == defaultConnections[fromNID], "NotAuthorized");
         }
         uint256 reqId = getNextReqId();
-        proxyReqs[reqId] = req;
+
+        proxyReqs[reqId] = Types.ProxyRequest(
+            req.from,
+            req.to,
+            req.sn,
+            req.messageType,
+            dataHash,
+            req.protocols
+        );
         emit CallMessage(req.from, req.to, req.sn, reqId, req.data);
     }
 

@@ -38,6 +38,15 @@ library Types {
         string[] protocols;
     }
 
+    struct ProxyRequest {
+        string from;
+        string to;
+        uint256 sn;
+        int256 messageType;
+        bytes32 hash;
+        string[] protocols;
+    }
+
     int constant CS_RESP_SUCCESS = 1;
     int constant CS_RESP_FAILURE = 0;
 
