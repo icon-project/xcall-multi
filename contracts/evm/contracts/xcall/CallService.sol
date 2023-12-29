@@ -125,11 +125,7 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
         return _sendCallMessage(_to, _data, _rollback, src, dst);
     }
 
-    event CallMessageReq(string from,
-        string to,
-        uint256 sn,
-        int messageType,
-        bytes data);
+
 
     function sendCall(
         string memory _to,
@@ -148,7 +144,6 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
         (string memory netTo, string memory dstAccount) = _to
             .parseNetworkAddress();
 
-        emit CallMessageReq(from, _to, sn, envelope.messageType, result.data);
         Types.CSMessageRequest memory req = Types.CSMessageRequest(
             from,
             dstAccount,
