@@ -197,3 +197,7 @@ lcov.info
 
 vendor/**
 scripts/download_buf.sh
+
+cache/
+
+broadcast/
