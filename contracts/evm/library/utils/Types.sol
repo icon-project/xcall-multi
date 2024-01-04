@@ -68,12 +68,10 @@ library Types {
     }
 
     struct CallMessage {
-        int messageType;
         bytes data;
     }
 
     struct CallMessageWithRollback {
-        int messageType;
         bytes data;
         bytes rollback;
     }

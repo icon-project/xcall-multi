@@ -58,7 +58,6 @@ library RLPDecodeStruct {
         RLPDecode.RLPItem[] memory ls = _rlp.toRlpItem().toList();
         return
             Types.CallMessageWithRollback(
-                Types.CALL_MESSAGE_ROLLBACK_TYPE,
                 ls[0].toBytes(),
                 ls[1].toBytes()
             );

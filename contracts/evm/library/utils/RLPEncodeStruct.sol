@@ -4,8 +4,6 @@ pragma abicoder v2;
 
 import "@iconfoundation/btp2-solidity-library/utils/RLPEncode.sol";
 import "./Types.sol";
-import {console2} from "forge-std/console2.sol";
-
 
 library RLPEncodeStruct {
     using RLPEncode for bytes;
@@ -52,24 +50,20 @@ library RLPEncodeStruct {
     function encodeXCallEnvelope(
         Types.XCallEnvelope memory env
     ) internal pure returns (bytes memory) {
-                            console2.log("abbbbbaaaaaaaaa");
 
         bytes memory _sources;
         bytes memory temp;
-                    console2.log("abbbbbaaaaaaaaa");
 
         for (uint256 i = 0; i < env.sources.length; i++) {
             temp = abi.encodePacked(env.sources[i].encodeString());
             _sources = abi.encodePacked(_sources, temp);
         }
-                    console2.log("abbbbbaaaaaaaaa");
 
         bytes memory _dests;
         for (uint256 i = 0; i < env.destinations.length; i++) {
             temp = abi.encodePacked(env.destinations[i].encodeString());
             _dests = abi.encodePacked(_dests, temp);
         }
-                    console2.log("abbbbbaaaaaaaaa");
 
         bytes memory _rlp = abi.encodePacked(
             env.messageType.encodeInt(),
@@ -77,7 +71,6 @@ library RLPEncodeStruct {
             _sources.encodeList(),
             _dests.encodeList()
         );
-                    console2.log("abbbbbaaaaaaaaa");
 
         return _rlp.encodeList();
     }
