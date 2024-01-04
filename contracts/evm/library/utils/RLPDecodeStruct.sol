@@ -58,23 +58,18 @@ library RLPDecodeStruct {
         RLPDecode.RLPItem[] memory ls = _rlp.toRlpItem().toList();
         return
             Types.CallMessageWithRollback(
-                ls[0].toInt(),
-                ls[1].toBytes(),
-                ls[2].toBytes()
+                Types.CALL_MESSAGE_ROLLBACK_TYPE,
+                ls[0].toBytes(),
+                ls[1].toBytes()
             );
     }
 
-    function decodeCallMessage(
-        bytes memory _rlp
-    ) internal pure returns (Types.CallMessage memory) {
-        RLPDecode.RLPItem[] memory ls = _rlp.toRlpItem().toList();
-        return Types.CallMessage(ls[0].toInt(), ls[1].toBytes());
-    }
 
     function decodeXCallEnvelope(
         bytes memory _rlp
     ) internal pure returns (Types.XCallEnvelope memory) {
         RLPDecode.RLPItem[] memory ls = _rlp.toRlpItem().toList();
+        
         return
             Types.XCallEnvelope(
                 ls[0].toInt(),

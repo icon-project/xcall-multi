@@ -7,6 +7,7 @@ import "./interfaces/IConnection.sol";
 import "@xcall/utils/RLPDecodeStruct.sol";
 import "@xcall/utils/RLPEncodeStruct.sol";
 import "@xcall/utils/Types.sol";
+import {console2} from "forge-std/console2.sol";
 
 import "@iconfoundation/btp2-solidity-library/interfaces/IBSH.sol";
 import "@iconfoundation/btp2-solidity-library/interfaces/ICallService.sol";
@@ -131,6 +132,7 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
         string memory _to,
         bytes memory _data
     ) public payable returns (uint256) {
+        console2.log("accccbbaaaaaaaaa");
         address caller = msg.sender;
         Types.XCallEnvelope memory envelope = _data.decodeXCallEnvelope();
         uint256 sn = getNextSn();
@@ -139,10 +141,14 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
             _to,
             envelope
         );
+                console2.log("accccbbaaaaaaaaa");
+
         string memory from = nid.networkAddress(caller.toString());
+        console2.log("accccbbaaaaaaaaa");
 
         (string memory netTo, string memory dstAccount) = _to
             .parseNetworkAddress();
+        console2.log("accccbbaaaaaaaaa");
 
         Types.CSMessageRequest memory req = Types.CSMessageRequest(
             from,
@@ -152,11 +158,13 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
             result.data,
             envelope.destinations
         );
+        console2.log("accccbbaaaaaaaaa");
 
         bytes memory _msg = req.encodeCSMessageRequest();
         require(_msg.length <= MAX_DATA_SIZE, "MaxDataSizeExceeded");
 
         uint256 sendSn = result.needResponse ? sn : 0;
+        console2.log("accccbbaaaaaaaaa");
 
         sendMessage(
             envelope.sources,
@@ -205,12 +213,14 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
     ) internal returns (Types.ProcessResult memory) {
         int envelopeType = envelope.messageType;
         if (envelopeType == Types.CALL_MESSAGE_TYPE) {
-            return Types.ProcessResult(false, envelope.message.decodeCallMessage().data);
+            return Types.ProcessResult(false, envelope.message);
         } else if (envelopeType == Types.CALL_MESSAGE_ROLLBACK_TYPE) {
             address caller = msg.sender;
+                    console2.log("accccbbaaaaaaaaa");
             Types.CallMessageWithRollback memory _msg = envelope
                 .message
                 .decodeCallMessageWithRollback();
+                        console2.log("accccbbaaaaaaaaa");
             require(msg.sender.code.length > 0, "RollbackNotPossible");
             Types.RollbackData memory req = Types.RollbackData(
                 caller,
@@ -242,27 +252,36 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
         int msgType;
 
         Types.XCallEnvelope memory envelope;
+        console2.log("aaaaaaaaaaaaaa");
 
         if (_rollback.length == 0) {
+                    console2.log("aaaaaaaaaaaaaa");
+
             Types.CallMessage memory _msg = Types.CallMessage(Types.CALL_MESSAGE_TYPE, _data);
             envelope = Types.XCallEnvelope(
            Types.CALL_MESSAGE_TYPE,
-            _msg.encodeCallMessage(),
+            _msg.data,
             sources,
             destinations
         );
         } else {
+                    console2.log("abbbbbaaaaaaaaa");
+
             Types.CallMessageWithRollback memory _msg = Types.CallMessageWithRollback(
                 Types.CALL_MESSAGE_ROLLBACK_TYPE,
                 _data,
                 _rollback
             );
+                                console2.log("abbbbbaaaaaaaaa");
+
             envelope = Types.XCallEnvelope(
             Types.CALL_MESSAGE_ROLLBACK_TYPE,
             _msg.encodeCallMessageWithRollback(),
             sources,
             destinations
         );
+                            console2.log("abbbbbaaaaaaaaa");
+
         }
 
         return sendCall(_to, envelope.encodeXCallEnvelope());
