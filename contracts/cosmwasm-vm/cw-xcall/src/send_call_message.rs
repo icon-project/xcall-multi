@@ -1,7 +1,12 @@
 use cosmwasm_std::{coins, BankMsg};
+use cw_xcall_lib::message::call_message::CallMessage;
+use cw_xcall_lib::message::msg_trait::IMessage;
+
+use cw_xcall_lib::message::AnyMessage;
+use cw_xcall_lib::message::{call_message_rollback::CallMessageWithRollback, envelope::Envelope};
 use cw_xcall_lib::network_address::NetworkAddress;
 
-use crate::types::LOG_PREFIX;
+use crate::{assertion::is_contract, types::LOG_PREFIX};
 
 use super::*;
 
@@ -17,24 +22,51 @@ impl<'a> CwCallService<'a> {
         sources: Vec<String>,
         destinations: Vec<String>,
     ) -> Result<Response, ContractError> {
-        let caller = info.sender;
+        let msg = if rollback.is_some() {
+            AnyMessage::CallMessageWithRollback(CallMessageWithRollback {
+                data,
+                rollback: rollback.unwrap(),
+            })
+        } else {
+            AnyMessage::CallMessage(CallMessage { data })
+        };
+        let envelope = Envelope::new(msg, sources, destinations);
+        self.send_call(deps, info, to, envelope)
+    }
+
+    pub fn validate_payload(
+        &self,
+        deps: Deps,
+        caller: &Addr,
+        envelope: &Envelope,
+    ) -> Result<(), ContractError> {
+        match &envelope.message {
+            AnyMessage::CallMessage(_m) => Ok(()),
+            AnyMessage::CallMessageWithRollback(m) => {
+                if !is_contract(deps.querier, caller) {
+                    return Err(ContractError::RollbackNotPossible);
+                }
+                self.ensure_rollback_length(&m.rollback().unwrap())?;
+                Ok(())
+            }
+            AnyMessage::CallMessagePersisted(_) => Ok(()),
+        }
+    }
+
+    pub fn send_call(
+        &self,
+        deps: DepsMut,
+        info: MessageInfo,
+        to: NetworkAddress,
+        envelope: Envelope,
+    ) -> Result<Response, ContractError> {
+        let caller = info.sender.clone();
         let config = self.get_config(deps.as_ref().storage)?;
         let nid = config.network_id;
-
-        self.ensure_caller_is_contract_and_rollback_is_null(deps.as_ref(), &caller, &rollback)?;
-
-        let need_response = rollback.is_some();
-
-        let rollback_data = match rollback {
-            Some(data) => data,
-            None => vec![],
-        };
-
-        self.ensure_rollback_length(&rollback_data)?;
-        println!("{LOG_PREFIX} Packet Validated");
+        self.validate_payload(deps.as_ref(), &caller, &envelope)?;
 
         let sequence_no = self.get_next_sn(deps.storage)?;
-        let mut confirmed_sources = sources.clone();
+        let mut confirmed_sources = envelope.sources.clone();
         let from = NetworkAddress::new(&nid, caller.as_ref());
 
         if confirmed_sources.is_empty() {
@@ -42,21 +74,28 @@ impl<'a> CwCallService<'a> {
             confirmed_sources = vec![default.to_string()]
         }
 
-        if need_response {
-            let request =
-                CallRequest::new(caller.clone(), to.clone(), sources, rollback_data, false);
+        if envelope.message.rollback().is_some() {
+            let rollback_data = envelope.message.rollback().unwrap();
+            let request = CallRequest::new(
+                caller.clone(),
+                to.clone(),
+                envelope.sources,
+                rollback_data,
+                false,
+            );
 
             self.store_call_request(deps.storage, sequence_no, &request)?;
         }
-
         let call_request = CSMessageRequest::new(
             from,
             to.account(),
             sequence_no,
-            need_response,
-            data.to_vec(),
-            destinations,
+            envelope.message.msg_type().clone(),
+            envelope.message.data(),
+            envelope.destinations,
         );
+
+        let need_response = call_request.need_response();
 
         let message: CSMessage = call_request.into();
         let sn: i64 = if need_response { sequence_no as i64 } else { 0 };

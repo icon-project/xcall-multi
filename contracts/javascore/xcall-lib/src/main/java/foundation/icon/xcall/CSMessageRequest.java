@@ -29,16 +29,16 @@ public class CSMessageRequest {
     private final String from;
     private final String to;
     private final BigInteger sn;
-    private final boolean rollback;
+    private final int type;
     private byte[] data;
     private final String[] protocols;
 
 
-    public CSMessageRequest(String from, String to, BigInteger sn, boolean rollback, byte[] data, String[] protocols) {
+    public CSMessageRequest(String from, String to, BigInteger sn, int type, byte[] data, String[] protocols) {
         this.from = from;
         this.to = to;
         this.sn = sn;
-        this.rollback = rollback;
+        this.type = type;
         this.data = data;
         if (protocols == null) {
             protocols = new String[]{};
@@ -63,8 +63,8 @@ public class CSMessageRequest {
         return sn;
     }
 
-    public boolean needRollback() {
-        return rollback;
+    public int getType() {
+        return type;
     }
 
     public byte[] getData() {
@@ -81,7 +81,7 @@ public class CSMessageRequest {
         w.write(m.to);
 
         w.write(m.sn);
-        w.write(m.rollback);
+        w.write(m.type);
         w.writeNullable(m.data);
         w.beginList(m.protocols.length);
         for(String protocol : m.protocols) {
@@ -97,7 +97,7 @@ public class CSMessageRequest {
                 r.readString(),
                 r.readString(),
                 r.readBigInteger(),
-                r.readBoolean(),
+                r.readInt(),
                 r.readNullable(byte[].class),
                 readProtocols(r)
         );

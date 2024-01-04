@@ -1,26 +1,26 @@
 use super::*;
 
 #[cw_serde]
-pub enum CallServiceMessageType {
-    CallServiceRequest = 1,
-    CallServiceResponse,
+pub enum CSMessageType {
+    CSMessageRequest = 1,
+    CSMessageResult,
 }
 
 #[cw_serde]
 pub struct CSMessage {
-    pub message_type: CallServiceMessageType,
+    pub message_type: CSMessageType,
     pub payload: Vec<u8>,
 }
 
 impl CSMessage {
-    pub fn new(message_type: CallServiceMessageType, payload: Vec<u8>) -> Self {
+    pub fn new(message_type: CSMessageType, payload: Vec<u8>) -> Self {
         Self {
             message_type,
             payload: payload.to_vec(),
         }
     }
 
-    pub fn message_type(&self) -> &CallServiceMessageType {
+    pub fn message_type(&self) -> &CSMessageType {
         &self.message_type
     }
     pub fn payload(&self) -> &[u8] {
@@ -31,8 +31,8 @@ impl CSMessage {
 impl Encodable for CSMessage {
     fn rlp_append(&self, stream: &mut rlp::RlpStream) {
         let msg_type: u8 = match self.message_type {
-            CallServiceMessageType::CallServiceRequest => 1,
-            CallServiceMessageType::CallServiceResponse => 2,
+            CSMessageType::CSMessageRequest => 1,
+            CSMessageType::CSMessageResult => 2,
         };
         stream.begin_list(2).append(&msg_type).append(&self.payload);
     }
@@ -44,8 +44,8 @@ impl Decodable for CSMessage {
 
         Ok(Self {
             message_type: match msg_type {
-                1 => Ok(CallServiceMessageType::CallServiceRequest),
-                2 => Ok(CallServiceMessageType::CallServiceResponse),
+                1 => Ok(CSMessageType::CSMessageRequest),
+                2 => Ok(CSMessageType::CSMessageResult),
                 _ => Err(rlp::DecoderError::Custom("Invalid type")),
             }?,
             payload: rlp.val_at(1)?,
@@ -56,16 +56,16 @@ impl Decodable for CSMessage {
 impl From<CSMessageRequest> for CSMessage {
     fn from(value: CSMessageRequest) -> Self {
         Self {
-            message_type: CallServiceMessageType::CallServiceRequest,
+            message_type: CSMessageType::CSMessageRequest,
             payload: rlp::encode(&value).to_vec(),
         }
     }
 }
 
-impl From<CSMessageResponse> for CSMessage {
-    fn from(value: CSMessageResponse) -> Self {
+impl From<CSMessageResult> for CSMessage {
+    fn from(value: CSMessageResult) -> Self {
         Self {
-            message_type: CallServiceMessageType::CallServiceResponse,
+            message_type: CSMessageType::CSMessageResult,
             payload: rlp::encode(&value).to_vec(),
         }
     }
@@ -119,18 +119,12 @@ mod tests {
     #[test]
     fn test_csmessage_encoding() {
         let data = hex::decode("7465737431").unwrap();
-        let message = CSMessage::new(
-            super::CallServiceMessageType::CallServiceRequest,
-            data.clone(),
-        );
+        let message = CSMessage::new(super::CSMessageType::CSMessageRequest, data.clone());
         let encoded = rlp::encode(&message);
 
         assert_eq!("c701857465737431", hex::encode(encoded));
 
-        let message = CSMessage::new(
-            crate::types::message::CallServiceMessageType::CallServiceResponse,
-            data,
-        );
+        let message = CSMessage::new(crate::types::message::CSMessageType::CSMessageResult, data);
         let encoded = rlp::encode(&message);
         assert_eq!("c702857465737431", hex::encode(encoded));
     }

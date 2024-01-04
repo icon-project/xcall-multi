@@ -26,9 +26,9 @@ use crate::{
     state::{CwCallService, EXECUTE_CALL_ID},
     types::{
         call_request::CallRequest,
-        message::{CSMessage, CallServiceMessageType},
+        message::{CSMessage, CSMessageType},
         request::CSMessageRequest,
-        response::{CSMessageResponse, CallServiceResponseType},
+        result::{CSMessageResult, CallServiceResponseType},
         storage_keys::StorageKey,
     },
 };

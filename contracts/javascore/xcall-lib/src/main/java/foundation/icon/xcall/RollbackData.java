@@ -23,14 +23,14 @@ import score.ObjectReader;
 import score.ObjectWriter;
 import scorex.util.ArrayList;
 
-public class CallRequest {
+public class RollbackData {
     private final Address from;
     private final String to;
     private final String[] protocols;
     private final byte[] rollback;
     private boolean enabled;
 
-    public CallRequest(Address from, String to, String[] protocols, byte[] rollback) {
+    public RollbackData(Address from, String to, String[] protocols, byte[] rollback) {
         this.from = from;
         this.to = to;
         if (protocols == null) {
@@ -57,7 +57,7 @@ public class CallRequest {
         return rollback;
     }
 
-    public static void writeObject(ObjectWriter w, CallRequest req) {
+    public static void writeObject(ObjectWriter w, RollbackData req) {
         w.beginList(5);
         w.write(req.from);
         w.write(req.to);
@@ -71,9 +71,9 @@ public class CallRequest {
         w.end();
     }
 
-    public static CallRequest readObject(ObjectReader r) {
+    public static RollbackData readObject(ObjectReader r) {
         r.beginList();
-        CallRequest req = new CallRequest(
+        RollbackData req = new RollbackData(
                 r.readAddress(),
                 r.readString(),
                 readProtocols(r),

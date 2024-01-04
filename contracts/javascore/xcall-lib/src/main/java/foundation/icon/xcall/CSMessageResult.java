@@ -23,14 +23,14 @@ import score.ObjectWriter;
 
 import java.math.BigInteger;
 
-public class CSMessageResponse {
+public class CSMessageResult {
     public static final int SUCCESS = 1;
     public static final int FAILURE = 0;
 
     private final BigInteger sn;
     private final int code;
 
-    public CSMessageResponse(BigInteger sn, int code) {
+    public CSMessageResult(BigInteger sn, int code) {
         this.sn = sn;
         this.code = code;
     }
@@ -43,16 +43,16 @@ public class CSMessageResponse {
         return code;
     }
 
-    public static void writeObject(ObjectWriter w, CSMessageResponse m) {
+    public static void writeObject(ObjectWriter w, CSMessageResult m) {
         w.beginList(2);
         w.write(m.sn);
         w.write(m.code);
         w.end();
     }
 
-    public static CSMessageResponse readObject(ObjectReader r) {
+    public static CSMessageResult readObject(ObjectReader r) {
         r.beginList();
-        CSMessageResponse m = new CSMessageResponse(
+        CSMessageResult m = new CSMessageResult(
                 r.readBigInteger(),
                 r.readInt()
         );
@@ -62,11 +62,11 @@ public class CSMessageResponse {
 
     public byte[] toBytes() {
         ByteArrayObjectWriter writer = Context.newByteArrayObjectWriter("RLPn");
-        CSMessageResponse.writeObject(writer, this);
+        CSMessageResult.writeObject(writer, this);
         return writer.toByteArray();
     }
 
-    public static CSMessageResponse fromBytes(byte[] bytes) {
+    public static CSMessageResult fromBytes(byte[] bytes) {
         ObjectReader reader = Context.newByteArrayObjectReader("RLPn", bytes);
         return readObject(reader);
     }
