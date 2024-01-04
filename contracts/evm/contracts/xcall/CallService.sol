@@ -568,7 +568,7 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
         if (sn < 0) {
             return 0;
         }
-        return IConnection(connection).getFee(_net, sn == 1);
+        return IConnection(connection).getFee(_net, sn > 0);
     }
 
     function getFee(
