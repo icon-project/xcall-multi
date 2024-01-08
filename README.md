@@ -46,7 +46,9 @@ For building dapps with xcall-multi see official developer [docs](https://www.xc
 
 | Injective       | xcall-multi Address                          | xcall-connection Address                      |
 | --------------- | -------------------------------------------- | --------------------------------------------- |
+| injective-1     | `inj177fx40l0g3jqmtmmuyl2zhrjvhr3knvthlr0ul` | `inj15jcde723hrm5f4fx3r2stnq59jykt2askud8ht`  |
 | injective-888   | `inj1k5nwz0ctk98k7zwn95jjy2klhfpgufklnt0sgq` | `inj1mxqp64mphz2t79hz7dr4xl9593v7mrpy3srehm`  |
+
 
 
 
@@ -55,6 +57,7 @@ For building dapps with xcall-multi see official developer [docs](https://www.xc
 | -------- | -------------- | ---------------- | -------------------- |
 | Mainnet  | icon-archway   | mainnet          | archway-1            |
 |          | icon-neutron   | mainnet          | neutron-1            |
+|          | icon-injective | mainnet          | injective-1          |
 | Berlin   | icon-archway   | ibc-icon         | constantine-3        |
 | Lisbon   | icon-archway   | lisbon           | constantine-3        |
 |          | icon-neutron   | lisbon           | pion-1               |
@@ -72,6 +75,8 @@ For building dapps with xcall-multi see official developer [docs](https://www.xc
 | Neutron  | Mainnet               | neutron-1 |
 |          | Pion Testnet          | neutron   |
 |Injective | injective-888         | injective |
+|          | injective-1           | injective |
+
 
 
 ### Project Structure
