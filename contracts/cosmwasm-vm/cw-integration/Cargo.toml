@@ -1,0 +1,34 @@
+[package]
+name = "cw-integration"
+version.workspace = true
+authors.workspace = true
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+cosmwasm-schema = {workspace=true}
+cosmwasm-std = {workspace=true}
+cw-storage-plus = {workspace=true}
+cw-common={workspace=true}
+common = { workspace=true, default-features = false }
+ibc = { version = "0.32.0", default-features = false, features = ["parity-scale-codec", "mocks-no-std", "serde"]}
+prost = { workspace=true}
+strum="*"
+strum_macros = "0.24"
+cw-xcall-lib={package = "cw-xcall-lib",workspace=true}
+
+[dev-dependencies]
+hex = "0.4.3"
+cw-multi-test = "0.15.1"
+cw-xcall-ibc-connection = { workspace=true }
+cw-mock-ibc-core = { workspace=true }
+cw-mock-dapp = { workspace=true}
+cw-mock-dapp-multi = { workspace=true }
+## xcall connection uses the alpha tag need to update
+xcall-lib={package="cw-xcall-lib", git="https://github.com/icon-project/xCall.git", tag="v0.1.0-alpha.5"}
+
+cw-xcall = {workspace=true}
+anyhow="*"
+
+

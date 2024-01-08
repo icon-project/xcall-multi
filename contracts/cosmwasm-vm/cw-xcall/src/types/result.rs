@@ -63,6 +63,10 @@ impl CSMessageResult {
         }
         rlp::decode(&self.message).ok()
     }
+
+    pub fn as_bytes(&self) -> Vec<u8> {
+        rlp::encode(&self.clone()).to_vec()
+    }
 }
 
 impl Encodable for CSMessageResult {

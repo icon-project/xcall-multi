@@ -1,10 +1,11 @@
 use common::rlp::{self, Decodable, DecoderError, Encodable};
+use cosmwasm_schema::cw_serde;
 
 use super::{
     call_message::CallMessage, call_message_rollback::CallMessageWithRollback, msg_trait::IMessage,
     msg_type::MessageType, AnyMessage,
 };
-#[derive(Clone, Debug, PartialEq)]
+#[cw_serde]
 pub struct Envelope {
     pub message: AnyMessage,
     pub sources: Vec<String>,
