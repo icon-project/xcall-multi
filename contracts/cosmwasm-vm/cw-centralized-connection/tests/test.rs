@@ -1,5 +1,6 @@
 pub mod setup;
 use std::str::FromStr;
+use cosmwasm_std::Coin;
 use cosmwasm_std::{testing::mock_env, Env};
 use cosmwasm_std::{
     testing::{mock_dependencies, mock_info, MockApi, MockQuerier},
@@ -188,14 +189,27 @@ pub fn test_get_receipts(){
 #[test]
 pub fn test_claim_fees(){
     let (mut deps, env, _ctx) = instantiate(OWNER);
-    let msg = ExecuteMsg::ClaimFees {};
+    let claim_msg = ExecuteMsg::ClaimFees {};
     let info = mock_info(OWNER, &[]);
-    let res = execute(deps.as_mut(), env.clone(), info, msg.clone());
+    let res = execute(deps.as_mut(), env.clone(), info, claim_msg.clone());
     assert!(!res.is_ok());
     assert_eq!("Only Relayer(Admin)", res.unwrap_err().to_string());
 
-    let info = mock_info(RELAYER, &[]);
-    let res = execute(deps.as_mut(), env, info, msg);
+    let msg = ExecuteMsg::SendMessage {
+        to: NetId::from_str("nid").unwrap(),
+        svc: "xcall".to_string(),
+        sn: 0,
+        msg: vec![],
+    };
+
+    let info = mock_info(XCALL, &[]);
+
+    let _ = execute(deps.as_mut(), env.clone(), info, msg.clone());
+
+    let amount: u128 = 100;
+    let coin: Coin = Coin { denom: DENOM.to_string(), amount: Uint128::from(amount)};
+    let info = mock_info(RELAYER, &[coin]);
+    let res = execute(deps.as_mut(), env, info, claim_msg);
     assert!(res.is_ok());
 }
 

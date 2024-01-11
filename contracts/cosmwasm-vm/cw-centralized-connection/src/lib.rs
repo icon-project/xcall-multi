@@ -36,7 +36,7 @@ pub fn instantiate(
 #[entry_point]
 pub fn execute(
     deps: DepsMut,
-    _env: Env,
+    env: Env,
     info: MessageInfo,
     msg: ExecuteMsg,
 ) -> Result<Response, ContractError> {
@@ -48,7 +48,7 @@ pub fn execute(
         ExecuteMsg::RecvMessage { src_network, conn_sn, msg } => {
             call_service.recv_message(deps, info, src_network, conn_sn, msg)
         }
-        ExecuteMsg::ClaimFees {} => call_service.claim_fees(deps, info),
+        ExecuteMsg::ClaimFees {} => call_service.claim_fees(deps, env, info),
         ExecuteMsg::RevertMessage { sn } => call_service.revert_message(deps, info, sn),
         ExecuteMsg::SetAdmin { address } => {
             call_service.set_admin(deps, info, address)

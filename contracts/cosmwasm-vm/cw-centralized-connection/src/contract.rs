@@ -57,8 +57,7 @@ impl<'a> CwCentralizedConnection<'a> {
         if fee > value {
             return Err(ContractError::InsufficientFunds);
         }
-        self.add_balance(deps.storage, value)?;
-
+        
         Ok(Response::new()
             .add_attribute("action", "send_message")
             .add_event(
@@ -89,11 +88,12 @@ impl<'a> CwCentralizedConnection<'a> {
         Ok(Response::new().add_submessage(xcall_submessage))
     }
 
-    pub fn claim_fees(&self, deps: DepsMut, info: MessageInfo) -> Result<Response, ContractError> {
+    pub fn claim_fees(&self, deps: DepsMut, env: Env, info: MessageInfo) -> Result<Response, ContractError> {
         self.ensure_admin(deps.storage, info.sender)?;
+        let contract_balance = self.get_balance(&deps, env, self.denom(deps.storage));
         let msg = BankMsg::Send {
             to_address: self.query_admin(deps.storage)?.to_string(),
-            amount: coins(self.balance(deps.storage), self.denom(deps.storage)),
+            amount: coins(contract_balance, self.denom(deps.storage)),
         };
         Ok(Response::new()
             .add_attribute("action", "claim fees")
@@ -147,7 +147,6 @@ impl<'a> CwCentralizedConnection<'a> {
         if response {
             fee = fee + self.query_response_fee(store, network_id);
         }
-        // let message_fee = self.query_message_fee(deps.storage, to)
         Ok(fee.into())
     }
 }

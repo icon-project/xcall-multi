@@ -13,7 +13,6 @@ pub struct CwCentralizedConnection<'a> {
     receipts: Map<'a, (String, u128), bool>,
     xcall: Item<'a, Addr>,
     denom: Item<'a, String>,
-    balance: Item<'a, u128>,
 }
 
 impl<'a> Default for CwCentralizedConnection<'a> {
@@ -32,7 +31,6 @@ impl<'a> CwCentralizedConnection<'a> {
             receipts: Map::new(StorageKey::Receipts.as_str()),
             xcall: Item::new(StorageKey::XCall.as_str()),
             denom: Item::new(StorageKey::Denom.as_str()),
-            balance: Item::new(StorageKey::Balance.as_str()),
         }
     }
 
@@ -96,17 +94,6 @@ impl<'a> CwCentralizedConnection<'a> {
     pub fn denom(&self, store: &dyn Storage) -> String {
         self.denom.load(store).unwrap()
     }
-
-    pub fn add_balance(&mut self, store: &mut dyn Storage, amount: u128) -> StdResult<()> {
-        let balance = self.balance.load(store).unwrap_or(0);
-        self.balance.save(store, &(balance + amount))?;
-        Ok(())
-    }
-
-    pub fn balance(&self, store: &dyn Storage) -> u128 {
-        self.balance.load(store).unwrap_or(0)
-    }
-
     pub fn admin(&self) -> &Item<'a, Addr> {
         &self.admin
     }
