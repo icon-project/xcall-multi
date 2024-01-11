@@ -1,4 +1,4 @@
-use cosmwasm_std::{Addr, ensure_eq};
+use cosmwasm_std::{Addr, ensure_eq, Coin};
 use cw_xcall_lib::network_address::NetId;
 
 pub const XCALL_HANDLE_MESSAGE_REPLY_ID: u64 = 1;
@@ -19,6 +19,15 @@ impl<'a> CwCentralizedConnection<'a> {
         ensure_eq!(xcall, address, ContractError::OnlyXCall);
 
         Ok(())
+    }
+
+    pub fn get_amount_for_denom(&self,funds: &Vec<Coin>, target_denom: String) -> u128 {
+        for coin in funds.iter() {
+            if coin.denom == target_denom {
+                return coin.amount.into();
+            }
+        }
+        0
     }
 
     pub fn hex_encode(&self, data: Vec<u8>) -> String {

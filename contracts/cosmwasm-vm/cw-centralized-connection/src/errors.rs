@@ -26,4 +26,6 @@ pub enum ContractError {
     OnlyXCall,
     #[error("Duplicate Message")]
     DuplicateMessage,
+    #[error("InsufficientFunds")]
+    InsufficientFunds
 }

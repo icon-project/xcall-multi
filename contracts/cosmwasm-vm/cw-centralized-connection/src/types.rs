@@ -15,7 +15,8 @@ pub enum StorageKey {
     XCall,
     Admin,
     ConnSn,
-    Denom
+    Denom,
+    Balance
 }
 
 impl StorageKey {
@@ -28,6 +29,7 @@ impl StorageKey {
             StorageKey::Admin => "admin",
             StorageKey::ConnSn => "conn_sn",
             StorageKey::Denom => "denom",
+            StorageKey::Balance => "balance"
         }
     }
 }

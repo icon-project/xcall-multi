@@ -13,6 +13,7 @@ pub struct CwCentralizedConnection<'a> {
     receipts: Map<'a, (String, u128), bool>,
     xcall: Item<'a, Addr>,
     denom: Item<'a, String>,
+    balance: Item<'a, u128>,
 }
 
 impl<'a> Default for CwCentralizedConnection<'a> {
@@ -31,6 +32,7 @@ impl<'a> CwCentralizedConnection<'a> {
             receipts: Map::new(StorageKey::Receipts.as_str()),
             xcall: Item::new(StorageKey::XCall.as_str()),
             denom: Item::new(StorageKey::Denom.as_str()),
+            balance: Item::new(StorageKey::Balance.as_str()),
         }
     }
 
@@ -51,12 +53,12 @@ impl<'a> CwCentralizedConnection<'a> {
         self.response_fee.save(store, to, &response_fee)?;
         Ok(())
     }
-    pub fn query_message_fee(&self, store: &dyn Storage, to: NetId) -> Result<u128, ContractError> {
-       Ok(self.message_fee.load(store, to)?)
+    pub fn query_message_fee(&self, store: &dyn Storage, to: NetId) -> u128 {
+       self.message_fee.load(store, to).unwrap_or(0)
     }
 
-    pub fn query_response_fee(&self, store: &dyn Storage, to: NetId) -> Result<u128, ContractError> {
-        Ok(self.response_fee.load(store, to)?)
+    pub fn query_response_fee(&self, store: &dyn Storage, to: NetId) -> u128 {
+        self.response_fee.load(store, to).unwrap_or(0)
     }
 
     pub fn store_receipt(&mut self, store: &mut dyn Storage, src_network:NetId, connsn: u128) -> StdResult<()> {
@@ -91,23 +93,22 @@ impl<'a> CwCentralizedConnection<'a> {
     pub fn query_xcall(&self, store: &dyn Storage) -> Result<Addr, ContractError> {
         Ok(self.xcall.load(store)?)
     }
-    pub fn message_fee(&self) -> &Map<'a, NetId, u128> {
-        &self.message_fee
+    pub fn denom(&self, store: &dyn Storage) -> String {
+        self.denom.load(store).unwrap()
     }
 
-    pub fn response_fee(&self) -> &Map<'a, NetId, u128> {
-        &self.response_fee
+    pub fn add_balance(&mut self, store: &mut dyn Storage, amount: u128) -> StdResult<()> {
+        let balance = self.balance.load(store).unwrap_or(0);
+        self.balance.save(store, &(balance + amount))?;
+        Ok(())
+    }
+
+    pub fn balance(&self, store: &dyn Storage) -> u128 {
+        self.balance.load(store).unwrap_or(0)
     }
 
     pub fn admin(&self) -> &Item<'a, Addr> {
         &self.admin
     }
 
-    pub fn conn_sn(&self) -> &Item<'a, u128> {
-        &self.conn_sn
-    }
-
-    pub fn xcall(&self) -> &Item<'a, Addr> {
-        &self.xcall
-    }
 }
