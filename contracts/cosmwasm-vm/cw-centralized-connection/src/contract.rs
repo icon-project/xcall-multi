@@ -1,4 +1,4 @@
-use cosmwasm_std::{coins, Addr, BankMsg, Event, Uint128};
+use cosmwasm_std::{coins, Addr, BankMsg, Event, SubMsgResult, Uint128};
 use cw_xcall_lib::network_address::NetId;
 
 use super::*;
@@ -149,5 +149,61 @@ impl<'a> CwCentralizedConnection<'a> {
         }
         // let message_fee = self.query_message_fee(deps.storage, to)
         Ok(fee.into())
+    }
+
+    fn xcall_handle_message_reply(
+        &self,
+        _deps: DepsMut,
+        message: Reply,
+    ) -> Result<Response, ContractError> {
+        println!("Reply From Forward XCall");
+        match message.result {
+            SubMsgResult::Ok(_) => Ok(Response::new()
+                .add_attribute("action", "call_message")
+                .add_attribute("method", "xcall_handle_message_reply")),
+            SubMsgResult::Err(error) => Err(ContractError::ReplyError {
+                code: message.id,
+                msg: error,
+            }),
+        }
+    }
+
+    fn xcall_handle_error_reply(
+        &self,
+        _deps: DepsMut,
+        message: Reply,
+    ) -> Result<Response, ContractError> {
+        println!("Reply From Forward XCall");
+        match message.result {
+            SubMsgResult::Ok(_) => Ok(Response::new()
+                .add_attribute("action", "call_message")
+                .add_attribute("method", "xcall_handle_error_reply")),
+            SubMsgResult::Err(error) => Err(ContractError::ReplyError {
+                code: message.id,
+                msg: error,
+            }),
+        }
+    }
+
+    pub fn reply(&self, deps: DepsMut, _env: Env, msg: Reply) -> Result<Response, ContractError> {
+        match msg.id {
+            XCALL_HANDLE_MESSAGE_REPLY_ID => self.xcall_handle_message_reply(deps, msg),
+            XCALL_HANDLE_ERROR_REPLY_ID => self.xcall_handle_error_reply(deps, msg),
+            _ => Err(ContractError::ReplyError {
+                code: msg.id,
+                msg: "Unknown".to_string(),
+            }),
+        }
+    }
+
+    pub fn migrate(
+        &self,
+        deps: DepsMut,
+        _env: Env,
+        _msg: MigrateMsg,
+    ) -> Result<Response, ContractError> {
+        set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)
+            .map_err(ContractError::Std)?;
+        Ok(Response::default().add_attribute("migrate", "successful"))
     }
 }

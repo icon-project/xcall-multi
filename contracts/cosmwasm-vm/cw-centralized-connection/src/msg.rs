@@ -45,3 +45,6 @@ pub enum QueryMsg {
     #[returns(Addr)]
     Admin {},
 }
+
+#[cw_serde]
+pub struct MigrateMsg {}
