@@ -45,16 +45,18 @@ pub fn execute(
         ExecuteMsg::SendMessage { to, svc, sn, msg } => {
             call_service.send_message(deps, info, to, svc, sn, msg)
         }
-        ExecuteMsg::RecvMessage { src_network, conn_sn, msg } => {
-            call_service.recv_message(deps, info, src_network, conn_sn, msg)
-        }
+        ExecuteMsg::RecvMessage {
+            src_network,
+            conn_sn,
+            msg,
+        } => call_service.recv_message(deps, info, src_network, conn_sn, msg),
         ExecuteMsg::ClaimFees {} => call_service.claim_fees(deps, info),
         ExecuteMsg::RevertMessage { sn } => call_service.revert_message(deps, info, sn),
-        ExecuteMsg::SetAdmin { address } => {
-            call_service.set_admin(deps, info, address)
-        }
+        ExecuteMsg::SetAdmin { address } => call_service.set_admin(deps, info, address),
         ExecuteMsg::SetFee {
-            network_id, message_fee, response_fee
+            network_id,
+            message_fee,
+            response_fee,
         } => call_service.set_fee(deps, info, network_id, message_fee, response_fee),
     }
 }
@@ -67,9 +69,10 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
             to_binary(&call_service.get_fee(deps.storage, to, response).unwrap())
         }
 
-        QueryMsg::GetReceipt { src_network, conn_sn } => {
-            to_binary(&call_service.get_receipt(deps.storage, src_network, conn_sn))
-        }
+        QueryMsg::GetReceipt {
+            src_network,
+            conn_sn,
+        } => to_binary(&call_service.get_receipt(deps.storage, src_network, conn_sn)),
 
         QueryMsg::Admin {} => to_binary(&call_service.admin().load(deps.storage).unwrap()),
     }

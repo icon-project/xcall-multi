@@ -23,8 +23,8 @@ pub enum ExecuteMsg {
     },
 
     ClaimFees {},
-    RevertMessage{
-        sn: u128
+    RevertMessage {
+        sn: u128,
     },
     SetAdmin {
         address: Addr,
@@ -41,7 +41,7 @@ pub enum QueryMsg {
     GetFee { to: NetId, response: bool },
     #[returns(bool)]
     GetReceipt { src_network: NetId, conn_sn: u128 },
-   //return address of admin
+    //return address of admin
     #[returns(Addr)]
     Admin {},
 }

@@ -27,5 +27,5 @@ pub enum ContractError {
     #[error("Duplicate Message")]
     DuplicateMessage,
     #[error("InsufficientFunds")]
-    InsufficientFunds
+    InsufficientFunds,
 }

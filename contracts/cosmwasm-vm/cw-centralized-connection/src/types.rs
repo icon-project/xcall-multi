@@ -16,7 +16,7 @@ pub enum StorageKey {
     Admin,
     ConnSn,
     Denom,
-    Balance
+    Balance,
 }
 
 impl StorageKey {
@@ -29,7 +29,7 @@ impl StorageKey {
             StorageKey::Admin => "admin",
             StorageKey::ConnSn => "conn_sn",
             StorageKey::Denom => "denom",
-            StorageKey::Balance => "balance"
+            StorageKey::Balance => "balance",
         }
     }
 }
