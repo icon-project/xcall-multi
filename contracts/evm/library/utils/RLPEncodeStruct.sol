@@ -80,7 +80,8 @@ library RLPEncodeStruct {
     ) internal pure returns (bytes memory) {
         bytes memory _rlp = abi.encodePacked(
             _bs.sn.encodeUint(),
-            _bs.code.encodeInt()
+            _bs.code.encodeInt(),
+            _bs.message.encodeBytes()
         );
         return _rlp.encodeList();
     }

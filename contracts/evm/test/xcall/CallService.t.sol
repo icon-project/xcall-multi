@@ -427,7 +427,7 @@ contract CallServiceTest is Test {
         uint256 sn = callService.sendCallMessage{value: 0 ether}(iconDapp, data, rollbackData, _baseSource, _baseDestination);
         assertEq(sn, 1);
 
-        Types.CSMessageResult memory response = Types.CSMessageResult(1, Types.CS_RESP_FAILURE);
+        Types.CSMessageResult memory response = Types.CSMessageResult(1, Types.CS_RESP_FAILURE,bytes(""));
         Types.CSMessage memory message = Types.CSMessage(Types.CS_RESULT, RLPEncodeStruct.encodeCSMessageResult(response));
 
         vm.expectEmit();
@@ -453,7 +453,7 @@ contract CallServiceTest is Test {
         uint256 sn = callService.sendCallMessage{value: 0 ether}(iconDapp, data, rollbackData, _baseSource, _baseDestination);
         assertEq(sn, 1);
 
-        Types.CSMessageResult memory response = Types.CSMessageResult(1, Types.CS_RESP_FAILURE);
+        Types.CSMessageResult memory response = Types.CSMessageResult(1, Types.CS_RESP_FAILURE,bytes(""));
         Types.CSMessage memory message = Types.CSMessage(Types.CS_RESULT, RLPEncodeStruct.encodeCSMessageResult(response));
 
         vm.expectEmit();
@@ -478,7 +478,7 @@ contract CallServiceTest is Test {
         uint256 sn = callService.sendCallMessage{value: 0 ether}(iconDapp, data, rollbackData, _baseSource, _baseDestination);
         assertEq(sn, 1);
 
-        Types.CSMessageResult memory response = Types.CSMessageResult(1, Types.CS_RESP_FAILURE);
+        Types.CSMessageResult memory response = Types.CSMessageResult(1, Types.CS_RESP_FAILURE,bytes(""));
         Types.CSMessage memory message = Types.CSMessage(Types.CS_RESULT, RLPEncodeStruct.encodeCSMessageResult(response));
 
         vm.prank(address(user));
@@ -513,7 +513,7 @@ contract CallServiceTest is Test {
         uint256 sn = callService.sendCallMessage{value: 0 ether}(iconDapp, data, rollbackData, connections, destinations);
         assertEq(sn, 1);
 
-        Types.CSMessageResult memory response = Types.CSMessageResult(1, Types.CS_RESP_FAILURE);
+        Types.CSMessageResult memory response = Types.CSMessageResult(1, Types.CS_RESP_FAILURE,bytes(""));
         Types.CSMessage memory message = Types.CSMessage(Types.CS_RESULT, RLPEncodeStruct.encodeCSMessageResult(response));
 
         vm.prank(address(connection1));
@@ -539,7 +539,7 @@ contract CallServiceTest is Test {
         uint256 sn = callService.sendCallMessage{value: 0 ether}(iconDapp, data, rollbackData, _baseSource, _baseDestination);
         assertEq(sn, 1);
 
-        Types.CSMessageResult memory response = Types.CSMessageResult(1, Types.CS_RESP_SUCCESS);
+        Types.CSMessageResult memory response = Types.CSMessageResult(1, Types.CS_RESP_SUCCESS,bytes(""));
         Types.CSMessage memory message = Types.CSMessage(Types.CS_RESULT, RLPEncodeStruct.encodeCSMessageResult(response));
 
         vm.expectEmit();
@@ -569,7 +569,7 @@ contract CallServiceTest is Test {
        assertEq(sn, 1);
        vm.stopPrank();
 
-       Types.CSMessageResult memory msgRes = Types.CSMessageResult(1, Types.CS_RESP_FAILURE);
+       Types.CSMessageResult memory msgRes = Types.CSMessageResult(1, Types.CS_RESP_FAILURE,bytes(""));
        Types.CSMessage memory message = Types.CSMessage(Types.CS_RESULT, msgRes.encodeCSMessageResult());
 
        vm.prank(address(baseConnection));
@@ -598,7 +598,7 @@ contract CallServiceTest is Test {
        uint256 sn = callService.sendCallMessage{value: 0 ether}(iconDapp, data, rollbackData, _baseSource, _baseDestination);
        assertEq(sn, 1);
 
-       Types.CSMessageResult memory msgRes = Types.CSMessageResult(1, Types.CS_RESP_FAILURE);
+       Types.CSMessageResult memory msgRes = Types.CSMessageResult(1, Types.CS_RESP_FAILURE,bytes(""));
        Types.CSMessage memory message = Types.CSMessage(Types.CS_RESULT, msgRes.encodeCSMessageResult());
 
        vm.prank(address(baseConnection));
@@ -641,7 +641,7 @@ contract CallServiceTest is Test {
         uint256 sn = callService.sendCallMessage{value: 0 ether}(iconDapp, data, rollbackData, connections, destinations);
         assertEq(sn, 1);
 
-        Types.CSMessageResult memory response = Types.CSMessageResult(1, Types.CS_RESP_FAILURE);
+        Types.CSMessageResult memory response = Types.CSMessageResult(1, Types.CS_RESP_FAILURE,bytes(""));
         Types.CSMessage memory message = Types.CSMessage(Types.CS_RESULT, RLPEncodeStruct.encodeCSMessageResult(response));
 
         vm.prank(address(connection1));
@@ -690,7 +690,7 @@ contract CallServiceTest is Test {
         vm.prank(user);
         vm.mockCall(address(receiver), abi.encodeWithSelector(receiver.handleCallMessage.selector, iconDapp, data, connections), abi.encode(1));
 
-        Types.CSMessageResult memory msgResponse = Types.CSMessageResult(1, Types.CS_RESP_SUCCESS);
+        Types.CSMessageResult memory msgResponse = Types.CSMessageResult(1, Types.CS_RESP_SUCCESS,bytes(""));
         message = Types.CSMessage(Types.CS_RESULT, RLPEncodeStruct.encodeCSMessageResult(msgResponse));
 
         vm.expectCall(address(connection1), abi.encodeCall(connection1.sendMessage, (iconNid, Types.NAME, -1, message.encodeCSMessage())));
@@ -717,7 +717,7 @@ contract CallServiceTest is Test {
         vm.prank(user);
         vm.mockCall(address(defaultServiceReceiver), abi.encodeWithSelector(defaultServiceReceiver.handleCallMessage.selector, iconDapp, data), abi.encode(0));
 
-        Types.CSMessageResult memory msgResponse = Types.CSMessageResult(1, Types.CS_RESP_SUCCESS);
+        Types.CSMessageResult memory msgResponse = Types.CSMessageResult(1, Types.CS_RESP_SUCCESS,bytes(""));
         message = Types.CSMessage(Types.CS_RESULT, RLPEncodeStruct.encodeCSMessageResult(msgResponse));
         vm.expectCall(address(baseConnection), abi.encodeCall(baseConnection.sendMessage, (iconNid, Types.NAME, -1, message.encodeCSMessage())));
         callService.executeCall(1, data);
@@ -734,7 +734,7 @@ contract CallServiceTest is Test {
         vm.mockCallRevert(address(baseConnection), abi.encodeWithSelector(receiver.handleCallMessage.selector, iconDapp, data, _baseSource), bytes("UserRevert"));
         callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(message));
 
-        Types.CSMessageResult memory msgResponse = Types.CSMessageResult(1, Types.CS_RESP_FAILURE);
+        Types.CSMessageResult memory msgResponse = Types.CSMessageResult(1, Types.CS_RESP_FAILURE, bytes(""));
         message = Types.CSMessage(Types.CS_RESULT, RLPEncodeStruct.encodeCSMessageResult(msgResponse));
 
         vm.expectEmit();
