@@ -18,6 +18,7 @@ import "@iconfoundation/btp2-solidity-library/utils/ParseAddress.sol";
 import "@iconfoundation/btp2-solidity-library/utils/Strings.sol";
 import "openzeppelin-contracts-upgradeable/contracts/proxy/utils/Initializable.sol";
 
+
 contract CallService is IBSH, ICallService, IFeeManage, Initializable {
     using Strings for string;
     using Integers for uint;
@@ -440,7 +441,7 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
         Types.CSMessageRequest memory req = msgPayload.decodeCSMessageRequest();
         string memory fromNID = req.from.nid();
         require(netFrom.compareTo(fromNID), "Invalid NID");
-
+        
         bytes32 dataHash = keccak256(req.data);
         if (req.protocols.length > 1) {
             pendingReqs[dataHash][msg.sender.toString()] = true;
@@ -540,6 +541,7 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
             require(rollback.rollback.length > 0, "NoRollbackData");
             rollback.enabled = true;
             rollbacks[res.sn] = rollback;
+
             emit RollbackMessage(res.sn);
         }
     }

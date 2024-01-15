@@ -200,6 +200,6 @@ impl<'a> CwCallService<'a> {
 /// `querier` object to get information about the contract at the given `address`. If the query is
 /// successful, it returns `true`, indicating that the address is a valid contract. If the query fails,
 /// it returns false `
-fn is_contract(querier: QuerierWrapper, address: &Addr) -> bool {
+pub fn is_contract(querier: QuerierWrapper, address: &Addr) -> bool {
     querier.query_wasm_contract_info(address).is_ok()
 }

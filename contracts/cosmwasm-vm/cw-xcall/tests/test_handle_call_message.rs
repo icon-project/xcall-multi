@@ -2,14 +2,14 @@ use common::utils::keccak256;
 use cosmwasm_std::{
     from_binary,
     testing::{mock_dependencies, mock_env, mock_info},
-    Addr, Coin, CosmosMsg, Reply, SubMsgResponse, SubMsgResult, WasmMsg,
+    to_binary, Addr, Coin, CosmosMsg, Reply, SubMsgResponse, SubMsgResult, WasmMsg,
 };
 
 use cw_xcall::{
     state::{CwCallService, EXECUTE_CALL_ID},
     types::{call_request::CallRequest, request::CSMessageRequest},
 };
-use cw_xcall_lib::network_address::NetworkAddress;
+use cw_xcall_lib::{message::msg_type::MessageType, network_address::NetworkAddress};
 mod account;
 mod setup;
 use crate::account::alice;
@@ -42,7 +42,7 @@ fn test_execute_call_with_wrong_data() {
         NetworkAddress::new("nid", "mockaddress"),
         Addr::unchecked("88bd05442686be0a5df7da33b6f1089ebfea3769b19dbb2477fe0cd6e0f123t7"),
         123,
-        false,
+        MessageType::CallMessage,
         keccak256(&[104, 106, 108, 108, 111]).to_vec(),
         vec![],
     );
@@ -67,7 +67,7 @@ fn test_execute_call_having_request_id_without_rollback() {
         NetworkAddress::new("nid", "mockaddress"),
         Addr::unchecked("88bd05442686be0a5df7da33b6f1089ebfea3769b19dbb2477fe0cd6e0f123t7"),
         123,
-        false,
+        MessageType::CallMessage,
         keccak256(&data).to_vec(),
         vec![],
     );
@@ -119,7 +119,7 @@ fn test_successful_reply_message() {
         NetworkAddress::new("nid", "mockaddress"),
         Addr::unchecked("88bd05442686be0a5df7da33b6f1089ebfea3769b19dbb2477fe0cd6e0f123t7"),
         123,
-        false,
+        MessageType::CallMessage,
         vec![],
         vec![],
     );
@@ -154,7 +154,7 @@ fn test_failed_reply_message() {
         NetworkAddress::new("nid", "mockaddress"),
         Addr::unchecked("88bd05442686be0a5df7da33b6f1089ebfea3769b19dbb2477fe0cd6e0f123t7"),
         123,
-        false,
+        MessageType::CallMessage,
         vec![],
         vec![],
     );
@@ -276,4 +276,83 @@ fn execute_rollback_failure() {
         }
         _ => todo!(),
     }
+}
+
+#[test]
+fn test_persisted_message_not_removed_on_error() {
+    let mut mock_deps = deps();
+
+    let env = mock_env();
+
+    let msg = Reply {
+        id: EXECUTE_CALL_ID,
+        result: SubMsgResult::Err("error message".into()),
+    };
+
+    let contract = CwCallService::default();
+
+    let request_id = 123456;
+    let proxy_requests = CSMessageRequest::new(
+        NetworkAddress::new("nid", "mockaddress"),
+        Addr::unchecked("88bd05442686be0a5df7da33b6f1089ebfea3769b19dbb2477fe0cd6e0f123t7"),
+        123,
+        MessageType::CallMessagePersisted,
+        vec![],
+        vec![],
+    );
+    contract
+        .store_proxy_request(mock_deps.as_mut().storage, request_id, &proxy_requests)
+        .unwrap();
+
+    contract
+        .store_execute_request_id(mock_deps.as_mut().storage, request_id)
+        .unwrap();
+
+    let _response = contract.reply(mock_deps.as_mut(), env, msg).unwrap();
+
+    let req = contract
+        .get_proxy_request(mock_deps.as_ref().storage, request_id)
+        .unwrap();
+    assert_eq!(req, proxy_requests);
+}
+
+#[test]
+fn test_persisted_message_removed_on_success() {
+    let mut mock_deps = deps();
+
+    let env = mock_env();
+
+    let msg = Reply {
+        id: EXECUTE_CALL_ID,
+        result: SubMsgResult::Ok(SubMsgResponse {
+            events: vec![],
+            data: to_binary(&1).ok(),
+        }),
+    };
+
+    let contract = CwCallService::default();
+
+    let request_id = 123456;
+    let proxy_requests = CSMessageRequest::new(
+        NetworkAddress::new("nid", "mockaddress"),
+        Addr::unchecked("88bd05442686be0a5df7da33b6f1089ebfea3769b19dbb2477fe0cd6e0f123t7"),
+        123,
+        MessageType::CallMessagePersisted,
+        vec![],
+        vec![],
+    );
+    contract
+        .store_proxy_request(mock_deps.as_mut().storage, request_id, &proxy_requests)
+        .unwrap();
+
+    contract
+        .store_execute_request_id(mock_deps.as_mut().storage, request_id)
+        .unwrap();
+
+    let _response = contract.reply(mock_deps.as_mut(), env, msg).unwrap();
+
+    let req = contract
+        .get_proxy_request(mock_deps.as_ref().storage, request_id)
+        .ok();
+    assert_eq!(req, None);
 }
