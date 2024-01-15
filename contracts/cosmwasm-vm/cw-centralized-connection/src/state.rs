@@ -46,27 +46,40 @@ impl<'a> CwCentralizedConnection<'a> {
         Ok(())
     }
 
-    pub fn store_fee(&mut self, store: &mut dyn Storage, to: NetId, message_fee: u128, response_fee: u128) -> StdResult<()> {
+    pub fn store_fee(
+        &mut self,
+        store: &mut dyn Storage,
+        to: NetId,
+        message_fee: u128,
+        response_fee: u128,
+    ) -> StdResult<()> {
         self.message_fee.save(store, to.clone(), &message_fee)?;
         self.response_fee.save(store, to, &response_fee)?;
         Ok(())
     }
     pub fn query_message_fee(&self, store: &dyn Storage, to: NetId) -> u128 {
-       self.message_fee.load(store, to).unwrap_or(0)
+        self.message_fee.load(store, to).unwrap_or(0)
     }
 
     pub fn query_response_fee(&self, store: &dyn Storage, to: NetId) -> u128 {
         self.response_fee.load(store, to).unwrap_or(0)
     }
 
-    pub fn store_receipt(&mut self, store: &mut dyn Storage, src_network:NetId, connsn: u128) -> StdResult<()> {
-        self.receipts.save(store, (src_network.to_string(), connsn), &true)?;
+    pub fn store_receipt(
+        &mut self,
+        store: &mut dyn Storage,
+        src_network: NetId,
+        connsn: u128,
+    ) -> StdResult<()> {
+        self.receipts
+            .save(store, (src_network.to_string(), connsn), &true)?;
         Ok(())
     }
 
-
-    pub fn get_receipt(&self, store: &dyn Storage, src_network:NetId,sn: u128) -> bool {
-        self.receipts.load(store, (src_network.to_string(), sn)).unwrap_or(false)
+    pub fn get_receipt(&self, store: &dyn Storage, src_network: NetId, sn: u128) -> bool {
+        self.receipts
+            .load(store, (src_network.to_string(), sn))
+            .unwrap_or(false)
     }
 
     pub fn store_xcall(&mut self, store: &mut dyn Storage, address: Addr) -> StdResult<()> {
@@ -97,5 +110,4 @@ impl<'a> CwCentralizedConnection<'a> {
     pub fn admin(&self) -> &Item<'a, Addr> {
         &self.admin
     }
-
 }

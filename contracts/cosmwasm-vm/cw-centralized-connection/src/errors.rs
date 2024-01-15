@@ -6,18 +6,6 @@ pub enum ContractError {
     Std(#[from] StdError),
     #[error("Unauthorized")]
     Unauthorized {},
-    #[error("DecodeError {error}")]
-    DecodeError { error: String },
-    #[error("RollBackMessageMismatch {sequence}")]
-    RollBackMismatch { sequence: u64 },
-    #[error("RevertFromDAPP")]
-    RevertFromDAPP,
-    #[error("ModuleAddressNotFound")]
-    ModuleAddressNotFound,
-    #[error("MisiingRollBack {sequence}")]
-    MisiingRollBack { sequence: u64 },
-    #[error("Connection Not Found {network_id}")]
-    ConnectionNotFound { network_id: String },
     #[error("Invalid Address {address}")]
     InvalidAddress { address: String },
     #[error("Only Relayer(Admin)")]
@@ -27,5 +15,7 @@ pub enum ContractError {
     #[error("Duplicate Message")]
     DuplicateMessage,
     #[error("InsufficientFunds")]
-    InsufficientFunds
+    InsufficientFunds,
+    #[error("ERR_REPLY_ERROR|{code:?}|{msg:?}")]
+    ReplyError { code: u64, msg: String },
 }

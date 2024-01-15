@@ -6,7 +6,6 @@ pub const XCALL_HANDLE_ERROR_REPLY_ID: u64 = 2;
 use super::*;
 
 impl<'a> CwCentralizedConnection<'a> {
-
     pub fn ensure_admin(&self, store: &dyn Storage, address: Addr) -> Result<(), ContractError> {
         let admin = self.query_admin(store)?;
         ensure_eq!(admin, address, ContractError::OnlyAdmin);
@@ -21,7 +20,7 @@ impl<'a> CwCentralizedConnection<'a> {
         Ok(())
     }
 
-    pub fn get_amount_for_denom(&self,funds: &Vec<Coin>, target_denom: String) -> u128 {
+    pub fn get_amount_for_denom(&self, funds: &Vec<Coin>, target_denom: String) -> u128 {
         for coin in funds.iter() {
             if coin.denom == target_denom {
                 return coin.amount.into();
