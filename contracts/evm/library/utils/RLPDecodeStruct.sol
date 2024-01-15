@@ -15,11 +15,9 @@ library RLPDecodeStruct {
     uint8 private constant LIST_SHORT_START = 0xc0;
     uint8 private constant LIST_LONG_START = 0xf7;
 
-    function decodeCSMessage(bytes memory _rlp)
-        internal
-        pure
-        returns (Types.CSMessage memory)
-    {
+    function decodeCSMessage(
+        bytes memory _rlp
+    ) internal pure returns (Types.CSMessage memory) {
         RLPDecode.RLPItem[] memory ls = _rlp.toRlpItem().toList();
         return
             Types.CSMessage(
@@ -28,43 +26,62 @@ library RLPDecodeStruct {
             );
     }
 
-    function decodeCSMessageRequest(bytes memory _rlp)
-        internal
-        pure
-    returns (Types.CSMessageRequest memory)
-    {
-        RLPDecode.RLPItem[] memory ls = _rlp.toRlpItem().toList();
-        return
-        Types.CSMessageRequest(
-            string(ls[0].toBytes()),
-            string(ls[1].toBytes()),
-            ls[2].toUint(),
-            ls[3].toBoolean(),
-            ls[4].toBytes(),
-            toStringArray(ls[5])
-        );
-    }
-
-    function toStringArray( RLPDecode.RLPItem memory item) internal pure returns (string[] memory) {
+    function toStringArray(
+        RLPDecode.RLPItem memory item
+    ) internal pure returns (string[] memory) {
         RLPDecode.RLPItem[] memory ls = item.toList();
         string[] memory protocols = new string[](ls.length);
-        for (uint256 i = 0; i < ls.length; i++)  {
+        for (uint256 i = 0; i < ls.length; i++) {
             protocols[i] = string(ls[i].toBytes());
         }
         return protocols;
     }
 
-    function decodeCSMessageResponse(bytes memory _rlp)
-        internal
-        pure
-    returns (Types.CSMessageResponse memory)
-    {
+    function decodeCSMessageRequest(
+        bytes memory _rlp
+    ) internal pure returns (Types.CSMessageRequest memory) {
         RLPDecode.RLPItem[] memory ls = _rlp.toRlpItem().toList();
         return
-        Types.CSMessageResponse(
-            ls[0].toUint(),
-            int(ls[1].toInt())
-        );
+            Types.CSMessageRequest(
+                string(ls[0].toBytes()),
+                string(ls[1].toBytes()),
+                ls[2].toUint(),
+                ls[3].toInt(),
+                ls[4].toBytes(),
+                toStringArray(ls[5])
+            );
     }
 
+    function decodeCallMessageWithRollback(
+        bytes memory _rlp
+    ) internal pure returns (Types.CallMessageWithRollback memory) {
+        RLPDecode.RLPItem[] memory ls = _rlp.toRlpItem().toList();
+        return
+            Types.CallMessageWithRollback(
+                ls[0].toBytes(),
+                ls[1].toBytes()
+            );
+    }
+
+
+    function decodeXCallEnvelope(
+        bytes memory _rlp
+    ) internal pure returns (Types.XCallEnvelope memory) {
+        RLPDecode.RLPItem[] memory ls = _rlp.toRlpItem().toList();
+        
+        return
+            Types.XCallEnvelope(
+                ls[0].toInt(),
+                ls[1].toBytes(),
+                toStringArray(ls[2]),
+                toStringArray(ls[3])
+            );
+    }
+
+    function decodeCSMessageResult(
+        bytes memory _rlp
+    ) internal pure returns (Types.CSMessageResult memory) {
+        RLPDecode.RLPItem[] memory ls = _rlp.toRlpItem().toList();
+        return Types.CSMessageResult(ls[0].toUint(), int(ls[1].toInt()));
+    }
 }
