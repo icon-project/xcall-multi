@@ -672,7 +672,7 @@ internal function handleResult(data byte[]) {
         req = rollbacks[resSn]
 
         if req == null:
-            return
+            throw "CallRequest Not Found For {resSn}"
 
         if !verifyProtocols(req.netTo, req.protocolConfig, hash(data)):
             return

@@ -49,6 +49,7 @@ impl<'a> CwCallService<'a> {
                 self.ensure_rollback_length(&m.rollback().unwrap())?;
                 Ok(())
             }
+            AnyMessage::CallMessagePersisted(_) => Ok(()),
         }
     }
 

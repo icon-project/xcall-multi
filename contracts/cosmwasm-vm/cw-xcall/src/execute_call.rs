@@ -76,7 +76,6 @@ impl<'a> CwCallService<'a> {
         self.remove_execute_request_id(deps.storage);
 
         let request = self.get_proxy_request(deps.storage, req_id)?;
-        self.remove_proxy_request(deps.storage, req_id);
 
         let (response, event) = match msg.result {
             cosmwasm_std::SubMsgResult::Ok(_res) => {
@@ -91,6 +90,7 @@ impl<'a> CwCallService<'a> {
                 );
 
                 let event = event_call_executed(req_id, code, "success");
+                self.remove_proxy_request(deps.storage, req_id);
                 (message_response, event)
             }
             cosmwasm_std::SubMsgResult::Err(err) => {
@@ -99,6 +99,12 @@ impl<'a> CwCallService<'a> {
                 let message_response =
                     CSMessageResult::new(request.sequence_no(), code.clone(), None);
                 let event = event_call_executed(req_id, code.into(), &error_message);
+                if request.allow_retry() {
+                    return Err(ContractError::ReplyError {
+                        code: msg.id,
+                        msg: err,
+                    });
+                }
                 (message_response, event)
             }
         };
