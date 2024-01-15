@@ -310,7 +310,7 @@ fn test_persisted_message_not_removed_on_error() {
 
     let _response = contract.reply(mock_deps.as_mut(), env, msg);
 
-    assert_eq!(_response.is_err(),true);
+    assert_eq!(_response.is_err(), true);
 
     let req = contract
         .get_proxy_request(mock_deps.as_ref().storage, request_id)
