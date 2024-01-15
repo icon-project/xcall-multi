@@ -70,11 +70,6 @@ library Types {
         bytes data;
     }
 
-    struct PersistentMessage {
-        int messageType;
-        bytes data;
-    }
-
     struct CallMessageWithRollback {
         bytes data;
         bytes rollback;

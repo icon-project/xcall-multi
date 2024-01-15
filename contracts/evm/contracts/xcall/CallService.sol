@@ -281,9 +281,12 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
 
         string[] memory protocols = req.protocols;
 
-        if (req.messageType == Types.CALL_MESSAGE_TYPE || req.messageType == Types.PERSISTENT_MESSAGE_TYPE) {
+        if (req.messageType == Types.CALL_MESSAGE_TYPE ) {
             tryExecuteCall(_reqId, req.to, req.from, _data, protocols);
         } 
+        else if (req.messageType == Types.PERSISTENT_MESSAGE_TYPE) {
+            this.executeMessage(address(0), req.to, req.from, _data, protocols);
+        }
         else if (
             req.messageType == Types.CALL_MESSAGE_ROLLBACK_TYPE
         ) {
@@ -313,7 +316,7 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
         bytes memory data,
         string[] memory protocols
     ) private returns (int256) {
-        try this.tryHandleCallMessage(address(0), dapp, from, data, protocols) {
+        try this.executeMessage(address(0), dapp, from, data, protocols) {
             emit CallExecuted(id, Types.CS_RESP_SUCCESS, "");
             return Types.CS_RESP_SUCCESS;
         } catch Error(string memory errorMessage) {
@@ -326,7 +329,7 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
     }
 
     //  @dev To catch error
-    function tryHandleCallMessage(
+    function executeMessage(
         address toAddr,
         string memory to,
         string memory from,
@@ -354,7 +357,7 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
         require(req.enabled, "RollbackNotEnabled");
         cleanupCallRequest(_sn);
 
-        this.tryHandleCallMessage(
+        this.executeMessage(
             req.from,
             "",
             networkAddress,
@@ -461,6 +464,7 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
             dataHash,
             req.protocols
         );
+
         emit CallMessage(req.from, req.to, req.sn, reqId, req.data);
     }
 

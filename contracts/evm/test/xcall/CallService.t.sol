@@ -407,7 +407,7 @@ contract CallServiceTest is Test {
         callService.executeCall(1, data);
     }
 
-    function testExecuteCallPersistentMessage() public {
+    function testExecuteCallPersistent_failedExecution() public {
         bytes memory data = bytes("test");
 
         defaultServiceReceiver = IDefaultCallServiceReceiver(address(0x5678));
@@ -419,11 +419,30 @@ contract CallServiceTest is Test {
         vm.prank(address(baseConnection));
         callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(message));
 
-        vm.expectEmit();
-        emit CallExecuted(1, 1, "");
-
+        vm.expectRevert();
         vm.prank(user);
+        callService.executeCall(1, data);
+    }
+
+    function testExecuteCallPersistent() public {
+        bytes memory data = bytes("test");
+
+        defaultServiceReceiver = IDefaultCallServiceReceiver(address(0x5678));
+        callService.setDefaultConnection(netTo, address(baseConnection));
+
+        string[] memory source;
+        Types.CSMessageRequest memory request = Types.CSMessageRequest(iconDapp, ParseAddress.toString(address(defaultServiceReceiver)), 1, Types.PERSISTENT_MESSAGE_TYPE, data, source);
+        Types.CSMessage memory message = Types.CSMessage(Types.CS_REQUEST,request.encodeCSMessageRequest());
+
+        vm.prank(address(baseConnection));
+        callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(message));        
+
         vm.mockCall(address(defaultServiceReceiver), abi.encodeWithSelector(defaultServiceReceiver.handleCallMessage.selector, iconDapp, data), abi.encode(1));
+        vm.prank(user);
+        callService.executeCall(1, data);
+
+        vm.expectRevert("InvalidRequestId");
+        vm.prank(user);
         callService.executeCall(1, data);
     }
     
