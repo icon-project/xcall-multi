@@ -20,7 +20,7 @@ pub struct CwCallService<'a> {
     last_request_id: Item<'a, u128>,
     admin: Item<'a, Addr>,
     proxy_request: Map<'a, u128, CSMessageRequest>,
-    call_requests: Map<'a, u128, CallRequest>,
+    call_requests: Map<'a, u128, Rollback>,
     fee_handler: Item<'a, String>,
     protocol_fee: Item<'a, u128>,
     default_connections: Map<'a, NetId, Addr>,
@@ -147,7 +147,7 @@ impl<'a> CwCallService<'a> {
         &self,
         store: &dyn Storage,
         id: u128,
-    ) -> Result<CallRequest, ContractError> {
+    ) -> Result<Rollback, ContractError> {
         self.call_requests
             .load(store, id)
             .map_err(ContractError::Std)
@@ -161,7 +161,7 @@ impl<'a> CwCallService<'a> {
         &self,
         store: &mut dyn Storage,
         id: u128,
-        request: &CallRequest,
+        request: &Rollback,
     ) -> Result<(), ContractError> {
         self.call_requests
             .save(store, id, request)

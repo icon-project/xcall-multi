@@ -2,8 +2,9 @@ use common::rlp::{self, Decodable, DecoderError, Encodable};
 use cosmwasm_schema::cw_serde;
 
 use super::{
-    call_message::CallMessage, call_message_rollback::CallMessageWithRollback, msg_trait::IMessage,
-    msg_type::MessageType, AnyMessage,
+    call_message::CallMessage, call_message_persisted::CallMessagePersisted,
+    call_message_rollback::CallMessageWithRollback, msg_trait::IMessage, msg_type::MessageType,
+    AnyMessage,
 };
 #[cw_serde]
 pub struct Envelope {
@@ -67,6 +68,10 @@ pub fn decode_message(msg_type: MessageType, bytes: Vec<u8>) -> Result<AnyMessag
         MessageType::CallMessageWithRollback => {
             let msg: CallMessageWithRollback = rlp::decode(&bytes)?;
             Ok(AnyMessage::CallMessageWithRollback(msg))
+        }
+        MessageType::CallMessagePersisted => {
+            let msg: CallMessagePersisted = rlp::decode(&bytes)?;
+            Ok(AnyMessage::CallMessagePersisted(msg))
         }
     }
 }
