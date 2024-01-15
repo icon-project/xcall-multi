@@ -19,7 +19,7 @@ pub enum ExecuteMsg {
     RecvMessage {
         src_network: NetId,
         conn_sn: u128,
-        msg: Vec<u8>,
+        msg: String,
     },
 
     ClaimFees {},

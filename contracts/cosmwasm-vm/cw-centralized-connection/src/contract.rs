@@ -75,16 +75,21 @@ impl<'a> CwCentralizedConnection<'a> {
         info: MessageInfo,
         src_network: NetId,
         conn_sn: u128,
-        msg: Vec<u8>,
+        msg: String,
     ) -> Result<Response, ContractError> {
         self.ensure_admin(deps.storage, info.sender)?;
+
+        let hex_string_trimmed = msg.trim_start_matches("0x");
+        let bytes = hex::decode(hex_string_trimmed).expect("Failed to decode to vec<u8>");
+        
+        let vec_msg: Vec<u8> = Binary(bytes).into();
         let receipt = self.get_receipt(deps.as_ref().storage, src_network.clone(), conn_sn);
         if receipt {
             return Err(ContractError::DuplicateMessage);
         }
         self.store_receipt(deps.storage, src_network.clone(), conn_sn)?;
 
-        let xcall_submessage = self.call_xcall_handle_message(deps.storage, &src_network, msg)?;
+        let xcall_submessage = self.call_xcall_handle_message(deps.storage, &src_network, vec_msg)?;
 
         Ok(Response::new().add_submessage(xcall_submessage))
     }
