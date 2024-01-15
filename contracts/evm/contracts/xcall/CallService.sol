@@ -479,7 +479,6 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
         Types.CSMessageRequest memory reply
     ) internal {
         require(
-            rollback.from == reply.to.parseAddress("IllegalArgument") &&
                 keccak256(bytes(rollback.to.nid())) ==
                 keccak256(bytes(reply.from.nid())),
             "Invalid Reply"
