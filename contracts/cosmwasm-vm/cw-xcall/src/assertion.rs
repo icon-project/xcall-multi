@@ -3,7 +3,7 @@ use super::*;
 use crate::{
     error::ContractError,
     state::{CwCallService, MAX_DATA_SIZE, MAX_ROLLBACK_SIZE},
-    types::{rollback::Rollback, request::CSMessageRequest},
+    types::{request::CSMessageRequest, rollback::Rollback},
 };
 
 impl<'a> CwCallService<'a> {

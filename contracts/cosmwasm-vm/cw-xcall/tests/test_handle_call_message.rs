@@ -7,7 +7,7 @@ use cosmwasm_std::{
 
 use cw_xcall::{
     state::{CwCallService, EXECUTE_CALL_ID},
-    types::{rollback::Rollback, request::CSMessageRequest},
+    types::{request::CSMessageRequest, rollback::Rollback},
 };
 use cw_xcall_lib::{message::msg_type::MessageType, network_address::NetworkAddress};
 mod account;
