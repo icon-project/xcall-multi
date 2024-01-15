@@ -653,8 +653,6 @@ internal function handleRequest(String srcNet, byte[] data) {
 ```
 ```
 internal function handleReply(RollbackData rollback, CSMessageRequest reply) {
-    // The reply must have been the target of this chain
-    assert rollback.nid == reply.to.netId
     // The reply must be from the same chain as the response originated from
     assert rollback.netTo == reply.from.netId
     // The protocols need to same as the reply
