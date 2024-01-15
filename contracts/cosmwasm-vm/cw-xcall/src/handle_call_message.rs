@@ -30,10 +30,11 @@ impl<'a> CwCallService<'a> {
     pub fn handle_reply(
         &self,
         deps: DepsMut,
-        rollback: CallRequest,
+        rollback: Rollback,
         request: CSMessageRequest,
     ) -> Result<Event, ContractError> {
-        if !(rollback.from() == request.to() && rollback.to().nid() == request.from().nid()) {
+        // reply can  be targeted to source nid but any contract
+        if !(rollback.to().nid() == request.from().nid()) {
             return Err(ContractError::InvalidReplyReceived);
         }
         let request_id = self.increment_last_request_id(deps.storage)?;

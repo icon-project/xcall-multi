@@ -7,7 +7,7 @@ use cosmwasm_std::{
 
 use cw_xcall::{
     state::{CwCallService, EXECUTE_CALL_ID},
-    types::{call_request::CallRequest, request::CSMessageRequest},
+    types::{rollback::Rollback, request::CSMessageRequest},
 };
 use cw_xcall_lib::{message::msg_type::MessageType, network_address::NetworkAddress};
 mod account;
@@ -204,7 +204,7 @@ fn execute_rollback_success() {
 
     let seq_id = 123456;
 
-    let request = CallRequest::new(
+    let request = Rollback::new(
         Addr::unchecked("88bd05442686be0a5df7da33b6f1089ebfea3769b19dbb2477fe0cd6e0f126e4"),
         NetworkAddress::new("nid", "mockaddress"),
         vec![],
@@ -248,7 +248,7 @@ fn execute_rollback_failure() {
 
     let seq_id = 123456;
 
-    let request = CallRequest::new(
+    let request = Rollback::new(
         Addr::unchecked("88bd05442686be0a5df7da33b6f1089ebfea3769b19dbb2477fe0cd6e0f126e4"),
         NetworkAddress::new("nid", "mockaddress"),
         vec![],

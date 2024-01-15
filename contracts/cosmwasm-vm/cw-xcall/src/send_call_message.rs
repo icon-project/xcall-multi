@@ -71,7 +71,7 @@ impl<'a> CwCallService<'a> {
 
         if envelope.message.rollback().is_some() {
             let rollback_data = envelope.message.rollback().unwrap();
-            let request = CallRequest::new(
+            let request = Rollback::new(
                 caller.clone(),
                 to.clone(),
                 envelope.sources.clone(),
