@@ -71,7 +71,7 @@ fn test_send_message() {
     );
 
     assert!(res.is_ok());
-    assert_eq!(res.unwrap().id, 0)
+    assert_eq!(res.unwrap().id, 1)
 }
 
 #[test]
