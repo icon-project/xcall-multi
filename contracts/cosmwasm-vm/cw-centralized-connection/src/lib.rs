@@ -42,17 +42,17 @@ pub fn execute(
 ) -> Result<Response, ContractError> {
     let mut centralized_connection = CwCentralizedConnection::default();
     match msg {
-        ExecuteMsg::SendMessage { to, svc, sn, msg } => {
-            centralized_connection.send_message(deps, info, to, svc, sn, msg)
+        ExecuteMsg::SendMessage { to, sn, msg } => {
+            centralized_connection.send_message(deps, info, to, sn, msg)
         }
-        ExecuteMsg::RecvMessage { src_network, conn_sn, msg } => {
-            centralized_connection.recv_message(deps, info, src_network, conn_sn, msg)
-        }
+        ExecuteMsg::RecvMessage {
+            src_network,
+            conn_sn,
+            msg,
+        } => centralized_connection.recv_message(deps, info, src_network, conn_sn, msg),
         ExecuteMsg::ClaimFees {} => centralized_connection.claim_fees(deps, env, info),
         ExecuteMsg::RevertMessage { sn } => centralized_connection.revert_message(deps, info, sn),
-        ExecuteMsg::SetAdmin { address } => {
-            centralized_connection.set_admin(deps, info, address)
-        }
+        ExecuteMsg::SetAdmin { address } => centralized_connection.set_admin(deps, info, address),
         ExecuteMsg::SetFee {
             network_id,
             message_fee,
@@ -65,9 +65,9 @@ pub fn execute(
 pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
     let centralized_connection = CwCentralizedConnection::default();
     match msg {
-        QueryMsg::GetFee { to, response } => to_binary(
+        QueryMsg::GetFee { nid, response } => to_binary(
             &centralized_connection
-                .get_fee(deps.storage, to, response)
+                .get_fee(deps.storage, nid, response)
                 .unwrap(),
         ),
 

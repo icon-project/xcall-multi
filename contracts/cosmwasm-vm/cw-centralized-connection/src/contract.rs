@@ -37,7 +37,6 @@ impl<'a> CwCentralizedConnection<'a> {
         deps: DepsMut,
         info: MessageInfo,
         to: NetId,
-        _svc: String,
         sn: i64,
         msg: Vec<u8>,
     ) -> Result<Response, ContractError> {
@@ -57,7 +56,7 @@ impl<'a> CwCentralizedConnection<'a> {
         if fee > value {
             return Err(ContractError::InsufficientFunds);
         }
-        
+
         Ok(Response::new()
             .add_attribute("action", "send_message")
             .add_event(
@@ -80,7 +79,7 @@ impl<'a> CwCentralizedConnection<'a> {
 
         let hex_string_trimmed = msg.trim_start_matches("0x");
         let bytes = hex::decode(hex_string_trimmed).expect("Failed to decode to vec<u8>");
-        
+
         let vec_msg: Vec<u8> = Binary(bytes).into();
         let receipt = self.get_receipt(deps.as_ref().storage, src_network.clone(), conn_sn);
         if receipt {
@@ -88,12 +87,18 @@ impl<'a> CwCentralizedConnection<'a> {
         }
         self.store_receipt(deps.storage, src_network.clone(), conn_sn)?;
 
-        let xcall_submessage = self.call_xcall_handle_message(deps.storage, &src_network, vec_msg)?;
+        let xcall_submessage =
+            self.call_xcall_handle_message(deps.storage, &src_network, vec_msg)?;
 
         Ok(Response::new().add_submessage(xcall_submessage))
     }
 
-    pub fn claim_fees(&self, deps: DepsMut, env: Env, info: MessageInfo) -> Result<Response, ContractError> {
+    pub fn claim_fees(
+        &self,
+        deps: DepsMut,
+        env: Env,
+        info: MessageInfo,
+    ) -> Result<Response, ContractError> {
         self.ensure_admin(deps.storage, info.sender)?;
         let contract_balance = self.get_balance(&deps, env, self.denom(deps.storage));
         let msg = BankMsg::Send {
@@ -124,7 +129,7 @@ impl<'a> CwCentralizedConnection<'a> {
         address: Addr,
     ) -> Result<Response, ContractError> {
         self.ensure_admin(deps.storage, info.sender)?;
-        let admin = deps.api.addr_validate(&address.as_str())?;
+        let admin = deps.api.addr_validate(address.as_str())?;
         let _ = self.store_admin(deps.storage, admin);
         Ok(Response::new().add_attribute("action", "set_admin"))
     }
@@ -150,7 +155,7 @@ impl<'a> CwCentralizedConnection<'a> {
     ) -> Result<Uint128, ContractError> {
         let mut fee = self.query_message_fee(store, network_id.clone());
         if response {
-            fee = fee + self.query_response_fee(store, network_id);
+            fee += self.query_response_fee(store, network_id);
         }
         Ok(fee.into())
     }

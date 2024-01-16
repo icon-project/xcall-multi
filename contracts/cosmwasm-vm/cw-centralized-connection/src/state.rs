@@ -38,7 +38,7 @@ impl<'a> CwCentralizedConnection<'a> {
         let mut connsn = self.conn_sn.load(store).unwrap_or(0);
         connsn += 1;
         self.conn_sn.save(store, &connsn)?;
-        Ok(connsn.into())
+        Ok(connsn)
     }
 
     pub fn store_conn_sn(&mut self, store: &mut dyn Storage, sn: u128) -> StdResult<()> {

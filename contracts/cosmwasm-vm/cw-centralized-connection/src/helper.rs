@@ -1,4 +1,4 @@
-use cosmwasm_std::{Addr, ensure_eq, Coin, BankQuery, BalanceResponse};
+use cosmwasm_std::{ensure_eq, Addr, BalanceResponse, BankQuery, Coin};
 use cw_xcall_lib::network_address::NetId;
 
 pub const XCALL_HANDLE_MESSAGE_REPLY_ID: u64 = 1;
@@ -29,25 +29,19 @@ impl<'a> CwCentralizedConnection<'a> {
         0
     }
 
-    pub fn get_balance(
-        &self,
-        deps: &DepsMut,
-        env: Env,
-        denom: String,
-    ) -> u128 {
+    pub fn get_balance(&self, deps: &DepsMut, env: Env, denom: String) -> u128 {
         let address = env.contract.address.to_string();
         let balance_query = BankQuery::Balance { denom, address };
         let balance_response: BalanceResponse = deps.querier.query(&balance_query.into()).unwrap();
-        let balance_u128 = balance_response.amount.amount.u128();
-        balance_u128
+
+        balance_response.amount.amount.u128()
     }
 
     pub fn hex_encode(&self, data: Vec<u8>) -> String {
         if data.is_empty() {
             "null".to_string()
         } else {
-            let data = hex::encode(data);
-            data
+            hex::encode(data)
         }
     }
 

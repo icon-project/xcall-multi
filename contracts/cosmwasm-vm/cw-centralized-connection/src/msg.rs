@@ -11,7 +11,6 @@ pub enum ExecuteMsg {
     },
     SendMessage {
         to: NetId,
-        svc: String,
         sn: i64,
         msg: Vec<u8>,
     },
@@ -38,7 +37,7 @@ pub enum ExecuteMsg {
 /// `#[returns]` attribute.
 pub enum QueryMsg {
     #[returns(u64)]
-    GetFee { to: NetId, response: bool },
+    GetFee { nid: NetId, response: bool },
     #[returns(bool)]
     GetReceipt { src_network: NetId, conn_sn: u128 },
     //return address of admin

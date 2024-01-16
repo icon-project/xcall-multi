@@ -15,7 +15,7 @@ pub enum StorageKey {
     XCall,
     Admin,
     ConnSn,
-    Denom
+    Denom,
 }
 
 impl StorageKey {
