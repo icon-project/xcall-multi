@@ -1,8 +1,8 @@
-use common::rlp::{self, Decodable, DecoderError, Encodable, RlpStream};
-
 use super::msg_trait::IMessage;
+use common::rlp::{self, Decodable, DecoderError, Encodable, RlpStream};
+use cosmwasm_schema::cw_serde;
 
-#[derive(Clone, Debug, PartialEq)]
+#[cw_serde]
 pub struct CallMessagePersisted {
     pub data: Vec<u8>,
 }

@@ -1,4 +1,5 @@
 use common::rlp::DecoderError;
+use cosmwasm_schema::cw_serde;
 
 use self::{
     call_message::CallMessage, call_message_persisted::CallMessagePersisted,
@@ -11,8 +12,7 @@ pub mod call_message_rollback;
 pub mod envelope;
 pub mod msg_trait;
 pub mod msg_type;
-
-#[derive(Clone, Debug, PartialEq)]
+#[cw_serde]
 pub enum AnyMessage {
     CallMessage(CallMessage),
     CallMessageWithRollback(CallMessageWithRollback),
