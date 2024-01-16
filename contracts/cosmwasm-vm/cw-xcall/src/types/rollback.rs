@@ -5,7 +5,7 @@ use super::*;
 
 #[cw_serde]
 
-pub struct CallRequest {
+pub struct Rollback {
     from: Addr,
     to: NetworkAddress,
     protocols: Vec<String>,
@@ -13,7 +13,7 @@ pub struct CallRequest {
     enabled: bool,
 }
 
-impl CallRequest {
+impl Rollback {
     pub fn new(
         from: Addr,
         to: NetworkAddress,

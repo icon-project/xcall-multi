@@ -469,7 +469,7 @@ defaultConnection: networkId -> Address
 protocolFee: <protocolFee>
 feeHandler: <Address>
 replyState: CallRequest,
-callReply: Address->CSMessageRequest
+callReply: CSMessageRequest
 ```
 
 ### Contract initialization
@@ -506,7 +506,7 @@ payable external sendCall(String _to, byte[] _data) returns Integer {
 
      if isReply(_to.netId,envelope.sources) && !needResponse:
         replyState = null
-        callReply[caller]=msg
+        callReply = msg
         emit CallMessageSent(caller, dst.toString(), sn)
         return sn
 
@@ -564,7 +564,6 @@ internal function preProcessMessage(int sn, NetworkAddress to, Envelope envelope
             return false, message
         case CallMessageWithRollback.Type:
             assert caller.isContract()
-            assert replyState == null
             msg = CallMessageWithRollback(message)
             req = RollbackData(caller, to.net(), envelope.sources, msg.rollback)
             rollbacks[sn] = req
@@ -580,6 +579,7 @@ internal function preProcessMessage(int sn, NetworkAddress to, Envelope envelope
 ```
 external function handleMessage(String _fromNid, byte[] _msg) {
     msg = CSMessage.decode(_msg)
+    assert _fromNid != nid
     switch (msg.type) :
         case CSMessage.REQUEST:
             handleRequest(_fromNid, msg.data)
@@ -653,12 +653,13 @@ internal function handleRequest(String srcNet, byte[] data) {
 ```
 ```
 internal function handleReply(RollbackData rollback, CSMessageRequest reply) {
-    assert rollback.from==reply.to
-    assert rollback.netTo==reply.from.netId
-    assert rollback.protocols==reply.protocols
+    // The reply must be from the same chain as the response originated from
+    assert rollback.netTo == reply.from.netId
+    // The protocols need to same as the reply
+    rollback.protocols = reply.protocols
 
     reqId = getNextReqId()
-    emit CallMessage(reply.from, reply.to, reply.sn, reqId,reply.data)
+    emit CallMessage(reply.from, reply.to, reply.sn, reqId, reply.data)
     reply.data = hash(reply.data)
     proxyReqs[reqId] = msgReq
 }
@@ -679,8 +680,8 @@ internal function handleResult(data byte[]) {
         emit ResponseMessage(resSn, result.getCode())
         switch result.getCode():
             case CSMessageResult.SUCCESS:
-                if result.getMessage()!=null:
-                    handleReply(req,result.getMessage())
+                if result.getMessage() != null:
+                    handleReply(req, result.getMessage())
 
                 rollbacks[resSn] = null
                 successfulResponses[resSn] = 1
@@ -718,10 +719,9 @@ internal function executeMessage(int reqId, CallRequest req) {
             replyState = req
             code = tryExecute(reqId, req.from, req.data, req.protocols)
             replyState = null
-            let reply= callReply[req.to]
-            result = new CSMessageResult(req.sn, code, reply)
+            result = new CSMessageResult(req.sn, code, callReply)
             msg = CSMessage(CSMessage.RESULT, result.toBytes())
-            callReply[req.to] = null
+            callReply = null
             sn = req.sn.negate()
             if req.protocols == []:
                 protocol = defaultConnection[from.net()]
