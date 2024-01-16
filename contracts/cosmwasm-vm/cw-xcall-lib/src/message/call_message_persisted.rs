@@ -1,6 +1,6 @@
+use super::msg_trait::IMessage;
 use common::rlp::{self, Decodable, DecoderError, Encodable, RlpStream};
 use cosmwasm_schema::cw_serde;
-use super::msg_trait::IMessage;
 
 #[cw_serde]
 pub struct CallMessagePersisted {
