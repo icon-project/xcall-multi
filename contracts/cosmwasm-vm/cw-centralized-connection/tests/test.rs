@@ -1,15 +1,15 @@
 pub mod setup;
-use std::str::FromStr;
-use cosmwasm_std::Coin;
 use cosmwasm_std::{testing::mock_env, Env};
 use cosmwasm_std::{
     testing::{mock_dependencies, mock_info, MockApi, MockQuerier},
     Addr, MemoryStorage, OwnedDeps, Uint128,
 };
+use cosmwasm_std::{Coin, Event};
 use cw_centralized_connection::{
     execute, msg::ExecuteMsg, state::CwCentralizedConnection, types::InstantiateMsg,
 };
 use cw_xcall_lib::network_address::NetId;
+use std::str::FromStr;
 
 const XCALL: &str = "xcall";
 const DENOM: &str = "denom";
@@ -32,7 +32,7 @@ fn instantiate(
         xcall_address: XCALL.to_string(),
         denom: DENOM.to_string(),
     };
-    let res = ctx.instantiate(deps.as_mut(), env.clone(), info.clone(), msg);
+    let res = ctx.instantiate(deps.as_mut(), env.clone(), info, msg);
     assert!(res.is_ok());
 
     (deps, env, ctx)
@@ -45,7 +45,7 @@ fn test_initialization() {
 
 #[test]
 fn test_set_admin() {
-    let (mut deps, env, _ctx) = instantiate("sender");
+    let (mut deps, env, ctx) = instantiate("sender");
     let msg = ExecuteMsg::SetAdmin {
         address: Addr::unchecked("admin"),
     };
@@ -53,12 +53,15 @@ fn test_set_admin() {
     let info = mock_info(OWNER, &[]);
 
     let res = execute(deps.as_mut(), env.clone(), info, msg.clone());
-    assert!(!res.is_ok());
+    assert!(res.is_err());
 
     let info = mock_info(RELAYER, &[]);
 
     let res = execute(deps.as_mut(), env, info, msg);
     assert!(res.is_ok());
+
+    let admin = ctx.query_admin(deps.as_mut().storage).unwrap();
+    assert_eq!(admin, Addr::unchecked("admin"));
 }
 
 #[test]
@@ -76,11 +79,11 @@ fn test_set_fee() {
     let info = mock_info(OWNER, &[]);
 
     let res = execute(deps.as_mut(), env.clone(), info, msg.clone());
-    assert!(!res.is_ok());
+    assert!(res.is_err());
 
     let info = mock_info(RELAYER, &[]);
 
-    let res = execute(deps.as_mut(), env.clone(), info, msg);
+    let res = execute(deps.as_mut(), env, info, msg);
     assert!(res.is_ok());
 
     let res = ctx
@@ -97,7 +100,6 @@ pub fn test_send_message() {
     let (mut deps, env, _ctx) = instantiate(OWNER);
     let msg = ExecuteMsg::SendMessage {
         to: NetId::from_str("nid").unwrap(),
-        svc: "xcall".to_string(),
         sn: 0,
         msg: vec![],
     };
@@ -106,22 +108,24 @@ pub fn test_send_message() {
 
     let res = execute(deps.as_mut(), env.clone(), info, msg.clone());
 
-    assert!(!res.is_ok());
+    assert!(res.is_err());
 
-    let info = mock_info(XCALL, &[]);
+    let info: cosmwasm_std::MessageInfo = mock_info(XCALL, &[]);
 
     let res = execute(deps.as_mut(), env, info, msg);
-
-    assert!(res.is_ok());
+    let event = Event::new("Message")
+        .add_attribute("targetNetwork", "nid")
+        .add_attribute("connSn", 1.to_string())
+        .add_attribute("msg", "null");
+    assert_eq!(res.unwrap().events[0], event);
 }
 
 #[test]
-
 pub fn test_recv_message() {
     let (mut deps, env, mut _ctx) = instantiate(OWNER);
     let src_network = NetId::from_str("nid").unwrap();
     let msg = ExecuteMsg::RecvMessage {
-        src_network: src_network.clone(),
+        src_network,
         conn_sn: 1,
         msg: "".to_string(),
     };
@@ -130,7 +134,7 @@ pub fn test_recv_message() {
 
     let res = execute(deps.as_mut(), env.clone(), info, msg.clone());
 
-    assert!(!res.is_ok());
+    assert!(res.is_err());
     assert_eq!("Only Relayer(Admin)", res.unwrap_err().to_string());
 
     let info = mock_info(RELAYER, &[]);
@@ -141,7 +145,7 @@ pub fn test_recv_message() {
 
     let res = execute(deps.as_mut(), env, info, msg);
 
-    assert!(!res.is_ok());
+    assert!(res.is_err());
 
     assert_eq!("Duplicate Message", res.unwrap_err().to_string());
 }
@@ -156,7 +160,7 @@ pub fn test_revert_message() {
 
     let res = execute(deps.as_mut(), env.clone(), info, msg.clone());
 
-    assert!(!res.is_ok());
+    assert!(res.is_err());
 
     let info = mock_info(RELAYER, &[]);
 
@@ -191,22 +195,24 @@ pub fn test_claim_fees() {
     let claim_msg = ExecuteMsg::ClaimFees {};
     let info = mock_info(OWNER, &[]);
     let res = execute(deps.as_mut(), env.clone(), info, claim_msg.clone());
-    assert!(!res.is_ok());
+    assert!(res.is_err());
     assert_eq!("Only Relayer(Admin)", res.unwrap_err().to_string());
 
     let msg = ExecuteMsg::SendMessage {
         to: NetId::from_str("nid").unwrap(),
-        svc: "xcall".to_string(),
         sn: 0,
         msg: vec![],
     };
 
     let info = mock_info(XCALL, &[]);
 
-    let _ = execute(deps.as_mut(), env.clone(), info, msg.clone());
+    let _ = execute(deps.as_mut(), env.clone(), info, msg);
 
     let amount: u128 = 100;
-    let coin: Coin = Coin { denom: DENOM.to_string(), amount: Uint128::from(amount)};
+    let coin: Coin = Coin {
+        denom: DENOM.to_string(),
+        amount: Uint128::from(amount),
+    };
     let info = mock_info(RELAYER, &[coin]);
     let res = execute(deps.as_mut(), env, info, claim_msg);
     assert!(res.is_ok());

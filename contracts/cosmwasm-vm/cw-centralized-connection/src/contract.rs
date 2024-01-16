@@ -62,7 +62,7 @@ impl<'a> CwCentralizedConnection<'a> {
             .add_event(
                 Event::new("Message")
                     .add_attribute("targetNetwork", to.to_string())
-                    .add_attribute("connSn", to.to_string())
+                    .add_attribute("connSn", next_conn_sn.to_string())
                     .add_attribute("msg", self.hex_encode(msg)),
             ))
     }
@@ -81,8 +81,7 @@ impl<'a> CwCentralizedConnection<'a> {
         let bytes = hex::decode(hex_string_trimmed).expect("Failed to decode to vec<u8>");
 
         let vec_msg: Vec<u8> = Binary(bytes).into();
-        let receipt = self.get_receipt(deps.as_ref().storage, src_network.clone(), conn_sn);
-        if receipt {
+        if self.get_receipt(deps.as_ref().storage, src_network.clone(), conn_sn) {
             return Err(ContractError::DuplicateMessage);
         }
         self.store_receipt(deps.storage, src_network.clone(), conn_sn)?;
