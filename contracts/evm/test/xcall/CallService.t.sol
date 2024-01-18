@@ -37,6 +37,7 @@ contract CallServiceTest is Test {
     using RLPEncodeStruct for Types.CSMessage;
     using RLPEncodeStruct for Types.CSMessageRequest;
     using RLPEncodeStruct for Types.CSMessageResult;
+    using RLPEncodeStruct for Types.XCallEnvelope;
     using RLPDecodeStruct for bytes;
 
     address public owner = address(0x1111);
@@ -217,6 +218,27 @@ contract CallServiceTest is Test {
         assertEq(sn, 1);
     }
 
+    function testSendMessagePersistent() public {
+        bytes memory data = bytes("test");
+        bytes memory rollbackData = bytes("rollback");
+
+        Types.XCallEnvelope memory _msg = Types.createPersistentMessageEnvelope(data);
+        console2.log(_msg.messageType);
+
+        callService.setDefaultConnection(iconNid, address(baseConnection));
+
+        vm.expectEmit();
+        emit CallMessageSent(address(dapp), iconDapp, 1);
+
+        Types.CSMessageRequest memory request = Types.CSMessageRequest(ethDappAddress, dstAccount, 1, Types.PERSISTENT_MESSAGE_TYPE, data, new string[](0));
+        Types.CSMessage memory message = Types.CSMessage(Types.CS_REQUEST,request.encodeCSMessageRequest());
+        vm.expectCall(address(baseConnection), abi.encodeCall(baseConnection.sendMessage, (iconNid, Types.NAME, 0, message.encodeCSMessage())));
+
+        vm.prank(address(dapp));
+        uint256 sn = callService.sendCall{value: 0 ether}(iconDapp, _msg.encodeXCallEnvelope());
+        assertEq(sn, 1);
+    }
+
     function testSendMessageDefaultProtocolNotSet() public {
         bytes memory data = bytes("test");
         bytes memory rollbackData = bytes("");
@@ -384,6 +406,46 @@ contract CallServiceTest is Test {
         vm.mockCall(address(defaultServiceReceiver), abi.encodeWithSelector(defaultServiceReceiver.handleCallMessage.selector, iconDapp, data), abi.encode(1));
         callService.executeCall(1, data);
     }
+
+    function testExecuteCallPersistent_failedExecution() public {
+        bytes memory data = bytes("test");
+
+        defaultServiceReceiver = IDefaultCallServiceReceiver(address(0x5678));
+        callService.setDefaultConnection(netTo, address(baseConnection));
+
+        Types.CSMessageRequest memory request = Types.CSMessageRequest(iconDapp, ParseAddress.toString(address(defaultServiceReceiver)), 1, Types.PERSISTENT_MESSAGE_TYPE, data, _baseSource);
+        Types.CSMessage memory message = Types.CSMessage(Types.CS_REQUEST,request.encodeCSMessageRequest());
+
+        vm.prank(address(baseConnection));
+        callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(message));
+
+        vm.expectRevert();
+        vm.prank(user);
+        callService.executeCall(1, data);
+    }
+
+    function testExecuteCallPersistent() public {
+        bytes memory data = bytes("test");
+
+        defaultServiceReceiver = IDefaultCallServiceReceiver(address(0x5678));
+        callService.setDefaultConnection(netTo, address(baseConnection));
+
+        string[] memory source;
+        Types.CSMessageRequest memory request = Types.CSMessageRequest(iconDapp, ParseAddress.toString(address(defaultServiceReceiver)), 1, Types.PERSISTENT_MESSAGE_TYPE, data, source);
+        Types.CSMessage memory message = Types.CSMessage(Types.CS_REQUEST,request.encodeCSMessageRequest());
+
+        vm.prank(address(baseConnection));
+        callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(message));        
+
+        vm.mockCall(address(defaultServiceReceiver), abi.encodeWithSelector(defaultServiceReceiver.handleCallMessage.selector, iconDapp, data), abi.encode(1));
+        vm.prank(user);
+        callService.executeCall(1, data);
+
+        vm.expectRevert("InvalidRequestId");
+        vm.prank(user);
+        callService.executeCall(1, data);
+    }
+    
 
     function testExecuteCallMultiProtocol() public {
         bytes memory data = bytes("test");

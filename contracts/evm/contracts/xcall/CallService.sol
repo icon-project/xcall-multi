@@ -205,7 +205,7 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
         Types.XCallEnvelope memory envelope
     ) internal returns (Types.ProcessResult memory) {
         int envelopeType = envelope.messageType;
-        if (envelopeType == Types.CALL_MESSAGE_TYPE) {
+        if (envelopeType == Types.CALL_MESSAGE_TYPE || envelopeType == Types.PERSISTENT_MESSAGE_TYPE) {
             return Types.ProcessResult(false, envelope.message);
         } else if (envelopeType == Types.CALL_MESSAGE_ROLLBACK_TYPE) {
             address caller = msg.sender;
@@ -281,9 +281,13 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
 
         string[] memory protocols = req.protocols;
 
-        if (req.messageType == Types.CALL_MESSAGE_TYPE) {
+        if (req.messageType == Types.CALL_MESSAGE_TYPE ) {
             tryExecuteCall(_reqId, req.to, req.from, _data, protocols);
-        } else if (
+        } 
+        else if (req.messageType == Types.PERSISTENT_MESSAGE_TYPE) {
+            this.executeMessage(address(0), req.to, req.from, _data, protocols);
+        }
+        else if (
             req.messageType == Types.CALL_MESSAGE_ROLLBACK_TYPE
         ) {
             int256 code = tryExecuteCall(_reqId, req.to, req.from, _data, protocols);
@@ -312,7 +316,7 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
         bytes memory data,
         string[] memory protocols
     ) private returns (int256) {
-        try this.tryHandleCallMessage(address(0), dapp, from, data, protocols) {
+        try this.executeMessage(address(0), dapp, from, data, protocols) {
             emit CallExecuted(id, Types.CS_RESP_SUCCESS, "");
             return Types.CS_RESP_SUCCESS;
         } catch Error(string memory errorMessage) {
@@ -325,7 +329,7 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
     }
 
     //  @dev To catch error
-    function tryHandleCallMessage(
+    function executeMessage(
         address toAddr,
         string memory to,
         string memory from,
@@ -353,7 +357,7 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
         require(req.enabled, "RollbackNotEnabled");
         cleanupCallRequest(_sn);
 
-        this.tryHandleCallMessage(
+        this.executeMessage(
             req.from,
             "",
             networkAddress,
@@ -397,7 +401,7 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
         if (csMsg.msgType == Types.CS_REQUEST) {
             handleRequest(_from, csMsg.payload);
         } else if (csMsg.msgType == Types.CS_RESULT) {
-            handlResult(csMsg.payload.decodeCSMessageResult());
+            handleResult(csMsg.payload.decodeCSMessageResult());
         } else {
             string memory errMsg = string("UnknownMsgType(")
                 .concat(uint(csMsg.msgType).toString())
@@ -407,7 +411,7 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
     }
 
     function handleError(uint256 _sn) public override {
-        handlResult(Types.CSMessageResult(_sn, Types.CS_RESP_FAILURE));
+        handleResult(Types.CSMessageResult(_sn, Types.CS_RESP_FAILURE));
     }
 
     function sendToConnection(
@@ -460,14 +464,14 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
             dataHash,
             req.protocols
         );
+
         emit CallMessage(req.from, req.to, req.sn, reqId, req.data);
     }
 
-    function handlResult(Types.CSMessageResult memory res) internal {
+    function handleResult(Types.CSMessageResult memory res) internal {
         Types.RollbackData memory req = rollbacks[res.sn];
-        if (req.from == address(0)) {
-            return;
-        }
+
+        require(req.from != address(0), "CallRequestNotFound");
 
         if (req.sources.length > 1) {
             pendingResponses[res.sn][msg.sender.toString()] = true;

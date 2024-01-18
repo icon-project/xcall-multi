@@ -214,6 +214,7 @@ contract CentralizedConnectionTest is Test {
 
     function testRevertMessage() public {
         vm.startPrank(destination_relayer);
+        vm.expectRevert("CallRequestNotFound");
         adapterTarget.revertMessage(1);
         vm.stopPrank();
     }
