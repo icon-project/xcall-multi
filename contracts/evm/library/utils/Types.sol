@@ -13,8 +13,7 @@ library Types {
 
     int constant CALL_MESSAGE_TYPE = 1;
     int constant CALL_MESSAGE_ROLLBACK_TYPE = 2;
-
- 
+    int constant PERSISTENT_MESSAGE_TYPE = 3;
 
     struct RollbackData {
         address from;
@@ -80,6 +79,15 @@ library Types {
     struct ProcessResult {
         bool needResponse;
         bytes data;
+    }
+
+    function createPersistentMessageEnvelope(bytes memory data) internal pure returns (XCallEnvelope memory) {
+        return XCallEnvelope(
+            PERSISTENT_MESSAGE_TYPE,
+            data,
+            new string[](0),
+            new string[](0)
+        );
     }
 
 }

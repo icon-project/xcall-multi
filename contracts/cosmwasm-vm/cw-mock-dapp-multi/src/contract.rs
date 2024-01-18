@@ -1,6 +1,9 @@
 use std::str::from_utf8;
 
-use cw_xcall_lib::{network_address::NetworkAddress, xcall_msg::ExecuteMsg};
+use cosmwasm_std::SubMsg;
+use cw_xcall_lib::{
+    message::envelope::Envelope, network_address::NetworkAddress, xcall_msg::ExecuteMsg,
+};
 
 use super::*;
 
@@ -31,7 +34,7 @@ impl<'a> CwMockService<'a> {
         to: NetworkAddress,
         data: Vec<u8>,
         rollback: Option<Vec<u8>>,
-    ) -> Result<Response, ContractError> {
+    ) -> Result<SubMsg, ContractError> {
         let _sequence = self.increment_sequence(deps.storage)?;
         let address = self
             .xcall_address()
@@ -60,6 +63,36 @@ impl<'a> CwMockService<'a> {
             msg: to_binary(&msg).unwrap(),
             funds: info.funds,
         });
+        let submessage = SubMsg {
+            id: 1,
+            msg: message,
+            gas_limit: None,
+            reply_on: cosmwasm_std::ReplyOn::Never,
+        };
+
+        println!("{:?}", submessage);
+
+        Ok(submessage)
+    }
+
+    pub fn send_call(
+        &self,
+        deps: DepsMut,
+        info: MessageInfo,
+        to: NetworkAddress,
+        envelope: Envelope,
+    ) -> Result<Response, ContractError> {
+        let address = self
+            .xcall_address()
+            .load(deps.storage)
+            .map_err(|_e| ContractError::ModuleAddressNotFound)?;
+
+        let msg = ExecuteMsg::SendCall { to, envelope };
+        let message: CosmosMsg<Empty> = CosmosMsg::Wasm(WasmMsg::Execute {
+            contract_addr: address,
+            msg: to_binary(&msg).unwrap(),
+            funds: info.funds,
+        });
 
         println!("{:?}", message);
 
@@ -70,6 +103,7 @@ impl<'a> CwMockService<'a> {
 
     pub fn handle_call_message(
         &self,
+        deps: DepsMut,
         info: MessageInfo,
         from: NetworkAddress,
         data: Vec<u8>,
@@ -80,13 +114,20 @@ impl<'a> CwMockService<'a> {
                 .add_attribute("action", "RollbackDataReceived")
                 .add_attribute("from", from.to_string()))
         } else {
+            let mut res = Response::new();
             let msg_data = from_utf8(&data).map_err(|e| ContractError::DecodeError {
                 error: e.to_string(),
             })?;
             if "rollback" == msg_data {
                 return Err(ContractError::RevertFromDAPP);
             }
-            Ok(Response::new()
+            if "reply-response" == msg_data {
+                let submsg = self
+                    .send_call_message(deps, info, from.clone(), vec![1, 2, 3], None)
+                    .unwrap();
+                res = res.add_submessage(submsg)
+            }
+            Ok(res
                 .add_attribute("from", from.to_string())
                 .add_attribute("data", msg_data))
         }

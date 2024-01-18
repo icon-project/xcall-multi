@@ -25,10 +25,10 @@ use crate::{
     msg::{InstantiateMsg, QueryMsg},
     state::{CwCallService, EXECUTE_CALL_ID},
     types::{
-        call_request::CallRequest,
         message::{CSMessage, CSMessageType},
         request::CSMessageRequest,
         result::{CSMessageResult, CallServiceResponseType},
+        rollback::Rollback,
         storage_keys::StorageKey,
     },
 };

@@ -35,7 +35,6 @@ import foundation.icon.xcall.messages.Message;
 import foundation.icon.xcall.messages.PersistentMessage;
 import foundation.icon.xcall.messages.XCallEnvelope;
 
-
 public class CallServiceImpl implements CallService, FeeManage {
     public static final int MAX_DATA_SIZE = 2048;
     public static final int MAX_ROLLBACK_SIZE = 1024;
@@ -48,19 +47,23 @@ public class CallServiceImpl implements CallService, FeeManage {
     public static final String PENDING_REQUESTS = "pendingReqs";
     public static final String PENDING_RESPONSES = "pendingResponses";
     public static final String SUCCESSFUL_RESPONSES = "successfulResponses";
-    public static final String DEFAULT_CONNECTION  = "defaultConnection";
-    public static final String ADMIN  = "admin";
-    public static final String PROTOCOL_FEE  = "protocolFee";
-    public static final String FEE_HANDLER  = "feeHandler";
+    public static final String DEFAULT_CONNECTION = "defaultConnection";
+    public static final String ADMIN = "admin";
+    public static final String PROTOCOL_FEE = "protocolFee";
+    public static final String FEE_HANDLER = "feeHandler";
 
     private final VarDB<BigInteger> sn = Context.newVarDB(SN, BigInteger.class);
     private final VarDB<BigInteger> reqId = Context.newVarDB(REQUEST_ID, BigInteger.class);
 
     private final DictDB<BigInteger, RollbackData> rollbacks = Context.newDictDB(ROLLBACKS, RollbackData.class);
-    private final DictDB<BigInteger, CSMessageRequest> proxyReqs = Context.newDictDB(PROXY_REQUESTS, CSMessageRequest.class);
-    private final BranchDB<byte[], DictDB<String, Boolean>> pendingReqs = Context.newBranchDB(PENDING_REQUESTS, Boolean.class);
-    private final BranchDB<byte[], DictDB<String, Boolean>> pendingResponses = Context.newBranchDB(PENDING_RESPONSES, Boolean.class);
-    private final DictDB<BigInteger, Boolean> successfulResponses = Context.newDictDB(SUCCESSFUL_RESPONSES, Boolean.class);
+    private final DictDB<BigInteger, CSMessageRequest> proxyReqs = Context.newDictDB(PROXY_REQUESTS,
+            CSMessageRequest.class);
+    private final BranchDB<byte[], DictDB<String, Boolean>> pendingReqs = Context.newBranchDB(PENDING_REQUESTS,
+            Boolean.class);
+    private final BranchDB<byte[], DictDB<String, Boolean>> pendingResponses = Context.newBranchDB(PENDING_RESPONSES,
+            Boolean.class);
+    private final DictDB<BigInteger, Boolean> successfulResponses = Context.newDictDB(SUCCESSFUL_RESPONSES,
+            Boolean.class);
 
     private final DictDB<String, Address> defaultConnection = Context.newDictDB(DEFAULT_CONNECTION, Address.class);
 
@@ -68,6 +71,9 @@ public class CallServiceImpl implements CallService, FeeManage {
     private final VarDB<Address> admin = Context.newVarDB(ADMIN, Address.class);
     private final VarDB<BigInteger> protocolFee = Context.newVarDB(PROTOCOL_FEE, BigInteger.class);
     private final VarDB<Address> feeHandler = Context.newVarDB(FEE_HANDLER, Address.class);
+
+    private static CSMessageRequest replyState = null;
+    private static byte[] callReply = null;
 
     public CallServiceImpl(String networkId) {
         NID = networkId;
@@ -121,14 +127,20 @@ public class CallServiceImpl implements CallService, FeeManage {
         ProcessResult result = preProcessMessage(sn, dst, envelope);
 
         String from = new NetworkAddress(NID, caller.toString()).toString();
-        CSMessageRequest msgReq = new CSMessageRequest(from, dst.account(), sn, envelope.getType(), result.data, envelope.getDestinations());
+        CSMessageRequest msgReq = new CSMessageRequest(from, dst.account(), sn, envelope.getType(), result.data,
+                envelope.getDestinations());
 
         byte[] msgBytes = msgReq.toBytes();
         Context.require(msgBytes.length <= MAX_DATA_SIZE, "MaxDataSizeExceeded");
-        BigInteger sendSn = result.needResponse ? sn : BigInteger.ZERO;
+        if (isReply(dst.net, envelope.sources) && !result.needResponse) {
+            replyState = null;
+            callReply = msgBytes;
+        } else {
+            BigInteger sendSn = result.needResponse ? sn : BigInteger.ZERO;
+            sendMessage(envelope.getSources(), dst.net(), CSMessage.REQUEST, sendSn, msgBytes);
+            claimProtocolFee();
+        }
 
-        sendMessage(envelope.getSources(), dst.net(), CSMessage.REQUEST, sendSn, msgBytes);
-        claimProtocolFee();
         CallMessageSent(caller, dst.toString(), sn);
 
         return sn;
@@ -137,10 +149,10 @@ public class CallServiceImpl implements CallService, FeeManage {
     @Payable
     @External
     public BigInteger sendCallMessage(String _to,
-                                      byte[] _data,
-                                      @Optional byte[] _rollback,
-                                      @Optional String[] _sources,
-                                      @Optional String[] _destinations) {
+            byte[] _data,
+            @Optional byte[] _rollback,
+            @Optional String[] _sources,
+            @Optional String[] _destinations) {
 
         if (_sources == null || _destinations == null) {
             _sources = new String[0];
@@ -204,7 +216,6 @@ public class CallServiceImpl implements CallService, FeeManage {
     }
     /* ========================================= */
 
-
     @Override
     @External
     public void handleMessage(String _fromNid, byte[] _msg) {
@@ -225,7 +236,7 @@ public class CallServiceImpl implements CallService, FeeManage {
     @Override
     @External
     public void handleError(BigInteger _sn) {
-        CSMessageResult res = new CSMessageResult(_sn, CSMessageResult.FAILURE);
+        CSMessageResult res = new CSMessageResult(_sn, CSMessageResult.FAILURE, null);
         handleResult(res.toBytes());
     }
 
@@ -273,6 +284,13 @@ public class CallServiceImpl implements CallService, FeeManage {
     @External(readonly = true)
     public BigInteger getFee(String _net, boolean _rollback, @Optional String[] _sources) {
         BigInteger fee = getProtocolFee();
+        if (_sources == null) {
+            _sources = new String[] {};
+        }
+
+        if (isReply(_net, _sources)) {
+            return BigInteger.ZERO;
+        }
         if (_sources == null || _sources.length == 0) {
             Address src = defaultConnection.get(_net);
             Context.require(src != null, "NoDefaultConnection");
@@ -341,9 +359,10 @@ public class CallServiceImpl implements CallService, FeeManage {
         } catch (Exception e) {
             CallExecuted(id, CSMessageResult.FAILURE, e.toString());
             return CSMessageResult.FAILURE;
-        };
+        }
+        ;
 
-       return CSMessageResult.SUCCESS;
+        return CSMessageResult.SUCCESS;
     }
 
     private void _executeCall(BigInteger id, Address dapp, String from, byte[] data, String[] protocols) {
@@ -359,7 +378,7 @@ public class CallServiceImpl implements CallService, FeeManage {
         if (protocols.length == 0) {
             Address src = defaultConnection.get(toNid);
             Context.require(src != null, "NoDefaultConnection");
-            return new Address[]{src};
+            return new Address[] { src };
         }
 
         Address[] _protocols = new Address[protocols.length];
@@ -389,7 +408,7 @@ public class CallServiceImpl implements CallService, FeeManage {
                 Address caller = Context.getCaller();
                 CallMessageWithRollback msg = CallMessageWithRollback.fromBytes(envelope.getMessage());
                 Context.require(caller.isContract(), "RollbackNotPossible");
-                RollbackData req = new RollbackData(caller, to.net(), envelope.getSources(),  msg.getRollback());
+                RollbackData req = new RollbackData(caller, to.net(), envelope.getSources(), msg.getRollback());
                 rollbacks.set(sn, req);
                 return new ProcessResult(true, msg.getData());
         }
@@ -401,7 +420,7 @@ public class CallServiceImpl implements CallService, FeeManage {
     private void executeMessage(BigInteger reqId, CSMessageRequest req, byte[] data) {
         Address to = Address.fromString(req.getTo());
         String[] protocols = req.getProtocols();
-        switch (req.getType() ) {
+        switch (req.getType()) {
             case CallMessage.TYPE:
                 tryExecuteCall(reqId, to, req.getFrom(), data, protocols);
                 break;
@@ -409,11 +428,18 @@ public class CallServiceImpl implements CallService, FeeManage {
                 _executeCall(reqId, to, req.getFrom(), data, protocols);
                 break;
             case CallMessageWithRollback.TYPE: {
-                int code =  tryExecuteCall(reqId, to, req.getFrom(), data, protocols);
+                replyState = req;
+                int code = tryExecuteCall(reqId, to, req.getFrom(), data, protocols);
+                replyState = null;
                 BigInteger sn = req.getSn().negate();
                 NetworkAddress from = NetworkAddress.valueOf(req.getFrom());
+                byte[] message = null;
+                if (callReply != null && code == CSMessageResult.SUCCESS) {
+                    message = callReply;
+                    callReply = null;
+                }
 
-                CSMessageResult response = new CSMessageResult(req.getSn(), code);
+                CSMessageResult response = new CSMessageResult(req.getSn(), code, message);
                 sendMessage(protocols, from.net(), CSMessage.RESULT, sn, response.toBytes());
                 break;
             }
@@ -440,26 +466,35 @@ public class CallServiceImpl implements CallService, FeeManage {
             return;
         }
 
-        String to = msgReq.getTo();
         BigInteger reqId = getNextReqId();
 
         // emit event to notify the user
-        CallMessage(from, to, msgReq.getSn(), reqId, msgReq.getData());
+        CallMessage(from, msgReq.getTo(), msgReq.getSn(), reqId, msgReq.getData());
 
         msgReq.hashData();
         proxyReqs.set(reqId, msgReq);
     }
 
+    private void handleReply(RollbackData rollback, CSMessageRequest reply) {
+        Context.require(rollback.getTo().equals(NetworkAddress.valueOf(reply.getFrom()).net), "Invalid Reply");
+        reply.setProtocols(rollback.getProtocols());
+
+        BigInteger reqId = getNextReqId();
+        CallMessage(reply.getFrom(), reply.getTo(), reply.getSn(), reqId, reply.getData());
+        reply.hashData();
+        proxyReqs.set(reqId, reply);
+    }
+
     private void handleResult(byte[] data) {
         CSMessageResult msgRes = CSMessageResult.fromBytes(data);
         BigInteger resSn = msgRes.getSn();
-        RollbackData req = rollbacks.get(resSn);
+        RollbackData rollback = rollbacks.get(resSn);
 
-        Context.require(req != null, "CallRequest Not Found For " + resSn.toString());
+        Context.require(rollback != null, "CallRequest Not Found For " + resSn.toString());
 
         byte[] hash = Context.hash("sha-256", data);
         DictDB<String, Boolean> pending = pendingResponses.at(hash);
-        if (!verifyProtocols(req.getTo(), req.getProtocols(), pending)) {
+        if (!verifyProtocols(rollback.getTo(), rollback.getProtocols(), pending)) {
             return;
         }
 
@@ -467,19 +502,22 @@ public class CallServiceImpl implements CallService, FeeManage {
         switch (msgRes.getCode()) {
             case CSMessageResult.SUCCESS:
                 cleanupCallRequest(resSn);
+                if (msgRes.getMsg() != null) {
+                    handleReply(rollback, CSMessageRequest.fromBytes(msgRes.getMsg()));
+                }
                 successfulResponses.set(resSn, true);
                 break;
             case CSMessageResult.FAILURE:
             default:
                 // emit rollback event
-                Context.require(req.getRollback() != null, "NoRollbackData");
-                req.setEnabled();
-                rollbacks.set(resSn, req);
+                Context.require(rollback.getRollback() != null, "NoRollbackData");
+                rollback.setEnabled();
+                rollbacks.set(resSn, rollback);
                 RollbackMessage(resSn);
         }
     }
 
-    private boolean verifyProtocols(String fromNid, String[] protocols, DictDB<String, Boolean>  pendingDb) {
+    private boolean verifyProtocols(String fromNid, String[] protocols, DictDB<String, Boolean> pendingDb) {
         Address caller = Context.getCaller();
         if (protocols.length > 1) {
             pendingDb.set(caller.toString(), true);
@@ -499,6 +537,15 @@ public class CallServiceImpl implements CallService, FeeManage {
         }
 
         return true;
+    }
+
+    private boolean isReply(String netId, String[] sources) {
+        if (replyState != null) {
+            return NetworkAddress.valueOf(replyState.getFrom()).net.equals(netId)
+                    && Arrays.equals(replyState.getProtocols(), sources);
+        }
+
+        return false;
     }
 
     private byte[] getDataHash(byte[] data) {

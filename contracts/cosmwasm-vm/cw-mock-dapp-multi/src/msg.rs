@@ -1,5 +1,5 @@
 use cosmwasm_schema::{cw_serde, QueryResponses};
-use cw_xcall_lib::network_address::NetworkAddress;
+use cw_xcall_lib::{message::envelope::Envelope, network_address::NetworkAddress};
 
 #[cw_serde]
 pub enum ExecuteMsg {
@@ -7,6 +7,10 @@ pub enum ExecuteMsg {
         to: NetworkAddress,
         data: Vec<u8>,
         rollback: Option<Vec<u8>>,
+    },
+    SendCall {
+        to: NetworkAddress,
+        envelope: Envelope,
     },
     HandleCallMessage {
         from: NetworkAddress,
