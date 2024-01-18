@@ -22,12 +22,12 @@ use cw_common::hub_token_msg::{ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg}
 use cw_common::x_call_msg::{GetNetworkAddress, XCallMsg};
 
 use cw20_base::allowances::{
-    execute_burn_from, execute_decrease_allowance, execute_increase_allowance,
+    execute_burn_from, execute_decrease_allowance, execute_increase_allowance, execute_send_from,
     execute_transfer_from, query_allowance,
 };
 use cw20_base::contract::{
-    execute_burn, execute_mint, execute_transfer, execute_update_minter, query_download_logo,
-    query_marketing_info,
+    execute_burn, execute_mint, execute_send, execute_transfer, execute_update_minter,
+    query_download_logo, query_marketing_info,
 };
 use cw20_base::contract::{query_balance, query_minter, query_token_info};
 use cw20_base::enumerable::{query_all_accounts, query_owner_allowances, query_spender_allowances};
@@ -100,6 +100,15 @@ pub fn execute(
         ExecuteMsg::Burn { amount } => {
             execute_burn(deps, env, info, amount).map_err(ContractError::Cw20BaseError)
         }
+        ExecuteMsg::Send {
+            contract,
+            amount,
+            msg,
+        } => execute_send(deps, env, info, contract, amount, msg)
+            .map_err(ContractError::Cw20BaseError),
+        ExecuteMsg::Mint { recipient, amount } => {
+            execute_mint(deps, env, info, recipient, amount).map_err(ContractError::Cw20BaseError)
+        }
         ExecuteMsg::IncreaseAllowance {
             spender,
             amount,
@@ -121,9 +130,13 @@ pub fn execute(
         ExecuteMsg::BurnFrom { owner, amount } => {
             execute_burn_from(deps, env, info, owner, amount).map_err(ContractError::Cw20BaseError)
         }
-        ExecuteMsg::Mint { recipient, amount } => {
-            execute_mint(deps, env, info, recipient, amount).map_err(ContractError::Cw20BaseError)
-        }
+        ExecuteMsg::SendFrom {
+            owner,
+            contract,
+            amount,
+            msg,
+        } => execute_send_from(deps, env, info, owner, contract, amount, msg)
+            .map_err(ContractError::Cw20BaseError),
         ExecuteMsg::UpdateMinter { new_minter } => {
             execute_update_minter(deps, env, info, new_minter).map_err(ContractError::Cw20BaseError)
         }
