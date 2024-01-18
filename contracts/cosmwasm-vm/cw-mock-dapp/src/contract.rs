@@ -1,8 +1,12 @@
 use std::str::from_utf8;
 
-use cw_xcall_lib::{network_address::NetworkAddress, xcall_msg::ExecuteMsg};
-
 use super::*;
+use cw_xcall_lib::message::call_message_persisted::CallMessagePersisted;
+use cw_xcall_lib::message::AnyMessage;
+use cw_xcall_lib::message::{
+    call_message::CallMessage, call_message_rollback::CallMessageWithRollback, envelope::Envelope,
+};
+use cw_xcall_lib::{network_address::NetworkAddress, xcall_msg::ExecuteMsg};
 
 // version info for migration info
 const CONTRACT_NAME: &str = "crates.io:cw-mock-dapp";
@@ -55,6 +59,47 @@ impl<'a> CwMockService<'a> {
 
         Ok(Response::new()
             .add_attribute("Action", "SendMessage")
+            .add_message(message))
+    }
+
+    pub fn send_new_call_message(
+        &self,
+        deps: DepsMut,
+        info: MessageInfo,
+        to: NetworkAddress,
+        data: Vec<u8>,
+        rollback: Option<Vec<u8>>,
+        is_persistent: bool,
+    ) -> Result<Response, ContractError> {
+        let _sequence = self.increment_sequence(deps.storage)?;
+        let address = self
+            .xcall_address()
+            .load(deps.storage)
+            .map_err(|_e| ContractError::ModuleAddressNotFound)?;
+
+        let msg = if is_persistent {
+            AnyMessage::CallMessagePersisted(CallMessagePersisted { data: data.clone() })
+        } else if let Some(rollback) = rollback.clone() {
+            AnyMessage::CallMessageWithRollback(CallMessageWithRollback {
+                data: data.clone(),
+                rollback: rollback.clone(),
+            })
+        } else {
+            AnyMessage::CallMessage(CallMessage { data: data.clone() })
+        };
+        let envelope = Envelope::new(msg, vec![], vec![]);
+
+        let msg = ExecuteMsg::SendCall { envelope, to };
+        let message: CosmosMsg<Empty> = CosmosMsg::Wasm(WasmMsg::Execute {
+            contract_addr: address,
+            msg: to_binary(&msg).unwrap(),
+            funds: info.funds,
+        });
+
+        println!("{:?}", message);
+
+        Ok(Response::new()
+            .add_attribute("Action", "SendNewMessage")
             .add_message(message))
     }
 

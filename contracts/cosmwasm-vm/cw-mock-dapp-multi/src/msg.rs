@@ -12,6 +12,12 @@ pub enum ExecuteMsg {
         to: NetworkAddress,
         envelope: Envelope,
     },
+    SendNewCallMessage {
+        to: NetworkAddress,
+        data: Vec<u8>,
+        rollback: Option<Vec<u8>>,
+        is_persistent: bool,
+    },
     HandleCallMessage {
         from: NetworkAddress,
         data: Vec<u8>,

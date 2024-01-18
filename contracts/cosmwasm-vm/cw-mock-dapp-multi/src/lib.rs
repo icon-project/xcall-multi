@@ -49,6 +49,12 @@ pub fn execute(
                 .add_submessage(submsg)
                 .add_attribute("Action", "SendMessage"))
         }
+        ExecuteMsg::SendNewCallMessage {
+            to,
+            data,
+            rollback,
+            is_persistent,
+        } => call_service.send_new_call_message(deps, info, to, data, rollback, is_persistent),
         ExecuteMsg::SendCall { to, envelope } => call_service.send_call(deps, info, to, envelope),
         ExecuteMsg::HandleCallMessage {
             from,
