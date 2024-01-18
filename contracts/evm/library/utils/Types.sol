@@ -52,6 +52,7 @@ library Types {
     struct CSMessageResult {
         uint256 sn;
         int code;
+        bytes message;
     }
 
     struct PendingResponse {

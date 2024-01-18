@@ -82,6 +82,6 @@ library RLPDecodeStruct {
         bytes memory _rlp
     ) internal pure returns (Types.CSMessageResult memory) {
         RLPDecode.RLPItem[] memory ls = _rlp.toRlpItem().toList();
-        return Types.CSMessageResult(ls[0].toUint(), int(ls[1].toInt()));
+        return Types.CSMessageResult(ls[0].toUint(), ls[1].toInt(), ls[2].toBytes());
     }
 }
