@@ -293,8 +293,7 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
             );
             delete replyState;
 
-            bytes memory message;>>>>>>> development/177-xcall-future-proof-messaging
-
+            bytes memory message;
             if (callReply.length > 0 && code == Types.CS_RESP_SUCCESS) {
                 message = callReply;
                 delete callReply;
