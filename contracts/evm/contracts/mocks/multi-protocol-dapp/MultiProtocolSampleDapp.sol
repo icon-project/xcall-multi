@@ -7,6 +7,7 @@ import "@iconfoundation/btp2-solidity-library/utils/ParseAddress.sol";
 import "@iconfoundation/btp2-solidity-library/utils/Strings.sol";
 import "@iconfoundation/btp2-solidity-library/interfaces/ICallService.sol";
 import "@iconfoundation/btp2-solidity-library/interfaces/ICallServiceReceiver.sol";
+import "@xcall/utils/Types.sol";
 
 import "openzeppelin-contracts-upgradeable/contracts/proxy/utils/Initializable.sol";
 
@@ -49,6 +50,23 @@ contract MultiProtocolSampleDapp is Initializable, ICallServiceReceiver {
         _sendCallMessage(msg.value, to, data, rollback);
     }
 
+    function sendNewMessage(string memory to, bytes memory data, bytes memory rollback, bool isPersistent) external payable {
+        
+        bytes memory message;
+        (string memory net,) = to.parseNetworkAddress();
+        string[] memory _sources = getSources(net);
+        string[] memory _destinations = getDestinations(net);
+
+        if (isPersistent) {
+            message = Types.createPersistentMessage(data, _sources, _destinations);
+        } else if(rollback.length == 0) {
+            message = Types.createCallMessage(data, _sources, _destinations);
+        } else {
+            message = Types.createCallMessageWithRollback(data, rollback, _sources, _destinations);
+        }
+        _sendCall(msg.value, to, message);
+    }
+
     function _sendCallMessage(
         uint256 value,
         string memory to,
@@ -57,6 +75,14 @@ contract MultiProtocolSampleDapp is Initializable, ICallServiceReceiver {
     ) private {
         (string memory net,) = to.parseNetworkAddress();
         ICallService(callSvc).sendCallMessage{value: value}(to, data, rollback, getSources(net), getDestinations(net));
+    }
+
+    function _sendCall(
+        uint256 value,
+        string memory to,
+        bytes memory message
+    ) private {
+        ICallService(callSvc).sendCall{value: value}(to, message);
     }
 
 
