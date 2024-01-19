@@ -50,21 +50,26 @@ contract MultiProtocolSampleDapp is Initializable, ICallServiceReceiver {
         _sendCallMessage(msg.value, to, data, rollback);
     }
 
-    function sendNewMessage(string memory to, bytes memory data, bytes memory rollback, bool isPersistent) external payable {
+    function sendNewMessage(string memory to, bytes memory data, int256 messageType, bytes memory rollback) external payable {
         
         bytes memory message;
         (string memory net,) = to.parseNetworkAddress();
         string[] memory _sources = getSources(net);
         string[] memory _destinations = getDestinations(net);
 
-        if (isPersistent) {
+        if (messageType == Types.PERSISTENT_MESSAGE_TYPE) {
             message = Types.createPersistentMessage(data, _sources, _destinations);
-        } else if(rollback.length == 0) {
+        } else if(messageType == Types.CALL_MESSAGE_TYPE) {
             message = Types.createCallMessage(data, _sources, _destinations);
-        } else {
+        } else if(messageType == Types.CALL_MESSAGE_ROLLBACK_TYPE) {
+            require(rollback.length > 0, "InvalidRollback");
             message = Types.createCallMessageWithRollback(data, rollback, _sources, _destinations);
         }
         _sendCall(msg.value, to, message);
+    }
+
+    function sendMessageAny(string memory to, bytes memory data) external payable {
+        _sendCall(msg.value, to, data);
     }
 
     function _sendCallMessage(
