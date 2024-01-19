@@ -90,6 +90,12 @@ public class MultiProtocolSampleDapp implements CallServiceReceiver {
         _sendCall(Context.getValue(), _to, envelope.toBytes());
     }
 
+    @Payable
+    @External
+    public void sendMessageAny(String _to, byte[] _data) {
+        _sendCall(Context.getValue(), _to, _data);
+    }
+
     private BigInteger _sendCall(BigInteger value, String to, byte[] envelope) {
         return Context.call(BigInteger.class, value, this.callSvc, "sendCall", to, envelope);
     }
