@@ -542,7 +542,7 @@ public class CallServiceImpl implements CallService, FeeManage {
     private boolean isReply(String netId, String[] sources) {
         if (replyState != null) {
             return NetworkAddress.valueOf(replyState.getFrom()).net.equals(netId)
-                    && Arrays.equals(replyState.getProtocols(), sources);
+            && (replyState.getProtocols().equals(sources));
         }
 
         return false;
