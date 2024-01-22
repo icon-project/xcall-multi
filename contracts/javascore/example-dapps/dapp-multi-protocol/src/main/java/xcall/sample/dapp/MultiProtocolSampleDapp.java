@@ -75,19 +75,26 @@ public class MultiProtocolSampleDapp implements CallServiceReceiver {
 
     @Payable
     @External
-    public void sendNewMessage(String _to, byte[] _data, @Optional byte[] _rollback, @Optional boolean isPersistent) {
-        Message msg;
-        if (isPersistent) {
-            msg = new PersistentMessage(_data);
-        } else if (_rollback == null || _rollback.length == 0) {
-            msg = new CallMessage(_data);
-        } else {
-            msg = new CallMessageWithRollback(_data, _rollback);
-        }
+    public void sendNewMessage(String _to, byte[] _data, int messageType, @Optional byte[] _rollback) {
         String net = NetworkAddress.valueOf(_to).net();
 
-        XCallEnvelope envelope = new XCallEnvelope(msg, getSources(net), getDestinations(net));
-        _sendCall(Context.getValue(), _to, envelope.toBytes());
+        Message msg;
+        XCallEnvelope envelope;
+        if (messageType == PersistentMessage.TYPE) {
+            msg = new PersistentMessage(_data);
+            envelope = new XCallEnvelope(msg, getSources(net), getDestinations(net));
+            _sendCall(Context.getValue(), _to, envelope.toBytes());
+        } else if (messageType == CallMessage.TYPE) {
+            msg = new CallMessage(_data);
+            envelope = new XCallEnvelope(msg, getSources(net), getDestinations(net));
+            _sendCall(Context.getValue(), _to, envelope.toBytes());
+        } else if (messageType == CallMessageWithRollback.TYPE) {
+            msg = new CallMessageWithRollback(_data, _rollback);
+            envelope = new XCallEnvelope(msg, getSources(net), getDestinations(net));
+            _sendCall(Context.getValue(), _to, envelope.toBytes());
+        } else {
+            Context.revert("invalid message type");
+        }
     }
 
     @Payable
