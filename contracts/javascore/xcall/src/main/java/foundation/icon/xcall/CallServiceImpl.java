@@ -542,10 +542,20 @@ public class CallServiceImpl implements CallService, FeeManage {
     private boolean isReply(String netId, String[] sources) {
         if (replyState != null) {
             return NetworkAddress.valueOf(replyState.getFrom()).net.equals(netId)
-            && (replyState.getProtocols().equals(sources));
+                    && protocolEquals(replyState.getProtocols(), sources);
         }
 
         return false;
+    }
+
+    private boolean protocolEquals(String[] a, String[] b) {
+        for (int i = 0; i < b.length; i++) {
+            if (!a[i].equals(b[i])) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private byte[] getDataHash(byte[] data) {
