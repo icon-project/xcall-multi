@@ -52,10 +52,12 @@ pub fn execute(
         ExecuteMsg::SendNewCallMessage {
             to,
             data,
+            message_type,
             rollback,
-            is_persistent,
-        } => call_service.send_new_call_message(deps, info, to, data, rollback, is_persistent),
-        ExecuteMsg::SendCall { to, envelope } => call_service.send_call(deps, info, to, envelope),
+        } => call_service.send_new_call_message(deps, info, to, data, message_type, rollback),
+        ExecuteMsg::SendMessageAny { to, envelope } => {
+            call_service.send_call(deps, info, to, envelope)
+        }
         ExecuteMsg::HandleCallMessage {
             from,
             data,

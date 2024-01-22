@@ -2,6 +2,7 @@ use std::str::from_utf8;
 
 use cosmwasm_std::SubMsg;
 use cw_xcall_lib::message::call_message_persisted::CallMessagePersisted;
+use cw_xcall_lib::message::msg_type::MessageType;
 use cw_xcall_lib::message::AnyMessage;
 use cw_xcall_lib::message::{
     call_message::CallMessage, call_message_rollback::CallMessageWithRollback, envelope::Envelope,
@@ -84,8 +85,8 @@ impl<'a> CwMockService<'a> {
         info: MessageInfo,
         to: NetworkAddress,
         data: Vec<u8>,
+        message_type: u64,
         rollback: Option<Vec<u8>>,
-        is_persistent: bool,
     ) -> Result<Response, ContractError> {
         let _sequence = self.increment_sequence(deps.storage)?;
         let address = self
@@ -104,15 +105,21 @@ impl<'a> CwMockService<'a> {
                     acc
                 });
 
-        let msg = if is_persistent {
+        let msg = if message_type == MessageType::CallMessagePersisted as u64 {
             AnyMessage::CallMessagePersisted(CallMessagePersisted { data: data.clone() })
-        } else if let Some(rollback) = rollback.clone() {
-            AnyMessage::CallMessageWithRollback(CallMessageWithRollback {
-                data: data.clone(),
-                rollback: rollback.clone(),
-            })
-        } else {
+        } else if message_type == MessageType::CallMessageWithRollback as u64 {
+            if let Some(rollback) = rollback {
+                AnyMessage::CallMessageWithRollback(CallMessageWithRollback {
+                    data: data.clone(),
+                    rollback,
+                })
+            } else {
+                return Err(ContractError::InvalidRollbackMessage);
+            }
+        } else if message_type == MessageType::CallMessage as u64 {
             AnyMessage::CallMessage(CallMessage { data: data.clone() })
+        } else {
+            return Err(ContractError::InvalidMessageType);
         };
         let envelope = Envelope::new(msg, sources, destinations);
 
@@ -123,11 +130,16 @@ impl<'a> CwMockService<'a> {
             funds: info.funds,
         });
 
-        println!("{:?}", message);
+        let submessage = SubMsg {
+            id: 1,
+            msg: message,
+            gas_limit: None,
+            reply_on: cosmwasm_std::ReplyOn::Never,
+        };
 
         Ok(Response::new()
             .add_attribute("Action", "SendNewMessage")
-            .add_message(message))
+            .add_submessage(submessage))
     }
 
     pub fn send_call(
