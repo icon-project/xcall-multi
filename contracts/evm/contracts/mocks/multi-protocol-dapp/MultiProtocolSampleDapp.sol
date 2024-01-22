@@ -64,6 +64,8 @@ contract MultiProtocolSampleDapp is Initializable, ICallServiceReceiver {
         } else if(messageType == Types.CALL_MESSAGE_ROLLBACK_TYPE) {
             require(rollback.length > 0, "InvalidRollback");
             message = Types.createCallMessageWithRollback(data, rollback, _sources, _destinations);
+        } else {
+            revert("InvalidMessageType");
         }
         _sendCall(msg.value, to, message);
     }
