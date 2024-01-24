@@ -134,7 +134,7 @@ public class MultiProtocolSampleDapp implements CallServiceReceiver {
 
             if (new String(_data).equals("reply-response")) {
                 // response message
-                _sendCallMessage(Context.getValue(), _from, new byte[] { 1, 2, 3 }, null);
+                _sendCallMessage(BigInteger.ZERO, _from, new byte[] { 1, 2, 3 }, null);
             }
             MessageReceived(_from, _data);
         }
