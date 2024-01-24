@@ -274,10 +274,8 @@ contract CallServiceTest is Test {
 
     function testSendMessagePersistent() public {
         bytes memory data = bytes("test");
-        bytes memory rollbackData = bytes("rollback");
 
-        Types.XCallEnvelope memory _msg = Types.createPersistentMessageEnvelope(data);
-        console2.log(_msg.messageType);
+        bytes memory _msg = Types.createPersistentMessage(data, new string[](0), new string[](0));
 
         callService.setDefaultConnection(iconNid, address(baseConnection));
 
@@ -289,7 +287,7 @@ contract CallServiceTest is Test {
         vm.expectCall(address(baseConnection), abi.encodeCall(baseConnection.sendMessage, (iconNid, Types.NAME, 0, message.encodeCSMessage())));
 
         vm.prank(address(dapp));
-        uint256 sn = callService.sendCall{value: 0 ether}(iconDapp, _msg.encodeXCallEnvelope());
+        uint256 sn = callService.sendCall{value: 0 ether}(iconDapp, _msg);
         assertEq(sn, 1);
     }
 

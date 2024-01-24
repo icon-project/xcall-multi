@@ -28,7 +28,6 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
     using RLPEncodeStruct for Types.CSMessage;
     using RLPEncodeStruct for Types.CSMessageRequest;
     using RLPEncodeStruct for Types.CSMessageResult;
-    using RLPEncodeStruct for Types.CallMessage;
     using RLPEncodeStruct for Types.CallMessageWithRollback;
     using RLPEncodeStruct for Types.XCallEnvelope;
     using RLPDecodeStruct for bytes;

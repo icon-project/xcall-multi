@@ -1,10 +1,15 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity >=0.8.0;
+import "@xcall/utils/RLPEncodeStruct.sol";
+import "@xcall/utils/RLPEncodeStruct.sol";
 
 /**
  * @notice List of ALL Struct being used to Encode and Decode RLP Messages
  */
 library Types {
+    using RLPEncodeStruct for Types.CallMessageWithRollback;
+    using RLPEncodeStruct for Types.XCallEnvelope;
+
     // The name of CallService.
     string constant NAME = "xcallM";
 
@@ -81,13 +86,38 @@ library Types {
         bytes data;
     }
 
-    function createPersistentMessageEnvelope(bytes memory data) internal pure returns (XCallEnvelope memory) {
-        return XCallEnvelope(
-            PERSISTENT_MESSAGE_TYPE,
-            data,
-            new string[](0),
-            new string[](0)
-        );
+    function createPersistentMessage(
+        bytes memory data,
+        string[] memory sources,
+        string[] memory destinations
+    ) internal pure returns (bytes memory) {
+        return
+            XCallEnvelope(PERSISTENT_MESSAGE_TYPE, data, sources, destinations).encodeXCallEnvelope();
     }
 
+    function createCallMessage(
+        bytes memory data,
+        string[] memory sources,
+        string[] memory destinations
+    ) internal pure returns (bytes memory) {
+        return XCallEnvelope(CALL_MESSAGE_TYPE, data, sources, destinations).encodeXCallEnvelope();
+    }
+
+    function createCallMessageWithRollback(
+        bytes memory data,
+        bytes memory rollback,
+        string[] memory sources,
+        string[] memory destinations
+    ) internal pure returns (bytes memory) {
+        Types.CallMessageWithRollback memory _msg = Types
+            .CallMessageWithRollback(data, rollback);
+
+        return
+            XCallEnvelope(
+                CALL_MESSAGE_ROLLBACK_TYPE,
+                _msg.encodeCallMessageWithRollback(),
+                sources,
+                destinations
+            ).encodeXCallEnvelope();
+    }
 }
