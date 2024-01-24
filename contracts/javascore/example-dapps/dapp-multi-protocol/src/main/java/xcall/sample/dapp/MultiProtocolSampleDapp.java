@@ -131,7 +131,11 @@ public class MultiProtocolSampleDapp implements CallServiceReceiver {
             Context.require(equals(protocols, getSources(from.net())), "invalid protocols");
 
             Context.require(!new String(_data).equals("rollback"), "failed");
-            // normal message delivery
+
+            if (new String(_data).equals("reply-response")) {
+                // response message
+                _sendCallMessage(Context.getValue(), _from, new byte[] { 1, 2, 3 }, null);
+            }
             MessageReceived(_from, _data);
         }
     }
