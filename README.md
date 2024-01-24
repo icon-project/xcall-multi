@@ -37,6 +37,10 @@ For building dapps with xcall-multi see official developer [docs](https://www.xc
    * [Java](https://github.com/icon-project/xcall-multi/tree/main/contracts/javascore/centralized-connection)
    * [Solidity](https://github.com/icon-project/xcall-multi/blob/main/contracts/evm/contracts/adapters/CentralizedConnection.sol)
    * [Rust](https://github.com/icon-project/xcall-multi/tree/main/contracts/cosmwasm-vm/cw-centralized-connection)
+* [Wormhole]()
+   * [Solidity]()
+* [LayerZero]()
+   * [Solidity]()
 
 ## Building a xcall-multi connection
 If xcall-multi is deployed, anyone can create a new connection contract to relay messages between xcall-multi contracts.
