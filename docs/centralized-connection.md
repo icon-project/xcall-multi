@@ -22,3 +22,5 @@ If used with at least a second functioning bridge protocol the implications of t
 2. Setup [centralized-relayer](https://github.com/icon-project/centralized-relay)
 
 After this, you should have a centralized connection ready, which is able to send cross chain message to interact with your application on the destination chain. 
+
+**Detailed steps on deployment can be found [here](./centralized-connection-setup.md)**
