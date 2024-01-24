@@ -102,10 +102,13 @@ contract MultiProtocolSampleDapp is Initializable, ICallServiceReceiver {
         } else {
             require(protocolsEqual(protocols, getSources(netFrom)), "invalid protocols");
             require(keccak256(data) != keccak256(abi.encodePacked("rollback")), "rollback");
+
+            if(keccak256(data) == keccak256(abi.encodePacked("reply-reponse"))) {
+                _sendCallMessage(0, from, bytes("abc"), bytes(""));
+            }
             emit MessageReceived(from, data);
         }
     }
-
 
     function protocolsEqual(string[] memory a, string[] memory b) private pure returns (bool) {
         if (a.length != b.length) {
