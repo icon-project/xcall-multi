@@ -33,14 +33,14 @@ For building dapps with xcall-multi see official developer [docs](https://www.xc
    * [Rust](https://github.com/icon-project/IBC-Integration/tree/main/contracts/cosmwasm-vm/cw-xcall-ibc-connection)
    * [Java](https://github.com/icon-project/IBC-Integration/tree/main/contracts/javascore/xcall-connection)
 * [BTP](https://github.com/icon-project/btp2) is supported natively and does not need a connection contract.
-* [Centralized Connection]()
+* Centralized Connection
    * [Java](https://github.com/icon-project/xcall-multi/tree/main/contracts/javascore/centralized-connection)
    * [Solidity](https://github.com/icon-project/xcall-multi/blob/main/contracts/evm/contracts/adapters/CentralizedConnection.sol)
    * [Rust](https://github.com/icon-project/xcall-multi/tree/main/contracts/cosmwasm-vm/cw-centralized-connection)
-* [Wormhole]()
-   * [Solidity]()
-* [LayerZero]()
-   * [Solidity]()
+* Wormhole
+   * [Solidity](https://github.com/icon-project/xcall-multi/blob/main/contracts/evm/contracts/adapters/WormholeAdapter.sol)
+* LayerZero Adapter
+   * [Solidity](https://github.com/icon-project/xcall-multi/blob/main/contracts/evm/contracts/adapters/LayerZeroAdapter.sol)
 
 ## Building a xcall-multi connection
 If xcall-multi is deployed, anyone can create a new connection contract to relay messages between xcall-multi contracts.
