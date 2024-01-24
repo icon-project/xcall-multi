@@ -8,9 +8,15 @@ pub enum ExecuteMsg {
         data: Vec<u8>,
         rollback: Option<Vec<u8>>,
     },
-    SendCall {
+    SendMessageAny {
         to: NetworkAddress,
         envelope: Envelope,
+    },
+    SendNewCallMessage {
+        to: NetworkAddress,
+        data: Vec<u8>,
+        message_type: u64,
+        rollback: Option<Vec<u8>>,
     },
     HandleCallMessage {
         from: NetworkAddress,

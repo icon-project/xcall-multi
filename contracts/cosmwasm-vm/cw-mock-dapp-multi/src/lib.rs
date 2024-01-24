@@ -49,7 +49,15 @@ pub fn execute(
                 .add_submessage(submsg)
                 .add_attribute("Action", "SendMessage"))
         }
-        ExecuteMsg::SendCall { to, envelope } => call_service.send_call(deps, info, to, envelope),
+        ExecuteMsg::SendNewCallMessage {
+            to,
+            data,
+            message_type,
+            rollback,
+        } => call_service.send_new_call_message(deps, info, to, data, message_type, rollback),
+        ExecuteMsg::SendMessageAny { to, envelope } => {
+            call_service.send_call(deps, info, to, envelope)
+        }
         ExecuteMsg::HandleCallMessage {
             from,
             data,
