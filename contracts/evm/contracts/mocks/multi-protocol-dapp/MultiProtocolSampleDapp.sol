@@ -104,7 +104,7 @@ contract MultiProtocolSampleDapp is Initializable, ICallServiceReceiver {
             require(keccak256(data) != keccak256(abi.encodePacked("rollback")), "rollback");
 
             if(keccak256(data) == keccak256(abi.encodePacked("reply-reponse"))) {
-                _sendCallMessage(0, from, bytes("abc"), bytes(""));
+                _sendCallMessage(0, from, '010203', bytes(""));
             }
             emit MessageReceived(from, data);
         }
