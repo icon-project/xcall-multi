@@ -26,7 +26,7 @@ export PROJECT_ROOT=$PWD
 Assuming you want to deploy centralized to {CHAIN_NAME} chain.
 
 ```sh
-cd $PROEJCT_ROOT/contracts/evm
+cd $PROJECT_ROOT/contracts/evm
 forge build
 cp env.example .env
 ```
@@ -40,7 +40,7 @@ Verify, the xcall address and RPC URL of {CHAIN_NAME} is correct.
 The xcall address can be verified from [here](https://github.com/icon-project/xcall-multi/wiki/xCall-Deployment-Info)
 ```env
 {CHAIN_NAME}_XCALL=
-{CHAIN_NAME}_RPC=
+{CHAIN_NAME}_RPC_URL=
 ```
 
 Now, to deploy the centralized-connection contract:
@@ -57,7 +57,10 @@ Now, to deploy the centralized-connection contract:
 ```sh
 cast send <connection_contract_address>  "setProtocolFee(string calldata networkId, uint256 messageFee, uint256 responseFee)" "0x1.icon" 10000000000000000 10000000000000000 --rpc-url <rpc_url> --private-key  <private-key>
 ```
-**Change relayer address**:
+
+**Change relayer address**: 
+
+> If you need to change the relayer address,
 
 - This can only be called by current relayer.
 ```sh
@@ -77,7 +80,7 @@ cd contracts/javascore/centralized-connection
 Update the constructor parameters in `build.gradle`. Put correct address on xCall and relayer field. 
 ```gradle
 parameters {
-    arg('_relayer', "<your-address>")
+    arg('_relayer', "<your-relayer-address>")
     arg('_xCall', "cxa07f426062a1384bdd762afa6a87d123fbc81c75")
 }
 ```
@@ -93,6 +96,8 @@ cd $PROJECT_ROOT/contracts/javascore
 
 
 2. **Using goloop**
+
+- Deploy centralized contract
 ```sh
 # fetch jarfile from release
 wget https://github.com/icon-project/xcall-multi/releases/download/v1.2.0/centralized-connection-0.1.0-optimized.jar
@@ -104,10 +109,25 @@ goloop rpc sendtx deploy centralized-connection-0.1.0-optimized.jar \
     --nid 1 \
     --step_limit 2200000000 \
     --to cx0000000000000000000000000000000000000000 \
-    --param _relayer=<relayer-address> \
+    --param _relayer=<your-relayer-address> \
     --param _xCall=<xcall-address>\
     --key_store <your_wallet_json> \
     --key_password <password>
+```
+- Set fee for centralized connection
+```sh
+goloop rpc sendtx call \
+        --uri https://ctz.solidwallet.io/api/v3 \
+        --to <centralized-connection-address> \
+        --nid 1 \
+        --method setFee \
+        --step_limit 50_000_000 \
+        --param networkId=<destination-chain-id> \
+        --param messageFee=<message-fee> \
+        --param responseFee=<response-fee> \
+        --param _data=6869206176616c616e636865212069276d206d6573736167652066726f6d2069636f6e \
+        --key_store <your_relayer_wallet_json> \
+        --key_password <relayer_password>
 ```
 
 Now, that the contracts are deployed. You are now ready to setup the relay.
