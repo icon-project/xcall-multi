@@ -635,8 +635,8 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
         string[] memory _sources
     ) external view override returns (uint256) {
         uint256 fee = protocolFee;
-        if (isReply(_net, _sources) && !_rollback) {
-            return fee;
+        if (isReply(_net, _sources)) {
+            return 0;
         }
         for (uint i = 0; i < _sources.length; i++) {
             address conn = _sources[i].parseAddress("IllegalArgument");
