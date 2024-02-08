@@ -519,26 +519,29 @@ public class CallServiceImpl implements CallService, FeeManage {
 
     private boolean verifyProtocols(String fromNid, String[] protocols, DictDB<String, Boolean> pendingDb) {
         Address caller = Context.getCaller();
-        if (protocols.length > 1) {
-            pendingDb.set(caller.toString(), true);
-            for (String protocol : protocols) {
-                if (!pendingDb.getOrDefault(protocol, false)) {
-                    return false;
-                }
-            }
-
-            for (String protocol : protocols) {
-                pendingDb.set(protocol, null);
-            }
+        if (protocols.length == 0) {
+            Context.require(caller.equals(defaultConnection.get(fromNid)), "ProtocolSourceMismatch");
+            return true;
         } else if (protocols.length == 1) {
             Context.require(caller.toString().equals(protocols[0]), "ProtocolSourceMismatch");
-        } else {
-            Context.require(caller.equals(defaultConnection.get(fromNid)), "ProtocolSourceMismatch");
+            return true;
         }
+
+
+        pendingDb.set(caller.toString(), true);
+        for (String protocol : protocols) {
+            if (!pendingDb.getOrDefault(protocol, false)) {
+                return false;
+            }
+        }
+
+        for (String protocol : protocols) {
+            pendingDb.set(protocol, null);
+        }
+
 
         return true;
     }
-
     private boolean isReply(String netId, String[] sources) {
         if (replyState != null) {
             return NetworkAddress.valueOf(replyState.getFrom()).net.equals(netId)
