@@ -484,12 +484,7 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
         Types.RollbackData memory rollback,
         Types.CSMessageRequest memory reply
     ) internal {
-        require(
-                keccak256(bytes(rollback.to)) ==
-                keccak256(bytes(reply.from.nid())),
-            "Invalid Reply"
-        );
-
+        require(rollback.to.compareTo(reply.from.nid()), "Invalid Reply");
         uint256 reqId = getNextReqId();
 
         emit CallMessage(reply.from, reply.to, reply.sn, reqId, reply.data);
@@ -650,10 +645,9 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
         string memory _net,
         string[] memory _sources
     ) internal view returns (bool) {
-        if (keccak256(bytes(replyState.from)) != keccak256(bytes(""))) {
+        if (!replyState.from.compareTo("")) {
             return
-                keccak256(bytes(replyState.from.nid())) ==
-                keccak256(bytes(_net)) &&
+                replyState.from.nid().compareTo(_net) &&
                 areArraysEqual(replyState.protocols, _sources);
         }
         return false;
@@ -668,7 +662,7 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
         }
 
         for (uint256 i = 0; i < array1.length; i++) {
-            if (keccak256(bytes(array1[i])) != keccak256(bytes(array2[i]))) {
+            if (!array1[i].compareTo(array2[i])) {
                 return false;
             }
         }
