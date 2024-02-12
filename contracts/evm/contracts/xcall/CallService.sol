@@ -224,9 +224,8 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
     }
 
     function claimProtocolFee() internal {
-        uint256 fee = this.getProtocolFee();
         uint256 balance = address(this).balance;
-        require(balance >= fee, "InsufficientBalance");
+        require(balance >= protocolFee, "InsufficientBalance");
         feeHandler.transfer(balance);
     }
 
