@@ -569,10 +569,12 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
        @param _address (Address) The address of admin
     */
     function setAdmin(address _address) external onlyAdmin {
+        require(_address != address(0), "InvalidAddress");
         adminAddress = _address;
     }
 
     function setProtocolFeeHandler(address _addr) external override onlyAdmin {
+        require(_addr != address(0), "InvalidAddress");
         feeHandler = payable(_addr);
     }
 
