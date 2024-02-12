@@ -271,12 +271,12 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
         delete proxyReqs[_reqId];
 
         string[] memory protocols = req.protocols;
-
+        address dapp = req.to.parseAddress("IllegalArgument");
         if (req.messageType == Types.CALL_MESSAGE_TYPE ) {
-            tryExecuteCall(_reqId, req.to, req.from, _data, protocols);
+            tryExecuteCall(_reqId, dapp, req.from, _data, protocols);
         } 
         else if (req.messageType == Types.PERSISTENT_MESSAGE_TYPE) {
-            this.executeMessage(address(0), req.to, req.from, _data, protocols);
+            this.executeMessage(dapp, req.from, _data, protocols);
         }
         else if (
             req.messageType == Types.CALL_MESSAGE_ROLLBACK_TYPE
@@ -284,7 +284,7 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
             replyState = req;
             int256 code = tryExecuteCall(
                 _reqId,
-                req.to,
+                dapp,
                 req.from,
                 _data,
                 protocols
@@ -316,12 +316,12 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
 
     function tryExecuteCall(
         uint256 id,
-        string memory dapp,
+        address dapp,
         string memory from,
         bytes memory data,
         string[] memory protocols
     ) private returns (int256) {
-        try this.executeMessage(address(0), dapp, from, data, protocols) {
+        try this.executeMessage(dapp, from, data, protocols) {
             emit CallExecuted(id, Types.CS_RESP_SUCCESS, "");
             return Types.CS_RESP_SUCCESS;
         } catch Error(string memory errorMessage) {
@@ -335,20 +335,16 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
 
     //  @dev To catch error
     function executeMessage(
-        address toAddr,
-        string memory to,
+        address to,
         string memory from,
         bytes memory data,
         string[] memory protocols
     ) external {
         require(msg.sender == address(this), "OnlyInternal");
-        if (toAddr == address(0)) {
-            toAddr = to.parseAddress("IllegalArgument");
-        }
         if (protocols.length == 0) {
-            IDefaultCallServiceReceiver(toAddr).handleCallMessage(from, data);
+            IDefaultCallServiceReceiver(to).handleCallMessage(from, data);
         } else {
-            ICallServiceReceiver(toAddr).handleCallMessage(
+            ICallServiceReceiver(to).handleCallMessage(
                 from,
                 data,
                 protocols
@@ -364,7 +360,6 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
 
         this.executeMessage(
             req.from,
-            "",
             networkAddress,
             req.rollback,
             req.sources
