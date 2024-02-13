@@ -635,7 +635,7 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
         string[] memory _sources
     ) external view override returns (uint256) {
         uint256 fee = protocolFee;
-        if (isReply(_net, _sources)) {
+        if (isReply(_net, _sources) && !_rollback) {
             return 0;
         }
         for (uint i = 0; i < _sources.length; i++) {
