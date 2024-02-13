@@ -288,7 +288,7 @@ public class CallServiceImpl implements CallService, FeeManage {
             _sources = new String[] {};
         }
 
-        if (isReply(_net, _sources)) {
+        if (isReply(_net, _sources) && !_rollback) {
             return BigInteger.ZERO;
         }
         if (_sources == null || _sources.length == 0) {
