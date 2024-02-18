@@ -2,7 +2,7 @@
 pragma solidity >=0.8.0;
 pragma abicoder v2;
 
-import "@iconfoundation/btp2-solidity-library/utils/RLPEncode.sol";
+import "@iconfoundation/xcall-solidity-library/utils/RLPEncode.sol";
 import "./Types.sol";
 
 library RLPEncodeStruct {

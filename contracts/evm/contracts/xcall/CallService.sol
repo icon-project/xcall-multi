@@ -8,14 +8,14 @@ import "@xcall/utils/RLPDecodeStruct.sol";
 import "@xcall/utils/RLPEncodeStruct.sol";
 import "@xcall/utils/Types.sol";
 
-import "@iconfoundation/btp2-solidity-library/interfaces/IBSH.sol";
-import "@iconfoundation/btp2-solidity-library/interfaces/ICallService.sol";
-import "@iconfoundation/btp2-solidity-library/interfaces/ICallServiceReceiver.sol";
-import "@iconfoundation/btp2-solidity-library/interfaces/IDefaultCallServiceReceiver.sol";
-import "@iconfoundation/btp2-solidity-library/utils/NetworkAddress.sol";
-import "@iconfoundation/btp2-solidity-library/utils/Integers.sol";
-import "@iconfoundation/btp2-solidity-library/utils/ParseAddress.sol";
-import "@iconfoundation/btp2-solidity-library/utils/Strings.sol";
+import "@iconfoundation/xcall-solidity-library/interfaces/IBSH.sol";
+import "@iconfoundation/xcall-solidity-library/interfaces/ICallService.sol";
+import "@iconfoundation/xcall-solidity-library/interfaces/ICallServiceReceiver.sol";
+import "@iconfoundation/xcall-solidity-library/interfaces/IDefaultCallServiceReceiver.sol";
+import "@iconfoundation/xcall-solidity-library/utils/NetworkAddress.sol";
+import "@iconfoundation/xcall-solidity-library/utils/Integers.sol";
+import "@iconfoundation/xcall-solidity-library/utils/ParseAddress.sol";
+import "@iconfoundation/xcall-solidity-library/utils/Strings.sol";
 import "openzeppelin-contracts-upgradeable/contracts/proxy/utils/Initializable.sol";
 
 

@@ -5,7 +5,7 @@ pragma abicoder v2;
 import "openzeppelin-contracts-upgradeable/contracts/proxy/utils/Initializable.sol";
 import "@xcall/utils/Types.sol";
 import "@xcall/contracts/xcall/interfaces/IConnection.sol";
-import "@iconfoundation/btp2-solidity-library/interfaces/ICallService.sol";
+import "@iconfoundation/xcall-solidity-library/interfaces/ICallService.sol";
 
 contract CentralizedConnection is Initializable, IConnection {
     mapping(string => uint256) private messageFees;
