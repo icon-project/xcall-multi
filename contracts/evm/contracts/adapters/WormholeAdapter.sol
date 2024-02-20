@@ -11,7 +11,7 @@ import "./interfaces/IWormholeAdapter.sol";
 
 import "@xcall/utils/Types.sol";
 import "@xcall/contracts/xcall/interfaces/IConnection.sol";
-import "@iconfoundation/btp2-solidity-library/interfaces/ICallService.sol";
+import "@iconfoundation/xcall-solidity-library/interfaces/ICallService.sol";
 
 /**
  * @title WormholeAdapter

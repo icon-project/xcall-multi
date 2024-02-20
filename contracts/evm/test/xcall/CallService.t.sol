@@ -7,14 +7,14 @@ import "@xcall/contracts/xcall/interfaces/IConnection.sol";
 import "@xcall/utils/Types.sol";
 import "@xcall/contracts/mocks/dapp/DAppProxySample.sol";
 
-import "@iconfoundation/btp2-solidity-library/utils/NetworkAddress.sol";
-import "@iconfoundation/btp2-solidity-library/utils/ParseAddress.sol";
-import "@iconfoundation/btp2-solidity-library/utils/Integers.sol";
-import "@iconfoundation/btp2-solidity-library/utils/Strings.sol";
+import "@iconfoundation/xcall-solidity-library/utils/NetworkAddress.sol";
+import "@iconfoundation/xcall-solidity-library/utils/ParseAddress.sol";
+import "@iconfoundation/xcall-solidity-library/utils/Integers.sol";
+import "@iconfoundation/xcall-solidity-library/utils/Strings.sol";
 
-import "@iconfoundation/btp2-solidity-library/interfaces/ICallServiceReceiver.sol";
-import "@iconfoundation/btp2-solidity-library/interfaces/IDefaultCallServiceReceiver.sol";
-import "@iconfoundation/btp2-solidity-library/interfaces/ICallService.sol";
+import "@iconfoundation/xcall-solidity-library/interfaces/ICallServiceReceiver.sol";
+import "@iconfoundation/xcall-solidity-library/interfaces/IDefaultCallServiceReceiver.sol";
+import "@iconfoundation/xcall-solidity-library/interfaces/ICallService.sol";
 
 
 contract ResponseContract {

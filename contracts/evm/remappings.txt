@@ -1,5 +1,5 @@
 @xcall/contracts/=./contracts/
-@iconfoundation/btp2-solidity-library/=./library/btp2/
+@iconfoundation/xcall-solidity-library/=./library/xcall/
 @xcall/utils/=./library/utils/
 ds-test/=lib/forge-std/lib/ds-test/src/
 erc4626-tests/=lib/openzeppelin-contracts-upgradeable/lib/erc4626-tests/

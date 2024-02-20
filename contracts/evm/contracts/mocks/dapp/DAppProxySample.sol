@@ -2,8 +2,8 @@
 pragma solidity >=0.8.0;
 pragma abicoder v2;
 
-import "@iconfoundation/btp2-solidity-library/interfaces/ICallService.sol";
-import "@iconfoundation/btp2-solidity-library/interfaces/IDefaultCallServiceReceiver.sol";
+import "@iconfoundation/xcall-solidity-library/interfaces/ICallService.sol";
+import "@iconfoundation/xcall-solidity-library/interfaces/IDefaultCallServiceReceiver.sol";
 import "openzeppelin-contracts-upgradeable/contracts/proxy/utils/Initializable.sol";
 
 
