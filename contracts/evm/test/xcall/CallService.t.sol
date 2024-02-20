@@ -21,7 +21,13 @@ contract ResponseContract {
     string public to;
     bytes public data;
 
+    function setData(string memory _to, bytes memory _data) public {
+        to = _to;
+        data = _data;
+    }
+
     function handleCallMessage(string memory _from, bytes memory _data, string[] memory protocols) public {
+        console.log("handleCallMessage");
         ICallService(msg.sender).sendCall(to, data);
     }
 }
@@ -175,7 +181,6 @@ contract CallServiceTest is Test {
 
         uint256 sn = callService.sendCallMessage{value: 0 ether}(iconDapp, data, rollbackData, _baseSource, _baseDestination);
         assertEq(sn, 1);
-
     }
 
     function testSendMessageMultiProtocol() public {
@@ -218,7 +223,7 @@ contract CallServiceTest is Test {
         vm.expectEmit();
         emit CallMessageSent(address(dapp), iconDapp, 1);
 
-        Types.CSMessageRequest memory request = Types.CSMessageRequest(iconDapp, address(dapp).toString(), 1, 2, data, _baseSource);
+        Types.CSMessageRequest memory request = Types.CSMessageRequest(iconDapp, address(dapp).toString(), 1, Types.PERSISTENT_MESSAGE_TYPE, data, _baseSource);
         Types.CSMessageResult memory result = Types.CSMessageResult(1, Types.CS_RESP_SUCCESS,request.encodeCSMessageRequest());
         Types.CSMessage memory message = Types.CSMessage(Types.CS_RESULT,result.encodeCSMessageResult());
 
@@ -241,7 +246,7 @@ contract CallServiceTest is Test {
         vm.expectEmit();
         emit CallMessageSent(address(dapp), iconDapp, 1);
 
-        Types.CSMessageRequest memory request = Types.CSMessageRequest("otherNid/0x1", address(dapp).toString(), 1, 2, data, _baseSource);
+        Types.CSMessageRequest memory request = Types.CSMessageRequest("otherNid/0x1", address(dapp).toString(), 1, Types.PERSISTENT_MESSAGE_TYPE, data, _baseSource);
         Types.CSMessageResult memory result = Types.CSMessageResult(1, Types.CS_RESP_SUCCESS,request.encodeCSMessageRequest());
         Types.CSMessage memory message = Types.CSMessage(Types.CS_RESULT,result.encodeCSMessageResult());
 
@@ -289,6 +294,107 @@ contract CallServiceTest is Test {
         vm.prank(address(dapp));
         uint256 sn = callService.sendCall{value: 0 ether}(iconDapp, _msg);
         assertEq(sn, 1);
+    }
+
+    function testSendMessageResponse() public {
+        bytes memory data = bytes("test");
+        bytes memory data2 = bytes("test2");
+
+        bytes memory _msg = Types.createPersistentMessage(data2, _baseSource, _baseDestination);
+
+        callService.setDefaultConnection(iconNid, address(baseConnection));
+
+        Types.CSMessageRequest memory request = Types.CSMessageRequest(iconDapp, address(responseContract).toString(), 1, Types.CALL_MESSAGE_ROLLBACK_TYPE, data, _baseSource);
+        Types.CSMessage memory message = Types.CSMessage(Types.CS_REQUEST,request.encodeCSMessageRequest());
+
+        vm.prank(address(baseConnection));
+        callService.handleMessage(iconNid, message.encodeCSMessage());
+
+        (string memory nid, string memory iconDappAddress) = iconDapp.parseNetworkAddress();
+
+        Types.CSMessageRequest memory expectedRequest = Types.CSMessageRequest(NetworkAddress.networkAddress(ethNid, address(responseContract).toString()), iconDappAddress, 1, Types.PERSISTENT_MESSAGE_TYPE, data2, _baseDestination);
+
+        responseContract.setData(iconDapp, _msg);
+
+        Types.CSMessageResult memory result = Types.CSMessageResult(1, Types.CS_RESP_SUCCESS,expectedRequest.encodeCSMessageRequest());
+        Types.CSMessage memory response = Types.CSMessage(Types.CS_RESULT,result.encodeCSMessageResult());
+
+        vm.expectEmit();
+        emit CallMessageSent(address(responseContract), iconDapp, 1);
+
+        vm.expectCall(address(baseConnection), abi.encodeCall(baseConnection.sendMessage, (iconNid, Types.NAME, -1, response.encodeCSMessage())));
+        callService.executeCall(1, data);
+    }
+
+    function testSendMessageResponseAnotherNetwork() public {
+        bytes memory data = bytes("test");
+        bytes memory data2 = bytes("test2");
+
+        string memory bscNid = "0x61.bsc";
+        string memory bscDapp = "bscaddress";
+
+        callService.setDefaultConnection(iconNid, address(baseConnection));
+        callService.setDefaultConnection(bscNid, address(baseConnection));
+
+        bytes memory _msg = Types.createPersistentMessage(data2, _baseSource, _baseDestination);
+
+        Types.CSMessageRequest memory request = Types.CSMessageRequest(iconDapp, address(responseContract).toString(), 1, Types.CALL_MESSAGE_ROLLBACK_TYPE, data, _baseSource);
+        Types.CSMessage memory message = Types.CSMessage(Types.CS_REQUEST,request.encodeCSMessageRequest());
+
+        vm.prank(address(baseConnection));
+        callService.handleMessage(iconNid, message.encodeCSMessage());
+
+        (string memory nid, string memory iconDappAddress) = iconDapp.parseNetworkAddress();
+
+        Types.CSMessageRequest memory expectedRequest = Types.CSMessageRequest(NetworkAddress.networkAddress(ethNid, address(responseContract).toString()), bscDapp, 1, Types.PERSISTENT_MESSAGE_TYPE, data2, _baseDestination);
+
+        responseContract.setData(NetworkAddress.networkAddress(bscNid, bscDapp), _msg);
+
+        Types.CSMessageResult memory result = Types.CSMessageResult(1, Types.CS_RESP_SUCCESS,bytes(""));
+        Types.CSMessage memory response = Types.CSMessage(Types.CS_RESULT,result.encodeCSMessageResult());
+
+        Types.CSMessage memory message2 = Types.CSMessage(Types.CS_REQUEST,expectedRequest.encodeCSMessageRequest());
+
+        vm.expectEmit();
+        emit CallMessageSent(address(responseContract), responseContract.to(), 1);
+
+        vm.expectCall(address(baseConnection), abi.encodeCall(baseConnection.sendMessage, (iconNid, Types.NAME, -1, response.encodeCSMessage())));
+        vm.expectCall(address(baseConnection), abi.encodeCall(baseConnection.sendMessage, (bscNid, Types.NAME, 0, message2.encodeCSMessage())));
+        callService.executeCall(1, data);
+    }
+
+    function testSendMessageResponseTwoWayMessage() public {
+
+        callService.setDefaultConnection(iconNid, address(baseConnection));
+
+        bytes memory data1 = bytes("test1");
+        bytes memory data2 = bytes("test2");
+
+        bytes memory _msg = Types.createCallMessageWithRollback(data2, data2, _baseSource, _baseDestination);
+
+        Types.CSMessageRequest memory request = Types.CSMessageRequest(iconDapp, address(responseContract).toString(), 1, Types.CALL_MESSAGE_ROLLBACK_TYPE, data1, _baseSource);
+        Types.CSMessage memory message = Types.CSMessage(Types.CS_REQUEST,request.encodeCSMessageRequest());
+
+        vm.prank(address(baseConnection));
+        callService.handleMessage(iconNid, message.encodeCSMessage());
+
+        (string memory nid, string memory iconDappAddress) = iconDapp.parseNetworkAddress();
+
+        Types.CSMessageRequest memory expectedRequest = Types.CSMessageRequest(NetworkAddress.networkAddress(ethNid, address(responseContract).toString()), iconDappAddress, 1, Types.CALL_MESSAGE_ROLLBACK_TYPE, data2, _baseDestination);
+
+        responseContract.setData(iconDapp, _msg);
+
+        Types.CSMessageResult memory result = Types.CSMessageResult(1, Types.CS_RESP_SUCCESS, bytes(""));
+        Types.CSMessage memory response = Types.CSMessage(Types.CS_RESULT,result.encodeCSMessageResult());
+
+        Types.CSMessage memory message2 = Types.CSMessage(Types.CS_REQUEST,expectedRequest.encodeCSMessageRequest());
+
+        vm.expectEmit();
+        emit CallMessageSent(address(responseContract), iconDapp, 1);
+
+        vm.expectCall(address(baseConnection), abi.encodeCall(baseConnection.sendMessage, (iconNid, Types.NAME, -1, response.encodeCSMessage())));
+        vm.expectCall(address(baseConnection), abi.encodeCall(baseConnection.sendMessage, (iconNid, Types.NAME, 1, message2.encodeCSMessage())));
+        callService.executeCall(1, data1);
     }
 
     function testSendMessageDefaultProtocolNotSet() public {
