@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity >=0.8.0;
 
-interface ICallService {
+interface ICallServiceV2 {
     function getNetworkAddress() external view returns (string memory);
 
     function getNetworkId() external view returns (string memory);
@@ -46,7 +46,12 @@ interface ICallService {
         string[] memory sources,
         string[] memory destinations
     ) external payable returns (uint256);
-    
+
+    function sendCall(
+        string memory _to,
+        bytes memory _data
+    ) external payable returns (uint256);
+
     /**
        @notice Notifies that the requested call message has been sent.
        @param _from The chain-specific address of the caller

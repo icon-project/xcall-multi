@@ -3,7 +3,7 @@ pragma solidity ^0.8.13;
 
 import "wormhole-solidity-sdk/testing/WormholeRelayerTest.sol";
 import "@xcall/contracts/adapters/WormholeAdapter.sol";
-import "@xcall/contracts/xcall/CallService.sol";
+import "@xcall/contracts/xcall/CallServiceV2.sol";
 import "@xcall/contracts/mocks/multi-protocol-dapp/MultiProtocolSampleDapp.sol";
 
 contract WormholeAdapterTest is WormholeRelayerBasicTest {
@@ -23,8 +23,8 @@ contract WormholeAdapterTest is WormholeRelayerBasicTest {
     MultiProtocolSampleDapp dappSource;
     MultiProtocolSampleDapp dappTarget;
 
-    CallService xCallSource;
-    CallService xCallTarget;
+    CallServiceV2 xCallSource;
+    CallServiceV2 xCallTarget;
 
     WormholeAdapter adapterSource;
     WormholeAdapter adapterTarget;
@@ -39,7 +39,7 @@ contract WormholeAdapterTest is WormholeRelayerBasicTest {
 
     function setUpSource() public override {
         console2.log("------>setting up source<-------");
-        xCallSource = new CallService();
+        xCallSource = new CallServiceV2();
         xCallSource.initialize(nidSource);
 
         dappSource = new MultiProtocolSampleDapp();
@@ -54,7 +54,7 @@ contract WormholeAdapterTest is WormholeRelayerBasicTest {
     function setUpTarget() public override {
         console2.log("------>setting up target<-------");
 
-        xCallTarget = new CallService();
+        xCallTarget = new CallServiceV2();
         xCallTarget.initialize(nidTarget);
 
         dappTarget = new MultiProtocolSampleDapp();

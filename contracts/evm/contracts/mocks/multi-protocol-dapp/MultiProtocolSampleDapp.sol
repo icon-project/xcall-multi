@@ -5,7 +5,7 @@ import "@iconfoundation/xcall-solidity-library/utils/NetworkAddress.sol";
 import "@iconfoundation/xcall-solidity-library/utils/Integers.sol";
 import "@iconfoundation/xcall-solidity-library/utils/ParseAddress.sol";
 import "@iconfoundation/xcall-solidity-library/utils/Strings.sol";
-import "@iconfoundation/xcall-solidity-library/interfaces/ICallService.sol";
+import "@iconfoundation/xcall-solidity-library/interfaces/ICallServiceV2.sol";
 import "@iconfoundation/xcall-solidity-library/interfaces/ICallServiceReceiver.sol";
 import "@xcall/utils/Types.sol";
 
@@ -81,7 +81,7 @@ contract MultiProtocolSampleDapp is Initializable, ICallServiceReceiver {
         bytes memory rollback
     ) private {
         (string memory net,) = to.parseNetworkAddress();
-        ICallService(callSvc).sendCallMessage{value: value}(to, data, rollback, getSources(net), getDestinations(net));
+        ICallServiceV2(callSvc).sendCallMessage{value: value}(to, data, rollback, getSources(net), getDestinations(net));
     }
 
     function _sendCall(
@@ -89,13 +89,13 @@ contract MultiProtocolSampleDapp is Initializable, ICallServiceReceiver {
         string memory to,
         bytes memory message
     ) private {
-        ICallService(callSvc).sendCall{value: value}(to, message);
+        ICallServiceV2(callSvc).sendCall{value: value}(to, message);
     }
 
 
     function handleCallMessage(string memory from, bytes memory data, string[] memory protocols) external onlyCallService {
         (string memory netFrom,) = from.parseNetworkAddress();
-        string memory rollbackAddress = ICallService(callSvc).getNetworkAddress();
+        string memory rollbackAddress = ICallServiceV2(callSvc).getNetworkAddress();
 
         if (from.compareTo(rollbackAddress)) {
             return;

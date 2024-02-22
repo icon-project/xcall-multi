@@ -26,6 +26,19 @@ library RLPDecodeStruct {
             );
     }
 
+    function decodeCSMessageResponse(bytes memory _rlp)
+        internal
+        pure
+    returns (Types.CSMessageResponse memory)
+    {
+        RLPDecode.RLPItem[] memory ls = _rlp.toRlpItem().toList();
+        return
+        Types.CSMessageResponse(
+            ls[0].toUint(),
+            int(ls[1].toInt())
+        );
+    }
+
     function toStringArray(
         RLPDecode.RLPItem memory item
     ) internal pure returns (string[] memory) {
@@ -37,12 +50,29 @@ library RLPDecodeStruct {
         return protocols;
     }
 
-    function decodeCSMessageRequest(
-        bytes memory _rlp
-    ) internal pure returns (Types.CSMessageRequest memory) {
+    function decodeCSMessageRequest(bytes memory _rlp)
+        internal
+        pure
+    returns (Types.CSMessageRequest memory)
+    {
         RLPDecode.RLPItem[] memory ls = _rlp.toRlpItem().toList();
         return
-            Types.CSMessageRequest(
+        Types.CSMessageRequest(
+            string(ls[0].toBytes()),
+            string(ls[1].toBytes()),
+            ls[2].toUint(),
+            ls[3].toBoolean(),
+            ls[4].toBytes(),
+            toStringArray(ls[5])
+        );
+    }
+
+    function decodeCSMessageRequestV2(
+        bytes memory _rlp
+    ) internal pure returns (Types.CSMessageRequestV2 memory) {
+        RLPDecode.RLPItem[] memory ls = _rlp.toRlpItem().toList();
+        return
+            Types.CSMessageRequestV2(
                 string(ls[0].toBytes()),
                 string(ls[1].toBytes()),
                 ls[2].toUint(),
