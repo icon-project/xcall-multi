@@ -18,7 +18,7 @@ import "@iconfoundation/xcall-solidity-library/utils/ParseAddress.sol";
 import "@iconfoundation/xcall-solidity-library/utils/Strings.sol";
 import "openzeppelin-contracts-upgradeable/contracts/proxy/utils/Initializable.sol";
 
-
+/// @custom:oz-upgrades-from contracts/xcall/CallServiceV1.sol:CallServiceV1
 contract CallService is IBSH, ICallService, IFeeManage, Initializable {
     using Strings for string;
     using Integers for uint;
@@ -26,8 +26,10 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
     using ParseAddress for string;
     using NetworkAddress for string;
     using RLPEncodeStruct for Types.CSMessage;
-    using RLPEncodeStruct for Types.CSMessageRequest;
-    using RLPEncodeStruct for Types.CSMessageResponse;
+    using RLPEncodeStruct for Types.CSMessageRequestV2;
+    using RLPEncodeStruct for Types.CSMessageResult;
+    using RLPEncodeStruct for Types.CallMessageWithRollback;
+    using RLPEncodeStruct for Types.XCallEnvelope;
     using RLPDecodeStruct for bytes;
 
     uint256 private constant MAX_DATA_SIZE = 2048;
@@ -38,7 +40,14 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
     uint256 private lastReqId;
     uint256 private protocolFee;
 
+    /**
+     * Legacy Code, replaced by rollbacks in V2
+     */
     mapping(uint256 => Types.CallRequest) private requests;
+
+    /**
+     * Legacy Code, replaced by proxyReqsV2 in V2
+     */
     mapping(uint256 => Types.ProxyRequest) private proxyReqs;
 
     mapping(uint256 => bool) private successfulResponses;
@@ -52,6 +61,12 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
     address private adminAddress;
     address payable private feeHandler;
 
+    mapping(uint256 => Types.RollbackData) private rollbacks;
+    mapping(uint256 => Types.ProxyRequestV2) private proxyReqsV2;
+
+    bytes private callReply;
+    Types.ProxyRequestV2 private replyState;
+
     modifier onlyOwner() {
         require(msg.sender == owner, "OnlyOwner");
         _;
@@ -62,9 +77,7 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
         _;
     }
 
-    function initialize(
-        string memory _nid
-    ) public initializer {
+    function initialize(string memory _nid) public initializer {
         owner = msg.sender;
         adminAddress = msg.sender;
         nid = _nid;
@@ -72,42 +85,35 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
     }
 
     /* Implementation-specific external */
-    function getNetworkAddress(
-    ) external view override returns (
-        string memory
-    ) {
+    function getNetworkAddress()
+        external
+        view
+        override
+        returns (string memory)
+    {
         return networkAddress;
     }
 
-    function getNetworkId(
-    ) external view override returns (
-        string memory
-    ) {
+    function getNetworkId() external view override returns (string memory) {
         return nid;
     }
 
-    function checkService(
-        string calldata _svc
-    ) internal pure {
+    function checkService(string calldata _svc) internal pure {
         require(Types.NAME.compareTo(_svc), "InvalidServiceName");
     }
 
-    function getNextSn(
-    ) internal returns (uint256) {
+    function getNextSn() internal returns (uint256) {
         lastSn = lastSn + 1;
         return lastSn;
     }
 
-    function getNextReqId(
-    ) internal returns (uint256) {
+    function getNextReqId() internal returns (uint256) {
         lastReqId = lastReqId + 1;
         return lastReqId;
     }
 
-    function cleanupCallRequest(
-        uint256 sn
-    ) internal {
-        delete requests[sn];
+    function cleanupCallRequest(uint256 sn) internal {
+        delete rollbacks[sn];
     }
 
     function sendCallMessage(
@@ -116,155 +122,249 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
         bytes memory _rollback,
         string[] memory sources,
         string[] memory destinations
-    ) external payable override returns (
-        uint256
-    ) {
+    ) external payable override returns (uint256) {
         return _sendCallMessage(_to, _data, _rollback, sources, destinations);
     }
-
 
     function sendCallMessage(
         string memory _to,
         bytes memory _data,
         bytes memory _rollback
-    ) external payable override returns (
-        uint256
-    ) {
+    ) external payable override returns (uint256) {
         string[] memory src;
         string[] memory dst;
         return _sendCallMessage(_to, _data, _rollback, src, dst);
     }
 
-     function _sendCallMessage(
+    function sendCall(
+        string memory _to,
+        bytes memory _data
+    ) public payable returns (uint256) {
+        address caller = msg.sender;
+        Types.XCallEnvelope memory envelope = _data.decodeXCallEnvelope();
+        uint256 sn = getNextSn();
+        Types.ProcessResult memory result = preProcessMessage(
+            sn,
+            _to,
+            envelope
+        );
+
+        string memory from = nid.networkAddress(caller.toString());
+
+        (string memory netTo, string memory dstAccount) = _to
+            .parseNetworkAddress();
+
+        Types.CSMessageRequestV2 memory req = Types.CSMessageRequestV2(
+            from,
+            dstAccount,
+            sn,
+            envelope.messageType,
+            result.data,
+            envelope.destinations
+        );
+
+        bytes memory _msg = req.encodeCSMessageRequestV2();
+        require(_msg.length <= MAX_DATA_SIZE, "MaxDataSizeExceeded");
+
+        if (isReply(netTo, envelope.sources) && !result.needResponse) {
+            delete replyState;
+            callReply = _msg;
+        } else {
+            uint256 sendSn = result.needResponse ? sn : 0;
+
+            sendMessage(
+                envelope.sources,
+                netTo,
+                Types.CS_REQUEST,
+                int(sendSn),
+                _msg
+            );
+            claimProtocolFee();
+        }
+        emit CallMessageSent(caller, _to, sn);
+        return sn;
+    }
+
+    function sendMessage(
+        string[] memory sources,
+        string memory netTo,
+        int msgType,
+        int256 sn,
+        bytes memory data
+    ) private {
+        if (sources.length == 0) {
+            address conn = defaultConnections[netTo];
+            require(conn != address(0), "NoDefaultConnection");
+            uint256 requiredFee = _getFee(conn, netTo, sn);
+            sendToConnection(conn, requiredFee, netTo, msgType, sn, data);
+        } else {
+            for (uint i = 0; i < sources.length; i++) {
+                address conn = sources[i].parseAddress("IllegalArgument");
+                uint256 requiredFee = _getFee(conn, netTo, sn);
+                sendToConnection(conn, requiredFee, netTo, msgType, sn, data);
+            }
+        }
+    }
+
+    function preProcessMessage(
+        uint256 sn,
+        string memory to,
+        Types.XCallEnvelope memory envelope
+    ) internal returns (Types.ProcessResult memory) {
+        int envelopeType = envelope.messageType;
+        if (
+            envelopeType == Types.CALL_MESSAGE_TYPE ||
+            envelopeType == Types.PERSISTENT_MESSAGE_TYPE
+        ) {
+            return Types.ProcessResult(false, envelope.message);
+        } else if (envelopeType == Types.CALL_MESSAGE_ROLLBACK_TYPE) {
+            address caller = msg.sender;
+            Types.CallMessageWithRollback memory _msg = envelope
+                .message
+                .decodeCallMessageWithRollback();
+            require(msg.sender.code.length > 0, "RollbackNotPossible");
+            Types.RollbackData memory req = Types.RollbackData(
+                caller,
+                to.nid(),
+                envelope.sources,
+                _msg.rollback,
+                false
+            );
+            rollbacks[sn] = req;
+            return Types.ProcessResult(true, _msg.data);
+        }
+        revert("Message type is not supported");
+    }
+
+    function claimProtocolFee() internal {
+        uint256 balance = address(this).balance;
+        require(balance >= protocolFee, "InsufficientBalance");
+        feeHandler.transfer(balance);
+    }
+
+    function _sendCallMessage(
         string memory _to,
         bytes memory _data,
         bytes memory _rollback,
         string[] memory sources,
         string[] memory destinations
-    ) internal returns (
-        uint256
-    ) {
-        // check if caller is a contract or rollback data is null in case of EOA
-        require(msg.sender.code.length > 0 || _rollback.length == 0, "RollbackNotPossible");
+    ) internal returns (uint256) {
+        int msgType;
 
-        // check size of payloads to avoid abusing
-        require(_rollback.length <= MAX_ROLLBACK_SIZE, "MaxRollbackSizeExceeded");
+        Types.XCallEnvelope memory envelope;
 
-        bool needResponse = _rollback.length > 0;
-        (string memory netTo, string memory dstAccount) = _to.parseNetworkAddress();
-        string memory from = nid.networkAddress(msg.sender.toString());
-        uint256 sn = getNextSn();
-        int256 msgSn = 0;
-        if (needResponse) {
-            requests[sn] = Types.CallRequest(msg.sender, netTo, sources, _rollback, false);
-            msgSn = int256(sn);
-        }
-        Types.CSMessageRequest memory reqMsg = Types.CSMessageRequest(
-            from, dstAccount, sn, needResponse, _data, destinations);
-        bytes memory _msg = reqMsg.encodeCSMessageRequest();
-        require(_msg.length <= MAX_DATA_SIZE, "MaxDataSizeExceeded");
-
-        if (sources.length == 0) {
-            address conn = defaultConnections[netTo];
-            require(conn != address(0), "NoDefaultConnection");
-            uint256 requiredFee = IConnection(conn).getFee(netTo, needResponse);
-            sendBTPMessage(conn, requiredFee, netTo, Types.CS_REQUEST, msgSn, _msg);
+        if (_rollback.length == 0) {
+            Types.CallMessage memory _msg = Types.CallMessage(_data);
+            envelope = Types.XCallEnvelope(
+                Types.CALL_MESSAGE_TYPE,
+                _msg.data,
+                sources,
+                destinations
+            );
         } else {
-            for (uint i = 0; i < sources.length; i++) {
-                address conn = sources[i].parseAddress("IllegalArgument");
-                uint256 requiredFee = IConnection(conn).getFee(netTo, needResponse);
-                sendBTPMessage(conn, requiredFee, netTo, Types.CS_REQUEST, msgSn, _msg);
-            }
+            Types.CallMessageWithRollback memory _msg = Types
+                .CallMessageWithRollback(_data, _rollback);
+
+            envelope = Types.XCallEnvelope(
+                Types.CALL_MESSAGE_ROLLBACK_TYPE,
+                _msg.encodeCallMessageWithRollback(),
+                sources,
+                destinations
+            );
         }
 
-        // handle protocol fee
-        if (feeHandler != address(0) && address(this).balance > 0) {
-            // we trust fee handler, it should just accept the protocol fee and return
-            // assume that no reentrant cases occur here
-            feeHandler.transfer(address(this).balance);
-        }
-
-        emit CallMessageSent(msg.sender, _to, sn);
-
-        return sn;
+        return sendCall(_to, envelope.encodeXCallEnvelope());
     }
 
-    function executeCall(
-        uint256 _reqId,
-        bytes memory _data
-    ) external override {
-        Types.ProxyRequest memory msgReq = proxyReqs[_reqId];
-        require(bytes(msgReq.from).length > 0, "InvalidRequestId");
-        require(msgReq.hash == keccak256(_data), "DataHashMismatch");
+    function executeCall(uint256 _reqId, bytes memory _data) external override {
+        Types.ProxyRequestV2 memory req = proxyReqsV2[_reqId];
+        require(bytes(req.from).length > 0, "InvalidRequestId");
+        require(req.hash == keccak256(_data), "DataHashMismatch");
         // cleanup
-        delete proxyReqs[_reqId];
+        delete proxyReqsV2[_reqId];
 
-        string memory netFrom = msgReq.from.nid();
-        Types.CSMessageResponse memory msgRes;
-        string memory errorMessage = "";
-        try this.tryHandleCallMessage(
-            address(0),
-            msgReq.to,
-            msgReq.from,
-            _data,
-            msgReq.protocols
-        ) {
-            msgRes = Types.CSMessageResponse(msgReq.sn, Types.CS_RESP_SUCCESS);
-        } catch Error(string memory reason) {
-            msgRes = Types.CSMessageResponse(msgReq.sn, Types.CS_RESP_FAILURE);
-            errorMessage = reason;
-        } catch (bytes memory) {
-            msgRes = Types.CSMessageResponse(msgReq.sn, Types.CS_RESP_FAILURE);
-            errorMessage = "unknownError";
-        }
-        emit CallExecuted(_reqId, msgRes.code, errorMessage);
+        string[] memory protocols = req.protocols;
+        address dapp = req.to.parseAddress("IllegalArgument");
+        if (req.messageType == Types.CALL_MESSAGE_TYPE) {
+            tryExecuteCall(_reqId, dapp, req.from, _data, protocols);
+        } else if (req.messageType == Types.PERSISTENT_MESSAGE_TYPE) {
+            this.executeMessage(dapp, req.from, _data, protocols);
+        } else if (req.messageType == Types.CALL_MESSAGE_ROLLBACK_TYPE) {
+            replyState = req;
+            int256 code = tryExecuteCall(
+                _reqId,
+                dapp,
+                req.from,
+                _data,
+                protocols
+            );
+            delete replyState;
 
-        // send response only when there was a rollback
-        if (msgReq.rollback) {
-            if (msgReq.protocols.length == 0) {
-                address conn = defaultConnections[netFrom];
-                sendBTPMessage(conn, 0, netFrom, Types.CS_RESPONSE, int256(msgReq.sn) * - 1, msgRes.encodeCSMessageResponse());
-
-            } else {
-                for (uint i = 0; i < msgReq.protocols.length; i++) {
-                    address conn = msgReq.protocols[i].parseAddress("IllegalArgument");
-                    sendBTPMessage(conn, 0, netFrom, Types.CS_RESPONSE, int256(msgReq.sn) * - 1, msgRes.encodeCSMessageResponse());
-                }
+            bytes memory message;
+            if (callReply.length > 0 && code == Types.CS_RESP_SUCCESS) {
+                message = callReply;
+                delete callReply;
             }
+            Types.CSMessageResult memory response = Types.CSMessageResult(
+                req.sn,
+                code,
+                message
+            );
 
+            sendMessage(
+                protocols,
+                req.from.nid(),
+                Types.CS_RESULT,
+                int256(req.sn) * -1,
+                response.encodeCSMessageResult()
+            );
+        } else {
+            revert("Message type is not yet supported");
+        }
+    }
+
+    function tryExecuteCall(
+        uint256 id,
+        address dapp,
+        string memory from,
+        bytes memory data,
+        string[] memory protocols
+    ) private returns (int256) {
+        try this.executeMessage(dapp, from, data, protocols) {
+            emit CallExecuted(id, Types.CS_RESP_SUCCESS, "");
+            return Types.CS_RESP_SUCCESS;
+        } catch Error(string memory errorMessage) {
+            emit CallExecuted(id, Types.CS_RESP_FAILURE, errorMessage);
+            return Types.CS_RESP_FAILURE;
+        } catch (bytes memory) {
+            emit CallExecuted(id, Types.CS_RESP_FAILURE, "unknownError");
+            return Types.CS_RESP_FAILURE;
         }
     }
 
     //  @dev To catch error
-    function tryHandleCallMessage(
-        address toAddr,
-        string memory to,
+    function executeMessage(
+        address to,
         string memory from,
         bytes memory data,
         string[] memory protocols
     ) external {
         require(msg.sender == address(this), "OnlyInternal");
-        if (toAddr == address(0)) {
-            toAddr = to.parseAddress("IllegalArgument");
-        }
         if (protocols.length == 0) {
-            IDefaultCallServiceReceiver(toAddr).handleCallMessage(from, data);
+            IDefaultCallServiceReceiver(to).handleCallMessage(from, data);
         } else {
-            ICallServiceReceiver(toAddr).handleCallMessage(from, data, protocols);
+            ICallServiceReceiver(to).handleCallMessage(from, data, protocols);
         }
     }
 
-    function executeRollback(
-        uint256 _sn
-    ) external override {
-        Types.CallRequest memory req = requests[_sn];
+    function executeRollback(uint256 _sn) external override {
+        Types.RollbackData memory req = rollbacks[_sn];
         require(req.from != address(0), "InvalidSerialNum");
         require(req.enabled, "RollbackNotEnabled");
         cleanupCallRequest(_sn);
 
-        this.tryHandleCallMessage(
+        this.executeMessage(
             req.from,
-            "",
             networkAddress,
             req.rollback,
             req.sources
@@ -294,6 +394,7 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
         checkService(_svc);
         handleError(_sn);
     }
+
     /* ========================================= */
 
     function handleMessage(
@@ -304,8 +405,8 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
         Types.CSMessage memory csMsg = _msg.decodeCSMessage();
         if (csMsg.msgType == Types.CS_REQUEST) {
             handleRequest(_from, csMsg.payload);
-        } else if (csMsg.msgType == Types.CS_RESPONSE) {
-            handleResponse(csMsg.payload.decodeCSMessageResponse());
+        } else if (csMsg.msgType == Types.CS_RESULT) {
+            handleResult(csMsg.payload.decodeCSMessageResult());
         } else {
             string memory errMsg = string("UnknownMsgType(")
                 .concat(uint(csMsg.msgType).toString())
@@ -314,16 +415,13 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
         }
     }
 
-    function handleError(
-        uint256 _sn
-    ) public override {
-        handleResponse(Types.CSMessageResponse(
-            _sn,
-            Types.CS_RESP_FAILURE
-        ));
+    function handleError(uint256 _sn) public override {
+        handleResult(
+            Types.CSMessageResult(_sn, Types.CS_RESP_FAILURE, bytes(""))
+        );
     }
 
-    function sendBTPMessage(
+    function sendToConnection(
         address connection,
         uint256 value,
         string memory netTo,
@@ -335,10 +433,7 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
             netTo,
             Types.NAME,
             sn,
-            Types.CSMessage(
-                msgType,
-                msgPayload
-            ).encodeCSMessage()
+            Types.CSMessage(msgType, msgPayload).encodeCSMessage()
         );
     }
 
@@ -346,9 +441,10 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
         string memory netFrom,
         bytes memory msgPayload
     ) internal {
-        Types.CSMessageRequest memory req = msgPayload.decodeCSMessageRequest();
+        Types.CSMessageRequestV2 memory req = msgPayload
+            .decodeCSMessageRequestV2();
         string memory fromNID = req.from.nid();
-        require(netFrom.compareTo(fromNID),"Invalid NID");
+        require(netFrom.compareTo(fromNID), "Invalid NID");
 
         bytes32 dataHash = keccak256(req.data);
         if (req.protocols.length > 1) {
@@ -358,22 +454,24 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
                     return;
                 }
             }
-
             for (uint i = 0; i < req.protocols.length; i++) {
                 delete pendingReqs[dataHash][req.protocols[i]];
             }
         } else if (req.protocols.length == 1) {
-            require(msg.sender == req.protocols[0].parseAddress("IllegalArgument"), "NotAuthorized");
+            require(
+                msg.sender == req.protocols[0].parseAddress("IllegalArgument"),
+                "NotAuthorized"
+            );
         } else {
             require(msg.sender == defaultConnections[fromNID], "NotAuthorized");
         }
-
         uint256 reqId = getNextReqId();
-        proxyReqs[reqId] = Types.ProxyRequest(
+
+        proxyReqsV2[reqId] = Types.ProxyRequestV2(
             req.from,
             req.to,
             req.sn,
-            req.rollback,
+            req.messageType,
             dataHash,
             req.protocols
         );
@@ -381,48 +479,71 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
         emit CallMessage(req.from, req.to, req.sn, reqId, req.data);
     }
 
-    function handleResponse(
-        Types.CSMessageResponse memory res
+    function handleReply(
+        Types.RollbackData memory rollback,
+        Types.CSMessageRequestV2 memory reply
     ) internal {
-        Types.CallRequest memory req = requests[res.sn];
-        if (req.from == address(0)) {
-            return;
-        }
+        require(rollback.to.compareTo(reply.from.nid()), "Invalid Reply");
+        uint256 reqId = getNextReqId();
 
-        if (req.sources.length > 1) {
+        emit CallMessage(reply.from, reply.to, reply.sn, reqId, reply.data);
+
+        proxyReqsV2[reqId] = Types.ProxyRequestV2(
+            reply.from,
+            reply.to,
+            reply.sn,
+            reply.messageType,
+            keccak256(reply.data),
+            rollback.sources
+        );
+    }
+
+    function handleResult(Types.CSMessageResult memory res) internal {
+        Types.RollbackData memory rollback = rollbacks[res.sn];
+        require(rollback.from != address(0), "CallRequestNotFound");
+
+        if (rollback.sources.length > 1) {
             pendingResponses[res.sn][msg.sender.toString()] = true;
-            for (uint i = 0; i < req.sources.length; i++) {
-                if (!pendingResponses[res.sn][req.sources[i]]) {
+            for (uint i = 0; i < rollback.sources.length; i++) {
+                if (!pendingResponses[res.sn][rollback.sources[i]]) {
                     return;
                 }
             }
 
-            for (uint i = 0; i < req.sources.length; i++) {
-                delete pendingResponses[res.sn][req.sources[i]];
+            for (uint i = 0; i < rollback.sources.length; i++) {
+                delete pendingResponses[res.sn][rollback.sources[i]];
             }
-        } else if (req.sources.length == 1) {
-            require(msg.sender == req.sources[0].parseAddress("IllegalArgument"), "NotAuthorized");
+        } else if (rollback.sources.length == 1) {
+            require(
+                msg.sender ==
+                    rollback.sources[0].parseAddress("IllegalArgument"),
+                "NotAuthorized"
+            );
         } else {
-            require(msg.sender == defaultConnections[req.to], "NotAuthorized");
+            require(
+                msg.sender == defaultConnections[rollback.to],
+                "NotAuthorized"
+            );
         }
 
         emit ResponseMessage(res.sn, res.code);
         if (res.code == Types.CS_RESP_SUCCESS) {
             cleanupCallRequest(res.sn);
+            if (res.message.length > 0) {
+                handleReply(rollback, res.message.decodeCSMessageRequestV2());
+            }
             successfulResponses[res.sn] = true;
         } else {
             //emit rollback event
-            require(req.rollback.length > 0, "NoRollbackData");
-            req.enabled = true;
-            requests[res.sn] = req;
+            require(rollback.rollback.length > 0, "NoRollbackData");
+            rollback.enabled = true;
+            rollbacks[res.sn] = rollback;
+
             emit RollbackMessage(res.sn);
         }
     }
 
-    function _admin(
-    ) internal view returns (
-        address
-    ) {
+    function _admin() internal view returns (address) {
         if (adminAddress == address(0)) {
             return owner;
         }
@@ -433,10 +554,7 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
        @notice Gets the address of admin
        @return (Address) the address of admin
     */
-    function admin(
-    ) external view returns (
-        address
-    ) {
+    function admin() external view returns (address) {
         return _admin();
     }
 
@@ -445,44 +563,39 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
        @dev Only the owner wallet can invoke this.
        @param _address (Address) The address of admin
     */
-    function setAdmin(
-        address _address
-    ) external onlyAdmin {
+    function setAdmin(address _address) external onlyAdmin {
+        require(_address != address(0), "InvalidAddress");
         adminAddress = _address;
     }
 
-    function setProtocolFeeHandler(
-        address _addr
-    ) external override onlyAdmin {
+    function setProtocolFeeHandler(address _addr) external override onlyAdmin {
+        require(_addr != address(0), "InvalidAddress");
         feeHandler = payable(_addr);
     }
 
-    function getProtocolFeeHandler(
-    ) external view override returns (
-        address
-    ) {
+    function getProtocolFeeHandler() external view override returns (address) {
         return feeHandler;
     }
 
-    function setDefaultConnection(string memory _nid, address connection) external onlyAdmin {
+    function setDefaultConnection(
+        string memory _nid,
+        address connection
+    ) external onlyAdmin {
         defaultConnections[_nid] = connection;
     }
 
-    function getDefaultConnection(string memory _nid) external view returns (address) {
+    function getDefaultConnection(
+        string memory _nid
+    ) external view returns (address) {
         return defaultConnections[_nid];
     }
 
-    function setProtocolFee(
-        uint256 _value
-    ) external override onlyAdmin {
+    function setProtocolFee(uint256 _value) external override onlyAdmin {
         require(_value >= 0, "ValueShouldBePositive");
         protocolFee = _value;
     }
 
-    function getProtocolFee(
-    ) external view override returns (
-        uint256
-    ) {
+    function getProtocolFee() external view override returns (uint256) {
         return protocolFee;
     }
 
@@ -490,18 +603,25 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
         address connection,
         string memory _net,
         bool _rollback
-    ) internal view returns (
-        uint256
-    ) {
+    ) internal view returns (uint256) {
         return IConnection(connection).getFee(_net, _rollback);
+    }
+
+    function _getFee(
+        address connection,
+        string memory _net,
+        int256 sn
+    ) internal view returns (uint256) {
+        if (sn < 0) {
+            return 0;
+        }
+        return IConnection(connection).getFee(_net, sn > 0);
     }
 
     function getFee(
         string memory _net,
         bool _rollback
-    ) external view override returns (
-        uint256
-    ) {
+    ) external view override returns (uint256) {
         return protocolFee + _getFee(defaultConnections[_net], _net, _rollback);
     }
 
@@ -509,16 +629,46 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
         string memory _net,
         bool _rollback,
         string[] memory _sources
-    ) external view override returns (
-        uint256
-    ) {
+    ) external view override returns (uint256) {
         uint256 fee = protocolFee;
+        if (isReply(_net, _sources) && !_rollback) {
+            return 0;
+        }
         for (uint i = 0; i < _sources.length; i++) {
             address conn = _sources[i].parseAddress("IllegalArgument");
             fee = fee + _getFee(conn, _net, _rollback);
         }
 
         return fee;
+    }
+
+    function isReply(
+        string memory _net,
+        string[] memory _sources
+    ) internal view returns (bool) {
+        if (!replyState.from.compareTo("")) {
+            return
+                replyState.from.nid().compareTo(_net) &&
+                areArraysEqual(replyState.protocols, _sources);
+        }
+        return false;
+    }
+
+    function areArraysEqual(
+        string[] memory array1,
+        string[] memory array2
+    ) internal pure returns (bool) {
+        if (array1.length != array2.length) {
+            return false;
+        }
+
+        for (uint256 i = 0; i < array1.length; i++) {
+            if (!array1[i].compareTo(array2[i])) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     function verifySuccess(uint256 _sn) external view returns (bool) {

@@ -2,7 +2,7 @@
 pragma solidity ^0.8.13;
 
 import "forge-std/Test.sol";
-import "@xcall/contracts/xcall/CallServiceV2.sol";
+import "@xcall/contracts/xcall/CallService.sol";
 import "@xcall/contracts/xcall/interfaces/IConnection.sol";
 import "@xcall/utils/Types.sol";
 import "@xcall/contracts/mocks/dapp/DAppProxySample.sol";
@@ -14,7 +14,7 @@ import "@iconfoundation/xcall-solidity-library/utils/Strings.sol";
 
 import "@iconfoundation/xcall-solidity-library/interfaces/ICallServiceReceiver.sol";
 import "@iconfoundation/xcall-solidity-library/interfaces/IDefaultCallServiceReceiver.sol";
-import "@iconfoundation/xcall-solidity-library/interfaces/ICallServiceV2.sol";
+import "@iconfoundation/xcall-solidity-library/interfaces/ICallService.sol";
 
 
 contract ResponseContract {
@@ -28,12 +28,12 @@ contract ResponseContract {
 
     function handleCallMessage(string memory _from, bytes memory _data, string[] memory protocols) public {
         console.log("handleCallMessage");
-        ICallServiceV2(msg.sender).sendCall(to, data);
+        ICallService(msg.sender).sendCall(to, data);
     }
 }
 
 contract CallServiceTest is Test {
-    CallServiceV2 public callService;
+    CallService public callService;
     DAppProxySample public dapp;
     ResponseContract public responseContract;
 
@@ -118,7 +118,7 @@ contract CallServiceTest is Test {
         _baseDestination[0] = baseIconConnection;
         vm.mockCall(address(baseConnection), abi.encodeWithSelector(baseConnection.getFee.selector), abi.encode(0));
 
-        callService = new CallServiceV2();
+        callService = new CallService();
         callService.initialize(ethNid);
 
         responseContract = new ResponseContract();

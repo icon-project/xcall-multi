@@ -4,7 +4,7 @@ pragma solidity ^0.8.13;
 import {Test, console2} from "forge-std/Test.sol";
 import {LZEndpointMock} from "@lz-contracts/mocks/LZEndpointMock.sol";
 import "@xcall/contracts/adapters/LayerZeroAdapter.sol";
-import "@xcall/contracts/xcall/CallServiceV2.sol";
+import "@xcall/contracts/xcall/CallService.sol";
 import "@xcall/contracts/mocks/multi-protocol-dapp/MultiProtocolSampleDapp.sol";
 
 
@@ -31,8 +31,8 @@ contract LayerZeroAdapterTest is Test {
     MultiProtocolSampleDapp dappSource;
     MultiProtocolSampleDapp dappTarget;
 
-    CallServiceV2 xCallSource;
-    CallServiceV2 xCallTarget;
+    CallService xCallSource;
+    CallService xCallTarget;
 
     LayerZeroAdapter adapterSource;
     LayerZeroAdapter adapterTarget;
@@ -46,7 +46,7 @@ contract LayerZeroAdapterTest is Test {
 
     function _setupSource() internal {
         console2.log("------>setting up source<-------");
-        xCallSource = new CallServiceV2();
+        xCallSource = new CallService();
         xCallSource.initialize(nidSource);
 
         dappSource = new MultiProtocolSampleDapp();
@@ -61,7 +61,7 @@ contract LayerZeroAdapterTest is Test {
     function _setupTarget() internal {
         console2.log("------>setting up target<-------");
 
-        xCallTarget = new CallServiceV2();
+        xCallTarget = new CallService();
         xCallTarget.initialize(nidTarget);
 
         dappTarget = new MultiProtocolSampleDapp();
