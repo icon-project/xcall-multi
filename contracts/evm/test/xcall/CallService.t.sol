@@ -268,7 +268,7 @@ contract CallServiceTest is Test {
         vm.expectEmit();
         emit CallMessageSent(address(dapp), iconDapp, 1);
 
-        Types.CSMessageRequestV2 memory request = Types.CSMessageRequestV2(ethDappAddress, dstAccount, 1, 2, data, new string[](0));
+        Types.CSMessageRequestV2 memory request = Types.CSMessageRequestV2(ethDappAddress, dstAccount, 1, 1, data, new string[](0));
         Types.CSMessage memory message = Types.CSMessage(Types.CS_REQUEST,request.encodeCSMessageRequestV2());
         vm.expectCall(address(baseConnection), abi.encodeCall(baseConnection.sendMessage, (iconNid, Types.NAME, 1, message.encodeCSMessage())));
 
