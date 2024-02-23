@@ -90,7 +90,7 @@ public class CallServiceTest extends TestBase {
         xcall.invoke(dapp.account, "sendCallMessage", ethDapp.toString(), data, null, baseSource, baseDestination);
 
         // Assert
-        CSMessageRequest request = new CSMessageRequest(iconDappAddress.toString(), ethDapp.account.toString(), BigInteger.ONE, 1, data, baseDestination);
+        CSMessageRequest request = new CSMessageRequest(iconDappAddress.toString(), ethDapp.account.toString(), BigInteger.ONE, 0, data, baseDestination);
 
         CSMessage msg = new CSMessage(CSMessage.REQUEST, request.toBytes());
         verify(baseConnection.mock).sendMessage(eq(ethNid), eq(CallService.NAME), eq(BigInteger.ZERO), aryEq(msg.toBytes()));
@@ -139,7 +139,7 @@ public class CallServiceTest extends TestBase {
         xcall.invoke(dapp.account, "sendCallMessage", ethDapp.toString(), data, null, sources, destinations);
 
         // Assert
-        CSMessageRequest request = new CSMessageRequest(iconDappAddress.toString(), ethDapp.account.toString(), BigInteger.ONE, 1, data, destinations);
+        CSMessageRequest request = new CSMessageRequest(iconDappAddress.toString(), ethDapp.account.toString(), BigInteger.ONE, 0, data, destinations);
         CSMessage msg = new CSMessage(CSMessage.REQUEST, request.toBytes());
         verify(connection1.mock).sendMessage(eq(ethNid), eq(CallService.NAME), eq(BigInteger.ZERO), aryEq(msg.toBytes()));
         verify(connection2.mock).sendMessage(eq(ethNid), eq(CallService.NAME), eq(BigInteger.ZERO), aryEq(msg.toBytes()));
@@ -453,7 +453,7 @@ public class CallServiceTest extends TestBase {
         MockContract<Connection>  connection2 = new MockContract<>(ConnectionScoreInterface.class, Connection.class, sm, owner);
         String[] connections = {connection1.getAddress().toString(), connection2.getAddress().toString()};
 
-        CSMessageRequest request = new CSMessageRequest(ethDapp.toString(), dapp.getAddress().toString(), BigInteger.ONE, 2, data, connections);
+        CSMessageRequest request = new CSMessageRequest(ethDapp.toString(), dapp.getAddress().toString(), BigInteger.ONE, 1, data, connections);
         CSMessage msg = new CSMessage(CSMessage.REQUEST, request.toBytes());
         xcall.invoke(connection1.account, "handleBTPMessage", ethNid, CallService.NAME, BigInteger.ZERO, msg.toBytes());
         xcall.invoke(connection2.account, "handleBTPMessage", ethNid, CallService.NAME, BigInteger.ZERO, msg.toBytes());
