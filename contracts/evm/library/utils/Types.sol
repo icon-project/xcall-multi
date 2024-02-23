@@ -14,13 +14,21 @@ library Types {
     string constant NAME = "xcallM";
 
     int constant CS_REQUEST = 1;
+    /**
+     * Legacy Code, CS_RESPONSE replaced by CS_RESULT in V2
+     */
+    int constant CS_RESPONSE = 2;
+
     int constant CS_RESULT = 2;
 
     int constant CALL_MESSAGE_TYPE = 1;
     int constant CALL_MESSAGE_ROLLBACK_TYPE = 2;
     int constant PERSISTENT_MESSAGE_TYPE = 3;
 
-    struct RollbackData {
+    /**
+     * Legacy Code, CallRequest replaced with RollbackData
+     */
+    struct CallRequest {
         address from;
         string to;
         string[] sources;
@@ -28,12 +36,49 @@ library Types {
         bool enabled; //whether wait response or received
     }
 
+    struct RollbackData {
+        address from;
+        string to;
+        string[] sources;
+        bytes rollback;
+        bool enabled; 
+    }
+
     struct CSMessage {
         int msgType;
         bytes payload;
     }
 
+    struct CSMessageResponse {
+        uint256 sn;
+        int code;
+    }
+
+    /**
+     * Legacy Code, CSMessageRequest replaced with CSMessageRequestV2
+     */
     struct CSMessageRequest {
+        string from;
+        string to;
+        uint256 sn;
+        bool rollback;
+        bytes data;
+        string[] protocols;
+    }
+
+    /**
+     * Legacy Code, ProxyRequest replaced with ProxyRequestV2
+     */
+    struct ProxyRequest {
+        string from;
+        string to;
+        uint256 sn;
+        bool rollback;
+        bytes32 hash;
+        string[] protocols;
+    }
+
+    struct CSMessageRequestV2 {
         string from;
         string to;
         uint256 sn;
@@ -42,7 +87,7 @@ library Types {
         string[] protocols;
     }
 
-    struct ProxyRequest {
+    struct ProxyRequestV2 {
         string from;
         string to;
         uint256 sn;

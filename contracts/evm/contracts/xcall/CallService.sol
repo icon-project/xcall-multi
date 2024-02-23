@@ -18,7 +18,7 @@ import "@iconfoundation/xcall-solidity-library/utils/ParseAddress.sol";
 import "@iconfoundation/xcall-solidity-library/utils/Strings.sol";
 import "openzeppelin-contracts-upgradeable/contracts/proxy/utils/Initializable.sol";
 
-
+/// @custom:oz-upgrades-from contracts/xcall/CallServiceV1.sol:CallServiceV1
 contract CallService is IBSH, ICallService, IFeeManage, Initializable {
     using Strings for string;
     using Integers for uint;
@@ -26,7 +26,7 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
     using ParseAddress for string;
     using NetworkAddress for string;
     using RLPEncodeStruct for Types.CSMessage;
-    using RLPEncodeStruct for Types.CSMessageRequest;
+    using RLPEncodeStruct for Types.CSMessageRequestV2;
     using RLPEncodeStruct for Types.CSMessageResult;
     using RLPEncodeStruct for Types.CallMessageWithRollback;
     using RLPEncodeStruct for Types.XCallEnvelope;
@@ -40,8 +40,14 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
     uint256 private lastReqId;
     uint256 private protocolFee;
 
-    // mapping(uint256 => Types.RollbackData) private requests;
-    mapping(uint256 => Types.RollbackData) private rollbacks;
+    /**
+     * Legacy Code, replaced by rollbacks in V2
+     */
+    mapping(uint256 => Types.CallRequest) private requests;
+
+    /**
+     * Legacy Code, replaced by proxyReqsV2 in V2
+     */
     mapping(uint256 => Types.ProxyRequest) private proxyReqs;
 
     mapping(uint256 => bool) private successfulResponses;
@@ -50,12 +56,16 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
     mapping(uint256 => mapping(string => bool)) private pendingResponses;
 
     mapping(string => address) private defaultConnections;
-    bytes private callReply;
-    Types.ProxyRequest private replyState;
 
     address private owner;
     address private adminAddress;
     address payable private feeHandler;
+
+    mapping(uint256 => Types.RollbackData) private rollbacks;
+    mapping(uint256 => Types.ProxyRequestV2) private proxyReqsV2;
+
+    bytes private callReply;
+    Types.ProxyRequestV2 private replyState;
 
     modifier onlyOwner() {
         require(msg.sender == owner, "OnlyOwner");
@@ -144,7 +154,7 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
         (string memory netTo, string memory dstAccount) = _to
             .parseNetworkAddress();
 
-        Types.CSMessageRequest memory req = Types.CSMessageRequest(
+        Types.CSMessageRequestV2 memory req = Types.CSMessageRequestV2(
             from,
             dstAccount,
             sn,
@@ -153,7 +163,7 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
             envelope.destinations
         );
 
-        bytes memory _msg = req.encodeCSMessageRequest();
+        bytes memory _msg = req.encodeCSMessageRequestV2();
         require(_msg.length <= MAX_DATA_SIZE, "MaxDataSizeExceeded");
 
         if (isReply(netTo, envelope.sources) && !result.needResponse) {
@@ -202,7 +212,10 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
         Types.XCallEnvelope memory envelope
     ) internal returns (Types.ProcessResult memory) {
         int envelopeType = envelope.messageType;
-        if (envelopeType == Types.CALL_MESSAGE_TYPE || envelopeType == Types.PERSISTENT_MESSAGE_TYPE) {
+        if (
+            envelopeType == Types.CALL_MESSAGE_TYPE ||
+            envelopeType == Types.PERSISTENT_MESSAGE_TYPE
+        ) {
             return Types.ProcessResult(false, envelope.message);
         } else if (envelopeType == Types.CALL_MESSAGE_ROLLBACK_TYPE) {
             address caller = msg.sender;
@@ -264,23 +277,19 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
     }
 
     function executeCall(uint256 _reqId, bytes memory _data) external override {
-        Types.ProxyRequest memory req = proxyReqs[_reqId];
+        Types.ProxyRequestV2 memory req = proxyReqsV2[_reqId];
         require(bytes(req.from).length > 0, "InvalidRequestId");
         require(req.hash == keccak256(_data), "DataHashMismatch");
         // cleanup
-        delete proxyReqs[_reqId];
+        delete proxyReqsV2[_reqId];
 
         string[] memory protocols = req.protocols;
         address dapp = req.to.parseAddress("IllegalArgument");
-        if (req.messageType == Types.CALL_MESSAGE_TYPE ) {
+        if (req.messageType == Types.CALL_MESSAGE_TYPE) {
             tryExecuteCall(_reqId, dapp, req.from, _data, protocols);
-        } 
-        else if (req.messageType == Types.PERSISTENT_MESSAGE_TYPE) {
+        } else if (req.messageType == Types.PERSISTENT_MESSAGE_TYPE) {
             this.executeMessage(dapp, req.from, _data, protocols);
-        }
-        else if (
-            req.messageType == Types.CALL_MESSAGE_ROLLBACK_TYPE
-        ) {
+        } else if (req.messageType == Types.CALL_MESSAGE_ROLLBACK_TYPE) {
             replyState = req;
             int256 code = tryExecuteCall(
                 _reqId,
@@ -344,11 +353,7 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
         if (protocols.length == 0) {
             IDefaultCallServiceReceiver(to).handleCallMessage(from, data);
         } else {
-            ICallServiceReceiver(to).handleCallMessage(
-                from,
-                data,
-                protocols
-            );
+            ICallServiceReceiver(to).handleCallMessage(from, data, protocols);
         }
     }
 
@@ -414,7 +419,6 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
         handleResult(
             Types.CSMessageResult(_sn, Types.CS_RESP_FAILURE, bytes(""))
         );
-
     }
 
     function sendToConnection(
@@ -437,10 +441,11 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
         string memory netFrom,
         bytes memory msgPayload
     ) internal {
-        Types.CSMessageRequest memory req = msgPayload.decodeCSMessageRequest();
+        Types.CSMessageRequestV2 memory req = msgPayload
+            .decodeCSMessageRequestV2();
         string memory fromNID = req.from.nid();
         require(netFrom.compareTo(fromNID), "Invalid NID");
-        
+
         bytes32 dataHash = keccak256(req.data);
         if (req.protocols.length > 1) {
             pendingReqs[dataHash][msg.sender.toString()] = true;
@@ -462,7 +467,7 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
         }
         uint256 reqId = getNextReqId();
 
-        proxyReqs[reqId] = Types.ProxyRequest(
+        proxyReqsV2[reqId] = Types.ProxyRequestV2(
             req.from,
             req.to,
             req.sn,
@@ -476,14 +481,14 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
 
     function handleReply(
         Types.RollbackData memory rollback,
-        Types.CSMessageRequest memory reply
+        Types.CSMessageRequestV2 memory reply
     ) internal {
         require(rollback.to.compareTo(reply.from.nid()), "Invalid Reply");
         uint256 reqId = getNextReqId();
 
         emit CallMessage(reply.from, reply.to, reply.sn, reqId, reply.data);
 
-        proxyReqs[reqId] = Types.ProxyRequest(
+        proxyReqsV2[reqId] = Types.ProxyRequestV2(
             reply.from,
             reply.to,
             reply.sn,
@@ -525,7 +530,7 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
         if (res.code == Types.CS_RESP_SUCCESS) {
             cleanupCallRequest(res.sn);
             if (res.message.length > 0) {
-                handleReply(rollback, res.message.decodeCSMessageRequest());
+                handleReply(rollback, res.message.decodeCSMessageRequestV2());
             }
             successfulResponses[res.sn] = true;
         } else {

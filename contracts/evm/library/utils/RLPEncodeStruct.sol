@@ -27,8 +27,33 @@ library RLPEncodeStruct {
         return _rlp.encodeList();
     }
 
-    function encodeCSMessageRequest(
-        Types.CSMessageRequest memory _bs
+    function encodeCSMessageRequest(Types.CSMessageRequest memory _bs)
+        internal
+        pure
+        returns (bytes memory)
+    {
+
+        bytes memory _protocols;
+        bytes memory temp;
+        for (uint256 i = 0; i < _bs.protocols.length; i++) {
+            temp = abi.encodePacked(_bs.protocols[i].encodeString());
+            _protocols = abi.encodePacked(_protocols, temp);
+        }
+        bytes memory _rlp =
+            abi.encodePacked(
+                _bs.from.encodeString(),
+                _bs.to.encodeString(),
+                _bs.sn.encodeUint(),
+                _bs.rollback.encodeBool(),
+                _bs.data.encodeBytes(),
+                _protocols.encodeList()
+
+            );
+        return _rlp.encodeList();
+    }
+
+    function encodeCSMessageRequestV2(
+        Types.CSMessageRequestV2 memory _bs
     ) internal pure returns (bytes memory) {
         bytes memory _protocols;
         bytes memory temp;
@@ -44,6 +69,19 @@ library RLPEncodeStruct {
             _bs.data.encodeBytes(),
             _protocols.encodeList()
         );
+        return _rlp.encodeList();
+    }
+
+    function encodeCSMessageResponse(Types.CSMessageResponse memory _bs)
+        internal
+        pure
+        returns (bytes memory)
+    {
+        bytes memory _rlp =
+            abi.encodePacked(
+                _bs.sn.encodeUint(),
+                _bs.code.encodeInt()
+            );
         return _rlp.encodeList();
     }
 
