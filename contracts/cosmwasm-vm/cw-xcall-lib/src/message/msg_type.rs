@@ -10,9 +10,9 @@ pub enum MessageType {
 impl From<MessageType> for u8 {
     fn from(val: MessageType) -> Self {
         match val {
-            MessageType::CallMessage => 1,
-            MessageType::CallMessageWithRollback => 2,
-            MessageType::CallMessagePersisted => 3,
+            MessageType::CallMessage => 0,
+            MessageType::CallMessageWithRollback => 1,
+            MessageType::CallMessagePersisted => 2,
         }
     }
 }
