@@ -2,9 +2,9 @@ use serde::Serialize;
 
 #[derive(Clone, Debug, Serialize, serde::Deserialize, PartialEq, Eq)]
 pub enum MessageType {
-    CallMessage = 1,
-    CallMessageWithRollback = 2,
-    CallMessagePersisted = 3,
+    CallMessage = 0,
+    CallMessageWithRollback = 1,
+    CallMessagePersisted = 2,
 }
 
 impl From<MessageType> for u8 {
@@ -20,9 +20,9 @@ impl From<MessageType> for u8 {
 impl From<u8> for MessageType {
     fn from(value: u8) -> Self {
         match value {
-            1 => MessageType::CallMessage,
-            2 => MessageType::CallMessageWithRollback,
-            3 => MessageType::CallMessagePersisted,
+            0 => MessageType::CallMessage,
+            1 => MessageType::CallMessageWithRollback,
+            2 => MessageType::CallMessagePersisted,
             _ => panic!("unsupported message type"),
         }
     }

@@ -6,7 +6,7 @@ import score.ObjectReader;
 import score.ObjectWriter;
 
 public class CallMessageWithRollback extends Message {
-    public static final int TYPE = 2;
+    public static final int TYPE = 1;
     private byte[] data;
     private byte[] rollback;
     public CallMessageWithRollback(byte[] data, byte[] rollback) {
