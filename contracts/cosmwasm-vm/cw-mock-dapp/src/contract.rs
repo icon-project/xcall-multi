@@ -78,14 +78,11 @@ impl<'a> CwMockService<'a> {
             .map_err(|_e| ContractError::ModuleAddressNotFound)?;
 
         let msg = if is_persistent {
-            AnyMessage::CallMessagePersisted(CallMessagePersisted { data: data.clone() })
-        } else if let Some(rollback) = rollback.clone() {
-            AnyMessage::CallMessageWithRollback(CallMessageWithRollback {
-                data: data.clone(),
-                rollback: rollback.clone(),
-            })
+            AnyMessage::CallMessagePersisted(CallMessagePersisted { data })
+        } else if let Some(rollback) = rollback {
+            AnyMessage::CallMessageWithRollback(CallMessageWithRollback { data, rollback })
         } else {
-            AnyMessage::CallMessage(CallMessage { data: data.clone() })
+            AnyMessage::CallMessage(CallMessage { data })
         };
         let envelope = Envelope::new(msg, vec![], vec![]);
 
