@@ -107,7 +107,7 @@ public class CallServiceTest extends TestBase {
         xcall.invoke(dapp.account, "sendCallMessage", ethDapp.toString(), data);
 
         // Assert
-        CSMessageRequest request = new CSMessageRequest(iconDappAddress.toString(), ethDapp.account.toString(), BigInteger.ONE, 1, data, null);
+        CSMessageRequest request = new CSMessageRequest(iconDappAddress.toString(), ethDapp.account.toString(), BigInteger.ONE, 0, data, null);
         CSMessage msg = new CSMessage(CSMessage.REQUEST, request.toBytes());
         verify(baseConnection.mock).sendMessage(eq(ethNid), eq(CallService.NAME), eq(BigInteger.ZERO), aryEq(msg.toBytes()));
         verify(xcallSpy).CallMessageSent(dapp.getAddress(), ethDapp.toString(), BigInteger.ONE);
