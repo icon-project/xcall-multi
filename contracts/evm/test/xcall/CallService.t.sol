@@ -174,7 +174,7 @@ contract CallServiceTest is Test {
         vm.expectEmit();
         emit CallMessageSent(address(dapp), iconDapp, 1);
 
-        Types.CSMessageRequestV2 memory request = Types.CSMessageRequestV2(ethDappAddress, dstAccount, 1, 1, data, _baseDestination);
+        Types.CSMessageRequestV2 memory request = Types.CSMessageRequestV2(ethDappAddress, dstAccount, 1, 0, data, _baseDestination);
         Types.CSMessage memory message = Types.CSMessage(Types.CS_REQUEST, request.encodeCSMessageRequestV2());
 
         vm.expectCall(address(baseConnection), abi.encodeCall(baseConnection.sendMessage, (iconNid, Types.NAME, 0, message.encodeCSMessage())));
@@ -204,7 +204,7 @@ contract CallServiceTest is Test {
         vm.expectEmit();
         emit CallMessageSent(address(dapp), iconDapp, 1);
 
-        Types.CSMessageRequestV2 memory request = Types.CSMessageRequestV2(ethDappAddress, dstAccount, 1, 1, data, destinations);
+        Types.CSMessageRequestV2 memory request = Types.CSMessageRequestV2(ethDappAddress, dstAccount, 1, 0, data, destinations);
         Types.CSMessage memory message = Types.CSMessage(Types.CS_REQUEST,request.encodeCSMessageRequestV2());
 
         vm.expectCall(address(connection1), abi.encodeCall(connection1.sendMessage, (iconNid, Types.NAME, 0, message.encodeCSMessage())));
@@ -268,7 +268,7 @@ contract CallServiceTest is Test {
         vm.expectEmit();
         emit CallMessageSent(address(dapp), iconDapp, 1);
 
-        Types.CSMessageRequestV2 memory request = Types.CSMessageRequestV2(ethDappAddress, dstAccount, 1, 2, data, new string[](0));
+        Types.CSMessageRequestV2 memory request = Types.CSMessageRequestV2(ethDappAddress, dstAccount, 1, 1, data, new string[](0));
         Types.CSMessage memory message = Types.CSMessage(Types.CS_REQUEST,request.encodeCSMessageRequestV2());
         vm.expectCall(address(baseConnection), abi.encodeCall(baseConnection.sendMessage, (iconNid, Types.NAME, 1, message.encodeCSMessage())));
 
@@ -877,7 +877,7 @@ contract CallServiceTest is Test {
         vm.mockCall(address(connection1), abi.encodeWithSelector(connection1.getFee.selector), abi.encode(0));
         vm.mockCall(address(connection2), abi.encodeWithSelector(connection2.getFee.selector), abi.encode(0));
 
-        Types.CSMessageRequestV2 memory request = Types.CSMessageRequestV2(iconDapp, ParseAddress.toString(address(receiver)), 1, 2, data, connections);
+        Types.CSMessageRequestV2 memory request = Types.CSMessageRequestV2(iconDapp, ParseAddress.toString(address(receiver)), 1, 1, data, connections);
         Types.CSMessage memory message = Types.CSMessage(Types.CS_REQUEST,request.encodeCSMessageRequestV2());
 
         vm.prank(address(connection1));
@@ -907,7 +907,7 @@ contract CallServiceTest is Test {
         defaultServiceReceiver = IDefaultCallServiceReceiver(address(0x5678));
         callService.setDefaultConnection(netTo, address(baseConnection));
 
-        Types.CSMessageRequestV2 memory request = Types.CSMessageRequestV2(iconDapp, ParseAddress.toString(address(defaultServiceReceiver)), 1, 2, data, _baseSource);
+        Types.CSMessageRequestV2 memory request = Types.CSMessageRequestV2(iconDapp, ParseAddress.toString(address(defaultServiceReceiver)), 1, 1, data, _baseSource);
         Types.CSMessage memory message = Types.CSMessage(Types.CS_REQUEST,request.encodeCSMessageRequestV2());
 
         vm.prank(address(baseConnection));
@@ -929,7 +929,7 @@ contract CallServiceTest is Test {
     function testExecuteCallFailedExecution() public {
          bytes memory data = bytes("test");
 
-        Types.CSMessageRequestV2 memory request = Types.CSMessageRequestV2(iconDapp, ParseAddress.toString(address(receiver)), 1, 2, data, _baseSource);
+        Types.CSMessageRequestV2 memory request = Types.CSMessageRequestV2(iconDapp, ParseAddress.toString(address(receiver)), 1, 1, data, _baseSource);
         Types.CSMessage memory message = Types.CSMessage(Types.CS_REQUEST,request.encodeCSMessageRequestV2());
 
         vm.prank(address(baseConnection));

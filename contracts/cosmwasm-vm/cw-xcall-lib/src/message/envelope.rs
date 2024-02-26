@@ -92,7 +92,7 @@ mod tests {
         let encoded_data = rlp::encode(&envelope).to_vec();
 
         assert_eq!(
-            "e50185c483010203d087736f757263653187736f7572636532cc856465737431856465737432",
+            "e50085c483010203d087736f757263653187736f7572636532cc856465737431856465737432",
             hex::encode(&encoded_data)
         );
         let decoded: Envelope = rlp::decode(&encoded_data).unwrap();
@@ -113,7 +113,7 @@ mod tests {
         let encoded_data = rlp::encode(&envelope).to_vec();
 
         assert_eq!(
-            "e90289c88301020383010203d087736f757263653187736f7572636532cc856465737431856465737432",
+            "e90189c88301020383010203d087736f757263653187736f7572636532cc856465737431856465737432",
             hex::encode(&encoded_data)
         );
         let decoded: Envelope = rlp::decode(&encoded_data).unwrap();

@@ -106,18 +106,15 @@ impl<'a> CwMockService<'a> {
                 });
 
         let msg = if message_type == MessageType::CallMessagePersisted as u64 {
-            AnyMessage::CallMessagePersisted(CallMessagePersisted { data: data.clone() })
+            AnyMessage::CallMessagePersisted(CallMessagePersisted { data })
         } else if message_type == MessageType::CallMessageWithRollback as u64 {
             if let Some(rollback) = rollback {
-                AnyMessage::CallMessageWithRollback(CallMessageWithRollback {
-                    data: data.clone(),
-                    rollback,
-                })
+                AnyMessage::CallMessageWithRollback(CallMessageWithRollback { data, rollback })
             } else {
                 return Err(ContractError::InvalidRollbackMessage);
             }
         } else if message_type == MessageType::CallMessage as u64 {
-            AnyMessage::CallMessage(CallMessage { data: data.clone() })
+            AnyMessage::CallMessage(CallMessage { data })
         } else {
             return Err(ContractError::InvalidMessageType);
         };

@@ -2,7 +2,7 @@
 package foundation.icon.xcall.messages;
 
 public class CallMessage extends Message {
-    public static final int TYPE = 1;
+    public static final int TYPE = 0;
     private byte[] data;
 
     public CallMessage(byte[] data) {

@@ -2,7 +2,7 @@
 package foundation.icon.xcall.messages;
 
 public class PersistentMessage extends Message {
-    public static final int TYPE = 3;
+    public static final int TYPE = 2;
     private byte[] data;
 
     public PersistentMessage(byte[] data) {

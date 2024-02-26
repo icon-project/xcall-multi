@@ -96,7 +96,7 @@ pub fn call_dapp_send_call(
     ctx.app.execute_contract(
         ctx.sender.clone(),
         ctx.get_dapp(),
-        &cw_xcall_lib::xcall_msg::ExecuteMsg::SendCall {
+        &cw_mock_dapp_multi::msg::ExecuteMsg::SendMessageAny {
             to: cw_xcall_lib::network_address::NetworkAddress::from_str(&to).unwrap(),
             envelope,
         },

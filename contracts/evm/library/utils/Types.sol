@@ -21,9 +21,9 @@ library Types {
 
     int constant CS_RESULT = 2;
 
-    int constant CALL_MESSAGE_TYPE = 1;
-    int constant CALL_MESSAGE_ROLLBACK_TYPE = 2;
-    int constant PERSISTENT_MESSAGE_TYPE = 3;
+    int constant CALL_MESSAGE_TYPE = 0;
+    int constant CALL_MESSAGE_ROLLBACK_TYPE = 1;
+    int constant PERSISTENT_MESSAGE_TYPE = 2;
 
     /**
      * Legacy Code, CallRequest replaced with RollbackData
