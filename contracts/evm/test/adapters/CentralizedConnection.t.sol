@@ -10,8 +10,7 @@ import "@xcall/utils/Types.sol";
 
 contract CentralizedConnectionTest is Test {
     using RLPEncodeStruct for Types.CSMessage;
-    using RLPEncodeStruct for Types.CSMessageRequest;
-    using RLPEncodeStruct for Types.CSMessageResponse;
+    using RLPEncodeStruct for Types.CSMessageRequestV2;
 
     event CallExecuted(uint256 indexed _reqId, int _code, string _msg);
 
@@ -127,17 +126,17 @@ contract CentralizedConnectionTest is Test {
             nidSource,
             "0xa"
         );
-        Types.CSMessageRequest memory request = Types.CSMessageRequest(
+        Types.CSMessageRequestV2 memory request = Types.CSMessageRequestV2(
             iconDapp,
             ParseAddress.toString(address(dappSource)),
             1,
-            false,
+            Types.CALL_MESSAGE_TYPE,
             data,
             new string[](0)
         );
         Types.CSMessage memory message = Types.CSMessage(
             Types.CS_REQUEST,
-            request.encodeCSMessageRequest()
+            request.encodeCSMessageRequestV2()
         );
 
         vm.startPrank(destination_relayer);
@@ -155,17 +154,17 @@ contract CentralizedConnectionTest is Test {
             nidSource,
             "0xa"
         );
-        Types.CSMessageRequest memory request = Types.CSMessageRequest(
+        Types.CSMessageRequestV2 memory request = Types.CSMessageRequestV2(
             iconDapp,
             ParseAddress.toString(address(dappSource)),
             1,
-            false,
+            Types.CALL_MESSAGE_TYPE,
             data,
             new string[](0)
         );
         Types.CSMessage memory message = Types.CSMessage(
             Types.CS_REQUEST,
-            request.encodeCSMessageRequest()
+            request.encodeCSMessageRequestV2()
         );
 
         vm.startPrank(user);
@@ -184,17 +183,17 @@ contract CentralizedConnectionTest is Test {
             nidSource,
             "0xa"
         );
-        Types.CSMessageRequest memory request = Types.CSMessageRequest(
+        Types.CSMessageRequestV2 memory request = Types.CSMessageRequestV2(
             iconDapp,
             ParseAddress.toString(address(dappSource)),
             1,
-            false,
+            Types.CALL_MESSAGE_TYPE,
             data,
             new string[](0)
         );
         Types.CSMessage memory message = Types.CSMessage(
             Types.CS_REQUEST,
-            request.encodeCSMessageRequest()
+            request.encodeCSMessageRequestV2()
         );
 
         vm.startPrank(destination_relayer);
@@ -215,6 +214,7 @@ contract CentralizedConnectionTest is Test {
 
     function testRevertMessage() public {
         vm.startPrank(destination_relayer);
+        vm.expectRevert("CallRequestNotFound");
         adapterTarget.revertMessage(1);
         vm.stopPrank();
     }
@@ -279,17 +279,17 @@ contract CentralizedConnectionTest is Test {
             nidSource,
             "0xa"
         );
-        Types.CSMessageRequest memory request = Types.CSMessageRequest(
+        Types.CSMessageRequestV2 memory request = Types.CSMessageRequestV2(
             iconDapp,
             ParseAddress.toString(address(dappSource)),
             1,
-            false,
+            Types.CALL_MESSAGE_TYPE,
             data,
             new string[](0)
         );
         Types.CSMessage memory message = Types.CSMessage(
             Types.CS_REQUEST,
-            request.encodeCSMessageRequest()
+            request.encodeCSMessageRequestV2()
         );
 
         assert(adapterTarget.getReceipt(nidSource, 1) == false);

@@ -4,7 +4,7 @@ pragma abicoder v2;
 
 import "openzeppelin-contracts-upgradeable/contracts/proxy/utils/Initializable.sol";
 import "@xcall/utils/Types.sol";
-import "@iconfoundation/btp2-solidity-library/interfaces/ICallService.sol";
+import "@iconfoundation/xcall-solidity-library/interfaces/ICallService.sol";
 import "@lz-contracts/interfaces/ILayerZeroReceiver.sol";
 import "@lz-contracts/interfaces/ILayerZeroEndpoint.sol";
 import "./interfaces/ILayerZeroAdapter.sol";

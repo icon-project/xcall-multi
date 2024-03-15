@@ -28,6 +28,11 @@ import score.annotation.Optional;
 import score.annotation.Payable;
 import foundation.icon.xcall.CallServiceReceiver;
 import foundation.icon.xcall.NetworkAddress;
+import foundation.icon.xcall.messages.Message;
+import foundation.icon.xcall.messages.CallMessage;
+import foundation.icon.xcall.messages.CallMessageWithRollback;
+import foundation.icon.xcall.messages.XCallEnvelope;
+import foundation.icon.xcall.messages.PersistentMessage;
 
 public class MultiProtocolSampleDapp implements CallServiceReceiver {
     private final Address callSvc;
@@ -58,7 +63,6 @@ public class MultiProtocolSampleDapp implements CallServiceReceiver {
         return toArray(this.destinations.at(nid));
     }
 
-
     public String[] toArray(ArrayDB<String> db) {
         int size = db.size();
         String[] arr = new String[size];
@@ -71,13 +75,48 @@ public class MultiProtocolSampleDapp implements CallServiceReceiver {
 
     @Payable
     @External
+    public void sendNewMessage(String _to, byte[] _data, int messageType, @Optional byte[] _rollback) {
+        String net = NetworkAddress.valueOf(_to).net();
+
+        Message msg;
+        XCallEnvelope envelope;
+        if (messageType == PersistentMessage.TYPE) {
+            msg = new PersistentMessage(_data);
+            envelope = new XCallEnvelope(msg, getSources(net), getDestinations(net));
+            _sendCall(Context.getValue(), _to, envelope.toBytes());
+        } else if (messageType == CallMessage.TYPE) {
+            msg = new CallMessage(_data);
+            envelope = new XCallEnvelope(msg, getSources(net), getDestinations(net));
+            _sendCall(Context.getValue(), _to, envelope.toBytes());
+        } else if (messageType == CallMessageWithRollback.TYPE) {
+            msg = new CallMessageWithRollback(_data, _rollback);
+            envelope = new XCallEnvelope(msg, getSources(net), getDestinations(net));
+            _sendCall(Context.getValue(), _to, envelope.toBytes());
+        } else {
+            Context.revert("invalid message type");
+        }
+    }
+
+    @Payable
+    @External
+    public void sendMessageAny(String _to, byte[] _data) {
+        _sendCall(Context.getValue(), _to, _data);
+    }
+
+    private BigInteger _sendCall(BigInteger value, String to, byte[] envelope) {
+        return Context.call(BigInteger.class, value, this.callSvc, "sendCall", to, envelope);
+    }
+
+    @Payable
+    @External
     public void sendMessage(String _to, byte[] _data, @Optional byte[] _rollback) {
         _sendCallMessage(Context.getValue(), _to, _data, _rollback);
     }
 
     private BigInteger _sendCallMessage(BigInteger value, String to, byte[] data, byte[] rollback) {
         String net = NetworkAddress.valueOf(to).net();
-        return Context.call(BigInteger.class, value, this.callSvc, "sendCallMessage", to, data, rollback, getSources(net), getDestinations(net));
+        return Context.call(BigInteger.class, value, this.callSvc, "sendCallMessage", to, data, rollback,
+                getSources(net), getDestinations(net));
     }
 
     @External
@@ -92,11 +131,14 @@ public class MultiProtocolSampleDapp implements CallServiceReceiver {
             Context.require(equals(protocols, getSources(from.net())), "invalid protocols");
 
             Context.require(!new String(_data).equals("rollback"), "failed");
-            // normal message delivery
+
+            if (new String(_data).equals("reply-response")) {
+                // response message
+                _sendCallMessage(BigInteger.ZERO, _from, new byte[] { 1, 2, 3 }, null);
+            }
             MessageReceived(_from, _data);
         }
     }
-
 
     @EventLog
     public void MessageReceived(String _from, byte[] _data) {

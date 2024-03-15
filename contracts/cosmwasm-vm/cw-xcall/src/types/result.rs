@@ -25,16 +25,22 @@ impl TryFrom<u8> for CallServiceResponseType {
 }
 
 #[cw_serde]
-pub struct CSMessageResponse {
+pub struct CSMessageResult {
     sequence_no: u128,
     response_code: CallServiceResponseType,
+    message: Vec<u8>,
 }
 
-impl CSMessageResponse {
-    pub fn new(sequence_no: u128, response_code: CallServiceResponseType) -> Self {
+impl CSMessageResult {
+    pub fn new(
+        sequence_no: u128,
+        response_code: CallServiceResponseType,
+        reply: Option<Vec<u8>>,
+    ) -> Self {
         Self {
             sequence_no,
             response_code,
+            message: reply.unwrap_or(vec![]),
         }
     }
 
@@ -50,31 +56,44 @@ impl CSMessageResponse {
         self.sequence_no.clone_from(&sequence_no);
         self.response_code = response_code;
     }
+
+    pub fn get_message(&self) -> Option<CSMessageRequest> {
+        if self.message.is_empty() {
+            return None;
+        }
+        rlp::decode(&self.message).ok()
+    }
+
+    pub fn as_bytes(&self) -> Vec<u8> {
+        rlp::encode(&self.clone()).to_vec()
+    }
 }
 
-impl Encodable for CSMessageResponse {
+impl Encodable for CSMessageResult {
     fn rlp_append(&self, stream: &mut rlp::RlpStream) {
         let code: u8 = self.response_code.clone().into();
 
         stream
-            .begin_list(2)
+            .begin_list(3)
             .append(&self.sequence_no())
-            .append(&code);
+            .append(&code)
+            .append(&self.message);
     }
 }
 
-impl Decodable for CSMessageResponse {
+impl Decodable for CSMessageResult {
     fn decode(rlp: &rlp::Rlp) -> Result<Self, rlp::DecoderError> {
         let code: u8 = rlp.val_at(1)?;
 
         Ok(Self {
             sequence_no: rlp.val_at(0)?,
             response_code: CallServiceResponseType::try_from(code)?,
+            message: rlp.val_at(2).unwrap_or(vec![]),
         })
     }
 }
 
-impl TryFrom<&Vec<u8>> for CSMessageResponse {
+impl TryFrom<&Vec<u8>> for CSMessageResult {
     type Error = ContractError;
     fn try_from(value: &Vec<u8>) -> Result<Self, Self::Error> {
         let rlp = rlp::Rlp::new(value as &[u8]);
@@ -84,7 +103,7 @@ impl TryFrom<&Vec<u8>> for CSMessageResponse {
     }
 }
 
-impl TryFrom<&[u8]> for CSMessageResponse {
+impl TryFrom<&[u8]> for CSMessageResult {
     type Error = ContractError;
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
         let rlp = rlp::Rlp::new(value);
@@ -112,20 +131,20 @@ mod tests {
 
     use common::rlp;
 
-    use super::{CSMessageResponse, CallServiceResponseType};
+    use super::{CSMessageResult, CallServiceResponseType};
 
     #[test]
     fn test_cs_message_response_encoding() {
         let cs_response =
-            CSMessageResponse::new(1, CallServiceResponseType::CallServiceResponseSuccess);
+            CSMessageResult::new(1, CallServiceResponseType::CallServiceResponseSuccess, None);
         let encoded = rlp::encode(&cs_response);
 
-        assert_eq!("c20101", hex::encode(encoded));
+        assert_eq!("c3010180", hex::encode(encoded));
 
         let cs_response =
-            CSMessageResponse::new(2, CallServiceResponseType::CallServiceResponseFailure);
+            CSMessageResult::new(2, CallServiceResponseType::CallServiceResponseFailure, None);
         let encoded = rlp::encode(&cs_response);
 
-        assert_eq!("c20200", hex::encode(encoded));
+        assert_eq!("c3020080", hex::encode(encoded));
     }
 }
