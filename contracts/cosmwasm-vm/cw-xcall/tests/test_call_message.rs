@@ -83,7 +83,7 @@ fn send_packet_failure_due_data_len() {
         match r {
             WasmQuery::ContractInfo { contract_addr } => {
                 if *contract_addr == constract1 {
-                    let response = ContractInfoResponse::default();
+                    let response = ContractInfoResponse::new(0, "test");
                     SystemResult::Ok(ContractResult::Ok(to_binary(&response).unwrap()))
                 } else {
                     SystemResult::Err(SystemError::NoSuchContract {
@@ -150,7 +150,7 @@ fn send_packet_failure_due_rollback_len() {
         match r {
             WasmQuery::ContractInfo { contract_addr } => {
                 if *contract_addr == constract1 {
-                    let response = ContractInfoResponse::default();
+                    let response = ContractInfoResponse::new(0, "test");
                     SystemResult::Ok(ContractResult::Ok(to_binary(&response).unwrap()))
                 } else {
                     SystemResult::Err(SystemError::NoSuchContract {
@@ -301,7 +301,7 @@ fn send_packet_fail_insufficient_funds() {
         match r {
             WasmQuery::ContractInfo { contract_addr } => {
                 if *contract_addr == constract1 {
-                    let response = ContractInfoResponse::default();
+                    let response = ContractInfoResponse::new(0, "test");
                     SystemResult::Ok(ContractResult::Ok(to_binary(&response).unwrap()))
                 } else {
                     SystemResult::Err(SystemError::NoSuchContract {

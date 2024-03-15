@@ -372,6 +372,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "cw-centralized-connection"
+version = "0.1.0"
+dependencies = [
+ "common",
+ "cosmwasm",
+ "cosmwasm-schema",
+ "cosmwasm-std",
+ "cw-storage-plus 1.1.0",
+ "cw-xcall-lib 0.1.0",
+ "cw2 1.0.1",
+ "getrandom",
+ "hex",
+ "schemars 0.8.12",
+ "serde",
+ "serde-json-wasm 0.5.1",
+ "thiserror",
+]
+
+[[package]]
 name = "cw-common"
 version = "0.1.1"
 source = "git+https://github.com/icon-project/IBC-Integration.git?branch=main#9a9095926b9141217473745d21ad06c277313015"
