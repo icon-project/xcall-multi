@@ -60,7 +60,7 @@ build-java-docker:
 	docker-compose -f ./scripts/docker-compose.yml up java
 
 build-wasm-docker:
-	@echo "Build java contracts"
+	@echo "Build wasm contracts"
 	docker-compose -f ./scripts/docker-compose.yml up wasm
 
 gobuild:
