@@ -1,7 +1,9 @@
+#[allow(unused_field,unused_use,unused_const,unused_mut_parameter,unused_variable,unused_assignment)]
 module xcall::connections{
 use std::string::{Self, String};
 use sui::bag::{Bag, Self};
 use xcall::centralized_connection::{Self};
+use xcall::centralized_state::{Self,State};
 
 
 const EConnectionNotFound:u64=0;
@@ -20,6 +22,21 @@ const ConnCentralized:vector<u8> =b"centralized";
         }
        
         
+    }
+
+    public fun get_fee(states:&mut Bag,package_id:String):u128{
+
+         if (package_id==centralized_connection::package_id_str()){
+            let state:&State=bag::borrow(states,package_id);
+            let fee= centralized_state::get_fee(state);
+            fee
+              
+             
+        }else{
+           abort EConnectionNotFound
+        }
+       
+
     }
 
     

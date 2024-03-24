@@ -1,3 +1,4 @@
+#[allow(unused_field,unused_use,unused_const,unused_mut_parameter,unused_variable,unused_assignment)]
 module xcall::main {
 
     // Part 1: Imports
@@ -67,7 +68,8 @@ module xcall::main {
         register(xcall_state::get_connection_states(self),package_id);
     }
 
-    fun send_call_inner(self:&mut Storage,fee: Coin<SUI>,from:NetworkAddress,to:NetworkAddress,envelope:XCallEnvelope){
+    fun send_call_inner(self:&mut Storage,
+    fee: Coin<SUI>,from:NetworkAddress,to:NetworkAddress,envelope:XCallEnvelope,ctx: &mut TxContext){
         /*
          let caller = info.sender.clone();
         let config = self.get_config(deps.as_ref().storage)?;
@@ -188,6 +190,7 @@ module xcall::main {
             let connection= xcall_state::get_connection(self,network_address::net_id(&to));
             vector::push_back(&mut sources,connection);
         };
+         transfer::public_transfer(fee, tx_context::sender(ctx));
 
     }
 
@@ -207,11 +210,11 @@ module xcall::main {
         xcall_state::set_protocol_fee_handler(self,fee_handler);
     }
 
-    entry fun send_call(self:&mut Storage,fee: Coin<SUI>,idCap:&IDCap,to:String,envelope_bytes:vector<u8>){
+    entry fun send_call(self:&mut Storage,fee: Coin<SUI>,idCap:&IDCap,to:String,envelope_bytes:vector<u8>,ctx: &mut TxContext){
         let envelope=envelope::decode(envelope_bytes);
         let to = network_address::from_string(to);
         let from= network_address::create(string::utf8(NID),string::utf8(object::id_to_bytes(&object::id(idCap))));
-        send_call_inner(self,fee,from,to,envelope)
+        send_call_inner(self,fee,from,to,envelope,ctx)
     }
 
     entry fun handle_message(self:&mut Storage, from:String, msg:vector<u8>,ctx: &mut TxContext){}
@@ -220,7 +223,7 @@ module xcall::main {
     entry fun handle_error(self:&mut Storage, sn:u128,ctx: &mut TxContext){}
 
     entry fun execute_call(self:&mut Storage,request_id:u128,data:vector<u8>,ctx: &mut TxContext){}
-
+    #[allow(unused_field)]
     entry fun execute_rollback(self:&mut Storage,sn:u128,ctx: &mut TxContext){}
 
     

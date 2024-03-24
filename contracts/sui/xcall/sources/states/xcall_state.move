@@ -1,3 +1,4 @@
+#[allow(unused_field,unused_use,unused_const,unused_mut_parameter,unused_variable,unused_assignment)]
 module xcall::xcall_state {
      use sui::object::{Self, UID,ID};
     use sui::transfer;
@@ -10,7 +11,6 @@ module xcall::xcall_state {
    
     use xcall::network_address::{Self,NetworkAddress};
     use xcall::envelope::{Self,XCallEnvelope};
-    use xcall::connection_out::{Self,register};
     use xcall::message_request::{Self};
     use xcall::cs_message::{Self};
     use xcall::rollback_data::{Self,RollbackData};

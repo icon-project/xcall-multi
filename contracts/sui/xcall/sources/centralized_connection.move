@@ -1,3 +1,4 @@
+#[allow(unused_field,unused_use,unused_const,unused_mut_parameter,unused_variable,unused_assignment)]
 module xcall::centralized_connection {
   use xcall::centralized_state::{Self,State};
   use std::string::{Self, String};
@@ -13,6 +14,11 @@ module xcall::centralized_connection {
     public fun connect():State{
 
       centralized_state::create()
+    }
+
+    public fun get_fee(state:&State):u128{
+      centralized_state::get_fee(state)
+
     }
 
     entry fun send_message(to:String,sn:u64,msg:vector<u8>,dir:u8,ctx: &mut TxContext){

@@ -1,3 +1,4 @@
+#[allow(unused_field,unused_use,unused_const,unused_mut_parameter,unused_variable,unused_assignment)]
 module xcall::envelope{
     use std::string::{Self, String};
 use std::vector;

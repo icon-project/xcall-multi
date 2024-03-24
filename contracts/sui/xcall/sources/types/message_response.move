@@ -1,3 +1,4 @@
+#[allow(unused_field,unused_use,unused_const,unused_mut_parameter,unused_variable,unused_assignment)]
 module xcall::message_response {
      use std::string::{Self, String};
     use sui::object::{Self, ID, UID};
