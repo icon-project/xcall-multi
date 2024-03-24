@@ -7,16 +7,24 @@ module xcall::main {
     use sui::linked_table::{Self, LinkedTable};
     use sui::types as sui_types;
     use std::string::{Self, String};
+    use std::vector;
     use std::option::{Self, Option};
-    use xcall::types::{Self,NetworkAddress,RollbackData,network_address};
-    use xcall::messages::{Self,XCallEnvelope,decode_envelope};
-    use xcall::connection_out::{Self,init_register};
+   
+    use xcall::network_address::{Self,NetworkAddress};
+    use xcall::envelope::{Self,XCallEnvelope};
+    use xcall::connections::{Self,register};
+    use xcall::message_request::{Self};
+    use xcall::cs_message::{Self};
+    use xcall::rollback_data::{Self,RollbackData};
+    use xcall::xcall_state::{Self,Storage,AdminCap,IDCap};
     use sui::bag::{Bag, Self};
     use sui::table::{Table,Self};
     use sui::package::{Self,Publisher};
   
     use sui::vec_map::{Self, VecMap};
     use sui::versioned::{Self, Versioned};
+    use sui::sui::SUI;
+     use sui::coin::{Self, Coin};
 
 
     const ENotOneTimeWitness: u64 = 0;
@@ -28,48 +36,19 @@ module xcall::main {
 
     const CURRENT_VERSION: u64 = 1;
 
-     struct IDCap has key,store {
-        id:UID,
-        xcall_id:ID,
-    }
-    struct PackageCap has store {
-        package_id:String,
-    }
-     struct AdminCap has key {
-        id: UID
-    }
-
-
-     struct Storage has key {
-        id: UID,
-        version:u64,
-        admin:ID,
-        requests:LinkedTable<u128, vector<u8>>,
-        sequence_no:u128,
-        protocol_fee:u128,
-        protocol_fee_handler:address,
-        connection_states:Bag,
-        rollbacks:Table<u64,RollbackData>
-    }
+    
     
     fun init(ctx: &mut TxContext) {
-        let admin = AdminCap {
-            id: object::new(ctx),
-        };
-        let storage = Storage {
-            id: object::new(ctx),
-            version:CURRENT_VERSION,
-            admin:object::id(&admin),
-            requests:linked_table::new<u128, vector<u8>>(ctx),
-            sequence_no:0,
-            protocol_fee:0,
-            protocol_fee_handler: tx_context::sender(ctx),
-            connection_states:bag::new(ctx),
-            rollbacks:table::new<u64,RollbackData>(ctx),
-        };
+        let admin = xcall_state::create_admin_cap(ctx);
+        let storage = xcall_state::create_storage(
+           CURRENT_VERSION,
+            &admin,
+            ctx
+        );
 
-        transfer::share_object(storage);
-        transfer::transfer(admin, tx_context::sender(ctx));
+        xcall_state::share(storage);
+       // transfer::transfer(admin, tx_context::sender(ctx));
+       xcall_state::transfer_admin_cap(admin,ctx);
     }
 
     public fun register_dapp<T: drop>(self:&Storage,
@@ -78,20 +57,17 @@ module xcall::main {
     ):IDCap {
         assert!(sui_types::is_one_time_witness(&witness), ENotOneTimeWitness);
 
-       IDCap {
-            id: object::new(ctx),
-            xcall_id:object::id(self)
-
-        }
+        xcall_state::create_id_cap(self,ctx)
 
        
     }
 
-    public fun register_connection(self:&mut Storage,package_id:String){
-        init_register(&mut self.connection_states,package_id);
+    public fun register_connection(self:&mut Storage,net_id:String,package_id:String){
+        xcall_state::set_connection(self,net_id,package_id);
+        register(xcall_state::get_connection_states(self),package_id);
     }
 
-    fun send_call_inner(self:&mut Storage,from:types::NetworkAddress,to:types::NetworkAddress,envelope:XCallEnvelope){
+    fun send_call_inner(self:&mut Storage,fee: Coin<SUI>,from:NetworkAddress,to:NetworkAddress,envelope:XCallEnvelope){
         /*
          let caller = info.sender.clone();
         let config = self.get_config(deps.as_ref().storage)?;
@@ -189,45 +165,71 @@ module xcall::main {
         
         
         */
-        let rollback=messages::rollback(&envelope);
+        let sequence_no=get_next_sequence(self);
+        let rollback=envelope::rollback(&envelope);
         if(option::is_some(&rollback)){
-            let rollback_data=option::extract<vector<u8>>(&mut rollback);
-            let rollback_queue= types::create_rollback(from,to,messages::sources(&envelope),rollback_data,false);
+            let rollback_bytes=option::extract<vector<u8>>(&mut rollback);
+            let rollback= rollback_data::create(copy from,to,envelope::sources(&envelope),rollback_bytes,false);
+           // table::add(&mut self.rollbacks,sequence_no,rollback);
+            xcall_state::add_rollback(self,sequence_no,rollback);
 
-            
+        };
 
-        }
-
+        let cs_request= message_request::create(
+            from,
+            to,
+            sequence_no,
+            envelope::msg_type(&envelope),
+            envelope::message(&envelope),
+            envelope::sources(&envelope));
+        let sources=envelope::sources(&envelope);
+        if(vector::is_empty(&sources)){
+            sources=vector::empty<String>();
+            let connection= xcall_state::get_connection(self,network_address::net_id(&to));
+            vector::push_back(&mut sources,connection);
+        };
 
     }
 
     fun get_next_sequence(self:&mut Storage):u128 {
-        let sn=self.sequence_no+1;
-        self.sequence_no=sn;
+        let sn=xcall_state::get_next_sequence(self);
         sn
     }
 
+    entry fun set_admin(addr:address,ctx: &mut TxContext){}
+
 
     entry fun set_protocol_fee(self:&mut Storage,admin:&AdminCap,fee:u128){
-        self.protocol_fee=fee;
+        xcall_state::set_protocol_fee(self,fee);
     }
 
     entry fun set_protocol_fee_handler(self:&mut Storage,admin:&AdminCap,fee_handler:address){
-        self.protocol_fee_handler=fee_handler;
+        xcall_state::set_protocol_fee_handler(self,fee_handler);
     }
 
-    entry fun send_call(self:&mut Storage,idCap:&IDCap,to:String,envelope_bytes:vector<u8>){
-        let envelope=decode_envelope(envelope_bytes);
-        let to = types::network_address_from_string(to);
-        let from= types::network_address(string::utf8(NID),string::utf8(object::id_to_bytes(&object::id(idCap))));
-        send_call_inner(self,from,to,envelope)
+    entry fun send_call(self:&mut Storage,fee: Coin<SUI>,idCap:&IDCap,to:String,envelope_bytes:vector<u8>){
+        let envelope=envelope::decode(envelope_bytes);
+        let to = network_address::from_string(to);
+        let from= network_address::create(string::utf8(NID),string::utf8(object::id_to_bytes(&object::id(idCap))));
+        send_call_inner(self,fee,from,to,envelope)
     }
+
+    entry fun handle_message(self:&mut Storage, from:String, msg:vector<u8>,ctx: &mut TxContext){}
+
+
+    entry fun handle_error(self:&mut Storage, sn:u128,ctx: &mut TxContext){}
+
+    entry fun execute_call(self:&mut Storage,request_id:u128,data:vector<u8>,ctx: &mut TxContext){}
+
+    entry fun execute_rollback(self:&mut Storage,sn:u128,ctx: &mut TxContext){}
+
+    
 
 
     entry fun migrate(self: &mut Storage, a: &AdminCap) {
-        assert!(self.admin == object::id(a), ENotAdmin);
-        assert!(self.version < CURRENT_VERSION, ENotUpgrade);
-        self.version = CURRENT_VERSION;
+        assert!(xcall_state::get_admin(self) == object::id(a), ENotAdmin);
+        assert!(xcall_state::get_version(self) < CURRENT_VERSION, ENotUpgrade);
+        xcall_state::set_version(self, CURRENT_VERSION);
        
     }
 
