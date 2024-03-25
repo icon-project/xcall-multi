@@ -16,8 +16,15 @@ module xcall::centralized_connection {
       centralized_state::create()
     }
 
-    public fun get_fee(state:&State):u128{
-      centralized_state::get_fee(state)
+    public fun get_state(states:&Bag):&State {
+      let package_id= package_id_str();
+      let state:&State=bag::borrow(states,package_id);
+      state
+    }
+
+    public fun get_fee(states:&Bag,netId:String,response:bool):u128{
+      let state= get_state(states);
+      centralized_state::get_fee(state,netId,response)
 
     }
 

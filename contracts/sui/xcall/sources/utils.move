@@ -2,6 +2,7 @@
 module xcall::utils {
     use std::vector::length;
     use std::vector::borrow;
+    use sui::vec_map::{Self, VecMap};
    
    public fun are_equal<Element>(a1:&vector<Element>,a2:&vector<Element>): bool {
 
@@ -18,8 +19,19 @@ module xcall::utils {
 
        }
 
+     
+
        
 
     
 }
+
+  public fun get_or_default<K: copy, V: copy+drop>(self: &VecMap<K,V>, key: &K,default:V): V {
+       let value= if (vec_map::contains(self, key)) {
+            *vec_map::get(self, key)
+        } else {
+            default
+        };
+        value
+    }
 }

@@ -24,11 +24,10 @@ const ConnCentralized:vector<u8> =b"centralized";
         
     }
 
-    public fun get_fee(states:&mut Bag,package_id:String):u128{
+    public fun get_fee(states:&mut Bag,package_id:String,netId:String,response:bool):u128{
 
          if (package_id==centralized_connection::package_id_str()){
-            let state:&State=bag::borrow(states,package_id);
-            let fee= centralized_state::get_fee(state);
+            let fee= centralized_connection::get_fee(states,netId,response);
             fee
               
              
