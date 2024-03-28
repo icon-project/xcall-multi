@@ -1,16 +1,18 @@
-module sui_rlp::encode {
+module sui_rlp::encoder {
     use sui_rlp::utils::{Self};
     use std::vector::{Self};
-
-    public fun encode(bytes:vector<u8>):vector<u8> {
+    use std::string::{Self,String};
+    use std::bcs;
+    #[test_only] friend sui_rlp::rlp_tests;
+    public fun encode(bytes:&vector<u8>):vector<u8> {
        
-        let len=vector::length(&bytes);
-        let encoded= if (len ==1 && *vector::borrow(&bytes,0)<128){
-            bytes
+        let len=vector::length(bytes);
+        let encoded= if (len ==1 && *vector::borrow(bytes,0)<128){
+            *bytes
         }else {
            let result=vector::empty();
            encode_length(&mut result,len);
-           vector::append(&mut result,bytes);
+           vector::append(&mut result,*bytes);
            result
         };
         encoded
@@ -42,6 +44,33 @@ module sui_rlp::encode {
         vector::append(buff,length_bytes);
         }
        
+    }
+
+    public fun encode_u8(num:u8):vector<u8>{
+        let vec=vector::singleton(num);
+        encode(&vec)
+
+    }
+
+    public fun encode_u64(num:u64):vector<u8>{
+        let vec= utils::to_bytes_u64(num);
+        encode(&vec)
+        
+    }
+
+    public fun encode_u128(num:u128):vector<u8>{
+        let vec= utils::to_bytes_u128(num);
+        encode(&vec)
+    }
+
+    public fun encode_string(val:&String):vector<u8>{
+        let vec= string::bytes(val);
+        encode(vec)
+    }
+
+    public fun encode_address(addr:&address):vector<u8> {
+        let vec= bcs::to_bytes(addr);
+        encode(&vec)
     }
 
    
