@@ -2,7 +2,7 @@
 module xcall::centralized_state {
     use sui::vec_map::{Self, VecMap};
      use std::string::{Self, String};
-     use xcall::utils::{Self};
+     use xcall::xcall_utils::{Self};
     /**
      message_fee: Map<'a, NetId, u128>,
     response_fee: Map<'a, NetId, u128>,
@@ -31,9 +31,9 @@ module xcall::centralized_state {
 
     public fun get_fee(self:&State,netId:String,response:bool):u128 {
        let fee:u128=  if(response==true){
-            utils::get_or_default(&self.message_fee,&netId,0)+utils::get_or_default(&self.response_fee,&netId,0)
+            xcall_utils::get_or_default(&self.message_fee,&netId,0)+xcall_utils::get_or_default(&self.response_fee,&netId,0)
         }else {
-           utils::get_or_default(&self.message_fee,&netId,0)
+           xcall_utils::get_or_default(&self.message_fee,&netId,0)
         };
         fee
         

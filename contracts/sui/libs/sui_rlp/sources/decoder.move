@@ -9,7 +9,9 @@ module sui_rlp::decoder {
      public fun decode(encoded:&vector<u8>):vector<u8>{
         assert(vector::length(encoded) > 0, 0x1);
         let byte = *vector::borrow(encoded,0);
-       let decoded= if (byte < 0x80) {
+       let decoded= if (byte==0x80) {
+           vector::empty()
+       } else if (byte < 0x80) {
             vector::singleton(byte)
         } else if (byte < 0xb8) {
             let length = byte - 0x80;
@@ -59,10 +61,14 @@ module sui_rlp::decoder {
         let i: u64 = 0;
         while (i < vector::length(&encoded)) {
             let prefix = *vector::borrow(&encoded,i);
-            if (prefix < 0x80) {
+            debug::print(&prefix);
+            if (prefix==0x80){
+                vector::push_back(&mut values,vector::empty());
+                i = i+1;
+            }else if (prefix < 0x80) {
                 vector::push_back(&mut values,vector::singleton(prefix));
                 i = i+1;
-            } else if( prefix < 0xB8) {
+            } else if( prefix > 0x80 && prefix < 0xB8) {
                 let length = ((prefix - 0x80) as u64);
                 vector::push_back(&mut values,utils::slice_vector(&encoded, ((i + 1) as u64), length));
                 i = i+(length + 1);

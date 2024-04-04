@@ -4,6 +4,9 @@ module xcall::cs_message {
     use sui::object::{Self, ID, UID};
     use xcall::network_address::{Self,NetworkAddress};
     use xcall::message_request::{Self,CSMessageRequest};
+     use sui_rlp::encoder::{Self};
+    use sui_rlp::decoder::{Self};
+    use std::debug;
 
     struct CSMessage has store{
         msg_type:u8,

@@ -6,7 +6,8 @@ name = "xcall"
 # authors = ["..."]      # e.g., ["Joe Smith (joesmith@noemail.com)", "John Snow (johnsnow@noemail.com)"]
 
 [dependencies]
-Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "framework/testnet" }
+Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "framework/mainnet" }
+sui_rlp = { local = "../libs/sui_rlp" }
 
 
 # For remote import, use the `{ git = "...", subdir = "...", rev = "..." }`.

@@ -1,5 +1,5 @@
 #[allow(unused_field,unused_use,unused_const,unused_mut_parameter,unused_variable,unused_assignment)]
-module xcall::utils {
+module xcall::xcall_utils {
     use std::vector::length;
     use std::vector::borrow;
     use sui::vec_map::{Self, VecMap};

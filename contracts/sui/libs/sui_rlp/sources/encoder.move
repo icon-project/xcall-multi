@@ -3,15 +3,17 @@ module sui_rlp::encoder {
     use std::vector::{Self};
     use std::string::{Self,String};
     use std::bcs;
+    use std::debug;
     #[test_only] friend sui_rlp::rlp_tests;
     public fun encode(bytes:&vector<u8>):vector<u8> {
        
         let len=vector::length(bytes);
-        let encoded= if (len ==1 && *vector::borrow(bytes,0)<128){
+        let encoded= if(len==0){
+            vector::singleton(0x80)
+        } else if (len ==1 && *vector::borrow(bytes,0)<128){
             *bytes
         }else {
-           let result=vector::empty();
-           encode_length(&mut result,len);
+           let result=encode_length(len,0x80);
            vector::append(&mut result,*bytes);
            result
         };
@@ -19,30 +21,49 @@ module sui_rlp::encoder {
         
     }
 
-    public fun encode_list(list:vector<vector<u8>>):vector<u8>{
+    public fun encode_list(list:vector<vector<u8>>,raw:bool):vector<u8>{
         let result=vector::empty();
-        vector::reverse(&mut list);
+        if(vector::length(&list)>0){
+            vector::reverse(&mut list);
+
         while(!vector::is_empty(&list)){
-            vector::append(&mut result,vector::pop_back(&mut list))
+            if(raw==true){
+              vector::append(&mut result,encode(&vector::pop_back(&mut list)));
+            }else{
+              vector::append(&mut result,vector::pop_back(&mut list));
+            };
+           
         };
-        let list_length=vector::length(&result);
-        let encoded=vector::empty();
-        encode_length(&mut encoded,list_length);
-        vector::append(&mut encoded,result);
-        encoded
+         let len=vector::length(&result);
+         debug::print(&len);
+         let length_buff=encode_length(len,192);
+         vector::append(&mut length_buff,result);
+         result=length_buff;
+         
+
+        }else{
+            vector::push_back(&mut result,0xc0);
+
+        };
+       
+        result
+        
     }
 
-    public fun encode_length(buff:&mut vector<u8>,len:u64){
+    public fun encode_length(len:u64,offset:u8):vector<u8>{
+        let length_info=vector::empty<u8>();
         if (len < 56) {
             let len_u8=(len as u8);
-            vector::push_back(buff,(128+len_u8));
+            vector::push_back(&mut length_info,(offset+len_u8));
         }else {
         let length_bytes=utils::to_bytes_u64(len);
         let length_byte_len=vector::length(&length_bytes);
-        let length_byte_len=183+(length_byte_len as u8);
-        vector::push_back(buff,length_byte_len);
-        vector::append(buff,length_bytes);
-        }
+        let length_byte_len=offset+55+(length_byte_len as u8);
+        vector::push_back(&mut length_info,length_byte_len);
+        vector::append(&mut length_info,length_bytes);
+        
+        };
+        length_info
        
     }
 
@@ -66,6 +87,19 @@ module sui_rlp::encoder {
     public fun encode_string(val:&String):vector<u8>{
         let vec= string::bytes(val);
         encode(vec)
+    }
+
+    public fun encode_strings(str:&vector<String>):vector<u8>{
+        let vec=vector::empty<vector<u8>>();
+        let i=0;
+        let l= vector::length(str);
+        while(i < l){
+             let item=*vector::borrow(str,i);
+             vector::push_back(&mut vec,encode_string(&item));
+            i=i+1;
+        };
+        encode_list(vec,false)
+
     }
 
     public fun encode_address(addr:&address):vector<u8> {

@@ -179,7 +179,7 @@ module xcall::main {
 
         let cs_request= message_request::create(
             from,
-            to,
+            network_address::addr(&to),
             sequence_no,
             envelope::msg_type(&envelope),
             envelope::message(&envelope),

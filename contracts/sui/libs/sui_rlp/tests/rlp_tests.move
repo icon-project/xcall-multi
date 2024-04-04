@@ -4,6 +4,7 @@ module sui_rlp::rlp_tests {
     use sui_rlp::decoder::{Self};
     use std::string::{Self};
     use std::debug;
+    use std::vector::{Self};
 
      #[test]
     fun test_encode_string() {
@@ -50,5 +51,30 @@ module sui_rlp::rlp_tests {
         let decoded= decoder::decode_u128(&encoded);
         assert!(decoded==val,0x01);
     }
+    #[test]
+    fun test_encode_list(){
+        let list= create_list();
+        debug::print(&list);
+        let encoded= encoder::encode_list(list,false);
+        debug::print(&encoded);
+        let decoded= decoder::decode_list(encoded);
+        debug::print(&decoded);
+        assert!(decoded==list,0x01);
+
+    }
+
+    fun create_list():vector<vector<u8>>{
+        let list=vector::empty();
+        vector::push_back(&mut list, encoder::encode_u8(44));
+        vector::push_back(&mut list, encoder::encode_u64(444444));
+        vector::push_back(&mut list, encoder::encode_u128(444444444444));
+        vector::push_back(&mut list, encoder::encode_string(&string::utf8(b"hello")));
+        vector::push_back(&mut list, vector::empty());
+        list
+    }
+
+     
+
+
 
 }
