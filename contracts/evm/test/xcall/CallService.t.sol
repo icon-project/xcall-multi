@@ -165,6 +165,52 @@ contract CallServiceTest is Test {
         callService.setProtocolFeeHandler(user);
     }
 
+    function testGetNetworkId() public {
+        assertEq(callService.getNetworkId(), ethNid);
+    }
+
+    function testGetDefaultConnection() public {
+        callService.setDefaultConnection(iconNid, address(baseConnection));
+
+        address defaultConnection = callService.getDefaultConnection(iconNid);
+        assertEq(defaultConnection, address(baseConnection));
+    }
+
+    function testGetConnectionFee() public {
+        connection1 = IConnection(address(0x0000000000000000000000000000000000000011));
+
+        callService.setDefaultConnection(iconNid, address(connection1));
+
+        vm.mockCall(address(connection1), abi.encodeWithSelector(connection1.getFee.selector), abi.encode(30));
+
+        uint256 fee = callService.getFee(iconNid, true);
+        assertEq(fee, 30);
+    }
+
+    function testGetFeeMultipleProtocols() public {
+        connection1 = IConnection(address(0x0000000000000000000000000000000000000011));
+        connection2 = IConnection(address(0x0000000000000000000000000000000000000012));
+
+        vm.mockCall(address(connection1), abi.encodeWithSelector(connection1.getFee.selector), abi.encode(10));
+        vm.mockCall(address(connection2), abi.encodeWithSelector(connection2.getFee.selector), abi.encode(20));
+
+        string[] memory sources = new string[](2);
+        sources[0] = ParseAddress.toString(address(connection1));
+        sources[1] = ParseAddress.toString(address(connection2));
+
+        uint256 fee = callService.getFee(iconNid, true, sources);
+        assertEq(fee, 30);
+    }
+
+    function testHandleMessageUnknownMsgType() public {
+        bytes memory data = bytes("data");
+
+        Types.CSMessage memory message = Types.CSMessage(3, data);
+
+        vm.expectRevert("UnknownMsgType(3)");
+        callService.handleMessage(iconNid, message.encodeCSMessage());
+    }
+
     function testSendMessageSingleProtocol() public {
         bytes memory data = bytes("test");
         bytes memory rollbackData = bytes("");
@@ -294,6 +340,16 @@ contract CallServiceTest is Test {
         vm.prank(address(dapp));
         uint256 sn = callService.sendCall{value: 0 ether}(iconDapp, _msg);
         assertEq(sn, 1);
+    }
+
+    function testSendInvalidMessageType() public {
+        bytes memory data = bytes("test");
+
+        bytes memory _msg = Types.XCallEnvelope(4, data, new string[](0), new string[](0)).encodeXCallEnvelope();
+
+        vm.expectRevert("Message type is not supported");
+        vm.prank(address(dapp));
+        uint256 sn = callService.sendCall{value: 0 ether}(iconDapp, _msg);
     }
 
     function testSendMessageResponse() public {
@@ -448,6 +504,13 @@ contract CallServiceTest is Test {
         callService.handleBTPMessage(iconNid, "xcallM", 1, RLPEncodeStruct.encodeCSMessage(message));
     }
 
+    function testHandleBTPError() public {
+        string memory data = "data"; 
+
+        vm.expectRevert("CallRequestNotFound");
+        callService.handleBTPError(iconNid, Types.NAME, 1, 1, data);
+    }
+
     function testInvalidNid() public {
         bytes memory data = bytes("test");
         callService.setDefaultConnection(iconNid, address(baseConnection));
@@ -542,6 +605,20 @@ contract CallServiceTest is Test {
 
         vm.prank(user);
         vm.mockCall(address(receiver), abi.encodeWithSelector(receiver.handleCallMessage.selector, iconDapp, data, _baseSource), abi.encode(1));
+        callService.executeCall(1, data);
+    }
+
+    function testExecuteCallUnsupportedMessageType() public {
+        bytes memory data = bytes("test");
+
+        Types.CSMessageRequestV2 memory request = Types.CSMessageRequestV2(iconDapp, ParseAddress.toString(address(receiver)), 1, 4, data, _baseSource);
+        Types.CSMessage memory message = Types.CSMessage(Types.CS_REQUEST,request.encodeCSMessageRequestV2());
+
+        vm.prank(address(baseConnection));
+        callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(message));
+
+        vm.expectRevert("Message type is not yet supported");
+        vm.prank(user);
         callService.executeCall(1, data);
     }
 
