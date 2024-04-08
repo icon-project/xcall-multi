@@ -350,6 +350,24 @@ public class CallServiceTest extends TestBase {
     }
 
     @Test
+    public void handleResult_evmEncoding() {
+        // Arrange
+        xcall.invoke(owner, "setDefaultConnection", ethDapp.net(), baseConnection.getAddress());
+
+        byte[] data = "test".getBytes();
+        CSMessageResult result = new CSMessageResult(BigInteger.ONE, CSMessageResult.SUCCESS, new byte[0]);
+        CSMessage msg = new CSMessage(CSMessage.RESULT, result.toBytes());
+
+        xcall.invoke(dapp.account, "sendCallMessage", ethDapp.toString(), data, data, baseSource, baseDestination);
+
+        // Act
+        xcall.invoke(baseConnection.account, "handleMessage", ethNid, msg.toBytes());
+
+        // Assert
+        verify(xcallSpy).ResponseMessage(BigInteger.ONE, CSMessageResult.SUCCESS);
+    }
+
+    @Test
     public void handleReply() {
         // Arrange
         xcall.invoke(owner, "setDefaultConnection", ethDapp.net(), baseConnection.getAddress());
@@ -369,7 +387,7 @@ public class CallServiceTest extends TestBase {
         verify(xcallSpy).CallMessage(ethDapp.toString(), dapp.getAddress().toString(), BigInteger.ONE, BigInteger.ONE, data);
     }
 
-     @Test
+    @Test
     public void handleReply_invalidTo() {
         // Arrange
         xcall.invoke(owner, "setDefaultConnection", ethDapp.net(), baseConnection.getAddress());
