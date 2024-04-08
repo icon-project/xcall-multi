@@ -358,3 +358,137 @@ fn test_rollback_reply() {
     println!("{event:?}");
     assert_eq!(&expected_hex, event.get("data").unwrap());
 }
+
+fn test_call_message(
+    mut ctx: &mut TestContext,
+    data: Vec<u8>,
+    msg_type: MessageType,
+) -> Result<AppResponse, AppError> {
+    call_set_xcall_host(ctx).unwrap();
+    call_register_connection(ctx).unwrap();
+    let src = ctx.get_xcall_ibc_connection().to_string();
+    let _dapp = ctx.get_dapp().to_string();
+
+    let nid = "0x3.icon";
+    call_configure_connection(
+        ctx,
+        "connection-1".to_string(),
+        nid.to_string(),
+        "client-1".to_string(),
+    )
+    .unwrap();
+    call_ibc_channel_connect(ctx).unwrap();
+    call_dapp_add_connection(ctx, src, "somedest".to_string(), nid.to_string()).unwrap();
+    let msg = CSMessageRequest::new(
+        NetworkAddress::from_str(&format!("{nid}/{MOCK_CONTRACT_TO_ADDR}")).unwrap(),
+        ctx.get_dapp(),
+        1,
+        msg_type,
+        data.clone(),
+        vec![ctx.get_xcall_ibc_connection().to_string()],
+    );
+    let request = CSMessage {
+        message_type: cw_xcall::types::message::CSMessageType::CSMessageRequest,
+        payload: msg.as_bytes(),
+    };
+
+    let msg = Message {
+        sn: Nullable::new(Some(1_i64)),
+        fee: 0_u128,
+        data: request.as_bytes(),
+    };
+    let bytes: Vec<u8> = common::rlp::encode(&msg).to_vec();
+
+    call_ibc_receive_packet(ctx, bytes).unwrap();
+    call_execute_call_message(ctx, 1, data)
+}
+
+#[test]
+fn test_call_message_failed() {
+    let mut ctx = setup_test();
+
+    let data = "rollback".as_bytes().to_vec();
+    let resp = test_call_message(&mut ctx, data, MessageType::CallMessage);
+    assert!(resp.is_ok());
+
+    let event = get_event(&resp.unwrap(), "wasm-CallExecuted").unwrap();
+    let expected_code: u8 = CallServiceResponseType::CallServiceResponseFailure.into();
+    assert_eq!(event.get("code").unwrap(), &expected_code.to_string());
+}
+
+#[test]
+fn test_call_message_success() {
+    let mut ctx = setup_test();
+
+    let data = "test".as_bytes().to_vec();
+    let resp = test_call_message(&mut ctx, data, MessageType::CallMessage);
+    assert!(resp.is_ok());
+    let result = resp.unwrap();
+    let event = get_event(&result, "wasm-CallExecuted").unwrap();
+    let ack_event = get_event(&result, "wasm-write_acknowledgement");
+    assert!(ack_event.is_none());
+
+    let expected_code: u8 = CallServiceResponseType::CallServiceResponseSuccess.into();
+    assert_eq!(event.get("code").unwrap(), &expected_code.to_string());
+}
+
+#[test]
+#[should_panic(expected = "NotFound { kind: \"cw_xcall::types::request::CSMessageRequest\"")]
+fn test_call_message_re_execute() {
+    let mut ctx = setup_test();
+
+    let data = "rollback".as_bytes().to_vec();
+    let resp = test_call_message(&mut ctx, data.clone(), MessageType::CallMessage);
+    assert!(resp.is_ok());
+    // CallRequest should have been removed even though call failed
+    let _ = call_execute_call_message(&mut ctx, 1, data);
+}
+
+#[test]
+fn test_persistent_call_message_success() {
+    let mut ctx = setup_test();
+
+    let data = "test".as_bytes().to_vec();
+    let resp = test_call_message(&mut ctx, data, MessageType::CallMessagePersisted);
+    assert!(resp.is_ok());
+
+    let result = resp.unwrap();
+    let event = get_event(&result, "wasm-CallExecuted").unwrap();
+    let ack_event = get_event(&result, "wasm-write_acknowledgement");
+    assert!(ack_event.is_none());
+
+    let expected_code: u8 = CallServiceResponseType::CallServiceResponseSuccess.into();
+    assert_eq!(event.get("code").unwrap(), &expected_code.to_string());
+}
+
+#[test]
+#[should_panic(expected = "NotFound { kind: \"cw_xcall::types::request::CSMessageRequest\"")]
+fn test_persistent_call_message_re_execute() {
+    let mut ctx = setup_test();
+
+    let data = "test".as_bytes().to_vec();
+    let resp = test_call_message(&mut ctx, data.clone(), MessageType::CallMessagePersisted);
+    assert!(resp.is_ok());
+
+    let result = resp.unwrap();
+    let event = get_event(&result, "wasm-CallExecuted").unwrap();
+
+    let expected_code: u8 = CallServiceResponseType::CallServiceResponseSuccess.into();
+    assert_eq!(event.get("code").unwrap(), &expected_code.to_string());
+
+    // removed after a successful execution
+    let _ = call_execute_call_message(&mut ctx, 1, data);
+}
+
+#[test]
+fn test_persistent_call_message_retry() {
+    let mut ctx = setup_test();
+
+    let data = "rollback".as_bytes().to_vec();
+    let resp = test_call_message(&mut ctx, data.clone(), MessageType::CallMessagePersisted);
+    assert!(resp.is_err());
+
+    // can retry
+    let resp = call_execute_call_message(&mut ctx, 1, data);
+    assert!(resp.is_err());
+}
