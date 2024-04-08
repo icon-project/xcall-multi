@@ -76,13 +76,14 @@ impl<'a> CwCallService<'a> {
         self.remove_execute_request_id(deps.storage);
 
         let request = self.get_proxy_request(deps.storage, req_id)?;
+        self.remove_proxy_request(deps.storage, req_id);
+        let reply = self
+            .pop_call_reply(deps.storage)
+            .map(|msg| rlp::encode(&msg).to_vec());
 
         let (response, event) = match msg.result {
             cosmwasm_std::SubMsgResult::Ok(_res) => {
                 let code = CallServiceResponseType::CallServiceResponseSuccess.into();
-                let reply = self
-                    .pop_call_reply(deps.storage)
-                    .map(|msg| rlp::encode(&msg).to_vec());
                 let message_response = CSMessageResult::new(
                     request.sequence_no(),
                     CallServiceResponseType::CallServiceResponseSuccess,
@@ -90,7 +91,6 @@ impl<'a> CwCallService<'a> {
                 );
 
                 let event = event_call_executed(req_id, code, "success");
-                self.remove_proxy_request(deps.storage, req_id);
                 (message_response, event)
             }
             cosmwasm_std::SubMsgResult::Err(err) => {
