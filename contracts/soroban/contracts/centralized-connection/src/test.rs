@@ -4,12 +4,13 @@ extern crate std;
 
 use crate::{
     contract::{CentralizedConnection, CentralizedConnectionClient},
+    helpers::xcall,
     types::InitializeMsg,
 };
 use soroban_sdk::{
     symbol_short,
     testutils::{Address as _, AuthorizedFunction, AuthorizedInvocation, Events},
-    token, vec, Address, Env, IntoVal, String, Symbol, Vec,
+    token, vec, Address, Bytes, Env, IntoVal, String, Symbol,
 };
 
 pub struct TestContext {
@@ -27,7 +28,7 @@ impl TestContext {
         let env = Env::default();
         let token_admin = Address::generate(&env);
         Self {
-            xcall: Address::generate(&env),
+            xcall: env.register_contract_wasm(None, xcall::WASM),
             contract: env.register_contract(None, CentralizedConnection),
             relayer: Address::generate(&env),
             native_token: env.register_stellar_asset_contract(token_admin.clone()),
@@ -221,7 +222,7 @@ fn test_send_message() {
     let asset_client = token::StellarAssetClient::new(&ctx.env, &ctx.native_token);
     asset_client.mint(&ctx.xcall, &1000);
 
-    let msg: Vec<u32> = vec![&ctx.env, 1, 2, 3];
+    let msg = Bytes::from_array(&ctx.env, &[1, 2, 3]);
     client.send_message(&200, &ctx.nid, &1, &msg);
 
     assert_eq!(
@@ -271,6 +272,39 @@ fn test_send_message_fail_for_insufficient_fee() {
     let asset_client = token::StellarAssetClient::new(&ctx.env, &ctx.native_token);
     asset_client.mint(&ctx.xcall, &1000);
 
-    let msg: Vec<u32> = vec![&ctx.env, 1, 2, 3];
+    let msg = Bytes::from_array(&ctx.env, &[1, 2, 3]);
     client.send_message(&150, &ctx.nid, &1, &msg);
+}
+
+#[test]
+fn test_recv_message() {
+    let ctx = TestContext::default();
+    let client = CentralizedConnectionClient::new(&ctx.env, &ctx.contract);
+
+    ctx.init_context(&client);
+
+    let msg = Bytes::from_array(&ctx.env, &[1, 2, 3]);
+    client.recv_message(&ctx.nid, &1, &msg);
+}
+
+#[test]
+#[should_panic(expected = "HostError: Error(Contract, #5)")]
+fn test_recv_message_fail_for_duplicate_receipt() {
+    let ctx = TestContext::default();
+    let client = CentralizedConnectionClient::new(&ctx.env, &ctx.contract);
+
+    ctx.init_context(&client);
+
+    let msg = Bytes::from_array(&ctx.env, &[1, 2, 3]);
+    client.recv_message(&ctx.nid, &1, &msg);
+    client.recv_message(&ctx.nid, &1, &msg);
+}
+
+#[test]
+fn test_revert_message() {
+    let ctx = TestContext::default();
+    let client = CentralizedConnectionClient::new(&ctx.env, &ctx.contract);
+
+    ctx.init_context(&client);
+    client.revert_message(&10);
 }

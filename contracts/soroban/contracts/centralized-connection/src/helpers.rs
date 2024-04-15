@@ -1,6 +1,6 @@
-use soroban_sdk::{token, Address, Env, String, Vec};
+use soroban_sdk::{token, Address, Bytes, Env, String};
 
-mod xcall {
+pub mod xcall {
     soroban_sdk::contractimport!(file = "../../target/wasm32-unknown-unknown/release/xcall.wasm");
 }
 
@@ -47,7 +47,7 @@ impl CentralizedConnection {
     pub fn call_xcall_handle_message(
         e: &Env,
         nid: &String,
-        msg: Vec<u32>,
+        msg: Bytes,
     ) -> Result<(), ContractError> {
         let xcall_addr = Self::get_xcall(&e)?;
         let client = xcall::Client::new(&e, &xcall_addr);
@@ -56,8 +56,9 @@ impl CentralizedConnection {
         Ok(())
     }
 
-    pub fn call_xcall_handle_error(e: &Env, xcall: Address, sn: u128) -> Result<(), ContractError> {
-        let client = xcall::Client::new(&e, &xcall);
+    pub fn call_xcall_handle_error(e: &Env, sn: u128) -> Result<(), ContractError> {
+        let xcall_addr = Self::get_xcall(&e)?;
+        let client = xcall::Client::new(&e, &xcall_addr);
         client.handle_error(&sn);
 
         Ok(())

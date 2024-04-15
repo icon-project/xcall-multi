@@ -1,4 +1,4 @@
-use soroban_sdk::{contract, contractimpl, token, Address, Env, String, Vec};
+use soroban_sdk::{contract, contractimpl, token, Address, Bytes, Env, String};
 
 extern crate alloc;
 
@@ -70,12 +70,8 @@ impl CentralizedConnection {
         amount: u128,
         to: String,
         sn: i64,
-        msg: Vec<u32>,
+        msg: Bytes,
     ) -> Result<(), ContractError> {
-        // TODO:
-        // 1. convert `msg` type to Vec<u8>
-        // 2. encode msg to hexadecimal format
-
         let xcall = Self::ensure_xcall(&env)?;
 
         let next_conn_sn = Self::get_next_conn_sn(&env);
@@ -100,12 +96,8 @@ impl CentralizedConnection {
         env: Env,
         src_network: String,
         conn_sn: u128,
-        msg: Vec<u32>,
+        msg: Bytes,
     ) -> Result<(), ContractError> {
-        // TODO:
-        // 1. convert `msg` type to String
-        // 2. decode msg from hexadecimal format to Vec<u8>
-
         Self::ensure_admin(&env)?;
 
         if Self::get_receipt(&env, src_network.clone(), conn_sn) {
@@ -129,9 +121,9 @@ impl CentralizedConnection {
     ///
     /// a `Result<(), ContractError)`
     pub fn revert_message(env: &Env, sn: u128) -> Result<(), ContractError> {
-        let address = Self::ensure_admin(&env)?;
+        Self::ensure_admin(&env)?;
 
-        Self::call_xcall_handle_error(&env, address, sn)?;
+        Self::call_xcall_handle_error(&env, sn)?;
         Ok(())
     }
 

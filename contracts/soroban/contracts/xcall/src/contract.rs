@@ -1,15 +1,11 @@
-use soroban_sdk::{contract, contractimpl, Env, String, Vec};
+use soroban_sdk::{contract, contractimpl, Bytes, Env, String};
 
 #[contract]
 pub struct Xcall;
 
 #[contractimpl]
 impl Xcall {
-    pub fn handle_message(_env: Env, _from_nid: String, _msg: Vec<u32>) {
-        unimplemented!()
-    }
+    pub fn handle_message(_env: Env, _from_nid: String, _msg: Bytes) -> () {}
 
-    pub fn handle_error(_env: Env, _sn: u128) {
-        unimplemented!()
-    }
+    pub fn handle_error(_env: Env, _sn: u128) -> () {}
 }
