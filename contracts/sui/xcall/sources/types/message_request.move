@@ -51,9 +51,9 @@ use std::string::{Self, String};
           encoded
     }
 
-    public fun decode(bytes:vector<u8>):CSMessageRequest {
+    public fun decode(bytes:&vector<u8>):CSMessageRequest {
          let decoded=decoder::decode_list(bytes);
-         let from= network_address::decode(*vector::borrow(&decoded,0));
+         let from= network_address::decode(vector::borrow(&decoded,0));
          let to= decoder::decode_string(vector::borrow(&decoded,1));
          let sn= decoder::decode_u128(vector::borrow(&decoded,2));
          let message_type= decoder::decode_u8(vector::borrow(&decoded,3));
@@ -135,7 +135,7 @@ module xcall::message_request_tests {
          let encoded_bytes=message_request::encode(&msg_request);
         
          assert!(encoded_bytes==x"F83F8B3078312E4554482F307861AA63783030303030303030303030303030303030303030303030303030303030303030303030303031303215008474657374C0",0x01);
-        let decoded= message_request::decode(encoded_bytes);
+        let decoded= message_request::decode(&encoded_bytes);
        
         assert!(decoded==msg_request,0x01);
         
@@ -174,7 +174,7 @@ CSMessageRequest
          protocols);
          let encoded_bytes=message_request::encode(&msg_request);
          assert!(encoded_bytes==x"F84B8B3078312E4554482F307861AA63783030303030303030303030303030303030303030303030303030303030303030303030303031303215008474657374CC836162638363646583656667",0x01);
-         let decoded= message_request::decode(encoded_bytes);
+         let decoded= message_request::decode(&encoded_bytes);
          
          assert!(decoded==msg_request,0x01);
         
@@ -214,7 +214,7 @@ CSMessageRequest
 
          let encoded_bytes=message_request::encode(&msg_request);
          assert!(encoded_bytes==x"F84B8B3078312E4554482F307861AA63783030303030303030303030303030303030303030303030303030303030303030303030303031303215018474657374CC836162638363646583656667",0x01);
-         let decoded= message_request::decode(encoded_bytes);
+         let decoded= message_request::decode(&encoded_bytes);
          assert!(decoded==msg_request,0x01);
         
 

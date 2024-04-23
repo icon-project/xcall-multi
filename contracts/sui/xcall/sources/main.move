@@ -224,7 +224,7 @@ module xcall::main {
 
     entry fun handle_message(self:&mut Storage, from:String, msg:vector<u8>,ctx: &mut TxContext){
         assert!(from != string::utf8(NID),InvalidNID);
-        let cs_msg = cs_message::decode(msg);
+        let cs_msg = cs_message::decode(&msg);
         let msg_type = cs_message::msg_type(&cs_msg);
         let payload = cs_message::payload(&cs_msg);
 
@@ -237,7 +237,7 @@ module xcall::main {
     }
 
     fun handle_request(self:&mut Storage,from:String,payload:vector<u8>, ctx: &mut TxContext){
-        let req = message_request::decode(payload);
+        let req = message_request::decode(&payload);
         let from_nid = message_request::from_nid(&req);
 
         assert!(from_nid == string::utf8(NID),InvalidNID);

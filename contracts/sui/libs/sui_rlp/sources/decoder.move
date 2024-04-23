@@ -54,11 +54,11 @@ module sui_rlp::decoder {
     }
 
 
-     public fun decode_list(list: vector<u8>): vector<vector<u8>> {
+     public fun decode_list(list: &vector<u8>): vector<vector<u8>> {
        
-        let list_length=decode_length(&list,0xc0);
-        let start=vector::length(&list)-list_length;
-        let encoded= utils::slice_vector(&list,start,vector::length(&list)-start);
+        let list_length=decode_length(list,0xc0);
+        let start=vector::length(list)-list_length;
+        let encoded= utils::slice_vector(list,start,vector::length(list)-start);
         let mut values: vector<vector<u8>> = vector::empty();
         let mut i: u64 = 0;
         while (i < vector::length(&encoded)) {
@@ -118,7 +118,7 @@ module sui_rlp::decoder {
 
     public fun decode_strings(vec:&vector<u8>):vector<String>{
         
-        let vecs=decode_list(*vec);
+        let vecs=decode_list(vec);
         
         let mut strings=vector::empty<String>();
         let mut i=0;

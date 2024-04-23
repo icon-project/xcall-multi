@@ -57,7 +57,7 @@ module sui_rlp::rlp_tests {
        // debug::print(&list);
         let encoded= encoder::encode_list(&list,false);
        // debug::print(&encoded);
-        let decoded= decoder::decode_list(encoded);
+        let decoded= decoder::decode_list(&encoded);
       //  debug::print(&decoded);
         assert!(decoded==list,0x01);
 

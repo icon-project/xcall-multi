@@ -8,22 +8,26 @@ module xcall::cs_message {
     use sui_rlp::decoder::{Self};
     use std::debug;
 
+    const CS_REQUEST:u8 = 1;
+
+    const CS_RESULT:u8 = 2;
+
     public struct CSMessage has store,drop{
         msg_type:u8,
         payload:vector<u8>,
     }
 
-    public fun from_message_request(req:CSMessageRequest):CSMessage {
+    public fun new(msg_type:u8,payload:vector<u8>):CSMessage{
         CSMessage {
-            msg_type:message_request::msg_type(&req),
-            payload:message_request::encode(&req),
+            msg_type,
+            payload
         }
     }
 
-    public fun decode(bytes:vector<u8>):CSMessage {
+    public fun from_message_request(req:CSMessageRequest):CSMessage {
         CSMessage {
-            msg_type:0,
-            payload:vector::empty<u8>(),
+            msg_type:CS_REQUEST,
+            payload:message_request::encode(&req),
         }
     }
 
@@ -34,4 +38,71 @@ module xcall::cs_message {
     public fun payload( msg:&CSMessage):vector<u8> {
         msg.payload
     }
+
+     public fun encode(req:&CSMessage):vector<u8>{
+          let mut list=vector::empty<vector<u8>>();
+           
+          vector::push_back(&mut list,encoder::encode_u8(req.msg_type));
+          vector::push_back(&mut list,encoder::encode(&req.payload));
+
+          let encoded=encoder::encode_list(&list,false);
+          encoded
+    }
+
+    public fun decode(bytes:&vector<u8>):CSMessage {
+         let decoded=decoder::decode_list(bytes);
+         
+         let message_type= decoder::decode_u8(vector::borrow(&decoded,0));
+         let payload= *vector::borrow(&decoded,1);
+        
+         let req=CSMessage {
+            msg_type:message_type,
+            payload
+         };
+         req
+
+    }
+}
+
+module xcall::cs_message_tests {
+    use xcall::cs_message::{Self};
+    use xcall::cs_message::CS_REQUEST;
+
+      /**
+    * CSMessage
+    type: CSMessage.REQUEST
+    data: 7465737431
+    RLP: C701857465737431
+
+    CSMessage
+    type: CSMessage.RESPONSE
+    data: 7465737431
+    RLP: C702857465737431
+    */
+
+    #[test]
+    fun test_cs_message_encoding_1(){
+        let msg= cs_message::new(1,x"7465737431");
+        let encoded= cs_message::encode(&msg);
+        assert!(encoded==x"C701857465737431",0x01);
+        let decoded=cs_message::decode(&encoded);
+        assert!(decoded==msg,0x01);
+
+
+    }
+
+     #[test]
+    fun test_cs_message_encoding_2(){
+        let msg= cs_message::new(2,x"7465737431");
+        let encoded= cs_message::encode(&msg);
+        assert!(encoded==x"C702857465737431",0x01);
+        let decoded=cs_message::decode(&encoded);
+        assert!(decoded==msg,0x01);
+
+
+    }
+
+
+
+
 }
