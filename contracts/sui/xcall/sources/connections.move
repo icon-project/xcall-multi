@@ -33,9 +33,18 @@ const ConnCentralized:vector<u8> =b"centralized";
              
         }else{
            abort EConnectionNotFound
-        }
-       
+        } 
+    }
 
+        public fun send_message(states:&mut Bag,package_id:String,netId:String,response:bool){
+
+         if (package_id==centralized_connection::package_id_str()){
+            // centralized_connection::send_message(states,netId,response);
+              
+             
+        }else{
+           abort EConnectionNotFound
+        } 
     }
     
 }

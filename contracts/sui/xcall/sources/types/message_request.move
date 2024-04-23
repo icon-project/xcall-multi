@@ -4,21 +4,20 @@ use std::string::{Self, String};
     use sui::object::{Self, ID, UID};
     use xcall::network_address::{Self,NetworkAddress};
     use std::vector;
+    use sui::address::{Self};
 
-
-
-     struct CSMessageRequest has store,drop{
-    from:NetworkAddress,
-    to: NetworkAddress,
-    sn:u128,
-    message_type:u8,
-    data:vector<u8>,
-    protocols:vector<String>,
+    struct CSMessageRequest has store,drop, copy{
+        from:NetworkAddress,
+        to: String,
+        sn:u128,
+        message_type:u8,
+        data:vector<u8>,
+        protocols:vector<String>,
    }
 
 
     public fun create(from:NetworkAddress,
-    to: NetworkAddress,
+    to: String,
     sn:u128,
     message_type:u8,
     data:vector<u8>,
@@ -31,8 +30,17 @@ use std::string::{Self, String};
             data:data,
             protocols:protocols
         }
+    }
 
-
+    public fun new():CSMessageRequest {
+        CSMessageRequest {
+            from:network_address::from_string(string::utf8(b"")),
+            to:string::utf8(b""),
+            sn:0,
+            message_type:0,
+            data:vector::empty<u8>(),
+            protocols:vector::empty<String>()
+        }
     }
 
     public fun encode(req:CSMessageRequest):vector<u8>{
@@ -41,8 +49,8 @@ use std::string::{Self, String};
 
     public fun decode(bytes:vector<u8>):CSMessageRequest {
         CSMessageRequest {
-            from:network_address::from_string(string::utf8(b"abc")),
-            to:network_address::from_string(string::utf8(b"def")),
+            from:network_address::from_string(string::utf8(b"")),
+            to:string::utf8(b""),
             sn:0,
             message_type:0,
             data:vector::empty<u8>(),
@@ -58,7 +66,7 @@ use std::string::{Self, String};
         req.from
     }
 
-    public fun to(req:&CSMessageRequest):NetworkAddress {
+    public fun to(req:&CSMessageRequest):String {
         req.to
     }
 

@@ -34,7 +34,11 @@ use std::option::{Self, Option,some,none};
          MSG_TYPE
     }
 
-    public fun rollback(msg:CallMessageWithRollback):vector<u8>{
+    public fun rollback(msg:&CallMessageWithRollback):vector<u8>{
         msg.rollback
+    }
+
+    public fun data(msg:&CallMessageWithRollback):vector<u8>{
+        msg.data
     }
 }

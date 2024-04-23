@@ -11,7 +11,7 @@ module xcall::xcall_state {
    
     use xcall::network_address::{Self,NetworkAddress};
     use xcall::envelope::{Self,XCallEnvelope};
-    use xcall::message_request::{Self};
+    use xcall::message_request::{Self, CSMessageRequest};
     use xcall::cs_message::{Self};
     use xcall::rollback_data::{Self,RollbackData};
     use sui::bag::{Bag, Self};
@@ -34,11 +34,18 @@ module xcall::xcall_state {
         id: UID
     }
 
+    struct PendingReqResKey has copy, drop, store{
+        data_hash :vector<u8>,
+        caller :String
+    }
+
 
      struct Storage has key {
         id: UID,
         version:u64,
         admin:ID,
+        nid: String,
+        network_address:NetworkAddress,
         requests:LinkedTable<u128, vector<u8>>,
         sequence_no:u128,
         protocol_fee:u128,
@@ -46,6 +53,13 @@ module xcall::xcall_state {
         connection_states:Bag,
         rollbacks:Table<u128,RollbackData>,
         connections:VecMap<String,String>,
+        pending_responses: VecMap<PendingReqResKey,bool>,
+        pending_requests: VecMap<PendingReqResKey,bool>,
+        successful_responses: VecMap<u128, bool>,
+        request_id: u128,
+        proxy_requests:Table<u128, CSMessageRequest>,
+        reply_state: CSMessageRequest,
+        call_reply: vector<u8>
     }
 
     public(friend) fun create_admin_cap(ctx: &mut TxContext):AdminCap {
@@ -68,6 +82,8 @@ module xcall::xcall_state {
          let storage = Storage {
             id: object::new(ctx),
             version:version,
+            nid: string::utf8(b""),
+            network_address: network_address::from_string(string::utf8(b"")),
             admin:object::id(admin),
             requests:linked_table::new<u128, vector<u8>>(ctx),
             sequence_no:0,
@@ -76,6 +92,14 @@ module xcall::xcall_state {
             connection_states:bag::new(ctx),
             rollbacks:table::new<u128,RollbackData>(ctx),
             connections:vec_map::empty<String,String>(),
+            pending_responses:vec_map::empty<PendingReqResKey,bool>(),
+            pending_requests:vec_map::empty<PendingReqResKey,bool>(),
+            successful_responses:vec_map::empty<u128,bool>(),
+            request_id:0,
+            proxy_requests:table::new<u128, CSMessageRequest>(ctx),
+            reply_state:message_request::new(),
+            call_reply:vector::empty<u8>()
+
         };
         storage
     }
@@ -84,12 +108,44 @@ module xcall::xcall_state {
             self.version=version;
     }
 
-     public(friend) fun set_connection(self:&mut Storage,net_id:String,package_id:String){
+    public(friend) fun set_connection(self:&mut Storage,net_id:String,package_id:String){
             vec_map::insert(&mut self.connections,net_id,package_id);
+    }
+
+    public(friend) fun set_reply_state(self:&mut Storage,reply_state:CSMessageRequest){
+            self.reply_state=reply_state;
+    }
+
+    public(friend) fun set_call_reply(self:&mut Storage,call_reply:vector<u8>){
+            self.call_reply=call_reply;
+    }
+
+    public(friend) fun remove_reply_state(self:&mut Storage){
+            self.reply_state=message_request::new();
+    }
+
+    public(friend) fun remove_call_reply(self:&mut Storage){
+            self.call_reply=vector::empty<u8>();
     }
 
     public(friend) fun add_rollback(self:&mut Storage,sequence_no:u128,rollback:RollbackData){
          table::add(&mut self.rollbacks,sequence_no,rollback);
+    }
+
+    public(friend) fun add_proxy_request(self:&mut Storage,req_id:u128,proxy_request:CSMessageRequest){
+         table::add(&mut self.proxy_requests,req_id,proxy_request);
+    }
+
+    public(friend) fun remove_proxy_request(self:&mut Storage,req_id:u128){
+         table::remove(&mut self.proxy_requests,req_id);
+    }
+
+    public(friend) fun get_proxy_request(self:&mut Storage,req_id:u128):&CSMessageRequest{
+         table::borrow(&self.proxy_requests,req_id)
+    }
+
+    public(friend) fun network_address(self:&Storage):NetworkAddress{
+        self.network_address
     }
 
     public fun get_version(self:&Storage):u64{
@@ -98,6 +154,14 @@ module xcall::xcall_state {
 
     public fun get_admin(self:&Storage):ID {
         self.admin
+    }
+
+    public fun get_reply_state(self:&Storage):CSMessageRequest{
+        self.reply_state
+    }
+
+    public fun get_call_reply(self:&Storage):vector<u8>{
+        self.call_reply
     }
 
     public fun get_connection(self:&Storage,nid:String):String{
@@ -112,6 +176,18 @@ module xcall::xcall_state {
         let sn=self.sequence_no+1;
         self.sequence_no=sn;
         sn
+    }
+
+   public fun get_rollback(self: &mut Storage, sequence_no: u128): &RollbackData {
+        table::borrow(&self.rollbacks, sequence_no)
+    }
+
+    public fun get_mut_rollback(self: &mut Storage, sequence_no: u128): &mut RollbackData {
+        table::borrow_mut(&mut self.rollbacks, sequence_no)
+    }
+
+    public fun has_rollback(self: &mut Storage , sequence_no: u128): bool {
+        table::contains(&self.rollbacks, sequence_no)
     }
 
 
@@ -129,6 +205,89 @@ module xcall::xcall_state {
 
     public(friend) fun share(self:Storage){
          transfer::share_object(self);
+    }
+
+    public(friend) fun check_pending_responses(self: &mut Storage, data_hash: vector<u8>, sources: vector<String>):bool {
+        let i = 0;
+        while(i < vector::length(&sources)) {
+            let source = vector::borrow(&sources, i);
+            let pending_response = PendingReqResKey { data_hash, caller: *source };
+            if(!vec_map::contains(&self.pending_responses, &pending_response)) {
+                return false
+            };
+            i = i + 1   
+        };
+        true
+    }
+
+    public(friend) fun save_pending_responses(self: &mut Storage, data_hash: vector<u8>, caller: String) {
+        let pending_response = PendingReqResKey { data_hash, caller };
+        vec_map::insert(&mut self.pending_responses, pending_response, true);
+    }
+
+    public(friend) fun get_pending_response(self: &mut Storage, data_hash: vector<u8>, caller: String): bool {
+        let pending_response = PendingReqResKey { data_hash, caller };
+        vec_map::contains(&self.pending_responses, &pending_response)
+    }
+
+    public(friend) fun remove_pending_responses(self: &mut Storage, data_hash: vector<u8>, sources: vector<String>) {
+        let i = 0;
+        while(i < vector::length(&sources)) {
+            let source = vector::borrow(&sources, i);
+            vec_map::remove(&mut self.pending_responses, &PendingReqResKey { data_hash, caller: *source });
+            i = i + 1   
+        };
+    }
+
+    
+    public(friend) fun check_pending_requests(self: &mut Storage, data_hash: vector<u8>, sources: vector<String>):bool {
+        let i = 0;
+        while(i < vector::length(&sources)) {
+            let source = vector::borrow(&sources, i);
+            let pending_request = PendingReqResKey { data_hash, caller: *source };
+            if(!vec_map::contains(&self.pending_requests, &pending_request)) {
+                return false
+            };
+            i = i + 1   
+        };
+        true
+    }
+
+    public(friend) fun save_pending_requests(self: &mut Storage, data_hash: vector<u8>, caller: String) {
+        let pending_request = PendingReqResKey { data_hash, caller };
+        vec_map::insert(&mut self.pending_requests, pending_request, true);
+    }
+
+    public(friend) fun get_pending_requests(self: &mut Storage, data_hash: vector<u8>, caller: String): bool {
+        let pending_request = PendingReqResKey { data_hash, caller };
+        vec_map::contains(&self.pending_requests, &pending_request)
+    }
+
+    public(friend) fun remove_pending_requests(self: &mut Storage, data_hash: vector<u8>, sources: vector<String>) {
+        let i = 0;
+        while(i < vector::length(&sources)) {
+            let source = vector::borrow(&sources, i);
+            vec_map::remove(&mut self.pending_requests, &PendingReqResKey { data_hash, caller: *source });
+            i = i + 1   
+        };
+    }
+
+    public(friend) fun remove_rollback(self: &mut Storage,sequence_no:u128){
+        table::remove(&mut self.rollbacks, sequence_no);
+    }
+
+    public(friend) fun set_successful_responses(self: &mut Storage, sequence_no: u128) {
+        vec_map::insert(&mut self.successful_responses, sequence_no, true);
+    }
+
+    public(friend) fun get_successful_responses(self: &mut Storage, sequence_no: u128): bool {
+        vec_map::contains(&self.successful_responses, &sequence_no)
+    }
+
+    public(friend) fun get_next_request_id(self: &mut Storage): u128 {
+        let id = self.request_id + 1;
+        self.request_id = id;
+        id
     }
 
 }
