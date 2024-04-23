@@ -47,13 +47,13 @@ use std::string::{Self, String};
           vector::push_back(&mut list,encoder::encode(&req.data));
           vector::push_back(&mut list,encoder::encode_strings(&req.protocols));
 
-          let encoded=encoder::encode_list(list,false);
+          let encoded=encoder::encode_list(&list,false);
           encoded
     }
 
     public fun decode(bytes:vector<u8>):CSMessageRequest {
-        let decoded=decoder::decode_list(bytes);
-        let from= network_address::decode(*vector::borrow(&decoded,0));
+         let decoded=decoder::decode_list(bytes);
+         let from= network_address::decode(*vector::borrow(&decoded,0));
          let to= decoder::decode_string(vector::borrow(&decoded,1));
          let sn= decoder::decode_u128(vector::borrow(&decoded,2));
          let message_type= decoder::decode_u8(vector::borrow(&decoded,3));
@@ -103,6 +103,7 @@ module xcall::message_request_tests {
     use std::vector;
     use std::debug;
     use xcall::call_message::{Self};
+    use xcall::call_message_rollback::{Self};
      use sui_rlp::encoder::{Self};
     use sui_rlp::decoder::{Self};
     /*
@@ -115,7 +116,33 @@ module xcall::message_request_tests {
      protocol: []
      RLP: F83F8B3078312E4554482F307861AA63783030303030303030303030303030303030303030303030303030303030303030303030303031303215008474657374C0
 
-     CSMessageRequest
+     
+     */
+
+    #[test]
+     fun test_message_request_encode_case_1(){
+        let from=network_address::create(string::utf8(b"0x1.ETH"),string::utf8(b"0xa"));
+        let network_bytes=network_address::encode(&from);
+       
+
+
+        let msg_request=message_request::create(from,
+        string::utf8(b"cx0000000000000000000000000000000000000102"),
+        21,
+        call_message::msg_type(),
+         x"74657374",
+         vector::empty());
+         let encoded_bytes=message_request::encode(&msg_request);
+        
+         assert!(encoded_bytes==x"F83F8B3078312E4554482F307861AA63783030303030303030303030303030303030303030303030303030303030303030303030303031303215008474657374C0",0x01);
+        let decoded= message_request::decode(encoded_bytes);
+       
+        assert!(decoded==msg_request,0x01);
+        
+
+     }
+/*
+CSMessageRequest
      from: 0x1.ETH/0xa
      to: cx0000000000000000000000000000000000000102
      sn: 21
@@ -124,6 +151,37 @@ module xcall::message_request_tests {
      protocol: [abc, cde, efg]
      RLP: F84B8B3078312E4554482F307861AA63783030303030303030303030303030303030303030303030303030303030303030303030303031303215008474657374CC836162638363646583656667
 
+*/
+
+     #[test]
+     fun test_message_request_encode_case_2(){
+        let from=network_address::create(string::utf8(b"0x1.ETH"),string::utf8(b"0xa"));
+        let network_bytes=network_address::encode(&from);
+        
+        let mut protocols=vector::empty();
+        protocols.push_back(string::utf8(b"abc"));
+        protocols.push_back(string::utf8(b"cde"));
+       
+        protocols.push_back(string::utf8(b"efg"));
+       
+
+
+        let msg_request=message_request::create(from,
+        string::utf8(b"cx0000000000000000000000000000000000000102"),
+        21,
+        call_message::msg_type(),
+         x"74657374",
+         protocols);
+         let encoded_bytes=message_request::encode(&msg_request);
+         assert!(encoded_bytes==x"F84B8B3078312E4554482F307861AA63783030303030303030303030303030303030303030303030303030303030303030303030303031303215008474657374CC836162638363646583656667",0x01);
+         let decoded= message_request::decode(encoded_bytes);
+         
+         assert!(decoded==msg_request,0x01);
+        
+
+     }
+
+     /*
      CSMessageRequest
      from: 0x1.ETH/0xa
      to: cx0000000000000000000000000000000000000102
@@ -134,31 +192,30 @@ module xcall::message_request_tests {
      RLP: F84B8B3078312E4554482F307861AA63783030303030303030303030303030303030303030303030303030303030303030303030303031303215018474657374CC836162638363646583656667
 
 
+     
      */
 
      #[test]
-     fun test_message_request_encode_case_1(){
+     fun test_message_request_encode_case_3(){
         let from=network_address::create(string::utf8(b"0x1.ETH"),string::utf8(b"0xa"));
         let network_bytes=network_address::encode(&from);
-        debug::print(&network_bytes);
-        debug::print(&encoder::encode_u128(21));
-        debug::print(&encoder::encode_string(&string::utf8(b"cx0000000000000000000000000000000000000102")));
-        debug::print(&encoder::encode(&x"74657374"));
-        debug::print(&encoder::encode_list(vector::empty(),true));
-
+        
+        let mut protocols=vector::empty();
+        protocols.push_back(string::utf8(b"abc"));
+        protocols.push_back(string::utf8(b"cde"));
+        protocols.push_back(string::utf8(b"efg"));
 
         let msg_request=message_request::create(from,
         string::utf8(b"cx0000000000000000000000000000000000000102"),
         21,
-        call_message::msg_type(),
+        call_message_rollback::msg_type(),
          x"74657374",
-         vector::empty());
+         protocols);
+
          let encoded_bytes=message_request::encode(&msg_request);
-         debug::print(&encoded_bytes);
-         assert!(encoded_bytes==x"F83F8B3078312E4554482F307861AA63783030303030303030303030303030303030303030303030303030303030303030303030303031303215008474657374C0",0x01);
-        let decoded= message_request::decode(encoded_bytes);
-        debug::print(&decoded);
-        assert!(decoded==msg_request,0x01);
+         assert!(encoded_bytes==x"F84B8B3078312E4554482F307861AA63783030303030303030303030303030303030303030303030303030303030303030303030303031303215018474657374CC836162638363646583656667",0x01);
+         let decoded= message_request::decode(encoded_bytes);
+         assert!(decoded==msg_request,0x01);
         
 
      }

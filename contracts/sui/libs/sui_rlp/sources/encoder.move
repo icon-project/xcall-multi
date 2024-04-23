@@ -21,8 +21,9 @@ module sui_rlp::encoder {
         
     }
 
-    public fun encode_list(mut list:vector<vector<u8>>,raw:bool):vector<u8>{
+    public fun encode_list(list:&vector<vector<u8>>,raw:bool):vector<u8>{
         let mut result=vector::empty();
+        let mut list=*list;
         if(vector::length(&list)>0){
             vector::reverse(&mut list);
 
@@ -35,7 +36,6 @@ module sui_rlp::encoder {
            
         };
          let len=vector::length(&result);
-         debug::print(&len);
          let mut length_buff=encode_length(len,192);
          vector::append(&mut length_buff,result);
          result=length_buff;
@@ -100,7 +100,7 @@ module sui_rlp::encoder {
              vector::push_back(&mut vec,encode_string(&item));
             i=i+1;
         };
-        encode_list(vec,false)
+        encode_list(&vec,false)
 
     }
 

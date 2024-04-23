@@ -18,12 +18,12 @@ module sui_rlp::decoder {
             data
         } else {
             let length_len = byte - 0xb7;
-            debug::print(&length_len);
+          
             let length_bytes= utils::slice_vector(encoded,1,((length_len) as u64));
             let length = utils::from_bytes_u64(&length_bytes);
-            debug::print(&length);
+           
             let data_start = ((length_len + 1) as u64);
-            debug::print(&data_start);
+           
             let data = utils::slice_vector(encoded,data_start, length);
             data
         };
@@ -42,7 +42,7 @@ module sui_rlp::decoder {
 
         }else {
             let length_len=*vector::borrow(data,0)-offset-55;
-            debug::print(&length_len);
+          
             let length_bytes=utils::slice_vector(data,1,(length_len as u64));
             utils::from_bytes_u64(&length_bytes)
 
@@ -55,22 +55,14 @@ module sui_rlp::decoder {
 
 
      public fun decode_list(list: vector<u8>): vector<vector<u8>> {
-        debug::print(&list);
-        debug::print(&vector::length(&list));
+       
         let list_length=decode_length(&list,0xc0);
-        debug::print(&list_length);
         let start=vector::length(&list)-list_length;
         let encoded= utils::slice_vector(&list,start,vector::length(&list)-start);
-        debug::print(&encoded);
-
-
-
-
         let mut values: vector<vector<u8>> = vector::empty();
         let mut i: u64 = 0;
         while (i < vector::length(&encoded)) {
             let prefix = *vector::borrow(&encoded,i);
-            debug::print(&prefix);
             if (prefix==0x80){
                 vector::push_back(&mut values,vector::empty());
                 i = i+1;
@@ -85,18 +77,20 @@ module sui_rlp::decoder {
             }else if(prefix==0xc0){
                vector::push_back(&mut values,vector::empty<u8>());
                i=i+1;
+
+            }else if(prefix > 0xc0 && prefix < 0xf7){
+                let length=((prefix-0xc0) as u64);
+                vector::push_back(&mut values,utils::slice_vector(&encoded, ((i) as u64), length+1));
+                i = i+(length+1);
             
             } else {
                 let length_length = ((prefix - 0xB7) as u64);
-                debug::print(&prefix);
-                debug::print(&i);
-                debug::print(&length_length);
                 let length = utils::from_bytes_u64(&utils::slice_vector(&encoded, ((i + 1) as u64), length_length));
+             
                 vector::push_back(&mut values,utils::slice_vector(&encoded, ((i + length_length + 1) as u64), length));
                 i = i+(length_length + length + 1);
             };
         };
-        debug::print(&values);
         values
     }
 
@@ -123,12 +117,15 @@ module sui_rlp::decoder {
     }
 
     public fun decode_strings(vec:&vector<u8>):vector<String>{
+        
         let vecs=decode_list(*vec);
+        
         let mut strings=vector::empty<String>();
-        let i=0;
+        let mut i=0;
         while(i < vector::length(&vecs)){
            let item= vector::borrow(&vecs,i);
            vector::push_back(&mut strings,decode_string(item));
+           i=i+1;
            
         };
         strings
