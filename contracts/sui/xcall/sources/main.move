@@ -303,8 +303,8 @@ module xcall::main {
         assert!(xcall_state::has_rollback(self, sequence_no), ENoRollback);
         let rollback = xcall_state::get_rollback(self, sequence_no);
 
-        let sources = rollback_data::sources(rollback);
-        let to = rollback_data::to(rollback);
+        let sources = rollback_data::sources(&rollback);
+        let to = rollback_data::to(&rollback);
 
         let source = address::to_string(tx_context::sender(ctx));
 
@@ -428,11 +428,11 @@ module xcall::main {
     entry fun execute_rollback(self:&mut Storage,sn:u128,ctx: &mut TxContext){
         assert!(xcall_state::has_rollback(self, sn), ENoRollback);
         let rollback = xcall_state::get_rollback(self, sn);
-        assert!(!rollback_data::enabled(rollback), ERollbackNotEnabled);
+        assert!(!rollback_data::enabled(&rollback), ERollbackNotEnabled);
 
         cleanup_call_request(self, sn);
 
-        // execute_message(self, address::to_string(rollback_data::from(rollback)), network_address::from_string(rollback_data::to(rollback)), rollback_data::rollback(rollback), rollback_data::sources(rollback), ctx);
+        execute_message(self, address::to_string(rollback_data::from(&rollback)), network_address::from_string(string::utf8(b"")), rollback_data::rollback(&rollback), rollback_data::sources(&rollback), ctx);
 
         event::emit(RollbackExecuted{sn})
     }

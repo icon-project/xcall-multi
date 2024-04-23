@@ -3,14 +3,12 @@ module xcall::centralized_connection {
   use xcall::centralized_state::{Self,State, ReceiptKey};
   use std::string::{Self, String};
   use sui::bag::{Bag, Self};
-  use sui::tx_context::{Self, TxContext};
+  use sui::tx_context;
   use sui::event;
   use sui::table::{Self, Table};
   use sui::sui::SUI;
   use sui::coin::{Self, Coin};
-  use sui::transfer;
   use sui::balance;
-  use sui::object;
   use xcall::xcall_utils::{Self as utils};
 
   const ENotEnoughFee: u64 = 10;

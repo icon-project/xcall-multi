@@ -113,8 +113,8 @@ module xcall::message_request_tests {
     use std::debug;
     use xcall::call_message::{Self};
     use xcall::call_message_rollback::{Self};
-     use sui_rlp::encoder::{Self};
-    use sui_rlp::decoder::{Self};
+     use sui_rlp::encoder;
+    use sui_rlp::decoder;
     /*
     CSMessageRequest
      from: 0x1.ETH/0xa
