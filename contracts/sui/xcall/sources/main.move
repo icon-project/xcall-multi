@@ -8,7 +8,7 @@ module xcall::main {
     use sui::linked_table::{Self, LinkedTable};
     use sui::types as sui_types;
     use std::string::{Self, String};
-    use std::vector;
+    use std::vector::{Self};
     use std::option::{Self, Option};
    
     use xcall::network_address::{Self,NetworkAddress};
@@ -32,6 +32,11 @@ module xcall::main {
     const ENotAdmin: u64 = 1;
     const ENotUpgrade: u64 = 2;
     const EWrongVersion: u64 = 3;
+    const InvalidNID: u64 = 4;
+    const InvalidSource: u64 = 5;
+
+    const CS_REQUEST: u8 =0;
+    const CS_RESPONSE: u8 =1;
 
     const NID: vector<u8> = b"nid";
 
@@ -217,7 +222,41 @@ module xcall::main {
         send_call_inner(self,fee,from,to,envelope,ctx)
     }
 
-    entry fun handle_message(self:&mut Storage, from:String, msg:vector<u8>,ctx: &mut TxContext){}
+    entry fun handle_message(self:&mut Storage, from:String, msg:vector<u8>,ctx: &mut TxContext){
+        assert!(from != string::utf8(NID),InvalidNID);
+        let cs_msg = cs_message::decode(msg);
+        let msg_type = cs_message::msg_type(&cs_msg);
+        let payload = cs_message::payload(&cs_msg);
+
+        if (msg_type == CS_REQUEST) {
+            handle_request(self,from, payload, ctx);
+        } else if (msg_type == CS_RESPONSE) {
+            handle_response(payload);
+        } else {
+        }
+    }
+
+    fun handle_request(self:&mut Storage,from:String,payload:vector<u8>, ctx: &mut TxContext){
+        let req = message_request::decode(payload);
+        let from_nid = message_request::from_nid(&req);
+
+        assert!(from_nid == string::utf8(NID),InvalidNID);
+
+        let source = tx_context::sender(ctx);
+        let to = message_request::to(&req);
+        let protocols = message_request::protocols(&req);
+
+        let source_valid = is_valid_source(self, from_nid, string::utf8(b""), message_request::protocols(&req));
+
+        assert!(source_valid, InvalidSource);
+
+        if(vector::length(&protocols) > 1){
+
+        }
+
+
+    }
+    fun handle_response(payload:vector<u8>){}
 
 
     entry fun handle_error(self:&mut Storage, sn:u128,ctx: &mut TxContext){}
@@ -226,7 +265,14 @@ module xcall::main {
     #[allow(unused_field)]
     entry fun execute_rollback(self:&mut Storage,sn:u128,ctx: &mut TxContext){}
 
-    
+    fun is_valid_source(self:&mut Storage,nid:String,source:String,protocols:vector<String>):bool{
+
+        if(vector::contains(&protocols,&source)){
+            return true
+        };
+        let connection = xcall_state::get_connection(self, nid);
+        (connection == source)
+    }
 
 
     entry fun migrate(self: &mut Storage, a: &AdminCap) {
@@ -235,10 +281,4 @@ module xcall::main {
         xcall_state::set_version(self, CURRENT_VERSION);
        
     }
-
-    
-
-    
-
-
 }

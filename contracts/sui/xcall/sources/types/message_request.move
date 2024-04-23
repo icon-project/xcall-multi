@@ -70,6 +70,29 @@ use std::string::{Self, String};
          req.message_type
     }
 
+    public fun from(req:&CSMessageRequest):NetworkAddress {
+        req.from
+    }
+
+    public fun to(req:&CSMessageRequest):String {
+        req.to
+    }
+
+    public fun sn(req:&CSMessageRequest):u128 {
+        req.sn
+    }
+
+    public fun data(req:&CSMessageRequest):vector<u8> {
+        req.data
+    }
+
+    public fun protocols(req:&CSMessageRequest):vector<String> {
+        req.protocols
+    }
+
+    public fun from_nid(req:&CSMessageRequest):String {
+        network_address::net_id(&req.from)
+    }
 
 }
 
