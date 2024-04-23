@@ -5,6 +5,8 @@ use std::vector;
 use std::option::{Self, Option,some,none};
 use xcall::call_message::{Self};
 use xcall::call_message_rollback::{Self};
+  use sui_rlp::encoder::{Self};
+    use sui_rlp::decoder::{Self};
 
  public struct XCallEnvelope has drop{
         message_type:u8,
@@ -15,7 +17,7 @@ use xcall::call_message_rollback::{Self};
 
       public fun encode(req:&XCallEnvelope):vector<u8>{
           let mut list=vector::empty<vector<u8>>();
-           vector::push_back(&mut list,encoder::encode_u8(&req.message_type));
+           vector::push_back(&mut list,encoder::encode_u8(req.message_type));
           vector::push_back(&mut list,encoder::encode(&req.message));
           vector::push_back(&mut list,encoder::encode_strings(&req.sources));
           vector::push_back(&mut list,encoder::encode_strings(&req.destinations));
@@ -71,7 +73,7 @@ use xcall::call_message_rollback::{Self};
     public fun rollback(self:&XCallEnvelope):Option<vector<u8>>{
         if (self.message_type==call_message_rollback::msg_type()) {
             let msg= call_message_rollback::decode(self.message);
-             some(call_message_rollback::rollback(msg))
+             some(call_message_rollback::rollback(&msg))
 
         }else {
          none()
@@ -81,6 +83,10 @@ use xcall::call_message_rollback::{Self};
 
     public fun sources(self:&XCallEnvelope):vector<String>{
         self.sources
+    }
+
+    public fun destinations(self:&XCallEnvelope):vector<String>{
+        self.destinations
     }
 
     public fun msg_type(self:&XCallEnvelope):u8 {

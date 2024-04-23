@@ -10,7 +10,7 @@ use std::string::{Self, String};
 
 
 
-  public struct CSMessageRequest has store,drop{
+  public struct CSMessageRequest has store,drop,copy{
     from:NetworkAddress,
     to: String,
     sn:u128,
@@ -34,8 +34,17 @@ use std::string::{Self, String};
             data:data,
             protocols:protocols
         }
+    }
 
-
+    public fun new():CSMessageRequest {
+        CSMessageRequest {
+            from:network_address::from_string(string::utf8(b"")),
+            to:string::utf8(b""),
+            sn:0,
+            message_type:0,
+            data:vector::empty<u8>(),
+            protocols:vector::empty<String>()
+        }
     }
 
     public fun encode(req:&CSMessageRequest):vector<u8>{

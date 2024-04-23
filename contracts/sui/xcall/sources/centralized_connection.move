@@ -15,6 +15,7 @@ module xcall::centralized_connection {
 
   const ENotEnoughFee: u64 = 10;
 
+
     /* ================= events ================= */
 
   public struct Message has copy, drop {
@@ -53,7 +54,7 @@ module xcall::centralized_connection {
       
     }
 
-    entry fun send_message(states:&mut Bag,coin: Coin<SUI>,to:String,sn:u64,msg:vector<u8>,dir:u8,ctx: &mut TxContext){
+    entry public(package) fun send_message(states:&mut Bag,coin: Coin<SUI>,to:String,sn:u64,msg:vector<u8>,dir:u8,ctx: &mut TxContext){
       let state= get_state(states);
       let fee = if (sn > 0) {
       centralized_state::get_fee(state,&to,true)
