@@ -4,7 +4,7 @@ module xcall::call_message_rollback {
 use std::vector;
 use std::option::{Self, Option,some,none};
     const MSG_TYPE:u8=1;
-    struct CallMessageWithRollback has drop{
+    public struct CallMessageWithRollback has drop{
         data:vector<u8>,
         rollback:vector<u8>,
      }

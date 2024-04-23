@@ -6,7 +6,7 @@ module xcall::rollback_data {
      use sui_rlp::encoder::{Self};
     use sui_rlp::decoder::{Self};
     use std::debug;
-    struct RollbackData has store,drop{
+    public struct RollbackData has store,drop{
         from:NetworkAddress,
         to:NetworkAddress,
         sources:vector<String>,

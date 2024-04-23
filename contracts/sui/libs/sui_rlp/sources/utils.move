@@ -4,8 +4,8 @@ module sui_rlp::utils {
 
 
      public fun to_bytes_u32(number: u32): vector<u8> {
-        let  bytes: vector<u8> = vector::empty();
-        let i:u8=0;
+        let  mut bytes: vector<u8> = vector::empty();
+        let mut i:u8=0;
         while(i < 4){
             let val =( (number>>(i * 8) & 0xFF) as u8) ;
             vector::push_back(&mut bytes,val);
@@ -17,8 +17,8 @@ module sui_rlp::utils {
     // Convert bytes to u32
     public fun from_bytes_u32(bytes: &vector<u8>): u32 {
         assert(vector::length(bytes) == 4, 0x1); // Ensure bytes length is correct
-        let  number: u32 = 0;
-       let  i = 0;
+        let  mut number: u32 = 0;
+       let  mut i = 0;
 
         while (i < 4) {
         let num = ((*vector::borrow(bytes,i)) as u32);
@@ -29,8 +29,8 @@ module sui_rlp::utils {
     }
 
      public fun to_bytes_u64(number: u64): vector<u8> {
-        let  bytes: vector<u8> = vector::empty();
-        let i:u8=0;
+        let  mut bytes: vector<u8> = vector::empty();
+        let mut i:u8=0;
         while(i < 8){
             let val =( (number>>(i * 8) & 0xFF) as u8) ;
             if (val > 0) {
@@ -43,8 +43,8 @@ module sui_rlp::utils {
 
     // Convert bytes to u64
     public fun from_bytes_u64(bytes: &vector<u8>): u64 {
-        let  number: u64 = 0;
-       let  i = 0;
+        let  mut number: u64 = 0;
+       let  mut i = 0;
 
         while (i < vector::length(bytes)) {
         let num = ((*vector::borrow(bytes,i)) as u64);
@@ -56,8 +56,8 @@ module sui_rlp::utils {
 
     // Convert u128 to bytes
     public fun to_bytes_u128(number: u128): vector<u8> {
-        let  bytes: vector<u8> = vector::empty();
-        let i:u8=0;
+        let  mut bytes: vector<u8> = vector::empty();
+        let mut i:u8=0;
         while(i < 16){
             let val = ((number>>(i * 8) & 0xFF) as u8) ;
             if (val > 0) {
@@ -71,8 +71,8 @@ module sui_rlp::utils {
 
     // Convert bytes to u128
     public fun from_bytes_u128(bytes: &vector<u8>): u128 {
-       let  number: u128 = 0;
-       let  i:u64 = 0;
+       let  mut number: u128 = 0;
+       let mut i:u64 = 0;
 
         while (i < vector::length(bytes)) {
         number =number | (*vector::borrow(bytes,i) as u128) << (i * 8 as u8) ;
@@ -82,7 +82,8 @@ module sui_rlp::utils {
     }
     /* end is exclusive in slice*/
     public fun slice_vector(arr: &vector<u8>, start: u64, length: u64): vector<u8> {
-        let  sliced: vector<u8> = vector::empty();
+        let  mut sliced: vector<u8> = vector::empty();
+        let mut start=start;
         let end = start + length;
         while(start < end){
             let item=*vector::borrow(arr,start);
@@ -91,7 +92,7 @@ module sui_rlp::utils {
         };
         sliced
     }
-   #[test_only] friend sui_rlp::utils_test;
+   
 }
 
 module sui_rlp::utils_test {
@@ -141,8 +142,8 @@ module sui_rlp::utils_test {
     }
 
     fun create_vector(n:u8):vector<u8>{
-         let data=vector::empty();
-        let i=0;
+         let mut data=vector::empty();
+        let mut i=0;
         while(i < n){
             vector::push_back(&mut data,i);
             i=i+1;

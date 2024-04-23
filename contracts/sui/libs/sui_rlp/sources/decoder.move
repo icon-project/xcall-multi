@@ -4,7 +4,6 @@ module sui_rlp::decoder {
      use sui::bcs;
      use std::string::{Self,String};
      use std::debug;
-     #[test_only] friend sui_rlp::rlp_tests;
 
      public fun decode(encoded:&vector<u8>):vector<u8>{
         assert(vector::length(encoded) > 0, 0x1);
@@ -32,33 +31,43 @@ module sui_rlp::decoder {
      }
 
 
-      public fun decode_length(encoded: &vector<u8>): u64 {
-        let length=vector::length(encoded);
-        let len= if (length == 0) {
+     public fun decode_length(data:&vector<u8>,offset:u8):u64{
+       let length=vector::length(data);
+       let len= if (length==0){
             0
-        }else if (length == 1) {
-            let len= (*vector::borrow(encoded,0) as u64);
-            len
-        } else {
-            let byte=*vector::borrow(encoded,0);
-            let length_len = byte - 0xb7;
-            let  decoded_length: u64 = 0;
-            let i=1;
-            while(i < length_len){
-                let byte=*vector::borrow(encoded,(i as u64));
-                decoded_length = (decoded_length << 8) | (byte as u64);
-                i=i+1;
+        }else if(length <56){
+           ((*vector::borrow(data,0)-offset) as u64)
+           
 
-            };
-         decoded_length
+
+        }else {
+            let length_len=*vector::borrow(data,0)-offset-55;
+            debug::print(&length_len);
+            let length_bytes=utils::slice_vector(data,1,(length_len as u64));
+            utils::from_bytes_u64(&length_bytes)
+
         };
+
         len
+
+        
     }
 
 
-     public fun decode_list(encoded: vector<u8>): vector<vector<u8>> {
-        let values: vector<vector<u8>> = vector::empty();
-        let i: u64 = 0;
+     public fun decode_list(list: vector<u8>): vector<vector<u8>> {
+        debug::print(&list);
+        debug::print(&vector::length(&list));
+        let list_length=decode_length(&list,0xc0);
+        debug::print(&list_length);
+        let start=vector::length(&list)-list_length;
+        let encoded= utils::slice_vector(&list,start,vector::length(&list)-start);
+        debug::print(&encoded);
+
+
+
+
+        let mut values: vector<vector<u8>> = vector::empty();
+        let mut i: u64 = 0;
         while (i < vector::length(&encoded)) {
             let prefix = *vector::borrow(&encoded,i);
             debug::print(&prefix);
@@ -72,43 +81,61 @@ module sui_rlp::decoder {
                 let length = ((prefix - 0x80) as u64);
                 vector::push_back(&mut values,utils::slice_vector(&encoded, ((i + 1) as u64), length));
                 i = i+(length + 1);
+
+            }else if(prefix==0xc0){
+               vector::push_back(&mut values,vector::empty<u8>());
+               i=i+1;
+            
             } else {
                 let length_length = ((prefix - 0xB7) as u64);
-                let length = decode_length(&utils::slice_vector(&encoded, ((i + 1) as u64), length_length));
+                debug::print(&prefix);
+                debug::print(&i);
+                debug::print(&length_length);
+                let length = utils::from_bytes_u64(&utils::slice_vector(&encoded, ((i + 1) as u64), length_length));
                 vector::push_back(&mut values,utils::slice_vector(&encoded, ((i + length_length + 1) as u64), length));
                 i = i+(length_length + length + 1);
             };
         };
+        debug::print(&values);
         values
     }
 
      public fun decode_u8(vec:&vector<u8>):u8{
-        let decoded=decode(vec);
-        *vector::borrow(&decoded,0)
+       
+        *vector::borrow(vec,0)
 
     }
 
     public fun decode_u64(vec:&vector<u8>):u64{
-         let decoded=decode(vec);
-         let num =utils::from_bytes_u64(&decoded);
+         let num =utils::from_bytes_u64(vec);
          num
         
     }
 
     public fun decode_u128(vec:&vector<u8>):u128{
-         let decoded=decode(vec);
-           let num =utils::from_bytes_u128(&decoded);
+         
+           let num =utils::from_bytes_u128(vec);
          num
     }
 
     public fun decode_string(vec:&vector<u8>):String{
-         let decoded=decode(vec);
-         string::utf8(decoded)
+         string::utf8(*vec)
+    }
+
+    public fun decode_strings(vec:&vector<u8>):vector<String>{
+        let vecs=decode_list(*vec);
+        let mut strings=vector::empty<String>();
+        let i=0;
+        while(i < vector::length(&vecs)){
+           let item= vector::borrow(&vecs,i);
+           vector::push_back(&mut strings,decode_string(item));
+           
+        };
+        strings
     }
 
     public fun decode_address(vec:&vector<u8>):address{
-         let decoded=decode(vec);
-         let bcs = bcs::new(decoded);
+         let mut bcs = bcs::new(*vec);
          bcs::peel_address(&mut bcs)
     }
 

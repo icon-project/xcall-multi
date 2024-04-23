@@ -11,7 +11,7 @@ module xcall::centralized_state {
     receipts: Map<'a, (String, u128), bool>,
     xcall: Item<'a, Addr>,
     */
-    struct State has store {
+    public struct State has store {
         message_fee:VecMap<String,u128>,
         response_fee:VecMap<String,u128>,
         connection_sn:u128,

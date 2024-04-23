@@ -6,7 +6,7 @@ use std::option::{Self, Option,some,none};
 use xcall::call_message::{Self};
 use xcall::call_message_rollback::{Self};
 
- struct XCallEnvelope has drop{
+ public struct XCallEnvelope has drop{
         message_type:u8,
         message:vector<u8>,
         sources:vector<String>,

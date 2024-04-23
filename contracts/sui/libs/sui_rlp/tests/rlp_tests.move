@@ -64,7 +64,7 @@ module sui_rlp::rlp_tests {
     }
 
     fun create_list():vector<vector<u8>>{
-        let list=vector::empty();
+        let mut list=vector::empty();
         vector::push_back(&mut list, encoder::encode_u8(44));
         vector::push_back(&mut list, encoder::encode_u64(444444));
         vector::push_back(&mut list, encoder::encode_u128(444444444444));

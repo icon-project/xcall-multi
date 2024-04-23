@@ -168,7 +168,7 @@ module xcall::main {
         
         */
         let sequence_no=get_next_sequence(self);
-        let rollback=envelope::rollback(&envelope);
+        let mut rollback=envelope::rollback(&envelope);
         if(option::is_some(&rollback)){
             let rollback_bytes=option::extract<vector<u8>>(&mut rollback);
             let rollback= rollback_data::create(copy from,to,envelope::sources(&envelope),rollback_bytes,false);
@@ -184,7 +184,7 @@ module xcall::main {
             envelope::msg_type(&envelope),
             envelope::message(&envelope),
             envelope::sources(&envelope));
-        let sources=envelope::sources(&envelope);
+        let mut sources=envelope::sources(&envelope);
         if(vector::is_empty(&sources)){
             sources=vector::empty<String>();
             let connection= xcall_state::get_connection(self,network_address::net_id(&to));

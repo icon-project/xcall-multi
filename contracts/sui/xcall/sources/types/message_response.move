@@ -19,7 +19,7 @@ module xcall::message_response {
 
     
 
-    struct CSMessageResponse has store{
+    public struct CSMessageResponse has store{
         sn:u128,
         code:u8,
     }

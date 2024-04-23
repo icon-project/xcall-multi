@@ -4,7 +4,7 @@ module sui_rlp::encoder {
     use std::string::{Self,String};
     use std::bcs;
     use std::debug;
-    #[test_only] friend sui_rlp::rlp_tests;
+    
     public fun encode(bytes:&vector<u8>):vector<u8> {
        
         let len=vector::length(bytes);
@@ -13,7 +13,7 @@ module sui_rlp::encoder {
         } else if (len ==1 && *vector::borrow(bytes,0)<128){
             *bytes
         }else {
-           let result=encode_length(len,0x80);
+           let mut result=encode_length(len,0x80);
            vector::append(&mut result,*bytes);
            result
         };
@@ -21,8 +21,8 @@ module sui_rlp::encoder {
         
     }
 
-    public fun encode_list(list:vector<vector<u8>>,raw:bool):vector<u8>{
-        let result=vector::empty();
+    public fun encode_list(mut list:vector<vector<u8>>,raw:bool):vector<u8>{
+        let mut result=vector::empty();
         if(vector::length(&list)>0){
             vector::reverse(&mut list);
 
@@ -36,7 +36,7 @@ module sui_rlp::encoder {
         };
          let len=vector::length(&result);
          debug::print(&len);
-         let length_buff=encode_length(len,192);
+         let mut length_buff=encode_length(len,192);
          vector::append(&mut length_buff,result);
          result=length_buff;
          
@@ -51,7 +51,7 @@ module sui_rlp::encoder {
     }
 
     public fun encode_length(len:u64,offset:u8):vector<u8>{
-        let length_info=vector::empty<u8>();
+        let mut length_info=vector::empty<u8>();
         if (len < 56) {
             let len_u8=(len as u8);
             vector::push_back(&mut length_info,(offset+len_u8));
@@ -66,6 +66,8 @@ module sui_rlp::encoder {
         length_info
        
     }
+
+    
 
     public fun encode_u8(num:u8):vector<u8>{
         let vec=vector::singleton(num);
@@ -90,8 +92,8 @@ module sui_rlp::encoder {
     }
 
     public fun encode_strings(str:&vector<String>):vector<u8>{
-        let vec=vector::empty<vector<u8>>();
-        let i=0;
+        let mut vec=vector::empty<vector<u8>>();
+        let mut i=0;
         let l= vector::length(str);
         while(i < l){
              let item=*vector::borrow(str,i);

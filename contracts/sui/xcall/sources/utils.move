@@ -9,7 +9,7 @@ module xcall::xcall_utils {
        if(length(a1)!=length(a2)){
             false
        }else{
-         let i = 0;
+         let mut i = 0;
         let len = length(a1);
         while (i < len) {
             if (borrow(a1, i) != borrow(a2,i)) return false;

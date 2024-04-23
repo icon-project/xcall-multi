@@ -21,21 +21,20 @@ module xcall::xcall_state {
     use sui::vec_map::{Self, VecMap};
     use sui::versioned::{Self, Versioned};
 
-    friend xcall::main;
 
-     struct IDCap has key,store {
+     public struct IDCap has key,store {
         id:UID,
         xcall_id:ID,
     }
-    struct PackageCap has store {
+    public struct PackageCap has store {
         package_id:String,
     }
-     struct AdminCap has key {
+     public struct AdminCap has key {
         id: UID
     }
 
 
-     struct Storage has key {
+     public struct Storage has key {
         id: UID,
         version:u64,
         admin:ID,
@@ -48,14 +47,14 @@ module xcall::xcall_state {
         connections:VecMap<String,String>,
     }
 
-    public(friend) fun create_admin_cap(ctx: &mut TxContext):AdminCap {
+    public(package) fun create_admin_cap(ctx: &mut TxContext):AdminCap {
          let admin = AdminCap {
             id: object::new(ctx),
         };
         admin
     }
 
-    public(friend) fun create_id_cap(storage:&Storage,ctx: &mut TxContext):IDCap {
+    public(package) fun create_id_cap(storage:&Storage,ctx: &mut TxContext):IDCap {
           IDCap {
             id: object::new(ctx),
             xcall_id:object::id(storage)
@@ -64,7 +63,7 @@ module xcall::xcall_state {
 
     }
 
-    public(friend) fun create_storage(version:u64,admin:&AdminCap, ctx: &mut TxContext):Storage {
+    public(package) fun create_storage(version:u64,admin:&AdminCap, ctx: &mut TxContext):Storage {
          let storage = Storage {
             id: object::new(ctx),
             version:version,
@@ -80,15 +79,15 @@ module xcall::xcall_state {
         storage
     }
 
-    public(friend) fun set_version(self:&mut Storage,version:u64){
+    public(package) fun set_version(self:&mut Storage,version:u64){
             self.version=version;
     }
 
-     public(friend) fun set_connection(self:&mut Storage,net_id:String,package_id:String){
+     public(package) fun set_connection(self:&mut Storage,net_id:String,package_id:String){
             vec_map::insert(&mut self.connections,net_id,package_id);
     }
 
-    public(friend) fun add_rollback(self:&mut Storage,sequence_no:u128,rollback:RollbackData){
+    public(package) fun add_rollback(self:&mut Storage,sequence_no:u128,rollback:RollbackData){
          table::add(&mut self.rollbacks,sequence_no,rollback);
     }
 
@@ -108,26 +107,26 @@ module xcall::xcall_state {
         &mut self.connection_states
     }
 
-    public(friend) fun get_next_sequence(self:&mut Storage):u128 {
+    public(package) fun get_next_sequence(self:&mut Storage):u128 {
         let sn=self.sequence_no+1;
         self.sequence_no=sn;
         sn
     }
 
 
-    public(friend) fun set_protocol_fee(self:&mut Storage,fee:u128){
+    public(package) fun set_protocol_fee(self:&mut Storage,fee:u128){
         self.protocol_fee=fee;
     }
 
-    public(friend) fun set_protocol_fee_handler(self:&mut Storage,fee_handler:address){
+    public(package) fun set_protocol_fee_handler(self:&mut Storage,fee_handler:address){
         self.protocol_fee_handler=fee_handler;
     }
 
-    public(friend) fun transfer_admin_cap(admin:AdminCap,ctx: &mut TxContext){
+    public(package) fun transfer_admin_cap(admin:AdminCap,ctx: &mut TxContext){
         transfer::transfer(admin, tx_context::sender(ctx));
     }
 
-    public(friend) fun share(self:Storage){
+    public(package) fun share(self:Storage){
          transfer::share_object(self);
     }
 

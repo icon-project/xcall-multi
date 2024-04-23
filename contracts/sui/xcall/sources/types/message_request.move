@@ -10,7 +10,7 @@ use std::string::{Self, String};
 
 
 
-  struct CSMessageRequest has store,drop{
+  public struct CSMessageRequest has store,drop{
     from:NetworkAddress,
     to: String,
     sn:u128,
@@ -38,8 +38,8 @@ use std::string::{Self, String};
 
     }
 
-    public fun encode(req:CSMessageRequest):vector<u8>{
-          let list=vector::empty<vector<u8>>();
+    public fun encode(req:&CSMessageRequest):vector<u8>{
+          let mut list=vector::empty<vector<u8>>();
            vector::push_back(&mut list,network_address::encode(&req.from));
           vector::push_back(&mut list,encoder::encode_string(&req.to));
           vector::push_back(&mut list,encoder::encode_u128(req.sn));
@@ -49,6 +49,19 @@ use std::string::{Self, String};
 
           let encoded=encoder::encode_list(list,false);
           encoded
+    }
+
+    public fun decode(bytes:vector<u8>):CSMessageRequest {
+        let decoded=decoder::decode_list(bytes);
+        let from= network_address::decode(*vector::borrow(&decoded,0));
+         let to= decoder::decode_string(vector::borrow(&decoded,1));
+         let sn= decoder::decode_u128(vector::borrow(&decoded,2));
+         let message_type= decoder::decode_u8(vector::borrow(&decoded,3));
+         let data= *vector::borrow(&decoded,4);
+         let protocols= decoder::decode_strings(vector::borrow(&decoded,5));
+         let req=create(from,to,sn,message_type,data,protocols);
+         req
+
     }
 
     
@@ -101,7 +114,7 @@ module xcall::message_request_tests {
      */
 
      #[test]
-     fun test_message_request_encode(){
+     fun test_message_request_encode_case_1(){
         let from=network_address::create(string::utf8(b"0x1.ETH"),string::utf8(b"0xa"));
         let network_bytes=network_address::encode(&from);
         debug::print(&network_bytes);
@@ -117,8 +130,13 @@ module xcall::message_request_tests {
         call_message::msg_type(),
          x"74657374",
          vector::empty());
-         let encoded_bytes=message_request::encode(msg_request);
+         let encoded_bytes=message_request::encode(&msg_request);
          debug::print(&encoded_bytes);
+         assert!(encoded_bytes==x"F83F8B3078312E4554482F307861AA63783030303030303030303030303030303030303030303030303030303030303030303030303031303215008474657374C0",0x01);
+        let decoded= message_request::decode(encoded_bytes);
+        debug::print(&decoded);
+        assert!(decoded==msg_request,0x01);
+        
 
      }
 

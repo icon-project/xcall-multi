@@ -8,7 +8,7 @@ module xcall::cs_message {
     use sui_rlp::decoder::{Self};
     use std::debug;
 
-    struct CSMessage has store{
+    public struct CSMessage has store{
         msg_type:u8,
         payload:vector<u8>,
     }
@@ -16,7 +16,7 @@ module xcall::cs_message {
     public fun from_message_request(req:CSMessageRequest):CSMessage {
         CSMessage {
             msg_type:message_request::msg_type(&req),
-            payload:message_request::encode(req),
+            payload:message_request::encode(&req),
         }
     }
 }
