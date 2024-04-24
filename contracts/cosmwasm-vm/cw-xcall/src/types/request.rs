@@ -204,52 +204,49 @@ mod tests {
     }
 
     #[test]
-    fn test_network_address(){
-        let addr=NetworkAddress::from_str("0x1.ETH/0xa").unwrap();
-        let mut rlp_stream= RlpStream::new();
+    fn test_network_address() {
+        let addr = NetworkAddress::from_str("0x1.ETH/0xa").unwrap();
+        let mut rlp_stream = RlpStream::new();
         rlp_stream.append(&addr.to_string());
-        let bytes= hex::encode(&rlp_stream.out());
-        println!("{:?}",bytes);
-        assert_eq!("8b3078312e4554482f307861",&bytes);
+        let bytes = hex::encode(&rlp_stream.out());
+        println!("{:?}", bytes);
+        assert_eq!("8b3078312e4554482f307861", &bytes);
     }
 
     #[test]
-    fn test_sn_encode(){
-        let addr=NetworkAddress::from_str("0x1.ETH/0xa").unwrap();
-        let mut rlp_stream= RlpStream::new();
+    fn test_sn_encode() {
+        let addr = NetworkAddress::from_str("0x1.ETH/0xa").unwrap();
+        let mut rlp_stream = RlpStream::new();
         rlp_stream.append(&21);
-        let bytes= hex::encode(&rlp_stream.out());
-        println!("{:?}",bytes);
-        assert_eq!("15",&bytes);
+        let bytes = hex::encode(&rlp_stream.out());
+        println!("{:?}", bytes);
+        assert_eq!("15", &bytes);
     }
 
     #[test]
-    fn test_addr(){
-        
-        let mut rlp_stream= RlpStream::new();
+    fn test_addr() {
+        let mut rlp_stream = RlpStream::new();
         rlp_stream.append(&"cx0000000000000000000000000000000000000102".to_string());
-        let bytes= hex::encode(&rlp_stream.out());
-        println!("{:?}",bytes);
+        let bytes = hex::encode(&rlp_stream.out());
+        println!("{:?}", bytes);
         assert_eq!("aa637830303030303030303030303030303030303030303030303030303030303030303030303030313032",&bytes);
     }
 
     #[test]
-    fn test_bytes(){
-        
-        let mut rlp_stream= RlpStream::new();
+    fn test_bytes() {
+        let mut rlp_stream = RlpStream::new();
         rlp_stream.append(&hex::decode("74657374").unwrap());
-        let bytes= hex::encode(&rlp_stream.out());
-        println!("{:?}",bytes);
-        assert_eq!("8474657374",&bytes);
+        let bytes = hex::encode(&rlp_stream.out());
+        println!("{:?}", bytes);
+        assert_eq!("8474657374", &bytes);
     }
 
     #[test]
-    fn test_list(){
-        
-        let mut rlp_stream= RlpStream::new();
+    fn test_list() {
+        let mut rlp_stream = RlpStream::new();
         rlp_stream.append(&vec![]);
-        let bytes= hex::encode(&rlp_stream.out());
-        println!("{:?}",bytes);
-        assert_eq!("80",&bytes);
+        let bytes = hex::encode(&rlp_stream.out());
+        println!("{:?}", bytes);
+        assert_eq!("80", &bytes);
     }
 }
