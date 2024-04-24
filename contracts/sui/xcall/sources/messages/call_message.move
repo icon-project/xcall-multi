@@ -5,7 +5,7 @@ use std::vector;
 use std::option::{Self, Option,some,none};
 
 const MSG_TYPE:u8=0;
-      struct CallMessage has drop{
+      public struct CallMessage has drop{
          data:vector<u8>
     }
 

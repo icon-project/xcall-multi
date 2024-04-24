@@ -1,30 +1,44 @@
 #[allow(unused_field,unused_use,unused_const,unused_mut_parameter,unused_variable,unused_assignment)]
 module xcall::envelope{
     use std::string::{Self, String};
-use std::vector;
-use std::option::{Self, Option,some,none};
+use std::option::{some,none};
 use xcall::call_message::{Self};
 use xcall::call_message_rollback::{Self};
+  use sui_rlp::encoder;
+    use sui_rlp::decoder;
 
- struct XCallEnvelope has drop{
+ public struct XCallEnvelope has drop{
         message_type:u8,
         message:vector<u8>,
         sources:vector<String>,
         destinations:vector<String>,
     }
 
-      public fun encode(msg:XCallEnvelope):vector<u8>{
-         vector::empty<u8>()
+      public fun encode(req:&XCallEnvelope):vector<u8>{
+          let mut list=vector::empty<vector<u8>>();
+           vector::push_back(&mut list,encoder::encode_u8(req.message_type));
+          vector::push_back(&mut list,encoder::encode(&req.message));
+          vector::push_back(&mut list,encoder::encode_strings(&req.sources));
+          vector::push_back(&mut list,encoder::encode_strings(&req.destinations));
+
+          let encoded=encoder::encode_list(&list,false);
+          encoded
     }
 
-     public fun decode(bytes:vector<u8>):XCallEnvelope{
-          XCallEnvelope {
-            message_type:1,
-            message:vector::empty<u8>(),
-            sources:vector::empty<String>(),
-            destinations:vector::empty<String>(),
+    public fun decode(bytes:&vector<u8>):XCallEnvelope {
+         let decoded=decoder::decode_list(bytes);
+         let message_type= decoder::decode_u8(vector::borrow(&decoded,0));
+         let message=  *vector::borrow(&decoded,1);
+        
+         let sources= decoder::decode_strings(vector::borrow(&decoded,2));
+         let destinations= decoder::decode_strings(vector::borrow(&decoded,3));
+         let req=XCallEnvelope {
+            message_type,
+            message,
+            sources,destinations
+         };
+         req
 
-         }
     }
 
      public fun wrap_call_message(data:vector<u8>,sources:vector<String>,destinations:vector<String>): XCallEnvelope {

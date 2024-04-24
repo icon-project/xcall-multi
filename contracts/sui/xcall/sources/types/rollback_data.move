@@ -3,7 +3,7 @@ module xcall::rollback_data {
     use std::string::{Self, String};
     use sui::object::{Self, ID, UID};
     use xcall::network_address::{Self,NetworkAddress};
-    struct RollbackData has store,drop, copy{
+    public struct RollbackData has store,drop, copy{
         from:address,
         to:String,
         sources:vector<String>,

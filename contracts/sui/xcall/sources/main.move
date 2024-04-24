@@ -8,7 +8,7 @@ module xcall::main {
     use sui::linked_table::{Self, LinkedTable};
     use sui::types as sui_types;
     use std::string::{Self, String};
-    use std::vector;
+    use std::vector::{Self};
     use std::option::{Self, Option};
     use sui::event;
    
@@ -62,13 +62,13 @@ module xcall::main {
 
     /*************Events*****************/
 
-    struct CallMessageSent has copy, drop{
+    public struct CallMessageSent has copy, drop{
         from:String,
         to:String,
         sn:u128,
     }
 
-    struct CallMessage has copy, drop{
+    public struct CallMessage has copy, drop{
         from:NetworkAddress,
         to:String,
         sn:u128,
@@ -76,15 +76,15 @@ module xcall::main {
         data:vector<u8>,
     }
 
-    struct RollbackMessage has copy, drop{
+    public struct RollbackMessage has copy, drop{
         sn:u128
     }
 
-    struct RollbackExecuted has copy, drop{
+    public struct RollbackExecuted has copy, drop{
         sn:u128
     }
 
-    struct ResponseMessage has copy, drop{
+    public struct ResponseMessage has copy, drop{
         sn:u128,
         response_code: u8
     }
@@ -125,7 +125,7 @@ module xcall::main {
         let rollback=envelope::rollback(&envelope);
         let msg_type=envelope::msg_type(&envelope);
 
-        let need_response = false;
+        let mut need_response = false;
         let data;
 
         if(msg_type == CALL_MESSAGE_TYPE || msg_type == PERSISTENT_MESSAGE_TYPE){
@@ -163,7 +163,7 @@ module xcall::main {
             data,
             envelope::destinations(&envelope));
 
-        let msg = message_request::encode(cs_request);
+        let msg = message_request::encode(&cs_request);
 
         assert!(vector::length(&msg) <= MAX_DATA_SIZE, EInvalidReply);
 
@@ -182,15 +182,15 @@ module xcall::main {
     }
 
     fun send_message(self:&mut Storage,fee:&mut Coin<SUI>,sources:vector<String>, net_to:String, msg_type:u8, data:vector<u8>,sn:u128,ctx: &mut TxContext){
+        let mut sources=sources;
         if(vector::is_empty(&sources)){
-            sources=vector::empty<String>();
             let connection= xcall_state::get_connection(self,net_to);
             vector::push_back(&mut sources,connection);
             // let required_fee = xcall_state::get_protocol_fee(self);
             // let connection_coin = coin::split(fee, required_fee, ctx);
             // connections::send_message(package_id,connection,connection_coin,required_fee,net_to,msg_type,sn,data,ctx);
         } else{
-            let i=0;
+            let mut i=0;
             while(i < vector::length(&sources)){
                 // let required_fee = xcall_state::get_protocol_fee(self);
                 // let connection_coin = coin::split(fee, required_fee, ctx);
@@ -233,11 +233,11 @@ module xcall::main {
         } else {
             envelope = envelope::wrap_call_message_rollback(data, rollback, sources, destinations);
         };
-        send_call(self,fee,idCap,to,envelope::encode(envelope),ctx);
+        send_call(self,fee,idCap,to,envelope::encode(&envelope),ctx);
     }
 
     entry fun send_call(self:&mut Storage,fee: &mut Coin<SUI>,idCap:&IDCap,to:String,envelope_bytes:vector<u8>,ctx: &mut TxContext){
-        let envelope=envelope::decode(envelope_bytes);
+        let envelope=envelope::decode(&envelope_bytes);
         let to = network_address::from_string(to);
         let from= network_address::create(string::utf8(NID),string::utf8(object::id_to_bytes(&object::id(idCap))));
 
@@ -246,21 +246,21 @@ module xcall::main {
 
     entry fun handle_message(self:&mut Storage, from:String, msg:vector<u8>,ctx: &mut TxContext){
         assert!(from != string::utf8(NID),EInvalidNID);
-        let cs_msg = cs_message::decode(msg);
+        let cs_msg = cs_message::decode(&msg);
         let msg_type = cs_message::msg_type(&cs_msg);
         let payload = cs_message::payload(&cs_msg);
 
         if (msg_type == CS_REQUEST) {
             handle_request(self,from, payload, ctx);
         } else if (msg_type == CS_RESULT) {
-            let cs_message_result = message_result::decode(payload);
+            let cs_message_result = message_result::decode(&payload);
             handle_result(self, cs_message_result, ctx);
         } else {
         }
     }
 
     fun handle_request(self:&mut Storage,from:String,payload:vector<u8>, ctx: &mut TxContext){
-        let req = message_request::decode(payload);
+        let req = message_request::decode(&payload);
         let from_nid = message_request::from_nid(&req);
         let data = message_request::data(&req);
         let from = message_request::from(&req);
@@ -303,8 +303,8 @@ module xcall::main {
         assert!(xcall_state::has_rollback(self, sequence_no), ENoRollback);
         let rollback = xcall_state::get_rollback(self, sequence_no);
 
-        let sources = rollback_data::sources(rollback);
-        let to = rollback_data::to(rollback);
+        let sources = rollback_data::sources(&rollback);
+        let to = rollback_data::to(&rollback);
 
         let source = address::to_string(tx_context::sender(ctx));
 
@@ -326,7 +326,7 @@ module xcall::main {
         cleanup_call_request(self, sequence_no);
 
         if (vector::length(&message) > 0) {
-            let msg = message_request::decode(message);
+            let msg = message_request::decode(&message);
             // handle_reply(self,&rollback, &msg, ctx);
         };
 
@@ -400,7 +400,7 @@ module xcall::main {
             let code = try_execute_call(self, request_id, to, from, data, protocols, ctx);
             xcall_state::remove_reply_state(self);
 
-            let message = vector::empty<u8>();
+            let mut message = vector::empty<u8>();
             let callReply = xcall_state::get_call_reply(self);
             if(vector::length(&callReply)>0 && code == 0){
                 message = callReply;
@@ -428,11 +428,11 @@ module xcall::main {
     entry fun execute_rollback(self:&mut Storage,sn:u128,ctx: &mut TxContext){
         assert!(xcall_state::has_rollback(self, sn), ENoRollback);
         let rollback = xcall_state::get_rollback(self, sn);
-        assert!(!rollback_data::enabled(rollback), ERollbackNotEnabled);
+        assert!(!rollback_data::enabled(&rollback), ERollbackNotEnabled);
 
         cleanup_call_request(self, sn);
 
-        // execute_message(self, address::to_string(rollback_data::from(rollback)), network_address::from_string(rollback_data::to(rollback)), rollback_data::rollback(rollback), rollback_data::sources(rollback), ctx);
+        execute_message(self, address::to_string(rollback_data::from(&rollback)), network_address::from_string(string::utf8(b"")), rollback_data::rollback(&rollback), rollback_data::sources(&rollback), ctx);
 
         event::emit(RollbackExecuted{sn})
     }

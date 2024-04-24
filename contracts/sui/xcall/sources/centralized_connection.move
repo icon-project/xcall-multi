@@ -3,23 +3,20 @@ module xcall::centralized_connection {
   use xcall::centralized_state::{Self,State, ReceiptKey};
   use std::string::{Self, String};
   use sui::bag::{Bag, Self};
-  use sui::tx_context::{Self, TxContext};
+  use sui::tx_context;
   use sui::event;
   use sui::table::{Self, Table};
   use sui::sui::SUI;
   use sui::coin::{Self, Coin};
-  use sui::transfer;
   use sui::balance;
-  use sui::object;
-  use xcall::utils;
+  use xcall::xcall_utils::{Self as utils};
 
   const ENotEnoughFee: u64 = 10;
 
-  friend xcall::connections;
 
     /* ================= events ================= */
 
-  struct Message has copy, drop {
+  public struct Message has copy, drop {
       to:String,
       conn_sn:u128,
       msg:vector<u8>,
@@ -55,7 +52,7 @@ module xcall::centralized_connection {
       
     }
 
-    entry public(friend) fun send_message(states:&mut Bag,coin: Coin<SUI>,to:String,sn:u64,msg:vector<u8>,dir:u8,ctx: &mut TxContext){
+    entry public(package) fun send_message(states:&mut Bag,coin: Coin<SUI>,to:String,sn:u64,msg:vector<u8>,dir:u8,ctx: &mut TxContext){
       let state= get_state(states);
       let fee = if (sn > 0) {
       centralized_state::get_fee(state,&to,true)
@@ -64,7 +61,7 @@ module xcall::centralized_connection {
         } else {
             0
         };
-      let balance = coin::into_balance(coin);
+      let mut balance = coin::into_balance(coin);
       assert!(balance::value(&balance) > fee, ENotEnoughFee);
 
       // balance::join(&mut balance, &balance::value(&balance));

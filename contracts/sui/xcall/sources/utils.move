@@ -1,5 +1,5 @@
 #[allow(unused_field,unused_use,unused_const,unused_mut_parameter,unused_variable,unused_assignment)]
-module xcall::utils {
+module xcall::xcall_utils {
     use std::vector::length;
     use std::vector::borrow;
     use sui::vec_map::{Self, VecMap};
@@ -13,7 +13,7 @@ module xcall::utils {
        if(length(a1)!=length(a2)){
             false
        }else{
-         let i = 0;
+         let mut i = 0;
         let len = length(a1);
         while (i < len) {
             if (borrow(a1, i) != borrow(a2,i)) return false;
