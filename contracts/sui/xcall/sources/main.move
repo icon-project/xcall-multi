@@ -22,6 +22,7 @@ module xcall::main {
     use xcall::cs_message::{Self};
     use xcall::rollback_data::{Self,RollbackData};
     use xcall::xcall_state::{Self,Storage,AdminCap,IDCap};
+    use xcall::execute_ticket::{Self,ExecuteTicket};
     use sui::bag::{Bag, Self};
     use sui::table::{Table,Self};
     use sui::package::{Self,Publisher};
@@ -92,14 +93,7 @@ module xcall::main {
     }
     /***************/
     /******** tickets ******/
-    public struct ExecuteTicket {
-        dapp_id:ID,
-        request_id:u128,
-        message:vector<u8>,
-    }
-    public fun get_ticket_message(ticket:&ExecuteTicket):vector<u8>{
-         ticket.message
-    }
+   
     
     fun init(ctx: &mut TxContext) {
         let admin = xcall_state::create_admin_cap(ctx);
@@ -144,10 +138,10 @@ module xcall::main {
         }
         else if(msg_type == CALL_MESSAGE_ROLLBACK_TYPE){
             let msg = call_message_rollback::decode(envelope::message(&envelope));
-            let caller = tx_context::sender(ctx);
+            let from_id = object::id_from_bytes(*string::bytes(&network_address::addr(&from)));
 
             let rollback = rollback_data::create(
-                caller,
+                from_id,
                 network_address::net_id(&to),
                 envelope::sources(&envelope),
                 call_message_rollback::rollback(&msg),
@@ -405,17 +399,18 @@ module xcall::main {
         if(msg_type==CALL_MESSAGE_ROLLBACK_TYPE){
             xcall_state::set_reply_state(self, *proxy_request);
         };
-        let ticket=ExecuteTicket {
-            dapp_id:xcall_state::get_id_cap_id(cap),
-            request_id:request_id,
-            message:msg_data,
+        let ticket=execute_ticket::new(
+            xcall_state::get_id_cap_id(cap),
+            request_id,
+            from,
+            msg_data,
             
-        };   
+        );   
         ticket
     }
 
     public fun execute_call_result(self:&mut Storage,ticket:ExecuteTicket,success:bool){
-        let ExecuteTicket{ dapp_id , request_id, message }=ticket;
+        let request_id=execute_ticket::request_id(&ticket);
         let proxy_request = xcall_state::get_proxy_request(self, request_id);
         let msg_type = message_request::msg_type(proxy_request);
         let sn = message_request::sn(proxy_request);
@@ -438,6 +433,7 @@ module xcall::main {
         }else {
             message_result::create(sn, code, message)
         };
+        execute_ticket::consume(ticket);
 
        // send message flow
        
@@ -453,14 +449,15 @@ module xcall::main {
 
     }
 
-    entry fun execute_rollback(self:&mut Storage,sn:u128,ctx: &mut TxContext){
+    entry fun execute_rollback(self:&mut Storage,cap:&IDCap, sn:u128,ctx: &mut TxContext){
         assert!(xcall_state::has_rollback(self, sn), ENoRollback);
         let rollback = xcall_state::get_rollback(self, sn);
         assert!(!rollback_data::enabled(&rollback), ERollbackNotEnabled);
+        
 
         cleanup_call_request(self, sn);
 
-        execute_message(self, address::to_string(rollback_data::from(&rollback)), network_address::from_string(string::utf8(b"")), rollback_data::rollback(&rollback), rollback_data::sources(&rollback), ctx);
+       // execute_message(self, address::to_string(rollback_data::from(&rollback)), network_address::from_string(string::utf8(b"")), rollback_data::rollback(&rollback), rollback_data::sources(&rollback), ctx);
 
         event::emit(RollbackExecuted{sn})
     }

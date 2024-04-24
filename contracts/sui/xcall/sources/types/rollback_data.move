@@ -4,14 +4,14 @@ module xcall::rollback_data {
     use sui::object::{Self, ID, UID};
     use xcall::network_address::{Self,NetworkAddress};
     public struct RollbackData has store,drop, copy{
-        from:address,
+        from:ID,
         to:String,
         sources:vector<String>,
         rollback:vector<u8>,
         enabled:bool, 
     }
 
-     public fun create(from:address,to:String,sources:vector<String>,rollback:vector<u8>,enabled:bool):RollbackData{
+     public fun create(from:ID,to:String,sources:vector<String>,rollback:vector<u8>,enabled:bool):RollbackData{
         RollbackData {
             from:from,
             to:to,
@@ -25,7 +25,7 @@ module xcall::rollback_data {
         self.enabled
     }
 
-    public fun from(self:&RollbackData):address{
+    public fun from(self:&RollbackData):ID{
         self.from
     }
 
