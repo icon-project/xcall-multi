@@ -11,6 +11,7 @@ module xcall::main {
     use std::vector::{Self};
     use std::option::{Self, Option};
     use sui::event;
+    use sui::hash::{Self};
    
     use xcall::network_address::{Self,NetworkAddress};
     use xcall::envelope::{Self,XCallEnvelope};
@@ -43,6 +44,7 @@ module xcall::main {
     const EDataMismatch: u64 = 8;
     const EInvalidMsgType: u64 = 9;
     const ERollbackNotEnabled:u64 = 10;
+    const EInfallible:u64 = 11;
 
     const CS_REQUEST: u8 =0;
     const CS_RESULT: u8 =1;
@@ -88,7 +90,16 @@ module xcall::main {
         sn:u128,
         response_code: u8
     }
-    
+    /***************/
+    /******** tickets ******/
+    public struct ExecuteTicket {
+        dapp_id:ID,
+        request_id:u128,
+        message:vector<u8>,
+    }
+    public fun get_ticket_message(ticket:&ExecuteTicket):vector<u8>{
+         ticket.message
+    }
     
     fun init(ctx: &mut TxContext) {
         let admin = xcall_state::create_admin_cap(ctx);
@@ -107,7 +118,7 @@ module xcall::main {
         witness: T,
         ctx: &mut TxContext
     ):IDCap {
-        assert!(sui_types::is_one_time_witness(&witness), ENotOneTimeWitness);
+        // assert!(sui_types::is_one_time_witness(&witness), ENotOneTimeWitness);
 
         xcall_state::create_id_cap(self,ctx)
 
@@ -379,42 +390,59 @@ module xcall::main {
     }
 
 
-    entry fun execute_call(self:&mut Storage,request_id:u128,data:vector<u8>,ctx: &mut TxContext){
+    public fun execute_call(self:&mut Storage,cap:&IDCap,request_id:u128,data:vector<u8>,ctx: &mut TxContext):ExecuteTicket{
+
         let proxy_request = xcall_state::get_proxy_request(self, request_id);
         let from = message_request::from(proxy_request);
         let to = message_request::to(proxy_request);
         let sn = message_request::sn(proxy_request);
         let msg_type = message_request::msg_type(proxy_request);
-        let data_hash = message_request::data(proxy_request);
+        let msg_data=message_request::data(proxy_request);
+        let data_hash = hash::keccak256(&msg_data);
         let protocols = message_request::protocols(proxy_request);
 
-        assert!(data_hash == data, EDataMismatch);        
-
-        if(msg_type == CALL_MESSAGE_TYPE){
-            try_execute_call(self, request_id, to, from, data, protocols, ctx);
-        } else if(msg_type == PERSISTENT_MESSAGE_TYPE){
-            execute_message(self, to, from, data, protocols, ctx);
-        } else if(msg_type == CALL_MESSAGE_ROLLBACK_TYPE){
+        assert!(data_hash == data, EDataMismatch);
+        if(msg_type==CALL_MESSAGE_ROLLBACK_TYPE){
             xcall_state::set_reply_state(self, *proxy_request);
+        };
+        let ticket=ExecuteTicket {
+            dapp_id:xcall_state::get_id_cap_id(cap),
+            request_id:request_id,
+            message:msg_data,
+            
+        };   
+        ticket
+    }
 
-            let code = try_execute_call(self, request_id, to, from, data, protocols, ctx);
-            xcall_state::remove_reply_state(self);
+    public fun execute_call_result(self:&mut Storage,ticket:ExecuteTicket,success:bool){
+        let ExecuteTicket{ dapp_id , request_id, message }=ticket;
+        let proxy_request = xcall_state::get_proxy_request(self, request_id);
+        let msg_type = message_request::msg_type(proxy_request);
+        let sn = message_request::sn(proxy_request);
 
-            let mut message = vector::empty<u8>();
+        if(msg_type==PERSISTENT_MESSAGE_TYPE && !success){
+            assert!(1==2,0x01);
+        };
+        cleanup_call_request(self, sn);
+        xcall_state::remove_reply_state(self);
+        let mut message = vector::empty<u8>();
+        let code= if(success){1}else{0};
+        let cs_message = if(msg_type==CALL_MESSAGE_ROLLBACK_TYPE){
             let callReply = xcall_state::get_call_reply(self);
             if(vector::length(&callReply)>0 && code == 0){
                 message = callReply;
                 xcall_state::remove_call_reply(self);
             };
-            let cs_message_result = message_result::create(sn, code, message);
+            message_result::create(sn, code, message)
 
-            //send message
-            
+        }else {
+            message_result::create(sn, code, message)
+        };
+
+       // send message flow
+       
 
 
-        } else {
-            abort EInvalidMsgType
-        }
     }
 
     fun try_execute_call(self:&mut Storage,req_id:u128, dapp: String, from:NetworkAddress, data: vector<u8>, protocols:vector<String>,ctx: &mut TxContext):u8{
