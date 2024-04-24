@@ -1,16 +1,10 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity >=0.8.0;
 
-interface ICallService {
-    function getNetworkAddress(
-    ) external view  returns (
-        string memory
-    );
+interface ICallServiceV1 {
+    function getNetworkAddress() external view returns (string memory);
 
-     function getNetworkId(
-    ) external view returns (
-        string memory
-    );
+    function getNetworkId() external view returns (string memory);
 
     /**
        @notice Gets the fee for delivering a message to the _net.
@@ -23,17 +17,13 @@ interface ICallService {
     function getFee(
         string memory _net,
         bool _rollback
-    ) external view returns (
-        uint256
-    );
+    ) external view returns (uint256);
 
     function getFee(
         string memory _net,
         bool _rollback,
         string[] memory _sources
-    ) external view returns (
-        uint256
-    );
+    ) external view returns (uint256);
 
     /*======== At the source CALL_BSH ========*/
     /**
@@ -47,9 +37,7 @@ interface ICallService {
         string memory _to,
         bytes memory _data,
         bytes memory _rollback
-    ) external payable returns (
-        uint256
-    );
+    ) external payable returns (uint256);
 
     function sendCallMessage(
         string memory _to,
@@ -57,10 +45,8 @@ interface ICallService {
         bytes memory _rollback,
         string[] memory sources,
         string[] memory destinations
-    ) external payable returns (
-        uint256
-    );
-
+    ) external payable returns (uint256);
+    
     /**
        @notice Notifies that the requested call message has been sent.
        @param _from The chain-specific address of the caller
@@ -79,34 +65,25 @@ interface ICallService {
        @param _code The execution result code
                     (0: Success, -1: Unknown generic failure, >=1: User defined error code)
      */
-    event ResponseMessage(
-        uint256 indexed _sn,
-        int _code
-    );
+    event ResponseMessage(uint256 indexed _sn, int _code);
 
     /**
        @notice Notifies the user that a rollback operation is required for the request '_sn'.
        @param _sn The serial number of the previous request
      */
-    event RollbackMessage(
-        uint256 indexed _sn
-    );
+    event RollbackMessage(uint256 indexed _sn);
 
     /**
        @notice Rollbacks the caller state of the request '_sn'.
        @param _sn The serial number of the previous request
      */
-    function executeRollback(
-        uint256 _sn
-    ) external;
+    function executeRollback(uint256 _sn) external;
 
     /**
        @notice Notifies that the rollback has been executed.
        @param _sn The serial number for the rollback
      */
-    event RollbackExecuted(
-        uint256 indexed _sn
-    );
+    event RollbackExecuted(uint256 indexed _sn);
 
     /*======== At the destination CALL_BSH ========*/
     /**
@@ -130,10 +107,7 @@ interface ICallService {
        @param _reqId The request id
        @param _data The calldata
      */
-    function executeCall(
-        uint256 _reqId,
-        bytes memory _data
-    ) external;
+    function executeCall(uint256 _reqId, bytes memory _data) external;
 
     /**
        @notice Notifies that the call message has been executed.
@@ -142,28 +116,18 @@ interface ICallService {
                     (0: Success, -1: Unknown generic failure)
        @param _msg The result message if any
      */
-    event CallExecuted(
-        uint256 indexed _reqId,
-        int _code,
-        string _msg
-    );
+    event CallExecuted(uint256 indexed _reqId, int _code, string _msg);
 
-      /**
+    /**
        @notice BTP Message from other blockchain.
        @param _from    Network Address of source network
        @param _msg     Serialized bytes of ServiceMessage
    */
-    function handleMessage(
-        string calldata _from,
-        bytes calldata _msg
-    ) external;
+    function handleMessage(string calldata _from, bytes calldata _msg) external;
 
     /**
        @notice Handle the error on delivering the message.
        @param _sn      Serial number of the original message
    */
-    function handleError(
-        uint256 _sn
-    ) external;
+    function handleError(uint256 _sn) external;
 }
-

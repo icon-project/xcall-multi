@@ -16,23 +16,25 @@
 
 package foundation.icon.xcall;
 
+import java.math.BigInteger;
+
 import score.ByteArrayObjectWriter;
 import score.Context;
 import score.ObjectReader;
 import score.ObjectWriter;
 
-import java.math.BigInteger;
-
-public class CSMessageResponse {
+public class CSMessageResult {
     public static final int SUCCESS = 1;
     public static final int FAILURE = 0;
 
     private final BigInteger sn;
     private final int code;
+    private final byte[] msg;
 
-    public CSMessageResponse(BigInteger sn, int code) {
+    public CSMessageResult(BigInteger sn, int code, byte[] msg) {
         this.sn = sn;
         this.code = code;
+        this.msg = msg;
     }
 
     public BigInteger getSn() {
@@ -43,30 +45,38 @@ public class CSMessageResponse {
         return code;
     }
 
-    public static void writeObject(ObjectWriter w, CSMessageResponse m) {
-        w.beginList(2);
+    public byte[] getMsg() {
+        return msg;
+    }
+
+    public static void writeObject(ObjectWriter w, CSMessageResult m) {
+        w.beginList(3);
         w.write(m.sn);
         w.write(m.code);
+        w.writeNullable(m.msg);
         w.end();
     }
 
-    public static CSMessageResponse readObject(ObjectReader r) {
+    public static CSMessageResult readObject(ObjectReader r) {
         r.beginList();
-        CSMessageResponse m = new CSMessageResponse(
-                r.readBigInteger(),
-                r.readInt()
-        );
+        BigInteger sn = r.readBigInteger();
+        int code = r.readInt();
+        byte[] msg = null;
+        if (r.hasNext()) {
+            msg = r.readNullable(byte[].class);
+        }
+
         r.end();
-        return m;
+        return new CSMessageResult(sn, code, msg);
     }
 
     public byte[] toBytes() {
         ByteArrayObjectWriter writer = Context.newByteArrayObjectWriter("RLPn");
-        CSMessageResponse.writeObject(writer, this);
+        CSMessageResult.writeObject(writer, this);
         return writer.toByteArray();
     }
 
-    public static CSMessageResponse fromBytes(byte[] bytes) {
+    public static CSMessageResult fromBytes(byte[] bytes) {
         ObjectReader reader = Context.newByteArrayObjectReader("RLPn", bytes);
         return readObject(reader);
     }

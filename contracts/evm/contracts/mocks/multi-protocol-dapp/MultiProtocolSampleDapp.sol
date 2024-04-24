@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import "@iconfoundation/btp2-solidity-library/utils/NetworkAddress.sol";
-import "@iconfoundation/btp2-solidity-library/utils/Integers.sol";
-import "@iconfoundation/btp2-solidity-library/utils/ParseAddress.sol";
-import "@iconfoundation/btp2-solidity-library/utils/Strings.sol";
-import "@iconfoundation/btp2-solidity-library/interfaces/ICallService.sol";
-import "@iconfoundation/btp2-solidity-library/interfaces/ICallServiceReceiver.sol";
+import "@iconfoundation/xcall-solidity-library/utils/NetworkAddress.sol";
+import "@iconfoundation/xcall-solidity-library/utils/Integers.sol";
+import "@iconfoundation/xcall-solidity-library/utils/ParseAddress.sol";
+import "@iconfoundation/xcall-solidity-library/utils/Strings.sol";
+import "@iconfoundation/xcall-solidity-library/interfaces/ICallService.sol";
+import "@iconfoundation/xcall-solidity-library/interfaces/ICallServiceReceiver.sol";
+import "@xcall/utils/Types.sol";
 
 import "openzeppelin-contracts-upgradeable/contracts/proxy/utils/Initializable.sol";
 
@@ -49,6 +50,30 @@ contract MultiProtocolSampleDapp is Initializable, ICallServiceReceiver {
         _sendCallMessage(msg.value, to, data, rollback);
     }
 
+    function sendNewMessage(string memory to, bytes memory data, int256 messageType, bytes memory rollback) external payable {
+        
+        bytes memory message;
+        (string memory net,) = to.parseNetworkAddress();
+        string[] memory _sources = getSources(net);
+        string[] memory _destinations = getDestinations(net);
+
+        if (messageType == Types.PERSISTENT_MESSAGE_TYPE) {
+            message = Types.createPersistentMessage(data, _sources, _destinations);
+        } else if(messageType == Types.CALL_MESSAGE_TYPE) {
+            message = Types.createCallMessage(data, _sources, _destinations);
+        } else if(messageType == Types.CALL_MESSAGE_ROLLBACK_TYPE) {
+            require(rollback.length > 0, "InvalidRollback");
+            message = Types.createCallMessageWithRollback(data, rollback, _sources, _destinations);
+        } else {
+            revert("InvalidMessageType");
+        }
+        _sendCall(msg.value, to, message);
+    }
+
+    function sendMessageAny(string memory to, bytes memory data) external payable {
+        _sendCall(msg.value, to, data);
+    }
+
     function _sendCallMessage(
         uint256 value,
         string memory to,
@@ -57,6 +82,14 @@ contract MultiProtocolSampleDapp is Initializable, ICallServiceReceiver {
     ) private {
         (string memory net,) = to.parseNetworkAddress();
         ICallService(callSvc).sendCallMessage{value: value}(to, data, rollback, getSources(net), getDestinations(net));
+    }
+
+    function _sendCall(
+        uint256 value,
+        string memory to,
+        bytes memory message
+    ) private {
+        ICallService(callSvc).sendCall{value: value}(to, message);
     }
 
 
@@ -69,10 +102,13 @@ contract MultiProtocolSampleDapp is Initializable, ICallServiceReceiver {
         } else {
             require(protocolsEqual(protocols, getSources(netFrom)), "invalid protocols");
             require(keccak256(data) != keccak256(abi.encodePacked("rollback")), "rollback");
+
+            if(keccak256(data) == keccak256(abi.encodePacked("reply-reponse"))) {
+                _sendCallMessage(0, from, '010203', bytes(""));
+            }
             emit MessageReceived(from, data);
         }
     }
-
 
     function protocolsEqual(string[] memory a, string[] memory b) private pure returns (bool) {
         if (a.length != b.length) {

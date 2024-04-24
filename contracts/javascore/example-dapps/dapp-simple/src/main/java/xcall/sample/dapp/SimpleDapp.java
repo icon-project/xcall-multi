@@ -29,6 +29,12 @@ import score.annotation.Payable;
 import foundation.icon.xcall.DefaultCallServiceReceiver;
 import foundation.icon.xcall.NetworkAddress;
 
+import foundation.icon.xcall.messages.Message;
+import foundation.icon.xcall.messages.CallMessage;
+import foundation.icon.xcall.messages.CallMessageWithRollback;
+import foundation.icon.xcall.messages.XCallEnvelope;
+import foundation.icon.xcall.messages.PersistentMessage;
+
 public class SimpleDapp implements DefaultCallServiceReceiver {
     private final Address callSvc;
 
@@ -38,6 +44,27 @@ public class SimpleDapp implements DefaultCallServiceReceiver {
 
     private void onlyCallService() {
         Context.require(Context.getCaller().equals(this.callSvc), "onlyCallService");
+    }
+
+    @Payable
+    @External
+    public void sendNewMessage(String _to, byte[] _data, @Optional byte[] _rollback, @Optional boolean isPersistent) {
+        Message msg;
+        if (isPersistent) {
+            msg = new PersistentMessage(_data);
+        } else if (_rollback == null || _rollback.length == 0) {
+            msg = new CallMessage(_data);
+        } else {
+            msg = new CallMessageWithRollback(_data, _rollback);
+        }
+        String[] sources = new String[0];
+        String[] destinations = new String[0];
+        XCallEnvelope envelope = new XCallEnvelope(msg, sources, destinations);
+        _sendCall(Context.getValue(), _to, envelope.toBytes());
+    }
+
+    private BigInteger _sendCall(BigInteger value, String to, byte[] envelope) {
+        return Context.call(BigInteger.class, value, this.callSvc, "sendCall", to, envelope);
     }
 
     @Payable

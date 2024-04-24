@@ -1,6 +1,6 @@
 mod account;
 mod setup;
-use std::{collections::HashMap, vec};
+use std::{collections::HashMap, str::FromStr, vec};
 
 use crate::account::*;
 use cosmwasm_std::{
@@ -32,6 +32,20 @@ fn send_packet_by_non_contract_and_rollback_data_is_not_null() {
                 network_id: "nid".to_string(),
                 denom: "arch".to_string(),
             },
+        )
+        .unwrap();
+    contract
+        .set_admin(
+            mock_deps.as_mut().storage,
+            Addr::unchecked(alice().to_string()),
+        )
+        .unwrap();
+    contract
+        .set_default_connection(
+            mock_deps.as_mut(),
+            mock_info.clone(),
+            NetId::from_str("nid").unwrap(),
+            Addr::unchecked("defaultconn".to_string()),
         )
         .unwrap();
 

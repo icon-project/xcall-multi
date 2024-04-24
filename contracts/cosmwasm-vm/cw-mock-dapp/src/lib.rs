@@ -46,6 +46,12 @@ pub fn execute(
         ExecuteMsg::SendCallMessage { to, data, rollback } => {
             call_service.send_call_message(deps, info, to, data, rollback)
         }
+        ExecuteMsg::SendNewCallMessage {
+            to,
+            data,
+            rollback,
+            is_persistent,
+        } => call_service.send_new_call_message(deps, info, to, data, rollback, is_persistent),
         ExecuteMsg::HandleCallMessage { from, data } => {
             call_service.handle_call_message(deps, info, from, data)
         }

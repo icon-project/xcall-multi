@@ -20,4 +20,8 @@ pub enum ContractError {
     ConnectionNotFound { network_id: String },
     #[error("Invalid Address {address}")]
     InvalidAddress { address: String },
+    #[error("Invalid Rollback Message")]
+    InvalidRollbackMessage,
+    #[error("Invalid Message Type")]
+    InvalidMessageType,
 }
