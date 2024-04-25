@@ -6,6 +6,14 @@ module xcall::rollback_ticket {
 
     }
 
+    public(package) fun new(sn:u128,rollback:vector<u8>,dapp_id:ID):RollbackTicket{
+        RollbackTicket {
+            rollback,
+            sn,
+            dapp_id
+        }
+    }
+
      public fun message(ticket:&RollbackTicket):vector<u8>{
          ticket.rollback
     }
@@ -18,6 +26,10 @@ module xcall::rollback_ticket {
 
     public fun dapp_id(ticket:&RollbackTicket):ID {
         ticket.dapp_id
+    }
+
+    public(package) fun consume(ticket:RollbackTicket){
+        let RollbackTicket { rollback, sn,dapp_id}=ticket;
     }
 
 

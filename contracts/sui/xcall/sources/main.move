@@ -23,6 +23,7 @@ module xcall::main {
     use xcall::rollback_data::{Self,RollbackData};
     use xcall::xcall_state::{Self,Storage,AdminCap,IDCap};
     use xcall::execute_ticket::{Self,ExecuteTicket};
+    use xcall::rollback_ticket::{Self,RollbackTicket};
     use sui::bag::{Bag, Self};
     use sui::table::{Table,Self};
     use sui::package::{Self,Publisher};
@@ -241,7 +242,7 @@ module xcall::main {
         send_call(self,fee,idCap,to,envelope::encode(&envelope),ctx);
     }
 
-    entry fun send_call(self:&mut Storage,fee: &mut Coin<SUI>,idCap:&IDCap,to:String,envelope_bytes:vector<u8>,ctx: &mut TxContext){
+    entry public fun send_call(self:&mut Storage,fee: &mut Coin<SUI>,idCap:&IDCap,to:String,envelope_bytes:vector<u8>,ctx: &mut TxContext){
         let envelope=envelope::decode(&envelope_bytes);
         let to = network_address::from_string(to);
         let from= network_address::create(string::utf8(NID),string::utf8(object::id_to_bytes(&object::id(idCap))));
@@ -441,25 +442,26 @@ module xcall::main {
 
     }
 
-    fun try_execute_call(self:&mut Storage,req_id:u128, dapp: String, from:NetworkAddress, data: vector<u8>, protocols:vector<String>,ctx: &mut TxContext):u8{
-        0
-    }
-
-    fun execute_message(self:&mut Storage,to: String, from:NetworkAddress, data: vector<u8>, protocols:vector<String>,ctx: &mut TxContext){
-
-    }
-
-    entry fun execute_rollback(self:&mut Storage,cap:&IDCap, sn:u128,ctx: &mut TxContext){
+    public fun execute_rollback(self:&mut Storage,cap:&IDCap, sn:u128,ctx: &mut TxContext):RollbackTicket{
         assert!(xcall_state::has_rollback(self, sn), ENoRollback);
         let rollback = xcall_state::get_rollback(self, sn);
+        let rollback_data= rollback_data::rollback(&rollback);
         assert!(!rollback_data::enabled(&rollback), ERollbackNotEnabled);
+        let ticket=rollback_ticket::new(sn,rollback_data,xcall_state::get_id_cap_id(cap));
+        ticket
         
 
-        cleanup_call_request(self, sn);
+    }
 
-       // execute_message(self, address::to_string(rollback_data::from(&rollback)), network_address::from_string(string::utf8(b"")), rollback_data::rollback(&rollback), rollback_data::sources(&rollback), ctx);
+    public fun execute_rollback_result(self:&mut Storage,ticket:RollbackTicket,success:bool){
+        let sn= rollback_ticket::sn(&ticket);
+        if(success){
+         cleanup_call_request(self, sn);
+         event::emit(RollbackExecuted{sn})
+        };
+        rollback_ticket::consume(ticket);
 
-        event::emit(RollbackExecuted{sn})
+
     }
 
     fun is_valid_source(self:&mut Storage,nid:String,source:String,protocols:vector<String>):bool{
