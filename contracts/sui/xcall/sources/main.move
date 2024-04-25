@@ -110,14 +110,61 @@ module xcall::main {
         assert!(sui_types::is_one_time_witness(&witness), ENotOneTimeWitness);
 
         xcall_state::create_id_cap(self,ctx)
+    }
 
-       
+    entry fun get_network_address(self: &mut Storage): network_address::NetworkAddress{
+        xcall_state::network_address(self)
+    }
+
+    entry fun get_net_id(self: &mut Storage): String{
+        string::utf8(NID)
     }
 
     public fun register_connection(self:&mut Storage,net_id:String,package_id:String){
         xcall_state::set_connection(self,net_id,package_id);
         register(xcall_state::get_connection_states(self),package_id);
     }
+
+    public fun admin(self:&mut Storage):ID{
+        xcall_state::get_admin(self)
+    }
+
+    public fun get_fee_handler(self:&mut Storage):address{
+        xcall_state::get_protocol_fee_handler(self)
+    }
+
+    fun get_connection_fee(self:&mut Storage,connection:&String,net_id:String, rollback:bool ):u128{
+        // connections::get_fee(self,connection,net_id,rollback)
+        0
+    }
+
+    fun get_fee_connection_sn(self:&mut Storage,connection:&String,net_id:String, sn:u128 ):u128{
+        // connections::get_fee(self,connection,net_id,sn>0)
+        0
+    }
+
+    entry fun get_fee(self:&mut Storage, net_id:String, rollback:bool):u128{
+        // get_connection_fee(self, xcall_state::get_connection(self,net_id), net_id, rollback)
+        0
+    }
+
+    entry fun get_fee_sources(self:&mut Storage, net_id:String, rollback:bool, sources:vector<String>):u128{
+        let fee = xcall_state::get_protocol_fee(self);
+
+        if(isReply(self,net_id,sources) && !rollback){
+            return 0
+        };
+
+        let i = 0;
+        while(i < vector::length(&sources)){
+            let source = vector::borrow(&sources, i);
+            fee = fee + get_connection_fee(self,source, net_id, rollback);
+            i=i+1
+        };
+
+        fee
+    }
+
 
     fun send_call_inner(self:&mut Storage,fee:&mut Coin<SUI>,from:NetworkAddress,to:NetworkAddress,envelope:XCallEnvelope,ctx: &mut TxContext){
 
@@ -186,17 +233,15 @@ module xcall::main {
         if(vector::is_empty(&sources)){
             let connection= xcall_state::get_connection(self,net_to);
             vector::push_back(&mut sources,connection);
-            // let required_fee = xcall_state::get_protocol_fee(self);
+        }; 
+
+        let mut i=0;
+        while(i < vector::length(&sources)){
+            let source = vector::borrow(&sources, i);
+            let required_fee = get_fee_connection_sn(self, source, net_to, sn);
             // let connection_coin = coin::split(fee, required_fee, ctx);
-            // connections::send_message(package_id,connection,connection_coin,required_fee,net_to,msg_type,sn,data,ctx);
-        } else{
-            let mut i=0;
-            while(i < vector::length(&sources)){
-                // let required_fee = xcall_state::get_protocol_fee(self);
-                // let connection_coin = coin::split(fee, required_fee, ctx);
-                // connections::send_message(sources[i],required_fee,net_to,msg_type,sn,data,ctx);
-                i=i+1
-            }
+            // connections::send_message(sources[i],required_fee,net_to,msg_type,sn,data,ctx);
+            i=i+1
         }
     }
 
@@ -205,10 +250,6 @@ module xcall::main {
         sn
     }
 
-    fun get_fee(self:&mut Storage):u128 {
-        // xcall_state::get_protocol_fee(self)
-        0
-    }
 
     fun get_next_req_id(self:&mut Storage):u128 {
         let req_id=xcall_state::get_next_request_id(self);
