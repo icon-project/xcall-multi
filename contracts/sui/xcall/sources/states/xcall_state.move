@@ -297,4 +297,19 @@ module xcall::xcall_state {
         id
     }
 
+    #[test_only]
+    public fun share_storage_for_testing(admin:AdminCap,ctx: &mut TxContext):Storage {
+        create_storage(0,&admin,ctx)
+    }
+
+    #[test_only]
+    public fun AdminCap_for_testing(ctx: &mut TxContext):AdminCap {
+        create_admin_cap(ctx)
+    }
+
+    #[test_only]
+    public fun create_id_cap_for_testing(ctx: &mut TxContext):IDCap {
+        create_id_cap(ctx)
+    }
+
 }
