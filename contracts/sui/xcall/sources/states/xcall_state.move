@@ -36,6 +36,27 @@ module xcall::xcall_state {
         id: UID
     }
 
+    public struct ConnCap has store,copy,drop{
+        xcall_id:ID,
+        package_id:String,
+    }
+
+    public(package) fun new_conn_cap(xcall_id:ID,package_id:String):ConnCap{
+        ConnCap {
+            xcall_id,
+            package_id
+        }
+    }
+
+    public fun xcall_id(self:&ConnCap):ID {
+        self.xcall_id
+    }
+    public fun package_id(self:&ConnCap):String {
+        self.package_id
+    }
+
+
+
     public struct PendingReqResKey has copy, drop, store{
         data_hash :vector<u8>,
         caller :String
@@ -110,6 +131,7 @@ module xcall::xcall_state {
             self.version=version;
     }
 
+
     public(package) fun set_connection(self:&mut Storage,net_id:String,package_id:String){
             vec_map::insert(&mut self.connections,net_id,package_id);
     }
@@ -150,6 +172,10 @@ module xcall::xcall_state {
         self.network_address
     }
 
+    public(package) fun get_id(self:&Storage):ID{
+        object::uid_to_inner(&self.id)
+    }
+
     public fun get_version(self:&Storage):u64{
         self.version
     }
@@ -170,7 +196,7 @@ module xcall::xcall_state {
         *vec_map::get(&self.connections,&nid)
     }
 
-    public fun get_connection_states(self:&mut Storage):&mut Bag{
+    public fun get_connection_states_mut(self:&mut Storage):&mut Bag{
         &mut self.connection_states
     }
 
@@ -291,5 +317,7 @@ module xcall::xcall_state {
         self.request_id = id;
         id
     }
+
+    
 
 }

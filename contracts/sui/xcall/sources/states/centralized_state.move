@@ -5,14 +5,20 @@ module xcall::centralized_state {
       use sui::coin::{Self,Coin};
     use sui::balance::{Self, Balance};
     use sui::sui::SUI;
-    /**
-     message_fee: Map<'a, NetId, u128>,
-    response_fee: Map<'a, NetId, u128>,
-    admin: Item<'a, Addr>,
-    conn_sn: Item<'a, u128>,
-    receipts: Map<'a, (String, u128), bool>,
-    xcall: Item<'a, Addr>,
-    */
+    use xcall::xcall_state::{ConnCap};
+    use sui::bag::{Bag, Self};
+
+    const PackageId:vector<u8> =b"centralized";
+
+    public fun package_id_str():String {
+        string::utf8(PackageId)
+    }
+
+     public fun get_state(states:&mut Bag):&mut State {
+      let package_id= package_id_str();
+      let state:&mut State=bag::borrow_mut(states,package_id);
+      state
+    }
     
 
     public struct ReceiptKey has copy, drop, store {
@@ -20,25 +26,27 @@ module xcall::centralized_state {
         nid: String,
     }
 
-    public struct State has store { 
+    public struct State has store{ 
         message_fee: VecMap<String, u64>,
         response_fee: VecMap<String, u64>,
         receipts: VecMap<ReceiptKey, bool>,
         xcall: String,
-        admin: String,
+        admin: address,
         conn_sn: u128,
         balance: Balance<SUI>,
+        cap:ConnCap,
     }
 
-    public fun create(): State {
+    public fun create(cap:ConnCap,admin:address): State {
         State {
             message_fee: vec_map::empty<String, u64>(),
             response_fee: vec_map::empty<String, u64>(),
             conn_sn: 0,
             receipts: vec_map::empty(),
             xcall: string::utf8(b""), 
-            admin: string::utf8(b""),
+            admin: admin,
             balance:balance::zero(),
+            cap
         }
     }
 
@@ -63,7 +71,7 @@ module xcall::centralized_state {
         vec_map::insert(&mut self.response_fee, net_id, response_fee);
     }
 
-    public(package) fun check_duplicate_message(self: &mut State, net_id: String, sn: u128) {
+    public(package) fun check_save_receipt(self: &mut State, net_id: String, sn: u128) {
         let receipt_key = ReceiptKey { nid: net_id, conn_sn: sn };
         assert!(!vec_map::contains(&self.receipts, &receipt_key), 100);
         vec_map::insert(&mut self.receipts, receipt_key, true);
@@ -77,5 +85,9 @@ module xcall::centralized_state {
     public(package) fun deposit(self:&mut State,balance:Balance<SUI>){
         balance::join(&mut self.balance,balance);
 
+    }
+
+    public(package) fun conn_cap(self:&State):&ConnCap{
+                &self.cap
     }
 }

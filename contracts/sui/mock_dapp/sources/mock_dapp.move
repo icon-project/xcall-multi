@@ -68,7 +68,7 @@ public struct WitnessCarrier has key { id: UID, witness: REGISTER_WITNESS }
         dapp_state::add_connection(state,net_id,source,destination);
     }
 
-    fun send_message(state:&mut DappState,xcall:&mut XCallState,fee: &mut Coin<SUI>,to:NetworkAddress,data:vector<u8>,ctx: &mut TxContext){
+    fun send_message(state:&DappState,xcall:&mut XCallState,fee: &mut Coin<SUI>,to:NetworkAddress,data:vector<u8>,ctx: &mut TxContext){
         let connection= dapp_state::get_connection(state,network_address::net_id(&to));
         let sources=dapp_state::get_connection_source(&connection);
         let destinations=dapp_state::get_connection_dest(&connection);
