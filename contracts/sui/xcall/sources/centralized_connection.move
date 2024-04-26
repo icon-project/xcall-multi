@@ -20,6 +20,7 @@ module xcall::centralized_connection {
       to:String,
       conn_sn:u128,
       msg:vector<u8>,
+     
   }
 
 
@@ -52,32 +53,24 @@ module xcall::centralized_connection {
       
     }
 
-    entry public(package) fun send_message(states:&mut Bag,coin: Coin<SUI>,to:String,sn:u64,msg:vector<u8>,dir:u8,ctx: &mut TxContext){
-      let state= get_state(states);
-      let fee = if (sn > 0) {
-      centralized_state::get_fee(state,&to,true)
-        } else if (sn == 0) {
-      centralized_state::get_fee(state,&to,false)
+    entry public(package) fun send_message(states:&mut Bag,coin:&mut Coin<SUI>,to:String,sn:u128,msg:vector<u8>,response:bool,ctx: &mut TxContext){
+      let mut state= get_state(states);
+      let fee = if (sn==0) {
+        centralized_state::get_fee(state,&to,false)
         } else {
-            0
+         centralized_state::get_fee(state,&to,response)
         };
-      let mut balance = coin::into_balance(coin);
-      assert!(balance::value(&balance) > fee, ENotEnoughFee);
-
-      // balance::join(&mut balance, &balance::value(&balance));
-    // Deposit the required fee from the provided coin
-
-    let paid_fee = coin::take(&mut balance, fee, ctx);
-    transfer::public_transfer(paid_fee, tx_context::sender(ctx));
-
-    let conn_sn = get_next_connection_sn(state);
-    event::emit(Message {
+       
+      assert!(coin.value() > fee, ENotEnoughFee);
+      let paid= coin.split(fee,ctx);
+      let paid_balance=paid.into_balance();
+      centralized_state::deposit(state,paid_balance);
+      let conn_sn = get_next_connection_sn(state);
+      event::emit(Message {
             to,
             conn_sn,
             msg,
         });
-
-    utils::destroy_or_transfer_balance(balance, tx_context::sender(ctx), ctx);
     }
 
     entry fun receive_message(states: &mut Bag,src:String,sn:u128,msg:vector<u8>,ctx: &mut TxContext){

@@ -1,19 +1,13 @@
-/*
+
 #[test_only]
 module mock_dapp::mock_dapp_tests {
-    // uncomment this line to import the module
-    // use mock_dapp::mock_dapp;
+    use mock_dapp::mock_dapp::{init};
 
-    const ENotImplemented: u64 = 0;
 
-    #[test]
-    fun test_mock_dapp() {
-        // pass
-    }
+    use sui::test_scenario;
 
-    #[test, expected_failure(abort_code = mock_dapp::mock_dapp_tests::ENotImplemented)]
-    fun test_mock_dapp_fail() {
-        abort ENotImplemented
-    }
+    
+
+    
 }
-*/
+

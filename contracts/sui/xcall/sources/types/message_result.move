@@ -7,21 +7,18 @@ module xcall::message_result {
       use sui_rlp::encoder::{Self};
     use sui_rlp::decoder::{Self};
 
-    const CS_REQUEST:u8 = 1;
-
-    const CS_RESULT:u8 = 2;
 
    const RESPONSE_SUCCESS:u8=1;
    const RESPONSE_FAILURE:u8=0;
 
-    public struct CSMessageResponse has store, drop{
+    public struct CSMessageResult has store, drop{
         sn:u128,
         code:u8,
         message: vector<u8>,
     }
 
-    public fun create(sn:u128,code:u8,message:vector<u8>):CSMessageResponse {
-        CSMessageResponse {
+    public fun create(sn:u128,code:u8,message:vector<u8>):CSMessageResult {
+        CSMessageResult {
             sn:sn,
             code:code,
             message:message,
@@ -29,20 +26,20 @@ module xcall::message_result {
     }
 
 
-    public fun sequence_no(self:&CSMessageResponse):u128 {
+    public fun sequence_no(self:&CSMessageResult):u128 {
         self.sn
     }   
 
 
-    public fun response_code(self:&CSMessageResponse):u8 {
+    public fun response_code(self:&CSMessageResult):u8 {
         self.code
     }
 
-    public fun message(self:&CSMessageResponse):vector<u8> {
+    public fun message(self:&CSMessageResult):vector<u8> {
         self.message
     }
 
-     public fun encode(val:&CSMessageResponse):vector<u8>{
+     public fun encode(val:&CSMessageResult):vector<u8>{
          let mut list=vector::empty<vector<u8>>();
            
           vector::push_back(&mut list,encoder::encode_u128(val.sn));
@@ -55,7 +52,7 @@ module xcall::message_result {
     }
 
 
-    public fun decode(bytes:&vector<u8>):CSMessageResponse {
+    public fun decode(bytes:&vector<u8>):CSMessageResult {
 
          let decoded=decoder::decode_list(bytes);
          
@@ -63,7 +60,7 @@ module xcall::message_result {
          let code= decoder::decode_u8(vector::borrow(&decoded,1));
          let message= *vector::borrow(&decoded,2);
         
-         let req=CSMessageResponse {
+         let req=CSMessageResult {
             sn,
             code,
             message,

@@ -12,26 +12,29 @@ module xcall::main {
     use std::option::{Self, Option};
     use sui::event;
     use sui::hash::{Self};
+     use sui::coin::{Self,Coin};
+    use sui::balance::{Self, Balance};
+    use sui::sui::SUI;
    
     use xcall::network_address::{Self,NetworkAddress};
     use xcall::envelope::{Self,XCallEnvelope};
     use xcall::connections::{Self,register};
     use xcall::message_request::{Self, CSMessageRequest};
     use xcall::call_message_rollback::{Self,CallMessageWithRollback};
-    use xcall::message_result::{Self};
+    use xcall::message_result::{Self,CSMessageResult};
     use xcall::cs_message::{Self};
     use xcall::rollback_data::{Self,RollbackData};
     use xcall::xcall_state::{Self,Storage,AdminCap,IDCap};
     use xcall::execute_ticket::{Self,ExecuteTicket};
     use xcall::rollback_ticket::{Self,RollbackTicket};
+    use xcall::cs_message::{CSMessage};
     use sui::bag::{Bag, Self};
     use sui::table::{Table,Self};
     use sui::package::{Self,Publisher};
   
     use sui::vec_map::{Self, VecMap};
     use sui::versioned::{Self, Versioned};
-    use sui::sui::SUI;
-     use sui::coin::{Self, Coin};
+   
      use sui::address::{Self};
 
 
@@ -178,32 +181,48 @@ module xcall::main {
             xcall_state::set_call_reply(self,msg);
         } else{
             let sendSn = if (need_response) {sequence_no} else {0};
-
-
-            send_message(self,
-    fee,envelope::sources(&envelope),network_address::net_id(&to),msg_type,msg,sendSn,ctx);
+            let cs_message=cs_message::from_message_request(cs_request);
+            
+       
+            connection_send_message(self,
+            fee,
+            envelope::sources(&envelope),
+            network_address::net_id(&to),
+            cs_message,
+            sendSn,
+            false,
+            ctx);
         };
 
         event::emit(CallMessageSent{from:network_address::net_id(&from),to:network_address::net_id(&to),sn:sequence_no});        
     }
 
-    fun send_message(self:&mut Storage,fee:&mut Coin<SUI>,sources:vector<String>, net_to:String, msg_type:u8, data:vector<u8>,sn:u128,ctx: &mut TxContext){
-        let mut sources=sources;
+    fun connection_send_message(self:&mut Storage,fee:&mut Coin<SUI>,sources:vector<String>, net_to:String, cs_message:CSMessage,sn:u128,is_response:bool,ctx: &mut TxContext){
+        let mut protocols=sources;
         if(vector::is_empty(&sources)){
             let connection= xcall_state::get_connection(self,net_to);
-            vector::push_back(&mut sources,connection);
-            // let required_fee = xcall_state::get_protocol_fee(self);
-            // let connection_coin = coin::split(fee, required_fee, ctx);
-            // connections::send_message(package_id,connection,connection_coin,required_fee,net_to,msg_type,sn,data,ctx);
-        } else{
+            vector::push_back(&mut protocols,connection);
+           
+        };
+        
+            let cs_message_bytes=cs_message::encode(&cs_message);
             let mut i=0;
-            while(i < vector::length(&sources)){
-                // let required_fee = xcall_state::get_protocol_fee(self);
-                // let connection_coin = coin::split(fee, required_fee, ctx);
-                // connections::send_message(sources[i],required_fee,net_to,msg_type,sn,data,ctx);
-                i=i+1
-            }
-        }
+            while(i < vector::length(&protocols)){
+                let protocol=*vector::borrow(&protocols,i);
+                connections::send_message(
+                    xcall_state::get_connection_states(self),
+                    protocol,
+                    fee,
+                    net_to,
+                    sn,
+                    cs_message_bytes,
+                    is_response,
+                    ctx);
+                i=i+1;
+            };
+
+
+
     }
 
     fun get_next_sequence(self:&mut Storage):u128 {
@@ -232,15 +251,15 @@ module xcall::main {
         xcall_state::set_protocol_fee_handler(self,fee_handler);
     }
 
-    entry fun send_call_message(self:&mut Storage,fee: &mut Coin<SUI>,idCap:&IDCap,to:String,data:vector<u8>,rollback:vector<u8>, sources:vector<String>, destinations:vector<String>,ctx: &mut TxContext){
-        let envelope;
-        if(vector::length(&rollback) > 0){
-            envelope = envelope::wrap_call_message(data, sources, destinations);
-        } else {
-            envelope = envelope::wrap_call_message_rollback(data, rollback, sources, destinations);
-        };
-        send_call(self,fee,idCap,to,envelope::encode(&envelope),ctx);
-    }
+    // entry fun send_call_message(self:&mut Storage,fee: &mut Coin<SUI>,idCap:&IDCap,to:String,data:vector<u8>,rollback:vector<u8>, sources:vector<String>, destinations:vector<String>,ctx: &mut TxContext){
+    //     let envelope;
+    //     if(vector::length(&rollback) > 0){
+    //         envelope = envelope::wrap_call_message(data, sources, destinations);
+    //     } else {
+    //         envelope = envelope::wrap_call_message_rollback(data, rollback, sources, destinations);
+    //     };
+    //     send_call(self,fee,idCap,to,envelope::encode(&envelope),ctx);
+    // }
 
     entry public fun send_call(self:&mut Storage,fee: &mut Coin<SUI>,idCap:&IDCap,to:String,envelope_bytes:vector<u8>,ctx: &mut TxContext){
         let envelope=envelope::decode(&envelope_bytes);
@@ -301,7 +320,7 @@ module xcall::main {
     }
 
 
-    fun handle_result(self:&mut Storage,cs_message_result: message_result::CSMessageResponse, ctx: &mut TxContext){
+    fun handle_result(self:&mut Storage,cs_message_result:CSMessageResult, ctx: &mut TxContext){
         let sequence_no = message_result::sequence_no(&cs_message_result);
         let code = message_result::response_code(&cs_message_result);
         let message = message_result::message(&cs_message_result);
@@ -410,11 +429,14 @@ module xcall::main {
         ticket
     }
 
-    public fun execute_call_result(self:&mut Storage,ticket:ExecuteTicket,success:bool){
+    public fun execute_call_result(self:&mut Storage,ticket:ExecuteTicket,success:bool,fee:&mut Coin<SUI>,ctx:&mut TxContext){
         let request_id=execute_ticket::request_id(&ticket);
         let proxy_request = xcall_state::get_proxy_request(self, request_id);
         let msg_type = message_request::msg_type(proxy_request);
         let sn = message_request::sn(proxy_request);
+        let from=message_request::from(proxy_request);
+        let net_to=network_address::net_id(&from);
+        let mut protocols=message_request::protocols(proxy_request);
 
         if(msg_type==PERSISTENT_MESSAGE_TYPE && !success){
             assert!(1==2,0x01);
@@ -423,7 +445,7 @@ module xcall::main {
         xcall_state::remove_reply_state(self);
         let mut message = vector::empty<u8>();
         let code= if(success){1}else{0};
-        let cs_message = if(msg_type==CALL_MESSAGE_ROLLBACK_TYPE){
+        let cs_message_result = if(msg_type==CALL_MESSAGE_ROLLBACK_TYPE){
             let callReply = xcall_state::get_call_reply(self);
             if(vector::length(&callReply)>0 && code == 0){
                 message = callReply;
@@ -435,8 +457,11 @@ module xcall::main {
             message_result::create(sn, code, message)
         };
         execute_ticket::consume(ticket);
+        if(msg_type==CALL_MESSAGE_ROLLBACK_TYPE){
+          let cs_message=cs_message::from_message_result(cs_message_result);
+           connection_send_message(self,fee,protocols,net_to,cs_message,sn,true,ctx);
 
-       // send message flow
+        };
        
 
 
@@ -489,5 +514,13 @@ module xcall::main {
         assert!(xcall_state::get_version(self) < CURRENT_VERSION, ENotUpgrade);
         xcall_state::set_version(self, CURRENT_VERSION);
        
+    }
+
+    #[test_only] use sui::test_scenario::{Self,Scenario};
+    #[test_only]
+    public fun init_mock_state(admin:address,mut scenario:Scenario):Scenario{
+     init(scenario.ctx());
+     scenario.next_tx(admin);
+     scenario
     }
 }

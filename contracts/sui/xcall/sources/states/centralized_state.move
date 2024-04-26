@@ -2,6 +2,9 @@ module xcall::centralized_state {
     use std::string::{Self, String};
     use sui::vec_map::{Self, VecMap};
      use xcall::xcall_utils::{Self as utils};
+      use sui::coin::{Self,Coin};
+    use sui::balance::{Self, Balance};
+    use sui::sui::SUI;
     /**
      message_fee: Map<'a, NetId, u128>,
     response_fee: Map<'a, NetId, u128>,
@@ -23,7 +26,8 @@ module xcall::centralized_state {
         receipts: VecMap<ReceiptKey, bool>,
         xcall: String,
         admin: String,
-        conn_sn: u128
+        conn_sn: u128,
+        balance: Balance<SUI>,
     }
 
     public fun create(): State {
@@ -33,7 +37,8 @@ module xcall::centralized_state {
             conn_sn: 0,
             receipts: vec_map::empty(),
             xcall: string::utf8(b""), 
-            admin: string::utf8(b"")
+            admin: string::utf8(b""),
+            balance:balance::zero(),
         }
     }
 
@@ -67,5 +72,10 @@ module xcall::centralized_state {
     public(package) fun get_receipt(self: &State, net_id: String, sn: u128): bool {
         let receipt_key = ReceiptKey { nid: net_id, conn_sn: sn };
         vec_map::contains(&self.receipts, &receipt_key)
+    }
+
+    public(package) fun deposit(self:&mut State,balance:Balance<SUI>){
+        balance::join(&mut self.balance,balance);
+
     }
 }
