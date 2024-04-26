@@ -154,13 +154,13 @@ module xcall::main {
     }
 
     entry fun get_fee_sources(self:&mut Storage, net_id:String, rollback:bool, sources:vector<String>):u128{
-        let fee = xcall_state::get_protocol_fee(self);
+        let mut fee = xcall_state::get_protocol_fee(self);
 
         if(isReply(self,net_id,sources) && !rollback){
             return 0
         };
 
-        let i = 0;
+        let mut i = 0;
         while(i < vector::length(&sources)){
             let source = vector::borrow(&sources, i);
             fee = fee + get_connection_fee(self,source, net_id, rollback);
