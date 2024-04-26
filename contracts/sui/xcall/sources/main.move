@@ -222,6 +222,7 @@ module xcall::main {
         if(isReply(self,network_address::net_id(&to),envelope::sources(&envelope))){
             xcall_state::remove_reply_state(self);
             xcall_state::set_call_reply(self,msg);
+            transfer::public_transfer(fee, tx_context::sender(ctx));
         } else{
             let sendSn = if (need_response) {sequence_no} else {0};
 
@@ -230,7 +231,7 @@ module xcall::main {
     fee,envelope::sources(&envelope),network_address::net_id(&to),msg_type,msg,sendSn,ctx);
         };
 
-        event::emit(CallMessageSent{from:network_address::net_id(&from),to:network_address::net_id(&to),sn:sequence_no})      
+        event::emit(CallMessageSent{from:network_address::net_id(&from),to:network_address::net_id(&to),sn:sequence_no});      
     }
 
     fun send_message(self:&mut Storage,fee:Coin<SUI>,sources:vector<String>, net_to:String, msg_type:u8, data:vector<u8>,sn:u128,ctx: &mut TxContext){
