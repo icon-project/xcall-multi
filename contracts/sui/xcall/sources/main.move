@@ -230,7 +230,7 @@ module xcall::main {
     fee,envelope::sources(&envelope),network_address::net_id(&to),msg_type,msg,sendSn,ctx);
         };
 
-        event::emit(CallMessageSent{from:network_address::net_id(&from),to:network_address::net_id(&to),sn:sequence_no});        
+        event::emit(CallMessageSent{from:network_address::net_id(&from),to:network_address::net_id(&to),sn:sequence_no})      
     }
 
     fun send_message(self:&mut Storage,fee:Coin<SUI>,sources:vector<String>, net_to:String, msg_type:u8, data:vector<u8>,sn:u128,ctx: &mut TxContext){
