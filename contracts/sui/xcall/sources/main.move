@@ -103,6 +103,11 @@ module xcall::main {
        xcall_state::transfer_admin_cap(admin,ctx);
     }
 
+    #[test_only]
+    public fun init_for_testing(ctx: &mut TxContext) {
+        init(ctx)
+    }
+
     public fun register_dapp<T: drop>(self:&Storage,
         witness: T,
         ctx: &mut TxContext
@@ -110,8 +115,14 @@ module xcall::main {
         assert!(sui_types::is_one_time_witness(&witness), ENotOneTimeWitness);
 
         xcall_state::create_id_cap(self,ctx)
+    }
 
-       
+    entry fun get_network_address(self: &mut Storage): network_address::NetworkAddress{
+        xcall_state::network_address(self)
+    }
+
+    entry fun get_net_id(self: &mut Storage): String{
+        string::utf8(NID)
     }
 
     public fun register_connection(self:&mut Storage,net_id:String,package_id:String){
@@ -119,7 +130,48 @@ module xcall::main {
         register(xcall_state::get_connection_states(self),package_id);
     }
 
-    fun send_call_inner(self:&mut Storage,fee:&mut Coin<SUI>,from:NetworkAddress,to:NetworkAddress,envelope:XCallEnvelope,ctx: &mut TxContext){
+    public fun admin(self:&mut Storage):ID{
+        xcall_state::get_admin(self)
+    }
+
+    public fun get_fee_handler(self:&mut Storage):address{
+        xcall_state::get_protocol_fee_handler(self)
+    }
+
+    fun get_connection_fee(self:&mut Storage,connection:&String,net_id:String, rollback:bool ):u128{
+        // connections::get_fee(self,connection,net_id,rollback)
+        0
+    }
+
+    fun get_fee_connection_sn(self:&mut Storage,connection:&String,net_id:String, sn:u128 ):u128{
+        // connections::get_fee(self,connection,net_id,sn>0)
+        0
+    }
+
+    entry public fun get_fee(self:&mut Storage, net_id:String, rollback:bool):u128{
+        // get_connection_fee(self, xcall_state::get_connection(self,net_id), net_id, rollback)
+        0
+    }
+
+    entry fun get_fee_sources(self:&mut Storage, net_id:String, rollback:bool, sources:vector<String>):u128{
+        let fee = xcall_state::get_protocol_fee(self);
+
+        if(isReply(self,net_id,sources) && !rollback){
+            return 0
+        };
+
+        let i = 0;
+        while(i < vector::length(&sources)){
+            let source = vector::borrow(&sources, i);
+            fee = fee + get_connection_fee(self,source, net_id, rollback);
+            i=i+1
+        };
+
+        fee
+    }
+
+
+    fun send_call_inner(self:&mut Storage,fee:Coin<SUI>,from:NetworkAddress,to:NetworkAddress,envelope:XCallEnvelope,ctx: &mut TxContext){
 
         let sequence_no=get_next_sequence(self);
         let rollback=envelope::rollback(&envelope);
@@ -181,23 +233,23 @@ module xcall::main {
         event::emit(CallMessageSent{from:network_address::net_id(&from),to:network_address::net_id(&to),sn:sequence_no});        
     }
 
-    fun send_message(self:&mut Storage,fee:&mut Coin<SUI>,sources:vector<String>, net_to:String, msg_type:u8, data:vector<u8>,sn:u128,ctx: &mut TxContext){
+    fun send_message(self:&mut Storage,fee:Coin<SUI>,sources:vector<String>, net_to:String, msg_type:u8, data:vector<u8>,sn:u128,ctx: &mut TxContext){
         let mut sources=sources;
         if(vector::is_empty(&sources)){
             let connection= xcall_state::get_connection(self,net_to);
             vector::push_back(&mut sources,connection);
-            // let required_fee = xcall_state::get_protocol_fee(self);
+        }; 
+
+        let mut i=0;
+        while(i < vector::length(&sources)){
+            let source = vector::borrow(&sources, i);
+            let required_fee = get_fee_connection_sn(self, source, net_to, sn);
             // let connection_coin = coin::split(fee, required_fee, ctx);
-            // connections::send_message(package_id,connection,connection_coin,required_fee,net_to,msg_type,sn,data,ctx);
-        } else{
-            let mut i=0;
-            while(i < vector::length(&sources)){
-                // let required_fee = xcall_state::get_protocol_fee(self);
-                // let connection_coin = coin::split(fee, required_fee, ctx);
-                // connections::send_message(sources[i],required_fee,net_to,msg_type,sn,data,ctx);
-                i=i+1
-            }
-        }
+            // connections::send_message(sources[i],required_fee,net_to,msg_type,sn,data,ctx);
+            i=i+1
+        };
+
+        transfer::public_transfer(fee,tx_context::sender(ctx));
     }
 
     fun get_next_sequence(self:&mut Storage):u128 {
@@ -205,10 +257,6 @@ module xcall::main {
         sn
     }
 
-    fun get_fee(self:&mut Storage):u128 {
-        // xcall_state::get_protocol_fee(self)
-        0
-    }
 
     fun get_next_req_id(self:&mut Storage):u128 {
         let req_id=xcall_state::get_next_request_id(self);
@@ -226,7 +274,7 @@ module xcall::main {
         xcall_state::set_protocol_fee_handler(self,fee_handler);
     }
 
-    entry fun send_call_message(self:&mut Storage,fee: &mut Coin<SUI>,idCap:&IDCap,to:String,data:vector<u8>,rollback:vector<u8>, sources:vector<String>, destinations:vector<String>,ctx: &mut TxContext){
+    entry public fun send_call_message(self:&mut Storage,fee: Coin<SUI>,idCap:&IDCap,to:String,data:vector<u8>,rollback:vector<u8>, sources:vector<String>, destinations:vector<String>,ctx: &mut TxContext){
         let envelope;
         if(vector::length(&rollback) > 0){
             envelope = envelope::wrap_call_message(data, sources, destinations);
@@ -236,7 +284,7 @@ module xcall::main {
         send_call(self,fee,idCap,to,envelope::encode(&envelope),ctx);
     }
 
-    entry fun send_call(self:&mut Storage,fee: &mut Coin<SUI>,idCap:&IDCap,to:String,envelope_bytes:vector<u8>,ctx: &mut TxContext){
+    entry public fun send_call(self:&mut Storage,fee:Coin<SUI>,idCap:&IDCap,to:String,envelope_bytes:vector<u8>,ctx: &mut TxContext){
         let envelope=envelope::decode(&envelope_bytes);
         let to = network_address::from_string(to);
         let from= network_address::create(string::utf8(NID),string::utf8(object::id_to_bytes(&object::id(idCap))));
@@ -244,7 +292,7 @@ module xcall::main {
         send_call_inner(self,fee,from,to,envelope,ctx);
     }
 
-    entry fun handle_message(self:&mut Storage, from:String, msg:vector<u8>,ctx: &mut TxContext){
+    entry public fun handle_message(self:&mut Storage, from:String, msg:vector<u8>,ctx: &mut TxContext){
         assert!(from != string::utf8(NID),EInvalidNID);
         let cs_msg = cs_message::decode(&msg);
         let msg_type = cs_message::msg_type(&cs_msg);

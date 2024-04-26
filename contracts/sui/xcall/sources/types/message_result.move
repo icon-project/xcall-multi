@@ -4,7 +4,7 @@ module xcall::message_result {
     use sui::object::{Self, ID, UID};
     use xcall::network_address::{Self,NetworkAddress};
     use std::vector;
-      use sui_rlp::encoder::{Self};
+    use sui_rlp::encoder::{Self};
     use sui_rlp::decoder::{Self};
 
     const CS_REQUEST:u8 = 1;
