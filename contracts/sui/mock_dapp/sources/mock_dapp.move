@@ -64,8 +64,8 @@ public struct WitnessCarrier has key { id: UID, witness: REGISTER_WITNESS }
 
     }
 
-    entry public fun add_connection(state:&mut DappState,net_id:String,source:String,destination:String){
-        dapp_state::add_connection(state,net_id,source,destination);
+    entry public fun add_connection(state:&mut DappState,net_id:String,source:String,destination:String,ctx:&mut TxContext){
+        dapp_state::add_connection(state,net_id,source,destination,ctx);
     }
 
     fun send_message(state:&DappState,xcall:&mut XCallState,fee: &mut Coin<SUI>,to:NetworkAddress,data:vector<u8>,ctx: &mut TxContext){
@@ -78,41 +78,15 @@ public struct WitnessCarrier has key { id: UID, witness: REGISTER_WITNESS }
     }
 
     #[test_only] use sui::test_scenario::{Self,Scenario};
-    #[test_only] use std::debug;
-    #[test_only] use xcall::main::{init_mock_state};
-    #[test]
-    fun test_register_xcall(){
-        let admin = @0xAD;
-        let sender = @0xCAFE;
-        let mut scenario= setup_register_xcall(admin);
-        scenario.next_tx(admin);
-        let dapp_state=scenario.take_shared<DappState>();
-        debug::print(&dapp_state);
-        test_scenario::return_shared<DappState>(dapp_state);
-        scenario.end();
-
-    }
-
     #[test_only]
-    fun setup_test(admin:address):Scenario {
-        let mut scenario = test_scenario::begin(admin);
-         init(scenario.ctx());
-         scenario.next_tx(admin);
-         scenario=init_mock_state(admin,scenario);
-         scenario
+    public fun init_dapp_state(admin:address,mut scenario:Scenario):Scenario{
+     init(scenario.ctx());
+     scenario.next_tx(admin);
+     scenario
     }
 
-    #[test_only]
-    fun setup_register_xcall(admin:address):Scenario{
-        let mut scenario=setup_test(admin);
-        let carrier = scenario.take_from_sender<WitnessCarrier>();
-        let xcall_state= scenario.take_shared<XCallState>();
-        scenario.next_tx(admin);
-        register_xcall(&xcall_state,carrier,scenario.ctx());
-        test_scenario::return_shared<XCallState>(xcall_state);
-        scenario
-
-    }
+    
+    
 
     
 

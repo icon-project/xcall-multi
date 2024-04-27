@@ -66,7 +66,8 @@ module xcall::centralized_state {
         fee
     }
 
-    public(package) fun set_fee(self: &mut State, net_id: String, message_fee: u64, response_fee: u64) {
+    public(package) fun set_fee(self: &mut State, net_id: String, message_fee: u64, response_fee: u64,caller:address) {
+        assert!(self.admin==caller,0x01);
         vec_map::insert(&mut self.message_fee, net_id, message_fee);
         vec_map::insert(&mut self.response_fee, net_id, response_fee);
     }
@@ -89,5 +90,18 @@ module xcall::centralized_state {
 
     public(package) fun conn_cap(self:&State):&ConnCap{
                 &self.cap
+    }
+
+    public(package) fun set_admin(self:&mut State,caller:address,admin:address){
+        assert!(self.admin==caller,0x01);
+        self.admin=admin;
+    }
+
+    public(package) fun claim_fees(self:&mut State,caller:address,ctx:&mut TxContext){
+        assert!(self.admin==caller,0x01);
+        let total= self.balance.withdraw_all();
+        let coin= coin::from_balance(total,ctx);
+        transfer::public_transfer(coin,caller);
+
     }
 }

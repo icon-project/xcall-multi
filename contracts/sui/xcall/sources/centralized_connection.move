@@ -28,7 +28,7 @@ module xcall::centralized_connection {
 
     
 
-    public fun connect(cap:ConnCap,admin:address):State{
+    public(package) fun connect(cap:ConnCap,admin:address):State{
 
       centralized_state::create(cap,admin)
     }
@@ -68,20 +68,15 @@ module xcall::centralized_connection {
   
 
 
-    entry fun claim_fees(ctx: &mut TxContext){
-        // transfer::public_transfer(ctx.coin, self.admin);
-    }
+    
 
     entry fun revert_message(sn:u128, ctx: &mut TxContext){
         // xcall::handle_error(&self.xcall, sn);
     }
 
-    entry fun set_admin(addr:address, ctx: &mut TxContext){}
+    
 
-    entry fun set_fee(states: &mut Bag,net_id:String,message_fee:u64,response_fee:u64, ctx: &mut TxContext){
-      let state = get_state(states);
-      centralized_state::set_fee(state,net_id,message_fee,response_fee);
-    }
+    
 
     entry fun get_receipt(states: &mut Bag,net_id:String,sn:u128,ctx: &mut TxContext):bool{
       let state = get_state(states);

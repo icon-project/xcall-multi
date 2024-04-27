@@ -3,7 +3,7 @@ module mock_dapp::dapp_state {
     use sui::object::{Self, UID,ID};
    use sui::vec_map::{Self, VecMap};
     use std::vector::{Self};
-    use std::string::{String};
+    use std::string::{Self,String};
     use xcall::execute_ticket::{Self};
 
     public struct Connection has store,copy,drop{
@@ -45,13 +45,23 @@ module mock_dapp::dapp_state {
         &self.xcall_cap
     }
 
+    public fun id(self:&DappState):ID {
+        object::uid_to_inner(&self.id)
+
+    }
+
+    public fun id_str(self:&DappState):String {
+        let id=object::uid_to_address(&self.id);
+        id.to_string()
+    }
+
     public fun get_connection(self:&DappState,net_id:String):Connection{
         let conn:Connection= *vec_map::get(&self.connections,&net_id);
         conn
 
     }
 
-    public fun add_connection(self:&mut DappState,net_id:String,source:String,dest:String){
+    public fun add_connection(self:&mut DappState,net_id:String,source:String,dest:String,ctx:&mut TxContext){
         vec_map::insert(&mut self.connections,net_id,Connection{source,destination:dest});
     }
 

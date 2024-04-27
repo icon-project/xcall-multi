@@ -51,9 +51,6 @@ module xcall::main {
     const ERollbackNotEnabled:u64 = 10;
     const EInfallible:u64 = 11;
 
-    const CS_REQUEST: u8 =0;
-    const CS_RESULT: u8 =1;
-
     const CS_RESP_SUCCESS: u8 = 1;
     const CS_RESP_FAILURE: u8 = 0;
 
@@ -121,7 +118,7 @@ module xcall::main {
        
     }
 
-    public fun register_connection(self:&mut Storage,net_id:String,package_id:String,ctx: &mut TxContext){
+    entry public fun register_connection(self:&mut Storage,net_id:String,package_id:String,ctx: &mut TxContext){
         self.set_connection(net_id,package_id);
         let cap= xcall_state::new_conn_cap(self.get_id(),package_id);
         register(self.get_connection_states_mut(),package_id,cap,ctx);
@@ -268,9 +265,9 @@ module xcall::main {
         let msg_type = cs_message::msg_type(&cs_msg);
         let payload = cs_message::payload(&cs_msg);
 
-        if (msg_type == CS_REQUEST) {
+        if (msg_type == cs_message::request_code()) {
             handle_request(self,cap,from, payload, ctx);
-        } else if (msg_type == CS_RESULT) {
+        } else if (msg_type == cs_message::result_code()) {
            
             handle_result(self, payload, ctx);
         } else {
@@ -486,9 +483,11 @@ module xcall::main {
 
     #[test_only] use sui::test_scenario::{Self,Scenario};
     #[test_only]
-    public fun init_mock_state(admin:address,mut scenario:Scenario):Scenario{
+    public fun init_xcall_state(admin:address,mut scenario:Scenario):Scenario{
      init(scenario.ctx());
      scenario.next_tx(admin);
      scenario
     }
+
+    
 }

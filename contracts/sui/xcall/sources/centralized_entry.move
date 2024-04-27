@@ -1,4 +1,4 @@
-module xcall::centralized_receive {
+module xcall::centralized_entry{
 
 use xcall::main::{Self as xcall};
   use xcall::xcall_state::{Self,Storage as XCallState,ConnCap};
@@ -18,6 +18,24 @@ use xcall::main::{Self as xcall};
       let cap:ConnCap=* get_state(xcall_state::get_connection_states_mut(xcall)).conn_cap();
       xcall::handle_message(xcall, &cap,src, msg,ctx);
     }
+
+    entry fun set_admin(xcall:&mut XCallState,addr:address, ctx: &TxContext){
+      let state=get_state(xcall_state::get_connection_states_mut(xcall));
+      state.set_admin(addr,ctx.sender());
+
+    }
+
+    entry fun claim_fees(xcall:&mut XCallState,ctx: &mut TxContext){
+      let state=get_state(xcall_state::get_connection_states_mut(xcall));
+      centralized_state::claim_fees(state,ctx.sender(),ctx);
+    }
+
+    entry fun set_fee(xcall:&mut XCallState,net_id:String,message_fee:u64,response_fee:u64, ctx: &TxContext){
+      let state=get_state(xcall_state::get_connection_states_mut(xcall));
+      centralized_state::set_fee(state,net_id,message_fee,response_fee,ctx.sender());
+    }
+
+
 
    
 

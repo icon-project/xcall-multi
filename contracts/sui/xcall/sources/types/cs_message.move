@@ -71,6 +71,14 @@ module xcall::cs_message {
          req
 
     }
+
+    public fun request_code():u8 {
+        CS_REQUEST
+    }
+
+    public fun result_code():u8 {
+        CS_RESULT
+    }
 }
 
 module xcall::cs_message_tests {
