@@ -36,7 +36,7 @@ public struct WitnessCarrier has key { id: UID, witness: REGISTER_WITNESS }
         witness
     }
 
-    entry public fun execute_call(state:&mut DappState,xcall:&mut XCallState,fee: &mut Coin<SUI>,request_id:u128,data:vector<u8>,ctx:&mut TxContext){
+    entry public fun execute_call(state:&mut DappState,xcall:&mut XCallState,mut fee: Coin<SUI>,request_id:u128,data:vector<u8>,ctx:&mut TxContext){
         let ticket= xcall::execute_call(xcall,dapp_state::get_xcall_cap(state),request_id,data,ctx);
         let msg= execute_ticket::message(&ticket);
         let from=execute_ticket::from(&ticket);
@@ -51,10 +51,6 @@ public struct WitnessCarrier has key { id: UID, witness: REGISTER_WITNESS }
         }else {
           xcall::execute_call_result(xcall,ticket,true,fee,ctx);
         };
-
-       
-
-
     }
 
     entry public fun execute_rollback(state:&mut DappState,xcall:&mut XCallState, sn:u128,ctx: &mut TxContext){
@@ -68,7 +64,7 @@ public struct WitnessCarrier has key { id: UID, witness: REGISTER_WITNESS }
         dapp_state::add_connection(state,net_id,source,destination,ctx);
     }
 
-    fun send_message(state:&DappState,xcall:&mut XCallState,fee: &mut Coin<SUI>,to:NetworkAddress,data:vector<u8>,ctx: &mut TxContext){
+    fun send_message(state:&DappState,xcall:&mut XCallState,fee: Coin<SUI>,to:NetworkAddress,data:vector<u8>,ctx: &mut TxContext){
         let connection= dapp_state::get_connection(state,network_address::net_id(&to));
         let sources=dapp_state::get_connection_source(&connection);
         let destinations=dapp_state::get_connection_dest(&connection);

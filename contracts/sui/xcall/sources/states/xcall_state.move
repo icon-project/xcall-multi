@@ -71,7 +71,7 @@ module xcall::xcall_state {
         network_address:NetworkAddress,
         requests:LinkedTable<u128, vector<u8>>,
         sequence_no:u128,
-        protocol_fee:u128,
+        protocol_fee:u64,
         protocol_fee_handler:address,
         connection_states:Bag,
         rollbacks:Table<u128,RollbackData>,
@@ -200,7 +200,7 @@ module xcall::xcall_state {
         &mut self.connection_states
     }
 
-    public fun get_protocol_fee(self:&Storage):u128{
+    public fun get_protocol_fee(self:&Storage):u64{
         self.protocol_fee
     }
 
@@ -227,7 +227,7 @@ module xcall::xcall_state {
     }
 
 
-    public(package) fun set_protocol_fee(self:&mut Storage,fee:u128){
+    public(package) fun set_protocol_fee(self:&mut Storage,fee:u64){
         self.protocol_fee=fee;
     }
 

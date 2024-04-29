@@ -9,10 +9,10 @@ module xcall::xcall_tests {
     use xcall::network_address::{Self};
     use xcall::envelope::{Self};
     use xcall::message_request::{Self};
+    use xcall::message_result::{Self};
     use xcall::cs_message::{Self};
 
-
-        #[test_only]
+    #[test_only]
     fun setup_test(admin:address):Scenario {
         let mut scenario = test_scenario::begin(admin);
          scenario.next_tx(admin);
@@ -20,29 +20,29 @@ module xcall::xcall_tests {
          scenario
     }
 
-    //   #[test]
-    // fun test_setter_getter() {
-    //     let admin = @0xBABE;
+      #[test]
+    fun test_setter_getter() {
+        let admin = @0xBABE;
 
-    //     let mut _scenario = setup_test(admin);
-    //     let scenario = & _scenario;
+        let mut _scenario = setup_test(admin);
+        let scenario = & _scenario;
 
-    //     {
-    //         let adminCap = test_scenario::take_from_sender<AdminCap>(scenario);
-    //         let mut storage = test_scenario::take_shared<Storage>(scenario);
+        {
+            let adminCap = test_scenario::take_from_sender<AdminCap>(scenario);
+            let mut storage = test_scenario::take_shared<Storage>(scenario);
             
-    //         main::set_protocol_fee(&mut storage, &adminCap, 100);
-    //         assert!(xcall_state::get_protocol_fee(&storage) == 100, 1);
+            main::set_protocol_fee(&mut storage, &adminCap, 100);
+            assert!(xcall_state::get_protocol_fee(&storage) == 100, 1);
 
-    //         main::set_protocol_fee_handler(&mut storage, &adminCap, @0xBABE);
-    //         assert!(xcall_state::get_protocol_fee_handler(&storage) == @0xBABE, 1);
+            main::set_protocol_fee_handler(&mut storage, &adminCap, @0xBABE);
+            assert!(xcall_state::get_protocol_fee_handler(&storage) == @0xBABE, 1);
 
 
-    //         test_scenario::return_to_sender(scenario, adminCap);
-    //         test_scenario::return_shared( storage);
-    //     };
-    //     _scenario.end();
-    // }
+            test_scenario::return_to_sender(scenario, adminCap);
+            test_scenario::return_shared( storage);
+        };
+        _scenario.end();
+    }
 
 
     #[test]
@@ -53,27 +53,33 @@ module xcall::xcall_tests {
 
         test_scenario::next_tx(&mut scenario, admin);
         {
+            let mut storage = test_scenario::take_shared<Storage>(&scenario);
+            let ctx = test_scenario::ctx(&mut scenario);
+            main::register_connection(&mut storage, string::utf8(b"icon"), string::utf8(b"centralized"), ctx);
+            test_scenario::return_shared( storage);
+        };
+        test_scenario::next_tx(&mut scenario, admin);
+        {
             let adminCap = test_scenario::take_from_sender<AdminCap>(&scenario);
             let mut storage = test_scenario::take_shared<Storage>(&scenario);
             let ctx = test_scenario::ctx(&mut scenario);
             let idCap = xcall_state::create_id_cap(&storage, ctx);
-            let sources = vector[string::utf8(b"xcall"), string::utf8(b"connection")];
-            let destinations = vector[string::utf8(b"icon:hx234"), string::utf8(b"icon:hx334")];
-            let mut fee = coin::mint_for_testing<SUI>(100, ctx);
+            let sources = vector[string::utf8(b"centralized")];
+            let destinations = vector[string::utf8(b"icon:hx234")];
+            let fee = coin::mint_for_testing<SUI>(100, ctx);
             let data = b"data";
             let envelope=envelope::wrap_call_message(data,sources,destinations);
             let envelope_bytes=envelope::encode(&envelope);
-            main::send_call(&mut storage,&mut fee,&idCap,string::utf8(b"dnetId/daddress"),envelope_bytes,ctx);
+            main::send_call(&mut storage,fee,&idCap,string::utf8(b"dnetId/daddress"),envelope_bytes,ctx);
             xcall_state::delete_id_cap_for_testing(idCap, ctx);
             test_scenario::return_to_sender(&scenario, adminCap);
             test_scenario::return_shared( storage);
-            test_scenario::return_to_sender(&scenario, fee);
         };
         
         {
             let abc = test_scenario::next_tx(&mut scenario, admin);
             let events = test_scenario::num_user_events(&abc);
-            assert!(events == 1, 0);
+            assert!(events == 2, 0);
         };
         test_scenario::end(scenario);
     }
@@ -102,6 +108,55 @@ module xcall::xcall_tests {
 
             main::handle_message(&mut storage,&conn_cap,from_nid,message,ctx);
             // main::send_call(&mut storage,&mut fee,&idCap,string::utf8(b"dnetId/daddress"),envelope_bytes,ctx);
+            xcall_state::delete_id_cap_for_testing(idCap, ctx);
+            test_scenario::return_to_sender(&scenario, adminCap);
+            test_scenario::return_shared( storage);
+        };  
+        {
+            let abc = test_scenario::next_tx(&mut scenario, admin);
+            let events = test_scenario::num_user_events(&abc);
+            assert!(events == 1, 0);
+        };
+        test_scenario::end(scenario);
+    }
+
+        #[test]
+    fun test_handle_message_response() {
+        let admin = @0xBABE;
+
+        let mut scenario = setup_test(admin);
+
+        test_scenario::next_tx(&mut scenario, admin);
+        {
+            let mut storage = test_scenario::take_shared<Storage>(&scenario);
+            let ctx = test_scenario::ctx(&mut scenario);
+            main::register_connection(&mut storage, string::utf8(b"icon"), string::utf8(b"centralized"), ctx);
+            test_scenario::return_shared( storage);
+        };
+        test_scenario::next_tx(&mut scenario, admin);
+        {
+            let adminCap = test_scenario::take_from_sender<AdminCap>(&scenario);
+            let mut storage = test_scenario::take_shared<Storage>(&scenario);
+            let ctx = test_scenario::ctx(&mut scenario);
+            let idCap = xcall_state::create_id_cap(&storage, ctx);
+
+            let data = b"data";
+            let rollback_data = b"rollback";
+
+            let sources = vector[string::utf8(b"centralized")];
+            let destinations = vector[string::utf8(b"icon")];
+            let fee = coin::mint_for_testing<SUI>(100, ctx);
+
+            let envelope=envelope::wrap_call_message_rollback(data,rollback_data,sources,destinations);
+            let envelope_bytes=envelope::encode(&envelope);
+            main::send_call(&mut storage,fee,&idCap,string::utf8(b"dnetId/daddress"),envelope_bytes,ctx);
+
+            let response = message_result::create(1, message_result::failure(),b"");
+            let message = cs_message::encode(&cs_message::new(cs_message::result_code(), message_result::encode(&response)));
+            let from_nid = string::utf8(b"icon");
+            let conn_cap = xcall_state::create_conn_cap_for_testing(&mut storage);
+
+            main::handle_message(&mut storage,&conn_cap,from_nid,message,ctx);
             xcall_state::delete_id_cap_for_testing(idCap, ctx);
             test_scenario::return_to_sender(&scenario, adminCap);
             test_scenario::return_shared( storage);
@@ -144,20 +199,20 @@ module xcall::xcall_tests {
             let events = test_scenario::num_user_events(&abc);
             assert!(events == 1, 0);
         };
+        
+        test_scenario::next_tx(&mut scenario, admin);
         {
             let mut storage = test_scenario::take_shared<Storage>(&scenario);
             let ctx = test_scenario::ctx(&mut scenario);
             let idCap = xcall_state::create_id_cap(&storage, ctx);
-            let mut fee = coin::mint_for_testing<SUI>(100, ctx);
+            let fee = coin::mint_for_testing<SUI>(100, ctx);
             let data = b"data";
 
             let ticket = main::execute_call(&mut storage,&idCap,1,data, ctx);
 
-            main::execute_call_result(&mut storage,ticket, true, &mut fee,ctx);
+            main::execute_call_result(&mut storage,ticket, true,fee,ctx);
             xcall_state::delete_id_cap_for_testing(idCap, ctx);
             test_scenario::return_shared( storage);
-            test_scenario::return_to_sender(&scenario, fee);
-
         };  
         {
             let abc = test_scenario::next_tx(&mut scenario, admin);

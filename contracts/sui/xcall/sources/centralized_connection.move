@@ -45,19 +45,15 @@ module xcall::centralized_connection {
       
     }
 
-     public(package) fun send_message(states:&mut Bag,coin:&mut Coin<SUI>,to:String,sn:u128,msg:vector<u8>,response:bool,ctx: &mut TxContext){
-      let state= get_state(states);
-      let fee = if (sn==0) {
-        centralized_state::get_fee(state,&to,false)
-        } else {
-         centralized_state::get_fee(state,&to,response)
-        };
-       
-      assert!(coin.value() > fee, ENotEnoughFee);
-      let paid= coin.split(fee,ctx);
-      let paid_balance=paid.into_balance();
-      centralized_state::deposit(state,paid_balance);
-      let conn_sn = get_next_connection_sn(state);
+     public(package) fun send_message(states:&mut Bag,coin:Coin<SUI>,to:String,sn:u128,msg:vector<u8>,is_response:bool,ctx: &mut TxContext){
+      let fee = get_fee(states, to, is_response);
+      std::debug::print(&fee);
+      std::debug::print(&coin.value());
+      assert!(coin.value() >= fee, ENotEnoughFee);
+      let balance = coin.into_balance();
+      std::debug::print(&balance);
+      centralized_state::deposit(get_state(states),balance);
+      let conn_sn = get_next_connection_sn(get_state(states));
       event::emit(Message {
             to,
             conn_sn,

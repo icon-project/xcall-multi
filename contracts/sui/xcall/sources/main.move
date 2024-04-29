@@ -82,6 +82,12 @@ module xcall::main {
         data:vector<u8>,
     }
 
+    public struct CallExecuted has copy, drop{
+        req_id:u128,
+        code:u8,
+        err_msg: String
+    }
+
     public struct RollbackMessage has copy, drop{
         sn:u128
     }
@@ -107,11 +113,6 @@ module xcall::main {
         );
        xcall_state::share(storage);
        xcall_state::transfer_admin_cap(admin,ctx);
-    }
-
-    #[test_only]
-    public fun init_for_testing(ctx: &mut TxContext) {
-        init(ctx)
     }
 
     public fun register_dapp<T: drop>(self:&Storage,
@@ -143,22 +144,23 @@ module xcall::main {
         xcall_state::get_protocol_fee_handler(self)
     }
 
-    fun get_connection_fee(self:&mut Storage,connection:&String,net_id:String, rollback:bool ):u128{
-        // connections::get_fee(self,connection,net_id,rollback)
-        0
+    fun get_connection_fee(self:&mut Storage,connection:String,net_id:String, need_response:bool ):u64{
+        connections::get_fee(
+            xcall_state::get_connection_states_mut(self),
+            connection,
+            net_id,
+            need_response
+        )
     }
 
-    fun get_fee_connection_sn(self:&mut Storage,connection:&String,net_id:String, sn:u128 ):u128{
-        // connections::get_fee(self,connection,net_id,sn>0)
-        0
+    entry public fun get_fee(self:&mut Storage, net_id:String, rollback:bool):u64{
+        let mut fee = xcall_state::get_protocol_fee(self);
+        let connection = xcall_state::get_connection(self,net_id);
+        fee = fee + get_connection_fee(self, connection, net_id, rollback);
+        fee
     }
 
-    entry public fun get_fee(self:&mut Storage, net_id:String, rollback:bool):u128{
-        // get_connection_fee(self, xcall_state::get_connection(self,net_id), net_id, rollback)
-        0
-    }
-
-    entry fun get_fee_sources(self:&mut Storage, net_id:String, rollback:bool, sources:vector<String>):u128{
+    entry public fun get_fee_sources(self:&mut Storage, net_id:String, rollback:bool, sources:vector<String>):u64{
         let mut fee = xcall_state::get_protocol_fee(self);
 
         if(isReply(self,net_id,sources) && !rollback){
@@ -168,7 +170,7 @@ module xcall::main {
         let mut i = 0;
         while(i < vector::length(&sources)){
             let source = vector::borrow(&sources, i);
-            fee = fee + get_connection_fee(self,source, net_id, rollback);
+            fee = fee + get_connection_fee(self,*source, net_id, rollback);
             i=i+1
         };
 
@@ -176,7 +178,7 @@ module xcall::main {
     }
 
 
-    fun send_call_inner(self:&mut Storage,fee:&mut Coin<SUI>,from:NetworkAddress,to:NetworkAddress,envelope:XCallEnvelope,ctx: &mut TxContext){
+    fun send_call_inner(self:&mut Storage,fee:Coin<SUI>,from:NetworkAddress,to:NetworkAddress,envelope:XCallEnvelope,ctx: &mut TxContext){
 
         let sequence_no=get_next_sequence(self);
         let rollback=envelope::rollback(&envelope);
@@ -190,6 +192,7 @@ module xcall::main {
         }
         else if(msg_type == CALL_MESSAGE_ROLLBACK_TYPE){
             let msg = call_message_rollback::decode(envelope::message(&envelope));
+            std::debug::print(&network_address::addr(&from));
             let from_id = object::id_from_bytes(*string::bytes(&network_address::addr(&from)));
 
             let rollback = rollback_data::create(
@@ -227,6 +230,7 @@ module xcall::main {
         if(isReply(self,to.net_id(),envelope::sources(&envelope))){
             xcall_state::remove_reply_state(self);
             xcall_state::set_call_reply(self,msg);
+            transfer::public_transfer(fee, ctx.sender());
         } else{
             let sendSn = if (need_response) {sequence_no} else {0};
             let cs_message=cs_message::from_message_request(cs_request);
@@ -245,7 +249,7 @@ module xcall::main {
         event::emit(CallMessageSent{from:network_address::net_id(&from),to:network_address::net_id(&to),sn:sequence_no});      
     }
 
-    fun connection_send_message(self:&mut Storage,fee:&mut Coin<SUI>,sources:vector<String>, net_to:String, cs_message:CSMessage,sn:u128,is_response:bool,ctx: &mut TxContext){
+    fun connection_send_message(self:&mut Storage,mut fee:Coin<SUI>,sources:vector<String>, net_to:String, cs_message:CSMessage,sn:u128,is_response:bool,ctx: &mut TxContext){
         let mut protocols=sources;
         if(vector::is_empty(&sources)){
             let connection= xcall_state::get_connection(self,net_to);
@@ -257,20 +261,24 @@ module xcall::main {
             let mut i=0;
             while(i < vector::length(&protocols)){
                 let protocol=*vector::borrow(&protocols,i);
+
+                let required_fee = get_connection_fee(self, protocol, net_to, is_response);
+
+                let paid= fee.split(required_fee,ctx);
                 connections::send_message(
                     xcall_state::get_connection_states_mut(self),
                     protocol,
-                    fee,
+                    paid,
                     net_to,
                     sn,
                     cs_message_bytes,
                     is_response,
                     ctx);
+
                 i=i+1;
             };
 
-
-
+            transfer::public_transfer(fee, ctx.sender());
     }
 
     fun get_next_sequence(self:&mut Storage):u128 {
@@ -287,7 +295,7 @@ module xcall::main {
     entry fun set_admin(addr:address,ctx: &mut TxContext){}
 
 
-    entry fun set_protocol_fee(self:&mut Storage,admin:&AdminCap,fee:u128){
+    entry fun set_protocol_fee(self:&mut Storage,admin:&AdminCap,fee:u64){
         xcall_state::set_protocol_fee(self,fee);
     }
 
@@ -295,10 +303,10 @@ module xcall::main {
         xcall_state::set_protocol_fee_handler(self,fee_handler);
     }
 
-    entry public fun send_call(self:&mut Storage,fee: &mut Coin<SUI>,idCap:&IDCap,to:String,envelope_bytes:vector<u8>,ctx: &mut TxContext){
+    entry public fun send_call(self:&mut Storage,fee: Coin<SUI>,idCap:&IDCap,to:String,envelope_bytes:vector<u8>,ctx: &mut TxContext){
         let envelope=envelope::decode(&envelope_bytes);
         let to = network_address::from_string(to);
-        let from= network_address::create(string::utf8(NID),string::utf8(object::id_to_bytes(&object::id(idCap))));
+        let from= network_address::create(string::utf8(NID),address::to_string(object::id_to_address(&object::id(idCap))));
 
         send_call_inner(self,fee,from,to,envelope,ctx);
     }
@@ -441,7 +449,7 @@ module xcall::main {
         ticket
     }
 
-    public fun execute_call_result(self:&mut Storage,ticket:ExecuteTicket,success:bool,fee:&mut Coin<SUI>,ctx:&mut TxContext){
+    public fun execute_call_result(self:&mut Storage,ticket:ExecuteTicket,success:bool,fee:Coin<SUI>,ctx:&mut TxContext){
         let request_id=execute_ticket::request_id(&ticket);
         let proxy_request = xcall_state::get_proxy_request(self, request_id);
         let msg_type = message_request::msg_type(proxy_request);
@@ -472,11 +480,12 @@ module xcall::main {
         if(msg_type==CALL_MESSAGE_ROLLBACK_TYPE){
           let cs_message=cs_message::from_message_result(cs_message_result);
            connection_send_message(self,fee,protocols,net_to,cs_message,sn,true,ctx);
-
+        } else{
+            transfer::public_transfer(fee, ctx.sender());
         };
+
+        event::emit(CallExecuted{req_id:request_id, code: code, err_msg:string::utf8(b"unknown error")});
        
-
-
     }
 
     public fun execute_rollback(self:&mut Storage,cap:&IDCap, sn:u128,ctx: &mut TxContext):RollbackTicket{
@@ -486,8 +495,6 @@ module xcall::main {
         assert!(!rollback_data::enabled(&rollback), ERollbackNotEnabled);
         let ticket=rollback_ticket::new(sn,rollback_data,xcall_state::get_id_cap_id(cap));
         ticket
-        
-
     }
 
     public fun execute_rollback_result(self:&mut Storage,ticket:RollbackTicket,success:bool){
@@ -497,8 +504,6 @@ module xcall::main {
          event::emit(RollbackExecuted{sn})
         };
         rollback_ticket::consume(ticket);
-
-
     }
 
     fun is_valid_source(self:&mut Storage,nid:String,source:String,protocols:vector<String>):bool{
