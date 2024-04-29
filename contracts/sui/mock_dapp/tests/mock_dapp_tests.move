@@ -75,7 +75,7 @@ module mock_dapp::mock_dapp_tests {
     }
 
     #[test_only]
-    fun create_test_data(msg:vector<u8>,to:String):vector<u8>{
+    fun create_message_request_payload(msg:vector<u8>,to:String):vector<u8>{
         let mut sources=vector::empty<String>();
         sources.push_back(string::utf8(b"centralized"));
         let from =network_address::from_string(string::utf8(b"dnetId/daddress"));
@@ -98,7 +98,7 @@ module mock_dapp::mock_dapp_tests {
         let dapp_state=scenario.take_shared<DappState>();
         let mut xcall_state= scenario.take_shared<XCallState>();
         debug::print(&xcall_state);
-        let payload= create_test_data(b"somedata",dapp_state.id_str());
+        let payload= create_message_request_payload(b"somedata",dapp_state.id_str());
         connection_in::receive_message(&mut xcall_state,string::utf8(b"source"),1,payload,scenario.ctx());
         debug::print(&dapp_state);
         test_scenario::return_shared<DappState>(dapp_state);

@@ -46,7 +46,7 @@ module xcall::centralized_connection {
     }
 
      public(package) fun send_message(states:&mut Bag,coin:&mut Coin<SUI>,to:String,sn:u128,msg:vector<u8>,response:bool,ctx: &mut TxContext){
-      let mut state= get_state(states);
+      let state= get_state(states);
       let fee = if (sn==0) {
         centralized_state::get_fee(state,&to,false)
         } else {
