@@ -9,6 +9,7 @@ module xcall::centralized_state {
     use sui::bag::{Bag, Self};
 
     const PackageId:vector<u8> =b"centralized";
+     const ENotAdmin:u64=1;
 
     public fun package_id_str():String {
         string::utf8(PackageId)
@@ -67,7 +68,7 @@ module xcall::centralized_state {
     }
 
     public(package) fun set_fee(self: &mut State, net_id: String, message_fee: u64, response_fee: u64,caller:address) {
-        assert!(self.admin==caller,0x01);
+        ensure_admin(self,caller);
         vec_map::insert(&mut self.message_fee, net_id, message_fee);
         vec_map::insert(&mut self.response_fee, net_id, response_fee);
     }
@@ -93,15 +94,19 @@ module xcall::centralized_state {
     }
 
     public(package) fun set_admin(self:&mut State,caller:address,admin:address){
-        assert!(self.admin==caller,0x01);
+        ensure_admin(self,caller);
         self.admin=admin;
     }
 
     public(package) fun claim_fees(self:&mut State,caller:address,ctx:&mut TxContext){
-        assert!(self.admin==caller,0x01);
+        ensure_admin(self,caller);
         let total= self.balance.withdraw_all();
         let coin= coin::from_balance(total,ctx);
         transfer::public_transfer(coin,caller);
 
+    }
+
+    public(package) fun ensure_admin(self:&State,caller:address){
+        assert!(self.admin==caller,ENotAdmin);
     }
 }

@@ -41,7 +41,7 @@ const ConnCentralized:vector<u8> =b"centralized";
         } 
     }
 
-        public fun send_message(states:&mut Bag,
+    public fun send_message(states:&mut Bag,
         package_id:String,
         coin:&mut Coin<SUI>,
         netId:String,
@@ -49,7 +49,7 @@ const ConnCentralized:vector<u8> =b"centralized";
         msg:vector<u8>,
         is_response:bool,
         ctx:&mut TxContext){
-         // fun send_message(states:&mut Bag,coin: Coin<SUI>,to:String,sn:u64,msg:vector<u8>,response:bool,ctx: &mut TxContext)
+            
          if (package_id==centralized_state::package_id_str()){
             centralized_connection::send_message(states,coin,netId,sn,msg,is_response,ctx);
               

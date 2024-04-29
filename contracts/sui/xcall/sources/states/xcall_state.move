@@ -200,6 +200,14 @@ module xcall::xcall_state {
         &mut self.connection_states
     }
 
+    public fun get_protocol_fee(self:&Storage):u128{
+        self.protocol_fee
+    }
+
+    public fun get_protocol_fee_handler(self:&Storage):address{
+        self.protocol_fee_handler
+    }
+
     public(package) fun get_next_sequence(self:&mut Storage):u128 {
         let sn=self.sequence_no+1;
         self.sequence_no=sn;
@@ -339,4 +347,10 @@ module xcall::xcall_state {
         let idcap = new_conn_cap(xcall_id,package_id);
         idcap
         }
+
+    #[test_only]
+    public fun AdminCap_for_testing(ctx: &mut TxContext):AdminCap {
+        create_admin_cap(ctx)
+    }
+
 }
