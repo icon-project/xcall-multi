@@ -318,6 +318,25 @@ module xcall::xcall_state {
         id
     }
 
-    
+     #[test_only]
+    public fun create_id_cap_for_testing(storage: &mut Storage,ctx: &mut TxContext): IDCap {
+        let idcap = create_id_cap(storage,ctx);
+        idcap
+    }
 
+    #[test_only]
+    public fun delete_id_cap_for_testing(idcap:IDCap,ctx: &mut TxContext) {
+        let id;
+        let xcall_id;
+        IDCap { id, xcall_id } = idcap;
+        object::delete(id)
+    }
+
+         #[test_only]
+    public fun create_conn_cap_for_testing(storage: &mut Storage): ConnCap {
+        let package_id =string::utf8(b"centralized");
+        let xcall_id=object::id(storage);
+        let idcap = new_conn_cap(xcall_id,package_id);
+        idcap
+        }
 }

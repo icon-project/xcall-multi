@@ -274,7 +274,7 @@ module xcall::main {
         }
     }
 
-    fun handle_request(self:&mut Storage,cap:&ConnCap,from:String,payload:vector<u8>, ctx: &mut TxContext){
+    fun handle_request(self:&mut Storage,cap:&ConnCap,net_from:String,payload:vector<u8>, ctx: &mut TxContext){
         let req = message_request::decode(&payload);
         let from_nid = message_request::from_nid(&req);
         let data = message_request::data(&req);
@@ -282,7 +282,7 @@ module xcall::main {
         let sn = message_request::sn(&req);
         let msg_type = message_request::msg_type(&req);
 
-        assert!(from_nid == string::utf8(NID),EInvalidNID);
+        assert!(from_nid == net_from,EInvalidNID);
 
         let source = cap.package_id();
         let to = message_request::to(&req);
@@ -299,9 +299,9 @@ module xcall::main {
 
             xcall_state::remove_pending_requests(self, key, protocols);
         };
-
+        let data_hash = hash::keccak256(&data);
         let req_id = get_next_req_id(self);
-        let proxy_request = message_request::create(from, to, sn, msg_type, data, protocols);
+        let proxy_request = message_request::create(from, to, sn, msg_type, data_hash, protocols);
         self.add_proxy_request(req_id, proxy_request);
         event::emit(CallMessage{from, to, sn, req_id, data});
     }
@@ -376,11 +376,11 @@ module xcall::main {
         let to = message_request::to(proxy_request);
         let sn = message_request::sn(proxy_request);
         let msg_type = message_request::msg_type(proxy_request);
-        let msg_data=message_request::data(proxy_request);
-        let data_hash = hash::keccak256(&msg_data);
+        let msg_data_hash=message_request::data(proxy_request);
         let protocols = message_request::protocols(proxy_request);
 
-        assert!(data_hash == data, EDataMismatch);
+        let data_hash = hash::keccak256(&data);
+        assert!(msg_data_hash == data_hash, EDataMismatch);
         if(msg_type==CALL_MESSAGE_ROLLBACK_TYPE){
             xcall_state::set_reply_state(self, *proxy_request);
         };
@@ -388,8 +388,7 @@ module xcall::main {
             xcall_state::get_id_cap_id(cap),
             request_id,
             from,
-            msg_data,
-            
+            data,
         );   
         ticket
     }
@@ -406,7 +405,7 @@ module xcall::main {
         if(msg_type==PERSISTENT_MESSAGE_TYPE && !success){
             assert!(1==2,0x01);
         };
-        cleanup_call_request(self, sn);
+        xcall_state::remove_proxy_request(self, request_id);
         xcall_state::remove_reply_state(self);
         let mut message = vector::empty<u8>();
         let code= if(success){1}else{0};
