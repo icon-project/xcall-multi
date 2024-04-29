@@ -4,6 +4,7 @@ module xcall::cs_message {
     use sui::object::{Self, ID, UID};
     use xcall::network_address::{Self,NetworkAddress};
     use xcall::message_request::{Self,CSMessageRequest};
+    use xcall::message_result::{Self,CSMessageResult};
      use sui_rlp::encoder::{Self};
     use sui_rlp::decoder::{Self};
     use std::debug;
@@ -30,6 +31,14 @@ module xcall::cs_message {
             payload:message_request::encode(&req),
         }
     }
+
+    public fun from_message_result(req:CSMessageResult):CSMessage {
+        CSMessage {
+            msg_type:CS_RESULT,
+            payload:message_result::encode(&req),
+        }
+    }
+
 
     public fun msg_type( msg:&CSMessage):u8 {
         msg.msg_type
@@ -61,6 +70,14 @@ module xcall::cs_message {
          };
          req
 
+    }
+
+    public fun request_code():u8 {
+        CS_REQUEST
+    }
+
+    public fun result_code():u8 {
+        CS_RESULT
     }
 }
 

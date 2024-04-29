@@ -9,6 +9,12 @@ const MSG_TYPE:u8=0;
          data:vector<u8>
     }
 
+    public fun new(data:vector<u8>):CallMessage{
+      CallMessage {
+          data,
+      }
+    }
+
      public fun msg_type():u8 {
          MSG_TYPE
     }
