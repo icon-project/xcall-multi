@@ -1,7 +1,6 @@
 #[allow(unused_field,unused_use,unused_const,unused_mut_parameter,unused_variable,unused_assignment)]
 module xcall::rollback_data {
     use std::string::{Self, String};
-    use sui::object::{Self, ID, UID};
     use xcall::network_address::{Self,NetworkAddress};
     public struct RollbackData has store,drop, copy{
         from:ID,

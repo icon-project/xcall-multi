@@ -1,10 +1,9 @@
 #[allow(unused_field,unused_use,unused_const,unused_mut_parameter,unused_variable,unused_assignment)]
 module xcall::message_request {
 use std::string::{Self, String};
-    use sui::object::{Self, ID, UID};
+    
     use xcall::network_address::{Self,NetworkAddress};
-    use std::vector::{Self};
-     use sui_rlp::encoder::{Self};
+    use sui_rlp::encoder::{Self};
     use sui_rlp::decoder::{Self};
     use std::debug;
 
@@ -109,12 +108,8 @@ module xcall::message_request_tests {
     use xcall::network_address::{Self};
     use xcall::message_request::{Self};
     use std::string;
-    use std::vector;
-    use std::debug;
     use xcall::call_message::{Self};
     use xcall::call_message_rollback::{Self};
-     use sui_rlp::encoder;
-    use sui_rlp::decoder;
     /*
     CSMessageRequest
      from: 0x1.ETH/0xa
@@ -131,10 +126,6 @@ module xcall::message_request_tests {
     #[test]
      fun test_message_request_encode_case_1(){
         let from=network_address::create(string::utf8(b"0x1.ETH"),string::utf8(b"0xa"));
-        let network_bytes=network_address::encode(&from);
-       
-
-
         let msg_request=message_request::create(from,
         string::utf8(b"cx0000000000000000000000000000000000000102"),
         21,
@@ -165,7 +156,6 @@ CSMessageRequest
      #[test]
      fun test_message_request_encode_case_2(){
         let from=network_address::create(string::utf8(b"0x1.ETH"),string::utf8(b"0xa"));
-        let network_bytes=network_address::encode(&from);
         
         let mut protocols=vector::empty();
         protocols.push_back(string::utf8(b"abc"));
@@ -207,7 +197,6 @@ CSMessageRequest
      #[test]
      fun test_message_request_encode_case_3(){
         let from=network_address::create(string::utf8(b"0x1.ETH"),string::utf8(b"0xa"));
-        let network_bytes=network_address::encode(&from);
         
         let mut protocols=vector::empty();
         protocols.push_back(string::utf8(b"abc"));

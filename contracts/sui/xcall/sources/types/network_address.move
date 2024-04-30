@@ -1,8 +1,6 @@
 #[allow(unused_field,unused_use,unused_const,unused_mut_parameter,unused_variable,unused_assignment)]
 module xcall::network_address {
     use std::string::{Self, String};
-    use sui::object::{Self, ID, UID};
-    use std::vector;
     use sui_rlp::encoder::{Self};
     use sui_rlp::decoder::{Self};
     use std::debug;
@@ -65,10 +63,7 @@ module xcall::network_address {
 module xcall::network_address_tests {
 
     use xcall::network_address::{Self};
-     use std::string::{Self, String};
-     use sui_rlp::encoder::{Self};
-     use sui_rlp::decoder::{Self};
-     use std::debug;
+    use std::string;
 
     #[test]
     fun test_network_address_encoding(){

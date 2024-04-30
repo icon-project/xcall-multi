@@ -1,8 +1,8 @@
 module xcall::centralized_state {
     use std::string::{Self, String};
     use sui::vec_map::{Self, VecMap};
-     use xcall::xcall_utils::{Self as utils};
-      use sui::coin::{Self,Coin};
+    use xcall::xcall_utils::{Self as utils};
+    use sui::coin::{Self};
     use sui::balance::{Self, Balance};
     use sui::sui::SUI;
     use xcall::xcall_state::{ConnCap};

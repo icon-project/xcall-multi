@@ -1,11 +1,10 @@
 #[allow(unused_field,unused_use,unused_const,unused_mut_parameter,unused_variable,unused_assignment)]
 module xcall::cs_message {
     use std::string::{Self, String};
-    use sui::object::{Self, ID, UID};
     use xcall::network_address::{Self,NetworkAddress};
     use xcall::message_request::{Self,CSMessageRequest};
     use xcall::message_result::{Self,CSMessageResult};
-     use sui_rlp::encoder::{Self};
+    use sui_rlp::encoder::{Self};
     use sui_rlp::decoder::{Self};
     use std::debug;
 
@@ -83,18 +82,17 @@ module xcall::cs_message {
 
 module xcall::cs_message_tests {
     use xcall::cs_message::{Self};
-    use xcall::cs_message::CS_REQUEST;
 
-      /**
-    * CSMessage
-    type: CSMessage.REQUEST
-    data: 7465737431
-    RLP: C701857465737431
+      /*
+        CSMessage
+        type: CSMessage.REQUEST
+        data: 7465737431
+        RLP: C701857465737431
 
-    CSMessage
-    type: CSMessage.RESPONSE
-    data: 7465737431
-    RLP: C702857465737431
+        CSMessage
+        type: CSMessage.RESPONSE
+        data: 7465737431
+        RLP: C702857465737431
     */
 
     #[test]

@@ -5,8 +5,6 @@ module xcall::xcall_utils {
     use sui::vec_map::{Self, VecMap};
     use sui::balance::{Self, Balance};
     use sui::coin::{Self};
-    use sui::transfer;
-    use sui::tx_context::{Self, TxContext};
     use std::string::{Self, String};
     use sui::hex;
    
@@ -22,9 +20,8 @@ module xcall::xcall_utils {
             i = i + 1;
         };
         true
-
-       }   
-}
+        }   
+    }
 
 
     public fun id_to_hex_string(id:&ID): String {
@@ -50,7 +47,7 @@ module xcall::xcall_utils {
         );
     }
 
-  public fun get_or_default<K: copy, V: copy+drop>(self: &VecMap<K,V>, key: &K,default:V): V {
+    public fun get_or_default<K: copy, V: copy+drop>(self: &VecMap<K,V>, key: &K,default:V): V {
        let value= if (vec_map::contains(self, key)) {
             *vec_map::get(self, key)
         } else {

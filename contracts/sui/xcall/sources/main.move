@@ -1,18 +1,12 @@
 #[allow(unused_field,unused_use,unused_const,unused_mut_parameter,unused_variable,unused_assignment)]
 module xcall::main {
 
-    // Part 1: Imports
-    use sui::object::{Self, UID,ID};
-    use sui::transfer;
-    use sui::tx_context::{Self, TxContext};
     use sui::linked_table::{Self, LinkedTable};
     use sui::types as sui_types;
     use std::string::{Self, String};
-    use std::vector::{Self};
-    use std::option::{Self, Option};
     use sui::event;
     use sui::hash::{Self};
-     use sui::coin::{Self,Coin};
+    use sui::coin::{Self,Coin};
     use sui::balance::{Self, Balance};
     use sui::sui::SUI;
     use xcall::xcall_utils as utils;
@@ -199,16 +193,13 @@ module xcall::main {
             abort EInvalidMsgType
         };
 
-
-        let dst_account = to.addr();
-
         let cs_request= message_request::create(
             from,
-            dst_account,
+            to.addr(),
             sequence_no,
-            envelope::msg_type(&envelope),
+            envelope.msg_type(),
             data,
-            envelope::destinations(&envelope));
+            envelope.destinations());
 
         let msg = message_request::encode(&cs_request);
 
@@ -402,11 +393,11 @@ module xcall::main {
 
         let req_id = get_next_req_id(self);
 
-        let from = message_request::from(reply);
-        let to = message_request::to(reply);
-        let data = message_request::data(reply);
-        let protocols = message_request::protocols(reply);
-        let sn = message_request::sn(reply);
+        let from = reply.from();
+        let to = reply.to();
+        let data = reply.data();
+        let protocols = reply.protocols();
+        let sn = reply.sn();
         event::emit(CallMessage{from,to, sn, req_id,data});
 
     }

@@ -1,13 +1,9 @@
 #[allow(unused_field,unused_use,unused_const,unused_mut_parameter,unused_variable,unused_assignment)]
 module xcall::xcall_state {
-     use sui::object::{Self, UID,ID};
-    use sui::transfer;
-    use sui::tx_context::{Self, TxContext};
+    
     use sui::linked_table::{Self, LinkedTable};
     use sui::types as sui_types;
     use std::string::{Self, String};
-    use std::vector;
-    use std::option::{Self, Option};
    
     use xcall::network_address::{Self,NetworkAddress};
     use xcall::envelope::{Self,XCallEnvelope};

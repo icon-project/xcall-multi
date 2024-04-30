@@ -3,7 +3,6 @@ module xcall::centralized_connection {
   use xcall::centralized_state::{Self,State, ReceiptKey,get_state};
   use std::string::{Self, String};
   use sui::bag::{Bag, Self};
-  use sui::tx_context;
   use sui::event;
   use sui::table::{Self, Table};
   use sui::sui::SUI;

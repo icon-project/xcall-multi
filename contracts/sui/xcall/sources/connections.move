@@ -23,7 +23,6 @@ const ConnCentralized:vector<u8> =b"centralized";
         if (package_id==centralized_state::package_id_str()){
               let state= centralized_connection::connect(cap,ctx.sender());
               bag::add(states, package_id, state);
-
         }else{
            abort EConnectionNotFound
         }
@@ -33,11 +32,9 @@ const ConnCentralized:vector<u8> =b"centralized";
 
     public fun get_fee(states:&mut Bag,package_id:String,netId:String,response:bool):u64{
 
-         if (package_id==centralized_state::package_id_str()){
+        if (package_id==centralized_state::package_id_str()){
             let fee= centralized_connection::get_fee(states,netId,response);
             fee
-              
-             
         }else{
            abort EConnectionNotFound
         } 
@@ -52,10 +49,8 @@ const ConnCentralized:vector<u8> =b"centralized";
         is_response:bool,
         ctx:&mut TxContext){
             
-         if (package_id==centralized_state::package_id_str()){
+        if (package_id==centralized_state::package_id_str()){
             centralized_connection::send_message(states,coin,netId,sn,msg,is_response,ctx);
-              
-             
         }else{
            abort EConnectionNotFound
         } 

@@ -1,9 +1,7 @@
 #[allow(unused_field,unused_use,unused_const,unused_mut_parameter,unused_variable,unused_assignment)]
 module xcall::message_result {
-     use std::string::{Self, String};
-    use sui::object::{Self, ID, UID};
+    use std::string::{Self, String};
     use xcall::network_address::{Self,NetworkAddress};
-    use std::vector;
     use sui_rlp::encoder::{Self};
     use sui_rlp::decoder::{Self};
 

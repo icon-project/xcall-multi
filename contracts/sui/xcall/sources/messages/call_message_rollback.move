@@ -1,11 +1,10 @@
 #[allow(unused_field,unused_use,unused_const,unused_mut_parameter,unused_variable,unused_assignment)]
 module xcall::call_message_rollback {
      use std::string::{Self, String};
-use std::vector;
-use std::option::{Self, Option,some,none};
-use sui_rlp::encoder::{Self};
-use sui_rlp::decoder::{Self};
-    const MSG_TYPE:u8=1;
+     use sui_rlp::encoder::{Self};
+     use sui_rlp::decoder::{Self};
+     
+     const MSG_TYPE:u8=1;
     public struct CallMessageWithRollback has drop{
         data:vector<u8>,
         rollback:vector<u8>,
