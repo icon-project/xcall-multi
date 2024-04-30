@@ -1,11 +1,13 @@
 #[allow(unused_field,unused_use,unused_const,unused_mut_parameter,unused_variable,unused_assignment)]
 module xcall::envelope{
-    use std::string::{Self, String};
+
+use std::string::{Self, String};
 use std::option::{some,none};
 use xcall::call_message::{Self};
 use xcall::call_message_rollback::{Self};
-  use sui_rlp::encoder;
-    use sui_rlp::decoder;
+use xcall::persistent_message::{Self};
+use sui_rlp::encoder;
+use sui_rlp::decoder;
 
  public struct XCallEnvelope has drop{
         message_type:u8,
@@ -44,6 +46,18 @@ use xcall::call_message_rollback::{Self};
      public fun wrap_call_message(data:vector<u8>,sources:vector<String>,destinations:vector<String>): XCallEnvelope {
         let envelope= XCallEnvelope {
             message_type:call_message::msg_type(),
+            message:data,
+            sources:sources,
+            destinations:destinations,
+
+        };
+        envelope
+
+    }
+
+    public fun wrap_persistent_message(data:vector<u8>,sources:vector<String>,destinations:vector<String>): XCallEnvelope {
+        let envelope= XCallEnvelope {
+            message_type:persistent_message::msg_type(),
             message:data,
             sources:sources,
             destinations:destinations,

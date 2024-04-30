@@ -36,10 +36,10 @@ use std::string::{Self, String};
         }
     }
 
-    public fun new():CSMessageRequest {
+    public fun default():CSMessageRequest {
         CSMessageRequest {
-            from:network_address::from_string(string::utf8(b"")),
-            to:string::utf8(b""),
+            from:network_address::from_string(string::utf8(b"sui/babe")),
+            to:string::utf8(b"babe"),
             sn:0,
             message_type:0,
             data:vector::empty<u8>(),

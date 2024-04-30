@@ -22,7 +22,7 @@ module xcall::xcall_state {
     use sui::versioned::{Self, Versioned};
 
 
-     public struct IDCap has key,store {
+    public struct IDCap has key,store {
         id:UID,
         xcall_id:ID,
     }
@@ -67,11 +67,9 @@ module xcall::xcall_state {
         id: UID,
         version:u64,
         admin:ID,
-        nid: String,
-        network_address:NetworkAddress,
         requests:LinkedTable<u128, vector<u8>>,
         sequence_no:u128,
-        protocol_fee:u128,
+        protocol_fee:u64,
         protocol_fee_handler:address,
         connection_states:Bag,
         rollbacks:Table<u128,RollbackData>,
@@ -105,8 +103,6 @@ module xcall::xcall_state {
          let storage = Storage {
             id: object::new(ctx),
             version:version,
-            nid: string::utf8(b""),
-            network_address: network_address::from_string(string::utf8(b"")),
             admin:object::id(admin),
             requests:linked_table::new<u128, vector<u8>>(ctx),
             sequence_no:0,
@@ -120,7 +116,7 @@ module xcall::xcall_state {
             successful_responses:vec_map::empty<u128,bool>(),
             request_id:0,
             proxy_requests:table::new<u128, CSMessageRequest>(ctx),
-            reply_state:message_request::new(),
+            reply_state:message_request::default(),
             call_reply:vector::empty<u8>()
 
         };
@@ -145,7 +141,7 @@ module xcall::xcall_state {
     }
 
     public(package) fun remove_reply_state(self:&mut Storage){
-            self.reply_state=message_request::new();
+            self.reply_state=message_request::default();
     }
 
     public(package) fun remove_call_reply(self:&mut Storage){
@@ -166,10 +162,6 @@ module xcall::xcall_state {
 
     public(package) fun get_proxy_request(self:&mut Storage,req_id:u128):&CSMessageRequest{
          table::borrow(&self.proxy_requests,req_id)
-    }
-
-    public(package) fun network_address(self:&Storage):NetworkAddress{
-        self.network_address
     }
 
     public(package) fun get_id(self:&Storage):ID{
@@ -200,7 +192,7 @@ module xcall::xcall_state {
         &mut self.connection_states
     }
 
-    public fun get_protocol_fee(self:&Storage):u128{
+    public fun get_protocol_fee(self:&Storage):u64{
         self.protocol_fee
     }
 
@@ -227,7 +219,7 @@ module xcall::xcall_state {
     }
 
 
-    public(package) fun set_protocol_fee(self:&mut Storage,fee:u128){
+    public(package) fun set_protocol_fee(self:&mut Storage,fee:u64){
         self.protocol_fee=fee;
     }
 
@@ -326,21 +318,31 @@ module xcall::xcall_state {
         id
     }
 
-    #[test_only]
-    public fun share_storage_for_testing(admin:AdminCap,ctx: &mut TxContext):Storage {
-        let storage =create_storage(0,&admin,ctx);
-       transfer_admin_cap(admin,ctx);
-        storage
+     #[test_only]
+    public fun create_id_cap_for_testing(storage: &mut Storage,ctx: &mut TxContext): IDCap {
+        let idcap = create_id_cap(storage,ctx);
+        idcap
     }
+
+    #[test_only]
+    public fun delete_id_cap_for_testing(idcap:IDCap,ctx: &mut TxContext) {
+        let id;
+        let xcall_id;
+        IDCap { id, xcall_id } = idcap;
+        object::delete(id)
+    }
+
+         #[test_only]
+    public fun create_conn_cap_for_testing(storage: &mut Storage): ConnCap {
+        let package_id =string::utf8(b"centralized");
+        let xcall_id=object::id(storage);
+        let idcap = new_conn_cap(xcall_id,package_id);
+        idcap
+        }
 
     #[test_only]
     public fun AdminCap_for_testing(ctx: &mut TxContext):AdminCap {
         create_admin_cap(ctx)
-    }
-
-    #[test_only]
-    public fun create_id_cap_for_testing(storage: &mut Storage,ctx: &mut TxContext):IDCap {
-        create_id_cap(storage,ctx)
     }
 
 }

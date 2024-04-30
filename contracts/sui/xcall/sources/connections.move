@@ -43,7 +43,7 @@ const ConnCentralized:vector<u8> =b"centralized";
 
     public fun send_message(states:&mut Bag,
         package_id:String,
-        coin:&mut Coin<SUI>,
+        coin:Coin<SUI>,
         netId:String,
         sn:u128,
         msg:vector<u8>,
