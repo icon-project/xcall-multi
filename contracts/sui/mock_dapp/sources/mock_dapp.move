@@ -8,7 +8,7 @@ module mock_dapp::mock_dapp {
     use sui::coin::{Self, Coin};
     use sui::sui::SUI;
      use std::string::{Self, String};
-
+    use sui::balance;
 
 public struct REGISTER_WITNESS has store,drop {}
 public struct WitnessCarrier has key { id: UID, witness: REGISTER_WITNESS }
@@ -40,12 +40,13 @@ public struct WitnessCarrier has key { id: UID, witness: REGISTER_WITNESS }
         let ticket= xcall::execute_call(xcall,dapp_state::get_xcall_cap(state),request_id,data,ctx);
         let msg= execute_ticket::message(&ticket);
         let from=execute_ticket::from(&ticket);
-        
+
         if(msg==b"rollback"){
              xcall::execute_call_result(xcall,ticket,false,fee,ctx);
 
         }else if(msg==b"reply-response"){
-             send_message(state,xcall,fee,from,vector::empty<u8>(),ctx);
+             let reply_fee = coin::from_balance(balance::zero<SUI>(), ctx);
+             send_message(state,xcall,reply_fee,from,vector::empty<u8>(),ctx);
              xcall::execute_call_result(xcall,ticket,true,fee,ctx);
 
         }else {
