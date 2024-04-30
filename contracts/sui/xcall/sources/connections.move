@@ -16,6 +16,8 @@ const EConnectionNotFound:u64=0;
 const ConnCentralized:vector<u8> =b"centralized";
 
 
+
+
     public fun register(states:&mut Bag,package_id:String,cap:ConnCap,ctx:&mut TxContext){
        
         if (package_id==centralized_state::package_id_str()){

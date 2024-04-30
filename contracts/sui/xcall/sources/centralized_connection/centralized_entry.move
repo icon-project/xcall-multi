@@ -35,6 +35,11 @@ use xcall::main::{Self as xcall};
       centralized_state::set_fee(state,net_id,message_fee,response_fee,ctx.sender());
     }
 
+    entry fun get_receipt(states: &mut XCallState,net_id:String,sn:u128,ctx:&TxContext):bool{
+      let state = get_state(states.get_connection_states_mut());
+      centralized_state::get_receipt(state,net_id,sn)
+    }
+
 
 
    

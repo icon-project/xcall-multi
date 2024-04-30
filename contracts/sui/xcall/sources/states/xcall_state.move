@@ -318,6 +318,10 @@ module xcall::xcall_state {
         id
     }
 
+    public fun get_proxy_requests_size(self:&Storage):u64{
+        self.proxy_requests.length()
+    }
+
      #[test_only]
     public fun create_id_cap_for_testing(storage: &mut Storage,ctx: &mut TxContext): IDCap {
         let idcap = create_id_cap(storage,ctx);

@@ -7,7 +7,7 @@ module mock_dapp::mock_dapp_tests {
     use xcall::main::{Self as xcall,init_xcall_state};
     use mock_dapp::dapp_state::{Self,DappState};
     use mock_dapp::mock_dapp::{Self as mock_dapp,WitnessCarrier};
-    use xcall::xcall_state::{Self,Storage as XCallState};
+    use xcall::xcall_state::{Self,Storage as XCallState,AdminCap};
     use std::string::{Self,String};
     use xcall::centralized_entry::{Self as connection_in};
     use xcall::call_message::{Self};
@@ -43,8 +43,10 @@ module mock_dapp::mock_dapp_tests {
     #[test_only]
     fun setup_connection(admin:address,mut scenario:Scenario):Scenario {
         let mut xcall_state= scenario.take_shared<XCallState>();
-        xcall::register_connection(&mut xcall_state,string::utf8(b"netid"),string::utf8(b"centralized"),scenario.ctx());
+        let adminCap=scenario.take_from_sender<AdminCap>();
+        xcall::register_connection(&mut xcall_state,&adminCap,string::utf8(b"netid"),string::utf8(b"centralized"),scenario.ctx());
         test_scenario::return_shared<XCallState>(xcall_state);
+        scenario.return_to_sender(adminCap);
         scenario.next_tx(admin);
         let mut dapp_state=scenario.take_shared<DappState>();
         mock_dapp::add_connection(&mut dapp_state,string::utf8(b"netid"),string::utf8(b"centralized"),string::utf8(b"destconn"),scenario.ctx());
@@ -99,10 +101,13 @@ module mock_dapp::mock_dapp_tests {
         let mut xcall_state= scenario.take_shared<XCallState>();
         debug::print(&xcall_state);
         let payload= create_message_request_payload(b"somedata",dapp_state.id_str());
-        connection_in::receive_message(&mut xcall_state,string::utf8(b"source"),1,payload,scenario.ctx());
+        connection_in::receive_message(&mut xcall_state,string::utf8(b"dnetId"),1,payload,scenario.ctx());
         debug::print(&dapp_state);
         test_scenario::return_shared<DappState>(dapp_state);
+        debug::print(&xcall_state);
+        assert!(xcall_state::get_proxy_requests_size(&xcall_state)==1,0x01);
         test_scenario::return_shared<XCallState>(xcall_state);
+
         scenario.end();
 
     }

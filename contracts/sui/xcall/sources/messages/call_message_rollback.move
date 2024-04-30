@@ -3,16 +3,15 @@ module xcall::call_message_rollback {
      use std::string::{Self, String};
 use std::vector;
 use std::option::{Self, Option,some,none};
+use sui_rlp::encoder::{Self};
+use sui_rlp::decoder::{Self};
     const MSG_TYPE:u8=1;
     public struct CallMessageWithRollback has drop{
         data:vector<u8>,
         rollback:vector<u8>,
      }
 
-     public fun encode(msg:CallMessageWithRollback):vector<u8>{
-         vector::empty<u8>()
-    }
-
+    
     public fun create(data:vector<u8>,rollback:vector<u8>):CallMessageWithRollback{
          CallMessageWithRollback {
             data:data,
@@ -20,12 +19,25 @@ use std::option::{Self, Option,some,none};
         }
     }
 
+     public fun encode(self:CallMessageWithRollback):vector<u8>{
+         let mut list=vector::empty<vector<u8>>();
+          vector::push_back(&mut list,encoder::encode(&self.data));
+          vector::push_back(&mut list,encoder::encode(&self.rollback));
+         let encoded=encoder::encode_list(&list,false);
+         encoded
+         
+    }
+
+
   
 
-     public fun decode(bytes:vector<u8>):CallMessageWithRollback{
+     public fun decode(bytes:&vector<u8>):CallMessageWithRollback{
+         let decoded=decoder::decode_list(bytes);
+         let data=  *vector::borrow(&decoded,0);
+         let rollback=  *vector::borrow(&decoded,1);
           CallMessageWithRollback {
-           data:vector::empty<u8>(),
-           rollback:vector::empty<u8>(),
+           data,
+           rollback,
 
          }
     }
@@ -34,11 +46,11 @@ use std::option::{Self, Option,some,none};
          MSG_TYPE
     }
 
-    public fun rollback(msg:&CallMessageWithRollback):vector<u8>{
-        msg.rollback
+    public fun rollback(self:&CallMessageWithRollback):vector<u8>{
+        self.rollback
     }
 
-    public fun data(msg:&CallMessageWithRollback):vector<u8>{
-        msg.data
+    public fun data(self:&CallMessageWithRollback):vector<u8>{
+        self.data
     }
 }

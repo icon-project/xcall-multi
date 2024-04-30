@@ -117,7 +117,7 @@ module xcall::main {
         string::utf8(NID)
     }
 
-    entry public fun register_connection(self:&mut Storage,net_id:String,package_id:String,ctx: &mut TxContext){
+    entry public fun register_connection(self:&mut Storage,admin:&AdminCap,net_id:String,package_id:String,ctx: &mut TxContext){
         self.set_connection(net_id,package_id);
         let cap= xcall_state::new_conn_cap(self.get_id(),package_id);
         register(self.get_connection_states_mut(),package_id,cap,ctx);
@@ -178,7 +178,7 @@ module xcall::main {
             data = envelope::message(&envelope);
         }
         else if(msg_type == call_message_rollback::msg_type()){
-            let msg = call_message_rollback::decode(envelope::message(&envelope));
+            let msg = call_message_rollback::decode(&envelope::message(&envelope));
             std::debug::print(&network_address::addr(&from));
             let from_id = utils::id_from_hex_string(&network_address::addr(&from));
 
@@ -291,7 +291,7 @@ module xcall::main {
         xcall_state::set_protocol_fee_handler(self,fee_handler);
     }
 
-    entry public fun send_call(self:&mut Storage,fee: Coin<SUI>,idCap:&IDCap,to:String,envelope_bytes:vector<u8>,ctx: &mut TxContext){
+    public fun send_call(self:&mut Storage,fee: Coin<SUI>,idCap:&IDCap,to:String,envelope_bytes:vector<u8>,ctx: &mut TxContext){
         let envelope=envelope::decode(&envelope_bytes);
         let to = network_address::from_string(to);
         let from= network_address::create(string::utf8(NID),address::to_string(object::id_to_address(&object::id(idCap))));

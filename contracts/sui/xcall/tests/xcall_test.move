@@ -25,9 +25,10 @@ module xcall::xcall_tests {
         let scenario = &mut scenario_val;
         {
             let mut storage = test_scenario::take_shared<Storage>(scenario);
-            let ctx = test_scenario::ctx(scenario);
-            main::register_connection(&mut storage, from_nid, string::utf8(b"centralized"), ctx);
+             let adminCap = scenario.take_from_sender<AdminCap>();
+            main::register_connection(&mut storage, &adminCap,from_nid, string::utf8(b"centralized"), scenario.ctx());
             test_scenario::return_shared(storage);
+            scenario.return_to_sender(adminCap);
         };
         test_scenario::next_tx(scenario, admin);
         scenario_val
@@ -113,9 +114,7 @@ module xcall::xcall_tests {
             let request = message_request::create(icon_dapp, sui_dapp, 1, 1, data, sources);
             let message = cs_message::encode(&cs_message::new(cs_message::request_code(), message_request::encode(&request)));
             let conn_cap = xcall_state::create_conn_cap_for_testing(&mut storage);
-
             main::handle_message(&mut storage,&conn_cap,from_nid,message,ctx);
-            // main::send_call(&mut storage,&mut fee,&idCap,string::utf8(b"dnetId/daddress"),envelope_bytes,ctx);
             xcall_state::delete_id_cap_for_testing(idCap, ctx);
             test_scenario::return_to_sender(&scenario, adminCap);
             test_scenario::return_shared( storage);
