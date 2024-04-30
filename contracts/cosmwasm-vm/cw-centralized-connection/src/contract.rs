@@ -43,7 +43,6 @@ impl<'a> CwCentralizedConnection<'a> {
         self.ensure_xcall(deps.storage, info.sender)?;
 
         let next_conn_sn = self.get_next_conn_sn(deps.storage)?;
-        self.store_conn_sn(deps.storage, next_conn_sn)?;
 
         let mut fee = 0;
 
