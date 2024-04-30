@@ -17,23 +17,23 @@ module xcall::execute_ticket {
 
     }
 
-    public(package) fun consume(ticket:ExecuteTicket){
-        let ExecuteTicket { dapp_id, request_id,from,message}=ticket;
+    public(package) fun consume(self:ExecuteTicket){
+        let ExecuteTicket { dapp_id, request_id,from,message}=self;
     }
-    public fun message(ticket:&ExecuteTicket):vector<u8>{
-         ticket.message
-    }
-
-    public fun from(ticket:&ExecuteTicket):NetworkAddress {
-        ticket.from
+    public fun message(self:&ExecuteTicket):vector<u8>{
+         self.message
     }
 
-    public fun request_id(ticket:&ExecuteTicket):u128 {
-        ticket.request_id
+    public fun from(self:&ExecuteTicket):NetworkAddress {
+        self.from
     }
 
-    public fun dapp_id(ticket:&ExecuteTicket):ID {
-        ticket.dapp_id
+    public fun request_id(self:&ExecuteTicket):u128 {
+        self.request_id
+    }
+
+    public fun dapp_id(self:&ExecuteTicket):ID {
+        self.dapp_id
     }
 
 }

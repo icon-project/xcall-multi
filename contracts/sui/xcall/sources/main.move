@@ -93,7 +93,6 @@ module xcall::main {
         response_code: u8
     }
     /***************/
-    /******** tickets ******/
    
     
     fun init(ctx: &mut TxContext) {
@@ -392,7 +391,6 @@ module xcall::main {
         let mut_rollback = xcall_state::get_mut_rollback(self, sequence_no);
         rollback_data::enable_rollback(mut_rollback);
         std::debug::print(&rollback_data::enabled(mut_rollback));
-        // xcall_state::add_rollback(self, sequence_no, *mut_rollback);
         event::emit(RollbackMessage{sn:sequence_no})
     };
     }
@@ -439,7 +437,7 @@ module xcall::main {
     }
 
     public fun execute_call_result(self:&mut Storage,ticket:ExecuteTicket,success:bool,mut fee:Coin<SUI>,ctx:&mut TxContext){
-        let request_id=execute_ticket::request_id(&ticket);
+        let request_id=ticket.request_id();
         let proxy_request = xcall_state::get_proxy_request(self, request_id);
         let msg_type = message_request::msg_type(proxy_request);
         let sn = message_request::sn(proxy_request);

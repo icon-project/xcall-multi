@@ -60,16 +60,6 @@ module xcall::centralized_connection {
             msg,
         });
     }
-
-  
-
-
-    
-
-    entry fun revert_message(sn:u128, ctx: &mut TxContext){
-        // xcall::handle_error(&self.xcall, sn);
-    }
-
     
 
     

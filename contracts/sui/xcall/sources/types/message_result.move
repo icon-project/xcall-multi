@@ -39,12 +39,12 @@ module xcall::message_result {
         self.message
     }
 
-     public fun encode(val:&CSMessageResult):vector<u8>{
+     public fun encode(self:&CSMessageResult):vector<u8>{
          let mut list=vector::empty<vector<u8>>();
            
-          vector::push_back(&mut list,encoder::encode_u128(val.sn));
-          vector::push_back(&mut list,encoder::encode_u8(val.code));
-          vector::push_back(&mut list,encoder::encode(&val.message));
+          vector::push_back(&mut list,encoder::encode_u128(self.sn));
+          vector::push_back(&mut list,encoder::encode_u8(self.code));
+          vector::push_back(&mut list,encoder::encode(&self.message));
 
           let encoded=encoder::encode_list(&list,false);
           encoded

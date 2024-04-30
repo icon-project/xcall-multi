@@ -47,14 +47,14 @@ use std::string::{Self, String};
         }
     }
 
-    public fun encode(req:&CSMessageRequest):vector<u8>{
+    public fun encode(self:&CSMessageRequest):vector<u8>{
           let mut list=vector::empty<vector<u8>>();
-           vector::push_back(&mut list,network_address::encode(&req.from));
-          vector::push_back(&mut list,encoder::encode_string(&req.to));
-          vector::push_back(&mut list,encoder::encode_u128(req.sn));
-          vector::push_back(&mut list,encoder::encode_u8(req.message_type));
-          vector::push_back(&mut list,encoder::encode(&req.data));
-          vector::push_back(&mut list,encoder::encode_strings(&req.protocols));
+           vector::push_back(&mut list,network_address::encode(&self.from));
+          vector::push_back(&mut list,encoder::encode_string(&self.to));
+          vector::push_back(&mut list,encoder::encode_u128(self.sn));
+          vector::push_back(&mut list,encoder::encode_u8(self.message_type));
+          vector::push_back(&mut list,encoder::encode(&self.data));
+          vector::push_back(&mut list,encoder::encode_strings(&self.protocols));
 
           let encoded=encoder::encode_list(&list,false);
           encoded
@@ -75,32 +75,32 @@ use std::string::{Self, String};
 
     
 
-    public fun msg_type(req:&CSMessageRequest):u8 {
-         req.message_type
+    public fun msg_type(self:&CSMessageRequest):u8 {
+         self.message_type
     }
 
-    public fun from(req:&CSMessageRequest):NetworkAddress {
-        req.from
+    public fun from(self:&CSMessageRequest):NetworkAddress {
+        self.from
     }
 
-    public fun to(req:&CSMessageRequest):String {
-        req.to
+    public fun to(self:&CSMessageRequest):String {
+        self.to
     }
 
-    public fun sn(req:&CSMessageRequest):u128 {
-        req.sn
+    public fun sn(self:&CSMessageRequest):u128 {
+        self.sn
     }
 
-    public fun data(req:&CSMessageRequest):vector<u8> {
-        req.data
+    public fun data(self:&CSMessageRequest):vector<u8> {
+        self.data
     }
 
-    public fun protocols(req:&CSMessageRequest):vector<String> {
-        req.protocols
+    public fun protocols(self:&CSMessageRequest):vector<String> {
+        self.protocols
     }
 
-    public fun from_nid(req:&CSMessageRequest):String {
-        network_address::net_id(&req.from)
+    public fun from_nid(self:&CSMessageRequest):String {
+        network_address::net_id(&self.from)
     }
 
 }

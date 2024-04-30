@@ -14,22 +14,22 @@ module xcall::rollback_ticket {
         }
     }
 
-     public fun message(ticket:&RollbackTicket):vector<u8>{
-         ticket.rollback
+     public fun message(self:&RollbackTicket):vector<u8>{
+         self.rollback
     }
 
    
 
-    public fun sn(ticket:&RollbackTicket):u128 {
-        ticket.sn
+    public fun sn(self:&RollbackTicket):u128 {
+        self.sn
     }
 
-    public fun dapp_id(ticket:&RollbackTicket):ID {
-        ticket.dapp_id
+    public fun dapp_id(self:&RollbackTicket):ID {
+        self.dapp_id
     }
 
-    public(package) fun consume(ticket:RollbackTicket){
-        let RollbackTicket { rollback, sn,dapp_id}=ticket;
+    public(package) fun consume(self:RollbackTicket){
+        let RollbackTicket { rollback, sn,dapp_id}=self;
     }
 
 
