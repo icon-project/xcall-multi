@@ -46,7 +46,7 @@ public struct WitnessCarrier has key { id: UID, witness: REGISTER_WITNESS }
 
         }else if(msg==b"reply-response"){
              let reply_fee = coin::from_balance(balance::zero<SUI>(), ctx);
-             send_message(state,xcall,reply_fee,from,vector::empty<u8>(),ctx);
+             send_message(state,xcall,reply_fee,network_address::to_string(&from),vector::empty<u8>(),ctx);
              xcall::execute_call_result(xcall,ticket,true,fee,ctx);
 
         }else {
@@ -65,7 +65,8 @@ public struct WitnessCarrier has key { id: UID, witness: REGISTER_WITNESS }
         dapp_state::add_connection(state,net_id,source,destination,ctx);
     }
 
-    entry public fun send_message(state:&DappState,xcall:&mut XCallState,fee: Coin<SUI>,to:NetworkAddress,data:vector<u8>,ctx: &mut TxContext){
+    entry public fun send_message(state:&DappState,xcall:&mut XCallState,fee: Coin<SUI>,to:String,data:vector<u8>,ctx: &mut TxContext){
+        let to=network_address::from_string(to);
         let connection= dapp_state::get_connection(state,network_address::net_id(&to));
         let sources=dapp_state::get_connection_source(&connection);
         let destinations=dapp_state::get_connection_dest(&connection);
