@@ -81,43 +81,64 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_encoding_decoding_envelope_call_message() {
-        // Create a sample Envelope
-        let message = AnyMessage::CallMessage(CallMessage {
+    fn test_envelope_call_message() {
+        let msg = AnyMessage::CallMessage(CallMessage {
             data: vec![1, 2, 3],
         });
-        let sources = vec!["source1".to_string(), "source2".to_string()];
-        let destinations = vec!["dest1".to_string(), "dest2".to_string()];
-        let envelope = Envelope::new(message, sources, destinations);
-        let encoded_data = rlp::encode(&envelope).to_vec();
+        let sources = vec!["src".to_string()];
+        let destinations = vec!["dst".to_string()];
+        let envelope = Envelope::new(msg.clone(), sources, destinations);
 
-        assert_eq!(
-            "e50085c483010203d087736f757263653187736f7572636532cc856465737431856465737432",
-            hex::encode(&encoded_data)
-        );
-        let decoded: Envelope = rlp::decode(&encoded_data).unwrap();
-
+        let encoded = envelope.rlp_bytes().to_vec();
+        let decoded = Envelope::decode(&rlp::Rlp::new(&encoded)).unwrap();
         assert_eq!(envelope, decoded);
+
+        let encoded = msg.to_bytes().unwrap();
+        let decoded = decode_message(MessageType::CallMessage, encoded.clone()).unwrap();
+        assert_eq!(decoded.rollback(), None);
+        assert_eq!(decoded.data(), vec![1, 2, 3]);
+        assert_eq!(decoded.to_bytes().unwrap(), encoded)
     }
 
     #[test]
-    fn test_encoding_decoding_envelope_call_message_rollback() {
-        // Create a sample Envelope
-        let message = AnyMessage::CallMessageWithRollback(CallMessageWithRollback {
+    fn test_envelope_call_message_persisted() {
+        let msg = AnyMessage::CallMessagePersisted(CallMessagePersisted {
+            data: vec![1, 2, 3],
+        });
+        let sources = vec!["src".to_string()];
+        let destinations = vec!["dst".to_string()];
+        let envelope = Envelope::new(msg.clone(), sources, destinations);
+
+        let encoded = envelope.rlp_bytes().to_vec();
+        let decoded = Envelope::decode(&rlp::Rlp::new(&encoded)).unwrap();
+        assert_eq!(envelope, decoded);
+
+        let encoded = msg.to_bytes().unwrap();
+        let decoded = decode_message(MessageType::CallMessagePersisted, encoded.clone()).unwrap();
+        assert_eq!(decoded.rollback(), None);
+        assert_eq!(decoded.data(), vec![1, 2, 3]);
+        assert_eq!(decoded.to_bytes().unwrap(), encoded)
+    }
+
+    #[test]
+    fn test_envelope_call_message_with_rollback() {
+        let msg = AnyMessage::CallMessageWithRollback(CallMessageWithRollback {
             data: vec![1, 2, 3],
             rollback: vec![1, 2, 3],
         });
-        let sources = vec!["source1".to_string(), "source2".to_string()];
-        let destinations = vec!["dest1".to_string(), "dest2".to_string()];
-        let envelope = Envelope::new(message, sources, destinations);
-        let encoded_data = rlp::encode(&envelope).to_vec();
+        let sources = vec!["src".to_string()];
+        let destinations = vec!["dst".to_string()];
+        let envelope = Envelope::new(msg.clone(), sources, destinations);
 
-        assert_eq!(
-            "e90189c88301020383010203d087736f757263653187736f7572636532cc856465737431856465737432",
-            hex::encode(&encoded_data)
-        );
-        let decoded: Envelope = rlp::decode(&encoded_data).unwrap();
-
+        let encoded = envelope.rlp_bytes().to_vec();
+        let decoded = Envelope::decode(&rlp::Rlp::new(&encoded)).unwrap();
         assert_eq!(envelope, decoded);
+
+        let encoded = msg.to_bytes().unwrap();
+        let decoded =
+            decode_message(MessageType::CallMessageWithRollback, encoded.clone()).unwrap();
+        assert_eq!(decoded.rollback(), Some(vec![1, 2, 3]));
+        assert_eq!(decoded.data(), vec![1, 2, 3]);
+        assert_eq!(decoded.to_bytes().unwrap(), encoded)
     }
 }
