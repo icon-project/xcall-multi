@@ -1,6 +1,8 @@
 use soroban_sdk::{Bytes, Env, String};
 
+use crate::types::SendMsgEvent;
+
 pub(crate) fn send_message(e: &Env, to: String, sn: u128, msg: Bytes) {
-    e.events()
-        .publish(("CentralizedConnection", "Message", to, sn), msg);
+    let emit_message = SendMsgEvent { to, sn, msg };
+    e.events().publish(("EmitMessage",), emit_message);
 }

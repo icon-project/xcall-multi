@@ -10,6 +10,7 @@ doctest = false
 
 [dependencies]
 soroban-sdk = { workspace = true, features = ["alloc"] }
+soroban-rlp = { path = "../../libs/soroban-rlp" }
 
 [dev-dependencies]
 soroban-sdk = { workspace = true, features = ["testutils"] }

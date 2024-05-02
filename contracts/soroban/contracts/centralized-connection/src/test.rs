@@ -2,10 +2,13 @@
 
 extern crate std;
 
+mod xcall {
+    soroban_sdk::contractimport!(file = "./wasm/xcall.wasm");
+}
+
 use crate::{
     contract::{CentralizedConnection, CentralizedConnectionClient},
-    helpers::xcall,
-    types::InitializeMsg,
+    types::{InitializeMsg, SendMsgEvent},
 };
 use soroban_sdk::{
     symbol_short,
@@ -247,6 +250,11 @@ fn test_send_message() {
         )]
     );
 
+    let emit_msg = SendMsgEvent {
+        to: ctx.nid.clone(),
+        sn: 1_u128,
+        msg: msg.clone(),
+    };
     let event = vec![&ctx.env, ctx.env.events().all().last_unchecked()];
     assert_eq!(
         event,
@@ -254,8 +262,8 @@ fn test_send_message() {
             &ctx.env,
             (
                 client.address.clone(),
-                ("CentralizedConnection", "Message", ctx.nid, 1_u128).into_val(&ctx.env),
-                msg.into_val(&ctx.env)
+                ("EmitMessage",).into_val(&ctx.env),
+                emit_msg.into_val(&ctx.env)
             )
         ]
     )

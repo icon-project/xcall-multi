@@ -1,11 +1,11 @@
 use soroban_sdk::{token, Address, Bytes, Env, String};
 
-pub mod xcall {
-    soroban_sdk::contractimport!(file = "../../target/wasm32-unknown-unknown/release/xcall.wasm");
-}
-
 use crate::contract::CentralizedConnection;
 use crate::errors::ContractError;
+
+mod xcall {
+    soroban_sdk::contractimport!(file = "./wasm/xcall.wasm");
+}
 
 impl CentralizedConnection {
     pub fn ensure_admin(e: &Env) -> Result<Address, ContractError> {
