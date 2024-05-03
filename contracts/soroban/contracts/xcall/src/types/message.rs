@@ -1,47 +1,22 @@
-use soroban_sdk::{contracttype, Bytes};
-
-use super::{request::CSMessageRequest, result::CSMessageResult};
+use soroban_sdk::{contracttype, Address, Bytes, String};
 
 #[contracttype]
-#[derive(Clone, Copy)]
-pub enum CSMessageType {
-    CSMessageRequest = 1,
-    CSMessageResult = 0,
+#[derive(Clone, Copy, PartialEq, Eq)]
+#[repr(u32)]
+pub enum MessageType {
+    CallMessage = 0,
+    CallMessageWithRollback = 1,
+    CallMessagePersisted = 2,
 }
 
 #[contracttype]
-#[derive(Clone)]
-pub struct CSMessage {
-    message_type: CSMessageType,
-    payload: Bytes,
+pub struct InitializeMsg {
+    pub network_id: String,
+    pub sender: Address,
+    pub native_token: Address,
 }
 
-impl From<CSMessageRequest> for CSMessage {
-    // TODO: rlp encode value as payload
-    fn from(value: CSMessageRequest) -> Self {
-        Self {
-            message_type: CSMessageType::CSMessageRequest,
-            payload: value.data().clone(),
-        }
-    }
-}
-
-impl From<CSMessageResult> for CSMessage {
-    // TODO: rlp encode value as payload
-    fn from(value: CSMessageResult) -> Self {
-        Self {
-            message_type: CSMessageType::CSMessageResult,
-            payload: value.message().clone().unwrap(),
-        }
-    }
-}
-
-impl CSMessage {
-    pub fn message_type(&self) -> &CSMessageType {
-        &self.message_type
-    }
-
-    pub fn payload(&self) -> &Bytes {
-        &self.payload
-    }
+pub trait IMessage {
+    fn data(&self) -> Bytes;
+    fn rollback(&self) -> Option<Bytes>;
 }

@@ -4,15 +4,15 @@ use crate::{
     contract::Xcall,
     errors::ContractError,
     types::{
-        message_types::Rollback,
-        network_address::{NetId, NetworkAddress},
+        network_address::NetworkAddress,
         request::CSMessageRequest,
+        rollback::Rollback,
         storage_types::{Config, StorageKey},
     },
 };
 
-pub const MAX_ROLLBACK_SIZE: usize = 1024;
-pub const MAX_DATA_SIZE: usize = 2048;
+pub const MAX_ROLLBACK_SIZE: u64 = 1024;
+pub const MAX_DATA_SIZE: u64 = 2048;
 
 impl Xcall {
     pub fn is_initialized(e: &Env) -> Result<(), ContractError> {
@@ -47,15 +47,14 @@ impl Xcall {
         }
     }
 
-    pub fn protocol_fee(e: &Env) -> Result<u128, ContractError> {
-        if let Some(fee) = e.storage().instance().get(&StorageKey::ProtocolFee) {
-            Ok(fee)
-        } else {
-            Err(ContractError::Uninitialized)
-        }
+    pub fn protocol_fee(e: &Env) -> u128 {
+        e.storage()
+            .instance()
+            .get(&StorageKey::ProtocolFee)
+            .unwrap_or(0)
     }
 
-    pub fn default_connection(e: &Env, nid: NetId) -> Result<Address, ContractError> {
+    pub fn default_connection(e: &Env, nid: String) -> Result<Address, ContractError> {
         if let Some(address) = e
             .storage()
             .instance()
@@ -160,7 +159,7 @@ impl Xcall {
         e.storage().instance().set(&StorageKey::ProtocolFee, &fee)
     }
 
-    pub fn store_default_connection(e: &Env, nid: NetId, address: &Address) {
+    pub fn store_default_connection(e: &Env, nid: String, address: &Address) {
         e.storage()
             .instance()
             .set(&StorageKey::DefaultConnections(nid), &address);

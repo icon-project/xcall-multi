@@ -1,14 +1,12 @@
 use soroban_sdk::{contracttype, Address, BytesN, String};
 
-use super::network_address::NetId;
-
 #[contracttype]
 pub enum StorageKey {
     Admin,
     Config,
     FeeHandler,
     ProtocolFee,
-    DefaultConnections(NetId),
+    DefaultConnections(String),
     SuccessfulResponses(u128),
     Sn,
     Rollback(u128),

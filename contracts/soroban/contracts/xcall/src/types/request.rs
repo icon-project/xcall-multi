@@ -1,4 +1,4 @@
-use super::{message_types::MessageType, network_address::NetworkAddress};
+use super::{message::MessageType, network_address::NetworkAddress};
 
 use soroban_sdk::{contracttype, Bytes, String, Vec};
 

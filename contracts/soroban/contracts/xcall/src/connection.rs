@@ -2,7 +2,9 @@ use crate::{contract::Xcall, errors::ContractError};
 use soroban_sdk::{Address, Bytes, Env, String};
 
 pub mod centralized_connection {
-    soroban_sdk::contractimport!(file = "./wasm/centralized_connection.wasm");
+    soroban_sdk::contractimport!(
+        file = "../../target/wasm32-unknown-unknown/release/centralized_connection.wasm"
+    );
 }
 
 impl Xcall {
@@ -27,7 +29,7 @@ impl Xcall {
     ) -> Result<(), ContractError> {
         Self::ensure_data_size(msg.len() as usize)?;
         let client = centralized_connection::Client::new(&e, &Address::from_string(&address));
-        client.send_message(&amount, &nid, &sn);
+        client.send_message(&amount, &nid, &sn, &msg);
 
         Ok(())
     }

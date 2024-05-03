@@ -4,7 +4,7 @@ use crate::{
     contract::Xcall,
     errors::ContractError,
     states::{MAX_DATA_SIZE, MAX_ROLLBACK_SIZE},
-    types::message_types::Rollback,
+    types::rollback::Rollback,
 };
 
 pub const C_ASCII_VALUE: u32 = 67;
@@ -26,7 +26,7 @@ impl Xcall {
     }
 
     pub fn ensure_data_size(len: usize) -> Result<(), ContractError> {
-        if len > MAX_DATA_SIZE {
+        if len > MAX_DATA_SIZE as usize {
             return Err(ContractError::MaxDataSizeExceeded);
         }
 
@@ -34,7 +34,7 @@ impl Xcall {
     }
 
     pub fn ensure_rollback_size(msg: &Bytes) -> Result<(), ContractError> {
-        if !msg.is_empty() || msg.len() as usize > MAX_ROLLBACK_SIZE {
+        if !msg.is_empty() && msg.len() > MAX_ROLLBACK_SIZE as u32 {
             return Err(ContractError::MaxRollbackSizeExceeded);
         }
 

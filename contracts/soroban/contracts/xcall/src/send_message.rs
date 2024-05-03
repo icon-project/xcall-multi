@@ -4,16 +4,12 @@ use crate::{
     contract::Xcall,
     errors::ContractError,
     event,
+    messages::{cs_message::CSMessage, envelope::Envelope, AnyMessage},
     types::{
-        message::CSMessage,
-        message_types::{AnyMessage, Envelope, IMessage, Rollback},
-        network_address::{NetId, NetworkAddress},
-        request::CSMessageRequest,
+        message::IMessage, network_address::NetworkAddress, request::CSMessageRequest,
+        rollback::Rollback,
     },
 };
-
-// TODO
-// 1. centralized-connection parameters should be String -> NetId(String)
 
 impl Xcall {
     pub fn send_message(
@@ -35,32 +31,32 @@ impl Xcall {
         Self::process_message(&env, &to, sequence_no, &sender, &envelope)?;
 
         let request = CSMessageRequest::new(
-            from.clone(),
+            from,
             dst_account,
             sequence_no,
-            envelope.destinations.clone(),
+            envelope.destinations,
             envelope.message.msg_type(),
-            envelope.message.data().clone(),
+            envelope.message.data(),
         );
 
         let need_response = request.need_response();
 
-        // TODO: rlp encoding and ensure data length
-        let _msg: CSMessage = request.clone().into();
-        let msg = Bytes::new(&env);
+        let cs_message = CSMessage::encode(&env, &request.clone().into());
+        Self::ensure_data_size(cs_message.len() as usize)?;
 
         if Self::is_reply(&env, &nid_to, &envelope.sources) && !need_response {
             Self::store_call_reply(&env, &request);
         } else {
+            Self::transfer_token(&env, &sender, &env.current_contract_address(), &amount)?;
             let connections_fee = Self::call_connection(
                 &env,
                 &nid_to,
                 sequence_no,
                 envelope.sources,
                 need_response,
-                msg,
+                cs_message,
             )?;
-            Self::claim_protocol_fee(&env, &sender, amount, connections_fee)?;
+            Self::claim_protocol_fee(&env, amount, connections_fee)?;
         }
 
         event::message_sent(&env, sender, to, sequence_no);
@@ -68,9 +64,8 @@ impl Xcall {
         Ok(sequence_no)
     }
 
-    fn claim_protocol_fee(
+    pub fn claim_protocol_fee(
         e: &Env,
-        sender: &Address,
         amount: u128,
         connections_fee: u128,
     ) -> Result<(), ContractError> {
@@ -82,15 +77,20 @@ impl Xcall {
         let remaining_fee = amount - connections_fee;
         if remaining_fee > 0 {
             let fee_handler = Self::get_fee_handler(&e)?;
-            Self::transfer_token(&e, &sender, &fee_handler, &remaining_fee)?;
+            Self::transfer_token(
+                &e,
+                &e.current_contract_address(),
+                &fee_handler,
+                &remaining_fee,
+            )?;
         }
 
         Ok(())
     }
 
-    fn call_connection(
+    pub fn call_connection(
         e: &Env,
-        nid: &NetId,
+        nid: &String,
         sequence_no: u128,
         sources: Vec<String>,
         rollback: bool,
@@ -103,19 +103,19 @@ impl Xcall {
             sources = vec![&e, default_conn.to_string()];
         }
 
-        let connections_fee = 0_u128;
+        let mut connections_fee = 0_u128;
         for source in sources.iter() {
-            let fee = Self::query_connection_fee(&e, &nid.0, rollback, &source)?;
+            let fee = Self::query_connection_fee(&e, &nid, rollback, &source)?;
             if fee > 0 {
-                connections_fee.checked_add(fee).expect("no overflow");
+                connections_fee = connections_fee.checked_add(fee).expect("no overflow");
             }
-            Self::call_connection_send_message(&e, &source, fee, &nid.0, sn, &msg)?;
+            Self::call_connection_send_message(&e, &source, fee, &nid, sn, &msg)?;
         }
 
         Ok(connections_fee)
     }
 
-    fn process_message(
+    pub fn process_message(
         e: &Env,
         to: &NetworkAddress,
         sequence_no: u128,
@@ -131,16 +131,18 @@ impl Xcall {
                 }
                 Self::ensure_rollback_size(&msg.rollback)?;
 
-                let rollback_data = envelope.message.rollback().unwrap();
-                let rollback = Rollback::new(
-                    sender.clone(),
-                    to.clone(),
-                    envelope.sources.clone(),
-                    rollback_data,
-                    false,
-                );
-                Self::store_rollback(&e, sequence_no, &rollback);
+                if envelope.message.rollback().is_some() {
+                    let rollback_data = envelope.message.rollback().unwrap();
+                    let rollback = Rollback::new(
+                        sender.clone(),
+                        to.clone(),
+                        envelope.sources.clone(),
+                        rollback_data,
+                        false,
+                    );
 
+                    Self::store_rollback(&e, sequence_no, &rollback);
+                }
                 Ok(())
             }
         }
@@ -148,7 +150,7 @@ impl Xcall {
 
     pub fn get_total_fee(
         env: &Env,
-        nid: &NetId,
+        nid: &String,
         sources: Vec<String>,
         rollback: bool,
     ) -> Result<u128, ContractError> {
@@ -162,19 +164,19 @@ impl Xcall {
             sources = vec![&env, default_conn.to_string()];
         }
 
-        let protocol_fee = Self::protocol_fee(&env)?;
-        let connections_fee = 0_u128;
+        let protocol_fee = Self::protocol_fee(&env);
+        let mut connections_fee = 0_u128;
         for source in sources.iter() {
-            let fee = Self::query_connection_fee(&env, &nid.0, rollback, &source)?;
+            let fee = Self::query_connection_fee(&env, &nid, rollback, &source)?;
             if fee > 0 {
-                connections_fee.checked_add(fee).expect("no overflow");
+                connections_fee = connections_fee.checked_add(fee).expect("no overflow");
             }
         }
 
         Ok(connections_fee + protocol_fee)
     }
 
-    fn is_reply(e: &Env, nid: &NetId, sources: &Vec<String>) -> bool {
+    pub fn is_reply(e: &Env, nid: &String, sources: &Vec<String>) -> bool {
         if let Some(req) = Self::get_reply_state(&e) {
             if req.from().nid(&e) != *nid {
                 return false;
@@ -184,7 +186,7 @@ impl Xcall {
         false
     }
 
-    fn are_array_equal(protocols: &Vec<String>, sources: &Vec<String>) -> bool {
+    pub fn are_array_equal(protocols: &Vec<String>, sources: &Vec<String>) -> bool {
         if protocols.len() != sources.len() {
             return false;
         }

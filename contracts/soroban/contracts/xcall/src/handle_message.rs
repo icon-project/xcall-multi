@@ -4,19 +4,18 @@ use crate::{
     contract::Xcall,
     errors::ContractError,
     event,
+    messages::cs_message::{CSMessage, CSMessageType},
     types::{
-        message::{CSMessage, CSMessageType},
-        message_types::Rollback,
-        network_address::NetId,
         request::CSMessageRequest,
         result::{CSMessageResult, CSResponseType},
+        rollback::Rollback,
     },
 };
 
 impl Xcall {
-    pub fn handle(env: &Env, from_nid: NetId, _msg: CSMessage) -> Result<(), ContractError> {
+    pub fn handle(env: &Env, from_nid: String, _msg: CSMessage) -> Result<(), ContractError> {
         let config = Self::get_config(&env)?;
-        if config.network_id != from_nid.0 {
+        if config.network_id != from_nid {
             return Err(ContractError::ProtocolsMismatch);
         }
 
@@ -36,7 +35,7 @@ impl Xcall {
     pub fn handle_request(
         env: &Env,
         sender: &Address,
-        from_net: NetId,
+        from_net: String,
         req: &CSMessageRequest,
     ) -> Result<(), ContractError> {
         // TODO: rlp decoding of data
@@ -192,7 +191,7 @@ impl Xcall {
     pub fn is_valid_source(
         e: &Env,
         sender: &String,
-        src_net: NetId,
+        src_net: String,
         protocols: &Vec<String>,
     ) -> Result<bool, ContractError> {
         if protocols.contains(sender) {

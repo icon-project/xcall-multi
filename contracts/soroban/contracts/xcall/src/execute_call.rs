@@ -4,7 +4,8 @@ use crate::{
     contract::Xcall,
     errors::ContractError,
     event,
-    types::{message::CSMessage, message_types::MessageType, result::CSMessageResult},
+    messages::cs_message::CSMessage,
+    types::{message::MessageType, result::CSMessageResult},
 };
 
 impl Xcall {
@@ -72,7 +73,7 @@ impl Xcall {
                 }
 
                 for to in destinations {
-                    Self::call_connection_send_message(&env, &to, 0_u128, &nid.0, sn, &message)?;
+                    Self::call_connection_send_message(&env, &to, 0_u128, &nid, sn, &message)?;
                 }
             }
         };

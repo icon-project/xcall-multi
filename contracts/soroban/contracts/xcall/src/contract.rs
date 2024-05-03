@@ -2,11 +2,8 @@ use soroban_sdk::{contract, contractimpl, Address, Bytes, Env, String, Vec};
 
 use crate::{
     errors::ContractError,
-    types::{
-        message_types::{Envelope, InitializeMsg},
-        network_address::{NetId, NetworkAddress},
-        storage_types::Config,
-    },
+    messages::envelope::Envelope,
+    types::{message::InitializeMsg, network_address::NetworkAddress, storage_types::Config},
 };
 
 #[contract]
@@ -37,7 +34,7 @@ impl Xcall {
         Ok(())
     }
 
-    pub fn set_protocol_fee(env: Env, fee: u128) -> Result<(), ContractError> {
+    pub fn set_protocol_fee(env: &Env, fee: u128) -> Result<(), ContractError> {
         Self::ensure_fee_handler(&env)?;
         Self::store_protocol_fee(&env, fee);
 
@@ -53,7 +50,7 @@ impl Xcall {
 
     pub fn set_default_connection(
         env: &Env,
-        nid: NetId,
+        nid: String,
         address: Address,
     ) -> Result<(), ContractError> {
         Self::ensure_admin(&env)?;
@@ -85,7 +82,7 @@ impl Xcall {
 
     pub fn get_fee(
         env: Env,
-        nid: NetId,
+        nid: String,
         rollback: bool,
         sources: Option<Vec<String>>,
     ) -> Result<u128, ContractError> {
@@ -94,7 +91,7 @@ impl Xcall {
     }
 
     pub fn get_protocol_fee(env: &Env) -> Result<u128, ContractError> {
-        let fee = Self::protocol_fee(&env)?;
+        let fee = Self::protocol_fee(&env);
         Ok(fee)
     }
 
@@ -103,7 +100,7 @@ impl Xcall {
         Ok(fee_handler)
     }
 
-    pub fn get_default_connection(env: Env, nid: NetId) -> Result<Address, ContractError> {
+    pub fn get_default_connection(env: Env, nid: String) -> Result<Address, ContractError> {
         let connection = Self::default_connection(&env, nid)?;
         Ok(connection)
     }
