@@ -47,6 +47,7 @@ module xcall::main {
     const EInvalidMsgType: u64 = 9;
     const ERollbackNotEnabled:u64 = 10;
     const EInfallible:u64 = 11;
+    const EInvalidAccess:u64 =12;
 
     const MAX_DATA_SIZE: u64 = 2048;
     const NID: vector<u8> = b"sui";
@@ -415,6 +416,7 @@ module xcall::main {
 
         let data_hash = hash::keccak256(&data);
         assert!(msg_data_hash == data_hash, EDataMismatch);
+        assert!(to==utils::id_to_hex_string(&xcall_state::get_id_cap_id(cap)),EInvalidAccess);
         if(msg_type==call_message_rollback::msg_type()){
             xcall_state::set_reply_state(self, *proxy_request);
         };
@@ -426,6 +428,7 @@ module xcall::main {
         );   
         ticket
     }
+
 
     public fun execute_call_result(self:&mut Storage,ticket:ExecuteTicket,success:bool,mut fee:Coin<SUI>,ctx:&mut TxContext){
         let request_id=ticket.request_id();
