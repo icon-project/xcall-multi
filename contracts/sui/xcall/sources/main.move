@@ -424,6 +424,7 @@ module xcall::main {
             xcall_state::get_id_cap_id(cap),
             request_id,
             from,
+            protocols,
             data,
         );   
         ticket
