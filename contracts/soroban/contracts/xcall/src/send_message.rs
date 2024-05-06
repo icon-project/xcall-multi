@@ -41,8 +41,9 @@ impl Xcall {
 
         let need_response = request.need_response();
 
-        let cs_message = CSMessage::encode(&env, &request.clone().into());
-        Self::ensure_data_size(cs_message.len() as usize)?;
+        let cs_message = CSMessage::from_request(&env, &request);
+        let encode_msg = cs_message.encode(&env);
+        Self::ensure_data_size(encode_msg.len() as usize)?;
 
         if Self::is_reply(&env, &nid_to, &envelope.sources) && !need_response {
             Self::store_call_reply(&env, &request);
@@ -54,7 +55,7 @@ impl Xcall {
                 sequence_no,
                 envelope.sources,
                 need_response,
-                cs_message,
+                encode_msg,
             )?;
             Self::claim_protocol_fee(&env, amount, connections_fee)?;
         }

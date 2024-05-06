@@ -1,12 +1,33 @@
 use soroban_sdk::{contracttype, Address, Bytes, String};
 
 #[contracttype]
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 #[repr(u32)]
 pub enum MessageType {
     CallMessage = 0,
     CallMessageWithRollback = 1,
     CallMessagePersisted = 2,
+}
+
+impl From<MessageType> for u32 {
+    fn from(value: MessageType) -> Self {
+        match value {
+            MessageType::CallMessage => 0,
+            MessageType::CallMessageWithRollback => 1,
+            MessageType::CallMessagePersisted => 2,
+        }
+    }
+}
+
+impl From<u32> for MessageType {
+    fn from(value: u32) -> Self {
+        match value {
+            0 => MessageType::CallMessage,
+            1 => MessageType::CallMessageWithRollback,
+            2 => MessageType::CallMessagePersisted,
+            _ => panic!("invalid message type"),
+        }
+    }
 }
 
 #[contracttype]

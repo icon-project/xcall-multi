@@ -27,6 +27,10 @@ impl NetworkAddress {
         &self.0
     }
 
+    pub fn to_network_address(address: String) -> Self {
+        NetworkAddress(address)
+    }
+
     pub fn parse_network_address(&self, e: &Env) -> (String, String) {
         let network_address = self.get_parts();
         let nid = String::from_str(&e, network_address[0].as_str());

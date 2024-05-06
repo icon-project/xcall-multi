@@ -19,4 +19,6 @@ pub enum ContractError {
     InvalidType = 13,
     CallRequestNotFound = 14,
     InvalidReplyReceived = 15,
+    InvalidRlpLength = 19,
+    NoRollbackData = 20,
 }

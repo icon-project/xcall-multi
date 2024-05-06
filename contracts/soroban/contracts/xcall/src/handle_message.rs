@@ -1,4 +1,4 @@
-use soroban_sdk::{xdr::ToXdr, Address, Env, String, Vec};
+use soroban_sdk::{Address, Bytes, Env, String, Vec};
 
 use crate::{
     contract::Xcall,
@@ -13,33 +13,35 @@ use crate::{
 };
 
 impl Xcall {
-    pub fn handle(env: &Env, from_nid: String, _msg: CSMessage) -> Result<(), ContractError> {
+    pub fn handle_call(
+        env: &Env,
+        sender: &Address,
+        from_nid: String,
+        msg: Bytes,
+    ) -> Result<(), ContractError> {
         let config = Self::get_config(&env)?;
-        if config.network_id != from_nid {
+        if config.network_id == from_nid {
             return Err(ContractError::ProtocolsMismatch);
         }
 
-        // TODO: _msg will be Bytes -> decode and then use here
-        match _msg.message_type() {
+        let cs_message: CSMessage = CSMessage::decode(&env, msg)?;
+        match cs_message.message_type() {
             CSMessageType::CSMessageRequest => {
-                // Self::handle_request(&env, sender, from_nid, req);
+                Self::handle_request(&env, sender, from_nid, cs_message.payload().clone())
             }
             CSMessageType::CSMessageResult => {
-                // Self::handle_result(&env, sender, data);s
+                Self::handle_result(&env, sender, cs_message.payload().clone())
             }
         }
-
-        Ok(())
     }
 
     pub fn handle_request(
         env: &Env,
         sender: &Address,
         from_net: String,
-        req: &CSMessageRequest,
+        data: Bytes,
     ) -> Result<(), ContractError> {
-        // TODO: rlp decoding of data
-        let req = req;
+        let mut req = CSMessageRequest::decode(&env, data.clone())?;
 
         let (src_net, _) = req.from().parse_network_address(&env);
         if src_net != from_net {
@@ -52,7 +54,7 @@ impl Xcall {
         }
 
         if req.protocols().len() > 1 {
-            let hash = env.crypto().keccak256(&req.clone().to_xdr(&env));
+            let hash = env.crypto().keccak256(&data);
             let mut pending_request = Self::get_pending_request(&env, hash.clone());
 
             if !pending_request.contains(source.clone()) {
@@ -66,16 +68,6 @@ impl Xcall {
         }
 
         let req_id = Self::increment_last_request_id(&env);
-        let request = CSMessageRequest::new(
-            req.from().clone(),
-            req.to().clone(),
-            req.sequence_no(),
-            req.protocols().clone(),
-            req.msg_type(),
-            env.crypto().keccak256(&req.data()).to_xdr(&env),
-        );
-
-        Self::store_proxy_request(&env, req_id, &request);
 
         event::call_message(
             &env,
@@ -86,16 +78,14 @@ impl Xcall {
             req.data().clone(),
         );
 
+        req.hash_data(&env);
+        Self::store_proxy_request(&env, req_id, &req);
+
         Ok(())
     }
 
-    pub fn handle_result(
-        env: &Env,
-        sender: &Address,
-        data: CSMessageResult,
-    ) -> Result<(), ContractError> {
-        // TODO: rlp decode data
-        let result = data;
+    pub fn handle_result(env: &Env, sender: &Address, data: Bytes) -> Result<(), ContractError> {
+        let result = CSMessageResult::decode(&env, data.clone())?;
 
         let source = sender.to_string();
         let sequence_no = result.sequence_no();
@@ -108,7 +98,7 @@ impl Xcall {
         }
 
         if rollback.protocols().len() > 1 {
-            let hash = env.crypto().keccak256(&result.clone().to_xdr(&env));
+            let hash = env.crypto().keccak256(&data);
             let mut pending_response = Self::get_pending_response(&env, hash.clone());
 
             if !pending_response.contains(source.clone()) {
@@ -128,22 +118,20 @@ impl Xcall {
                 Self::remove_rollback(&env, sequence_no);
                 Self::save_success_response(&env, sequence_no);
 
-                if result.message().is_some() {
-                    let _reply_msg = result.message().unwrap();
-                    // Self::handle_reply(&env, &rollback, reply_msg);
+                let result_msg = result.message(&env);
+                if result_msg.is_some() {
+                    let mut reply_msg = result_msg.unwrap();
+                    Self::handle_reply(&env, &rollback, &mut reply_msg)?;
                 }
-
-                ()
             }
             _ => {
-                Self::ensure_rollback_size(&rollback.rollback())?;
+                if rollback.rollback().len() < 1 {
+                    return Err(ContractError::NoRollbackData);
+                }
                 rollback.enable();
-
                 Self::store_rollback(&env, sequence_no, &rollback);
 
                 event::rollback_message(&env, sequence_no);
-
-                ()
             }
         }
 
@@ -153,39 +141,39 @@ impl Xcall {
     pub fn handle_reply(
         env: &Env,
         rollback: &Rollback,
-        reply: CSMessageRequest,
+        reply: &mut CSMessageRequest,
     ) -> Result<(), ContractError> {
         if rollback.to().nid(&env) != reply.from().nid(&env) {
             return Err(ContractError::InvalidReplyReceived);
         }
         let req_id = Self::increment_last_request_id(&env);
 
-        let req = CSMessageRequest::new(
+        event::call_message(
+            &env,
             reply.from().clone(),
             reply.to().clone(),
             reply.sequence_no(),
-            reply.protocols().clone(),
-            reply.msg_type(),
-            env.crypto().keccak256(&reply.data()).to_xdr(&env),
+            req_id,
+            reply.data().clone(),
         );
 
-        Self::store_proxy_request(&env, req_id, &req);
-        event::call_message(
-            &env,
-            req.from().clone(),
-            req.to().clone(),
-            req.sequence_no(),
-            req_id,
-            req.data().clone(),
-        );
+        reply.hash_data(&env);
+        Self::store_proxy_request(&env, req_id, &reply);
 
         Ok(())
     }
 
-    pub fn handle_error_message(env: &Env, _sender: Address, sn: u128) {
-        let _msg = CSMessageResult::new(&env, sn, CSResponseType::CSResponseFailure, None);
-        // TODO: rlp encode msg
-        // Self::handle_result(&env, &sender, _msg);
+    pub fn handle_error_message(
+        env: &Env,
+        sender: Address,
+        sequence_no: u128,
+    ) -> Result<(), ContractError> {
+        let cs_message_result = CSMessageResult::new(
+            sequence_no,
+            CSResponseType::CSResponseFailure,
+            Bytes::new(&env),
+        );
+        Self::handle_result(&env, &sender, cs_message_result.encode(&env))
     }
 
     pub fn is_valid_source(

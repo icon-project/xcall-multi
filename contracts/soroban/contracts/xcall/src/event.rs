@@ -11,11 +11,11 @@ pub struct CallMsgSentEvent {
 
 #[contracttype]
 pub struct CallMsgEvent {
-    from: NetworkAddress,
-    to: String,
-    sn: u128,
-    req_id: u128,
-    data: Bytes,
+    pub from: NetworkAddress,
+    pub to: String,
+    pub sn: u128,
+    pub req_id: u128,
+    pub data: Bytes,
 }
 
 #[contracttype]

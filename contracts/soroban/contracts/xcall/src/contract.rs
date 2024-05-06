@@ -65,9 +65,30 @@ impl Xcall {
         to: NetworkAddress,
         fee: u128,
         sender: Address,
+    ) -> Result<u128, ContractError> {
+        let sn = Self::send_message(&env, envelope, to, fee, sender)?;
+        Ok(sn)
+    }
+
+    pub fn handle_message(
+        env: Env,
+        sender: Address,
+        from_nid: String,
+        msg: Bytes,
     ) -> Result<(), ContractError> {
-        Self::send_message(&env, envelope, to, fee, sender)?;
-        Ok(())
+        Self::handle_call(&env, &sender, from_nid, msg)
+    }
+
+    pub fn handle_error(env: Env, sender: Address, sequence_no: u128) -> Result<(), ContractError> {
+        Self::handle_error_message(&env, sender, sequence_no)
+    }
+
+    pub fn execute_call(env: Env, req_id: u128, data: Bytes) -> Result<(), ContractError> {
+        Self::execute_message(&env, req_id, data)
+    }
+
+    pub fn execute_rollback(env: Env, sequence_no: u128) -> Result<(), ContractError> {
+        Self::execute_rollback_message(&env, sequence_no)
     }
 
     pub fn get_admin(env: Env) -> Result<Address, ContractError> {
@@ -108,8 +129,4 @@ impl Xcall {
     pub fn verify_success(env: Env, sn: u128) -> bool {
         Self::get_successful_response(&env, sn)
     }
-
-    pub fn handle_message(_env: Env, _from_nid: String, _msg: Bytes) -> () {}
-
-    pub fn handle_error(_env: Env, _sn: u128) -> () {}
 }

@@ -1,9 +1,11 @@
-use soroban_sdk::{contracttype, Bytes, Env};
+use soroban_rlp::{decoder, encoder};
+use soroban_sdk::{contracttype, Bytes, Env, Vec};
 
+use super::request::CSMessageRequest;
 use crate::errors::ContractError;
 
 #[contracttype]
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum CSResponseType {
     CSResponseFailure = 0,
     CSResponseSuccess = 1,
@@ -18,13 +20,12 @@ impl From<CSResponseType> for u32 {
     }
 }
 
-impl TryFrom<u32> for CSResponseType {
-    type Error = ContractError;
-    fn try_from(value: u32) -> Result<Self, Self::Error> {
+impl From<u32> for CSResponseType {
+    fn from(value: u32) -> Self {
         match value {
-            0 => Ok(CSResponseType::CSResponseFailure),
-            1 => Ok(CSResponseType::CSResponseSuccess),
-            _ => Err(ContractError::InvalidType),
+            0 => CSResponseType::CSResponseFailure,
+            1 => CSResponseType::CSResponseSuccess,
+            _ => panic!("Invalid response type"),
         }
     }
 }
@@ -38,16 +39,11 @@ pub struct CSMessageResult {
 }
 
 impl CSMessageResult {
-    pub fn new(
-        e: &Env,
-        sequence_no: u128,
-        response_code: CSResponseType,
-        message: Option<Bytes>,
-    ) -> Self {
+    pub fn new(sequence_no: u128, response_code: CSResponseType, message: Bytes) -> Self {
         Self {
             sequence_no,
             response_code,
-            message: message.unwrap_or(Bytes::new(&e)),
+            message,
         }
     }
 
@@ -59,12 +55,41 @@ impl CSMessageResult {
         &self.response_code
     }
 
-    // TODO: rlp decode message and return
-    pub fn message(&self) -> Option<Bytes> {
+    pub fn message(&self, e: &Env) -> Option<CSMessageRequest> {
         if self.message.is_empty() {
             return None;
         }
 
-        Some(self.message.clone())
+        CSMessageRequest::decode(&e, self.message.clone()).ok()
+    }
+
+    pub fn encode(&self, e: &Env) -> Bytes {
+        let mut list: Vec<Bytes> = Vec::new(&e);
+
+        let code = self.response_code.into();
+
+        list.push_back(encoder::encode_u128(&e, self.sequence_no.clone()));
+        list.push_back(encoder::encode_u32(&e, code));
+        list.push_back(encoder::encode(&e, self.message.clone()));
+
+        let encoded = encoder::encode_list(&e, list, false);
+        encoded
+    }
+
+    pub fn decode(e: &Env, bytes: Bytes) -> Result<Self, ContractError> {
+        let decoded = decoder::decode_list(&e, bytes);
+        if decoded.len() != 3 {
+            return Err(ContractError::InvalidRlpLength);
+        }
+
+        let sequence_no = decoder::decode_u128(&e, decoded.get(0).unwrap());
+        let response_code = decoder::decode_u32(&e, decoded.get(1).unwrap());
+        let message = decoder::decode(&e, decoded.get(2).unwrap_or(Bytes::new(&e)));
+
+        Ok(Self {
+            sequence_no,
+            message,
+            response_code: response_code.into(),
+        })
     }
 }

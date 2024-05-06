@@ -1,24 +1,25 @@
-use soroban_sdk::{vec, xdr::ToXdr, Address, Bytes, Env};
+use soroban_sdk::{vec, Address, Bytes, Env};
 
 use crate::{
     contract::Xcall,
     errors::ContractError,
     event,
     messages::cs_message::CSMessage,
-    types::{message::MessageType, result::CSMessageResult},
+    types::{
+        message::MessageType,
+        result::{CSMessageResult, CSResponseType},
+    },
 };
 
 impl Xcall {
     pub fn execute_message(env: &Env, req_id: u128, data: Bytes) -> Result<(), ContractError> {
         let req = Self::get_proxy_request(&env, req_id)?;
-
-        let data_xdr = data.clone().to_xdr(&env);
-        if data_xdr != req.data().clone() {
+        if req.data() != &req.get_hash_data(&env) {
             return Err(ContractError::DataMismatch);
         }
+        Self::remove_proxy_request(&env, req_id);
 
         let to = Address::from_string(&req.to());
-        Self::remove_proxy_request(&env, req_id);
 
         match req.msg_type() {
             MessageType::CallMessage => {
@@ -52,20 +53,17 @@ impl Xcall {
                 );
                 Self::remove_reply_state(&env);
 
-                // TODO: rlp encode call reply
-                let _call_reply = Self::remove_call_reply(&env);
-                let call_reply = Some(Bytes::new(&env));
+                let response_code = code.into();
+                let mut message = Bytes::new(&env);
+                let call_reply = Self::remove_call_reply(&env);
+                if call_reply.is_some() && response_code == CSResponseType::CSResponseSuccess {
+                    message = call_reply.unwrap().encode(&env);
+                }
 
-                let response_code = code.try_into().unwrap();
-                let response =
-                    CSMessageResult::new(&env, req.sequence_no(), response_code, call_reply);
+                let result = CSMessageResult::new(req.sequence_no(), response_code, message);
+                let cs_message = CSMessage::from_result(&env, &result).encode(&env);
 
-                // TODO: rlp encode
-                let _message: CSMessage = response.into();
-                let message = Bytes::new(&env);
-
-                let sn = -(req.sequence_no() as i64);
-                let nid = req.from().nid(&env).clone();
+                let nid = req.from().nid(&env);
                 let mut destinations = req.protocols().clone();
                 if destinations.is_empty() {
                     let deafult_connection = Self::default_connection(&env, nid.clone())?;
@@ -73,7 +71,14 @@ impl Xcall {
                 }
 
                 for to in destinations {
-                    Self::call_connection_send_message(&env, &to, 0_u128, &nid, sn, &message)?;
+                    Self::call_connection_send_message(
+                        &env,
+                        &to,
+                        0_u128,
+                        &nid,
+                        -(req.sequence_no() as i64),
+                        &cs_message,
+                    )?;
                 }
             }
         };
@@ -81,21 +86,18 @@ impl Xcall {
         Ok(())
     }
 
-    pub fn execute_rollback(env: &Env, sequence_no: u128) -> Result<(), ContractError> {
+    pub fn execute_rollback_message(env: &Env, sequence_no: u128) -> Result<(), ContractError> {
         let rollback = Self::get_rollback(&env, sequence_no)?;
-        Self::remove_rollback(&env, sequence_no);
         Self::ensure_rollback_enabled(&rollback)?;
-
-        let from = Self::get_own_network_address(&env)?;
+        Self::remove_rollback(&env, sequence_no);
 
         Self::handle_call_message(
             &env,
             rollback.from().clone(),
-            &from,
+            &Self::get_own_network_address(&env)?,
             rollback.rollback(),
             rollback.protocols().clone(),
         );
-
         event::rollback_executed(&env, sequence_no);
 
         Ok(())

@@ -21,13 +21,12 @@ impl From<CSMessageType> for u32 {
     }
 }
 
-impl TryFrom<u32> for CSMessageType {
-    type Error = ContractError;
-    fn try_from(value: u32) -> Result<Self, Self::Error> {
+impl From<u32> for CSMessageType {
+    fn from(value: u32) -> Self {
         match value {
-            1 => Ok(CSMessageType::CSMessageRequest),
-            0 => Ok(CSMessageType::CSMessageResult),
-            _ => Err(ContractError::InvalidMessageType),
+            1 => CSMessageType::CSMessageRequest,
+            0 => CSMessageType::CSMessageResult,
+            _ => panic!("Invalid message type"),
         }
     }
 }
@@ -39,26 +38,6 @@ pub struct CSMessage {
     payload: Bytes,
 }
 
-impl From<CSMessageRequest> for CSMessage {
-    // TODO: rlp encode value as payload
-    fn from(value: CSMessageRequest) -> Self {
-        Self {
-            message_type: CSMessageType::CSMessageRequest,
-            payload: value.data().clone(),
-        }
-    }
-}
-
-impl From<CSMessageResult> for CSMessage {
-    // TODO: rlp encode value as payload
-    fn from(value: CSMessageResult) -> Self {
-        Self {
-            message_type: CSMessageType::CSMessageResult,
-            payload: value.message().clone().unwrap(),
-        }
-    }
-}
-
 impl CSMessage {
     pub fn message_type(&self) -> &CSMessageType {
         &self.message_type
@@ -68,11 +47,25 @@ impl CSMessage {
         &self.payload
     }
 
-    pub fn encode(env: &Env, msg: &CSMessage) -> Bytes {
+    pub fn from_request(env: &Env, request: &CSMessageRequest) -> Self {
+        Self {
+            message_type: CSMessageType::CSMessageRequest,
+            payload: request.encode(&env),
+        }
+    }
+
+    pub fn from_result(env: &Env, result: &CSMessageResult) -> Self {
+        Self {
+            message_type: CSMessageType::CSMessageResult,
+            payload: result.encode(&env),
+        }
+    }
+
+    pub fn encode(&self, env: &Env) -> Bytes {
         let mut list = vec![&env];
 
-        list.push_back(encoder::encode_u32(&env, msg.message_type.into()));
-        list.push_back(encoder::encode(&env, msg.payload.clone()));
+        list.push_back(encoder::encode_u32(&env, self.message_type.into()));
+        list.push_back(encoder::encode(&env, self.payload.clone()));
 
         encoder::encode_list(&env, list, false)
     }
@@ -80,12 +73,16 @@ impl CSMessage {
     pub fn decode(env: &Env, bytes: Bytes) -> Result<Self, ContractError> {
         let decoded = decoder::decode_list(&env, bytes);
         if decoded.len() != 2 {
-            return Err(ContractError::InvalidMessage);
+            return Err(ContractError::InvalidRlpLength);
         }
 
-        let message_type: CSMessageType =
-            decoder::decode_u32(&env, decoded.get(0).unwrap()).try_into()?;
         let payload = decoded.get(1).unwrap();
+        let msg_type = decoded.get(0).unwrap();
+        let message_type = if msg_type.len() > 0 {
+            decoder::decode_u32(&env, decoded.get(0).unwrap()).into()
+        } else {
+            CSMessageType::CSMessageResult
+        };
 
         Ok(Self {
             message_type,
