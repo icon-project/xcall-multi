@@ -2,7 +2,6 @@ use super::utils::*;
 use soroban_sdk::{bytes, vec, Bytes, Env, String, Vec};
 
 pub fn encode(env: &Env, bytes: Bytes) -> Bytes {
-    let mut bytes = remove_leading_zero(&env, bytes);
     let len = bytes.len();
 
     let encoded = if len == 0 {
@@ -11,7 +10,7 @@ pub fn encode(env: &Env, bytes: Bytes) -> Bytes {
         bytes
     } else {
         let mut res = encode_length(&env, len as u64, 0x80);
-        res.append(&mut bytes);
+        res.append(&bytes);
         res
     };
 
@@ -46,11 +45,10 @@ pub fn encode_length(env: &Env, len: u64, offset: u8) -> Bytes {
         let len_u8 = len as u8;
         len_info.push_back(len_u8 + offset)
     } else {
-        let bytes_length = u64_to_bytes(&env, len);
-        let mut rlp_bytes = remove_leading_zero(&env, bytes_length);
-        let rlp_bytes_len = rlp_bytes.len() as u8;
+        let mut bytes_length = u64_to_bytes(&env, len);
+        let rlp_bytes_len = bytes_length.len() as u8;
         len_info.push_back(rlp_bytes_len + offset + 55);
-        len_info.append(&mut rlp_bytes);
+        len_info.append(&mut bytes_length);
     }
 
     len_info

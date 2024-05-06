@@ -8,7 +8,9 @@ pub fn u32_to_bytes(env: &Env, number: u32) -> Bytes {
     let mut i = 3;
     while i >= 0 {
         let val = (number >> (i * 8) & 0xff) as u8;
-        bytes.push_back(val);
+        if val > 0 {
+            bytes.push_back(val);
+        }
 
         i -= 1;
     }
@@ -28,7 +30,9 @@ pub fn u64_to_bytes(env: &Env, number: u64) -> Bytes {
     let mut i = 7;
     while i >= 0 {
         let val = (number >> (i * 8) & 0xff) as u8;
-        bytes.push_back(val);
+        if val > 0 {
+            bytes.push_back(val);
+        }
 
         i -= 1;
     }
@@ -48,7 +52,9 @@ pub fn u128_to_bytes(env: &Env, number: u128) -> Bytes {
     let mut i = 15;
     while i >= 0 {
         let val = (number >> (i * 8) & 0xff) as u8;
-        bytes.push_back(val);
+        if val > 0 {
+            bytes.push_back(val);
+        }
 
         i -= 1;
     }
@@ -62,16 +68,6 @@ pub fn bytes_to_u128(bytes: Bytes) -> u128 {
         num = (num << 8) | byte as u128
     }
     num
-}
-
-pub fn remove_leading_zero(env: &Env, bytes: Bytes) -> Bytes {
-    let mut new_bytes = Bytes::new(&env);
-    for byte in bytes {
-        if byte != 0 {
-            new_bytes.push_back(byte)
-        }
-    }
-    new_bytes
 }
 
 pub fn slice_vector(env: &Env, arr: Bytes, start: u64, length: u64) -> Bytes {

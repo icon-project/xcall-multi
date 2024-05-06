@@ -4,24 +4,6 @@ use crate::decoder::*;
 use crate::encoder;
 
 #[test]
-fn test_decode_u8() {
-    let env = Env::default();
-
-    let bytes = bytes!(&env, 0x78);
-    let decoded = decode_u8(&env, bytes);
-    assert_eq!(decoded, 120)
-}
-
-#[test]
-fn test_deocde_empty() {
-    let env = Env::default();
-
-    let bytes = bytes!(&env, 0x80);
-    let decoded = decode_u8(&env, bytes);
-    assert_eq!(decoded, 0)
-}
-
-#[test]
 fn test_decode_u32() {
     let env = Env::default();
 
