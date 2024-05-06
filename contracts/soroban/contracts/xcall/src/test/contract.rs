@@ -1,17 +1,14 @@
 #![cfg(test)]
 
-use std::println;
-
 use soroban_sdk::{
-    testutils::{Address as _, AuthorizedFunction, AuthorizedInvocation, Logs},
-    Address, IntoVal, Symbol,
+    testutils::{Address as _, AuthorizedFunction, AuthorizedInvocation},
+    vec, Address, IntoVal, String, Symbol, Vec,
 };
 
 extern crate std;
 
 use super::setup::*;
-
-use crate::contract::XcallClient;
+use crate::contract::{Xcall, XcallClient};
 
 #[test]
 fn test_initialize() {
@@ -84,8 +81,6 @@ fn test_protocol_fee() {
         )]
     );
     assert_eq!(client.get_protocol_fee(), 100);
-
-    println!("bytesmsg: {:?}", ctx.env.logs().all());
 }
 
 #[test]
@@ -131,7 +126,7 @@ fn test_get_default_connection_fail() {
 
     ctx.init_context(&client);
 
-    client.get_default_connection(&ctx.nid);
+    client.get_default_connection(&String::from_str(&ctx.env, "cosmos"));
 }
 
 #[test]
@@ -144,4 +139,36 @@ fn test_set_default_connection() {
     let default_connection = Address::generate(&ctx.env);
     client.set_default_connection(&ctx.nid, &default_connection);
     assert_eq!(client.get_default_connection(&ctx.nid), default_connection)
+}
+
+#[test]
+fn test_get_fee() {
+    let ctx = TestContext::default();
+    let client = XcallClient::new(&ctx.env, &ctx.contract);
+    ctx.init_context(&client);
+
+    let need_response = true;
+    let sources: Vec<String> = vec![&ctx.env];
+
+    let protocol_fee = client.get_protocol_fee();
+    let centralized_conn_fee = ctx.get_centralized_connection_fee(need_response);
+    let fee = client.get_fee(&ctx.nid, &need_response, &Some(sources));
+    assert_eq!(fee, protocol_fee + centralized_conn_fee)
+}
+
+#[test]
+fn test_get_fee_should_returns_zero_in_reply_state() {
+    let ctx = TestContext::default();
+    let client = XcallClient::new(&ctx.env, &ctx.contract);
+    ctx.init_context(&client);
+
+    let need_response = false;
+    let req = get_dummy_message_request(&ctx.env);
+    let sources = req.protocols().clone();
+
+    ctx.env
+        .as_contract(&ctx.contract, || Xcall::store_reply_state(&ctx.env, &req));
+
+    let fee = client.get_fee(&ctx.nid, &need_response, &Some(sources));
+    assert_eq!(fee, 0_u128);
 }
