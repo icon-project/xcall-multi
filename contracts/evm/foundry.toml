@@ -6,7 +6,6 @@ out = "out"
 libs = ["lib"]
 test = "test"
 
-
 [rpc_endpoints]
 local = "${LOCAL_RPC_URL}" 
 sepolia = "${SEPOLIA_RPC_URL}"
@@ -18,6 +17,7 @@ optimism_goerli = "${OPTIMISM_GOERLI_RPC_URL}"
 base_goerli = "${BASE_GOERLI_RPC_URL}"
 optimism_sepolia = "${OPTIMISM_SEPOLIA_RPC_URL}"
 arbitrum_sepolia = "${ARBITRUM_SEPOLIA_RPC_URL}"
+base_sepolia = "${BASE_SEPOLIA_RPC_URL}"
 
 ethereum= "${ETHEREUM_RPC_URL}"
 binance= "${BINANCE_RPC_URL}"
@@ -27,6 +27,7 @@ optimism= "${OPTIMISM_RPC_URL}"
 base= "${BASE_RPC_URL}"
 
 [etherscan]
+
 goerli = { key = "${ETHERSCAN_API_KEY}", chain="goerli"}
 sepolia = { key = "${ETHERSCAN_API_KEY}"}
 bsctest = { key = "${BSCSCAN_API_KEY}", chain="bsc-testnet"}
