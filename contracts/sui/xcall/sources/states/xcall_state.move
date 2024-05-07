@@ -22,7 +22,7 @@ module xcall::xcall_state {
         id:UID,
         xcall_id:ID,
     }
-    public (package) fun get_id_cap_id(cap:&IDCap):ID{
+    public fun get_id_cap_id(cap:&IDCap):ID{
         cap.id.to_inner()
     }
     public struct PackageCap has store {
