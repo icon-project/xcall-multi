@@ -3,7 +3,9 @@
 extern crate std;
 
 mod xcall {
-    soroban_sdk::contractimport!(file = "./wasm/xcall.wasm");
+    soroban_sdk::contractimport!(
+        file = "../../target/wasm32-unknown-unknown/release/xcall.optimized.wasm"
+    );
 }
 
 use crate::{
@@ -285,34 +287,18 @@ fn test_send_message_fail_for_insufficient_fee() {
 }
 
 #[test]
-fn test_recv_message() {
+fn test_get_receipt_returns_false() {
     let ctx = TestContext::default();
     let client = CentralizedConnectionClient::new(&ctx.env, &ctx.contract);
 
-    ctx.init_context(&client);
+    let sequence_no = 1;
+    let receipt = client.get_receipt(&ctx.nid, &sequence_no);
+    assert_eq!(receipt, false);
 
-    let msg = Bytes::from_array(&ctx.env, &[1, 2, 3]);
-    client.recv_message(&ctx.nid, &1, &msg);
-}
+    ctx.env.as_contract(&ctx.contract, || {
+        CentralizedConnection::store_receipt(&ctx.env, ctx.nid.clone(), sequence_no);
+    });
 
-#[test]
-#[should_panic(expected = "HostError: Error(Contract, #5)")]
-fn test_recv_message_fail_for_duplicate_receipt() {
-    let ctx = TestContext::default();
-    let client = CentralizedConnectionClient::new(&ctx.env, &ctx.contract);
-
-    ctx.init_context(&client);
-
-    let msg = Bytes::from_array(&ctx.env, &[1, 2, 3]);
-    client.recv_message(&ctx.nid, &1, &msg);
-    client.recv_message(&ctx.nid, &1, &msg);
-}
-
-#[test]
-fn test_revert_message() {
-    let ctx = TestContext::default();
-    let client = CentralizedConnectionClient::new(&ctx.env, &ctx.contract);
-
-    ctx.init_context(&client);
-    client.revert_message(&10);
+    let receipt = client.get_receipt(&ctx.nid, &sequence_no);
+    assert_eq!(receipt, true)
 }

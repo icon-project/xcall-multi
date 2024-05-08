@@ -1,11 +1,9 @@
-use crate::{contract::Xcall, errors::ContractError};
 use soroban_sdk::{Address, Bytes, Env, String};
 
-pub mod centralized_connection {
-    soroban_sdk::contractimport!(
-        file = "../../target/wasm32-unknown-unknown/release/centralized_connection.wasm"
-    );
-}
+use crate::{
+    contract::Xcall, errors::ContractError,
+    interfaces::interface_centralized_connection::CentralizedConnectionClient,
+};
 
 impl Xcall {
     pub fn query_connection_fee(
@@ -14,8 +12,9 @@ impl Xcall {
         response: bool,
         address: &String,
     ) -> Result<u128, ContractError> {
-        let client = centralized_connection::Client::new(&e, &Address::from_string(&address));
+        let client = CentralizedConnectionClient::new(&e, &Address::from_string(&address));
         let fee = client.get_fee(&nid, &response);
+
         Ok(fee)
     }
 
@@ -28,7 +27,7 @@ impl Xcall {
         msg: &Bytes,
     ) -> Result<(), ContractError> {
         Self::ensure_data_size(msg.len() as usize)?;
-        let client = centralized_connection::Client::new(&e, &Address::from_string(&address));
+        let client = CentralizedConnectionClient::new(&e, &Address::from_string(&address));
         client.send_message(&amount, &nid, &sn, &msg);
 
         Ok(())

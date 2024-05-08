@@ -1,11 +1,9 @@
 use soroban_sdk::{token, Address, Bytes, Env, String};
 
-use crate::contract::CentralizedConnection;
-use crate::errors::ContractError;
-
-mod xcall {
-    soroban_sdk::contractimport!(file = "./wasm/xcall.wasm");
-}
+use crate::{
+    contract::CentralizedConnection, errors::ContractError,
+    interfaces::interface_xcall::XcallClient,
+};
 
 impl CentralizedConnection {
     pub fn ensure_admin(e: &Env) -> Result<Address, ContractError> {
@@ -50,16 +48,16 @@ impl CentralizedConnection {
         msg: Bytes,
     ) -> Result<(), ContractError> {
         let xcall_addr = Self::get_xcall(&e)?;
-        let client = xcall::Client::new(&e, &xcall_addr);
-        client.handle_message(&nid, &msg);
+        let client = XcallClient::new(&e, &xcall_addr);
+        client.handle_message(&e.current_contract_address(), nid, &msg);
 
         Ok(())
     }
 
     pub fn call_xcall_handle_error(e: &Env, sn: u128) -> Result<(), ContractError> {
         let xcall_addr = Self::get_xcall(&e)?;
-        let client = xcall::Client::new(&e, &xcall_addr);
-        client.handle_error(&sn);
+        let client = XcallClient::new(&e, &xcall_addr);
+        client.handle_error(&e.current_contract_address(), &sn);
 
         Ok(())
     }

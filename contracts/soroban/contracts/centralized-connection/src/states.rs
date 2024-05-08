@@ -1,5 +1,3 @@
-use core::u128;
-
 use soroban_sdk::{Address, Env, String};
 
 use crate::contract::CentralizedConnection;
@@ -68,7 +66,7 @@ impl CentralizedConnection {
             .unwrap_or(0)
     }
 
-    pub fn get_receipt(e: &Env, network_id: String, sn: u128) -> bool {
+    pub fn get_sn_receipt(e: &Env, network_id: String, sn: u128) -> bool {
         e.storage()
             .instance()
             .get(&StorageKey::Receipts(network_id, sn))

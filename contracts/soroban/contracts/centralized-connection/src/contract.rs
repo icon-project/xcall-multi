@@ -1,7 +1,5 @@
 use soroban_sdk::{contract, contractimpl, token, Address, Bytes, Env, String};
 
-extern crate alloc;
-
 use crate::errors::ContractError;
 use crate::event;
 use crate::types::InitializeMsg;
@@ -100,7 +98,7 @@ impl CentralizedConnection {
     ) -> Result<(), ContractError> {
         Self::ensure_admin(&env)?;
 
-        if Self::get_receipt(&env, src_network.clone(), conn_sn) {
+        if Self::get_sn_receipt(&env, src_network.clone(), conn_sn) {
             return Err(ContractError::DuplicateMessage);
         }
         Self::store_receipt(&env, src_network.clone(), conn_sn);
@@ -184,5 +182,9 @@ impl CentralizedConnection {
     /// a `u128` fee required to send message
     pub fn get_fee(env: Env, network_id: String, response: bool) -> u128 {
         Self::get_network_fee(&env, network_id, response)
+    }
+
+    pub fn get_receipt(env: Env, network_id: String, sn: u128) -> bool {
+        Self::get_sn_receipt(&env, network_id, sn)
     }
 }
