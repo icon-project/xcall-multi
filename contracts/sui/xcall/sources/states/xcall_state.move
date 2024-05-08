@@ -125,6 +125,9 @@ module xcall::xcall_state {
 
 
     public(package) fun set_connection(self:&mut Storage,net_id:String,package_id:String){
+            if (vec_map::contains(&self.connections,&net_id)){
+                vec_map::remove(&mut self.connections,&net_id);
+            };
             vec_map::insert(&mut self.connections,net_id,package_id);
     }
 

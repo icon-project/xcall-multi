@@ -69,6 +69,12 @@ module xcall::centralized_state {
 
     public(package) fun set_fee(self: &mut State, net_id: String, message_fee: u64, response_fee: u64,caller:address) {
         ensure_admin(self,caller);
+        if (vec_map::contains(&self.message_fee,&net_id)){
+            vec_map::remove(&mut self.message_fee,&net_id);
+        };
+        if (vec_map::contains(&self.response_fee,&net_id)){
+            vec_map::remove(&mut self.response_fee,&net_id);
+        };
         vec_map::insert(&mut self.message_fee, net_id, message_fee);
         vec_map::insert(&mut self.response_fee, net_id, response_fee);
     }
