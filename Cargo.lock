@@ -1768,6 +1768,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "mock-dapp-multi"
+version = "0.0.0"
+dependencies = [
+ "soroban-rlp",
+ "soroban-sdk",
+ "xcall",
+]
+
+[[package]]
 name = "multimap"
 version = "0.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"

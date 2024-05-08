@@ -1,0 +1,17 @@
+[package]
+name = "mock-dapp-multi"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+doctest = false
+
+[dependencies]
+soroban-sdk = { workspace = true, features = ["alloc"] }
+soroban-rlp = { path = "../../libs/soroban-rlp" }
+xcall = { path = "../xcall" }
+
+[dev-dependencies]
+soroban-sdk = { workspace = true, features = ["testutils"] }

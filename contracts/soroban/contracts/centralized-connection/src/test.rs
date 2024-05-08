@@ -3,9 +3,7 @@
 extern crate std;
 
 mod xcall {
-    soroban_sdk::contractimport!(
-        file = "../../target/wasm32-unknown-unknown/release/xcall.optimized.wasm"
-    );
+    soroban_sdk::contractimport!(file = "../../target/wasm32-unknown-unknown/release/xcall.wasm");
 }
 
 use crate::{
