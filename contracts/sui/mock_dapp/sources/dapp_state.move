@@ -1,7 +1,7 @@
 module mock_dapp::dapp_state {
     use xcall::xcall_state::IDCap;
     use sui::object::{Self, UID,ID};
-   use sui::vec_map::{Self, VecMap};
+    use sui::vec_map::{Self, VecMap};
     use std::vector::{Self};
     use std::string::{Self,String};
     use xcall::execute_ticket::{Self};
@@ -62,6 +62,9 @@ module mock_dapp::dapp_state {
     }
 
     public fun add_connection(self:&mut DappState,net_id:String,source:String,dest:String,ctx:&mut TxContext){
+        if (vec_map::contains(&self.connections,&net_id)){
+            vec_map::remove(&mut self.connections,&net_id);
+        };
         vec_map::insert(&mut self.connections,net_id,Connection{source,destination:dest});
     }
 
