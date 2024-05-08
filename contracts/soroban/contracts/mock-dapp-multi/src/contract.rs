@@ -35,7 +35,7 @@ impl MockDapp {
         fee: u128,
     ) -> Result<(), ContractError> {
         let network_id = to.nid(&env);
-        let message = Self::process_message(msg_type, data, rollback)?;
+        let message = Self::process_message(msg_type as u8, data, rollback)?;
         let (sources, destinations) = Self::get_network_connections(&env, network_id)?;
 
         let envelope = Envelope {
@@ -107,7 +107,7 @@ impl MockDapp {
     }
 
     fn process_message(
-        message_type: u32,
+        message_type: u8,
         data: Bytes,
         rollback: Option<Bytes>,
     ) -> Result<AnyMessage, ContractError> {

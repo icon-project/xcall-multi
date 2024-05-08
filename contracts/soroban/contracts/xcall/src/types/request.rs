@@ -77,7 +77,7 @@ impl CSMessageRequest {
         list.push_back(encoder::encode_string(&e, self.from.as_string().clone()));
         list.push_back(encoder::encode_string(&e, self.to.clone()));
         list.push_back(encoder::encode_u128(&e, self.sequence_no));
-        list.push_back(encoder::encode_u32(&e, self.msg_type.into()));
+        list.push_back(encoder::encode_u8(&e, self.msg_type.into()));
         list.push_back(encoder::encode(&e, self.data.clone()));
         list.push_back(encoder::encode_strings(&e, self.protocols.clone()));
 
@@ -94,15 +94,9 @@ impl CSMessageRequest {
         let from = decoder::decode_string(e, decoded.get(0).unwrap());
         let to = decoder::decode_string(&e, decoded.get(1).unwrap());
         let sequence_no = decoder::decode_u128(&e, decoded.get(2).unwrap());
+        let msg_type = decoder::decode_u8(&e, decoded.get(3).unwrap()).into();
         let data = decoded.get(4).unwrap();
         let protocols = decoder::decode_strings(&e, decoded.get(5).unwrap());
-
-        let decoded_msg = decoded.get(3).unwrap();
-        let msg_type = if decoded_msg.len() > 0 {
-            decoder::decode_u32(&e, decoded_msg).into()
-        } else {
-            MessageType::CallMessage
-        };
 
         Ok(Self {
             from: NetworkAddress::to_network_address(from),

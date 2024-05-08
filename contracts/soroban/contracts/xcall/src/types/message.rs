@@ -9,7 +9,7 @@ pub enum MessageType {
     CallMessagePersisted = 2,
 }
 
-impl From<MessageType> for u32 {
+impl From<MessageType> for u8 {
     fn from(value: MessageType) -> Self {
         match value {
             MessageType::CallMessage => 0,
@@ -19,8 +19,8 @@ impl From<MessageType> for u32 {
     }
 }
 
-impl From<u32> for MessageType {
-    fn from(value: u32) -> Self {
+impl From<u8> for MessageType {
+    fn from(value: u8) -> Self {
         match value {
             0 => MessageType::CallMessage,
             1 => MessageType::CallMessageWithRollback,

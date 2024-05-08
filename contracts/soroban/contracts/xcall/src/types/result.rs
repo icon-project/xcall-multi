@@ -11,7 +11,7 @@ pub enum CSResponseType {
     CSResponseSuccess = 1,
 }
 
-impl From<CSResponseType> for u32 {
+impl From<CSResponseType> for u8 {
     fn from(value: CSResponseType) -> Self {
         match value {
             CSResponseType::CSResponseFailure => 0,
@@ -20,8 +20,8 @@ impl From<CSResponseType> for u32 {
     }
 }
 
-impl From<u32> for CSResponseType {
-    fn from(value: u32) -> Self {
+impl From<u8> for CSResponseType {
+    fn from(value: u8) -> Self {
         match value {
             0 => CSResponseType::CSResponseFailure,
             1 => CSResponseType::CSResponseSuccess,
@@ -66,10 +66,8 @@ impl CSMessageResult {
     pub fn encode(&self, e: &Env) -> Bytes {
         let mut list: Vec<Bytes> = Vec::new(&e);
 
-        let code = self.response_code.into();
-
         list.push_back(encoder::encode_u128(&e, self.sequence_no.clone()));
-        list.push_back(encoder::encode_u32(&e, code));
+        list.push_back(encoder::encode_u8(&e, self.response_code.into()));
         list.push_back(encoder::encode(&e, self.message.clone()));
 
         let encoded = encoder::encode_list(&e, list, false);
@@ -83,13 +81,13 @@ impl CSMessageResult {
         }
 
         let sequence_no = decoder::decode_u128(&e, decoded.get(0).unwrap());
-        let response_code = decoder::decode_u32(&e, decoded.get(1).unwrap());
+        let response_code = decoder::decode_u8(&e, decoded.get(1).unwrap()).into();
         let message = decoder::decode(&e, decoded.get(2).unwrap_or(Bytes::new(&e)));
 
         Ok(Self {
             sequence_no,
             message,
-            response_code: response_code.into(),
+            response_code,
         })
     }
 }

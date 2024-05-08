@@ -64,8 +64,12 @@ pub(crate) fn call_message(
     e.events().publish(("CallMessage",), data);
 }
 
-pub(crate) fn call_executed(e: &Env, req_id: u128, code: u32, msg: String) {
-    let data = CallExecutedEvent { req_id, code, msg };
+pub(crate) fn call_executed(e: &Env, req_id: u128, code: u8, msg: String) {
+    let data = CallExecutedEvent {
+        req_id,
+        code: code as u32,
+        msg,
+    };
     e.events().publish(("CallExecuted",), data)
 }
 

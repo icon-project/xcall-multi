@@ -30,7 +30,7 @@ impl Xcall {
         from: &NetworkAddress,
         data: &Bytes,
         _protocols: Vec<String>,
-    ) -> u32 {
+    ) -> u8 {
         let mut protocols: Option<Vec<String>> = None;
         if _protocols.len() > 0 {
             protocols = Some(_protocols)
