@@ -11,6 +11,9 @@ module xcall::xcall_tests {
     use xcall::message_request::{Self};
     use xcall::message_result::{Self};
     use xcall::cs_message::{Self};
+    use xcall::centralized_connection;
+    use xcall::centralized_entry;
+    use xcall::centralized_state;
 
     #[test_only]
     fun setup_test(admin:address):Scenario {
@@ -90,6 +93,55 @@ module xcall::xcall_tests {
             let events = test_scenario::num_user_events(&abc);
             assert!(events == 2, 0);
         };
+        test_scenario::end(scenario);
+    }
+
+     #[test]
+    fun test_set_fee_claim_fee() {
+        let admin = @0xBABE;
+
+        let mut scenario = setup_test(admin);
+
+        test_scenario::next_tx(&mut scenario, admin);
+        
+        scenario = setup_connection(scenario, string::utf8(b"icon"), admin);
+        {
+            let mut storage = test_scenario::take_shared<Storage>(&scenario);
+            let ctx = test_scenario::ctx(&mut scenario);
+            centralized_entry::set_fee(&mut storage, b"icon".to_string(),50, 50, ctx);
+
+            let fee = centralized_entry::get_fee(&mut storage, b"icon".to_string(),true, ctx);
+
+            assert!(fee == 100, 3);
+
+            test_scenario::return_shared( storage);
+
+        };
+        test_scenario::next_tx(&mut scenario, admin);
+        {
+            let adminCap = test_scenario::take_from_sender<AdminCap>(&scenario);
+            let mut storage = test_scenario::take_shared<Storage>(&scenario);
+            let ctx = test_scenario::ctx(&mut scenario);
+            let idCap = xcall_state::create_id_cap(&storage, ctx);
+            let sources = vector[string::utf8(b"centralized")];
+            let destinations = vector[string::utf8(b"icon:hx234")];
+            let fee = coin::mint_for_testing<SUI>(100, ctx);
+            let data = b"data";
+            let envelope=envelope::wrap_call_message(data,sources,destinations);
+            let envelope_bytes=envelope::encode(&envelope);
+            main::send_call(&mut storage,fee,&idCap,string::utf8(b"icon/address"),envelope_bytes,ctx);
+            xcall_state::delete_id_cap_for_testing(idCap, ctx);
+            test_scenario::return_to_sender(&scenario, adminCap);
+            test_scenario::return_shared( storage);
+        };
+        test_scenario::next_tx(&mut scenario, admin);
+        {
+            let mut storage = test_scenario::take_shared<Storage>(&scenario);
+            let ctx = test_scenario::ctx(&mut scenario);
+            centralized_entry::claim_fees(&mut storage, ctx);
+            test_scenario::return_shared( storage);
+        };
+        
         test_scenario::end(scenario);
     }
 
