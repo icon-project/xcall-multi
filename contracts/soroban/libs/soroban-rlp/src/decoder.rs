@@ -38,6 +38,7 @@ pub fn decode_list(env: &Env, list: Bytes) -> Vec<Bytes> {
     while i < encoded.len() {
         let byte = encoded.get(i).unwrap();
 
+        #[allow(unused_comparisons)]
         if byte == 0x80 {
             decoded.push_back(Bytes::new(&env));
             i = i + 1;
@@ -68,7 +69,7 @@ pub fn decode_list(env: &Env, list: Bytes) -> Vec<Bytes> {
                 len,
             ));
             i = i + (data_bytes_len + len + 1) as u32
-        } else {
+        } else if byte > 0xf7 && byte <= 0xff {
             let data_bytes_len = (byte - 0xf7) as u64;
             let len_bytes = slice_vector(&env, encoded.clone(), i as u64 + 1, data_bytes_len);
             let len = bytes_to_u64(len_bytes);
@@ -80,6 +81,8 @@ pub fn decode_list(env: &Env, list: Bytes) -> Vec<Bytes> {
                 data_bytes_len + len + 1,
             ));
             i = i + (data_bytes_len + len + 1) as u32
+        } else {
+            panic!("invalid rlp byte length")
         }
     }
     decoded
@@ -99,6 +102,10 @@ pub fn decode_length(env: &Env, bytes: Bytes, offset: u8) -> u64 {
     };
 
     len
+}
+
+pub fn decode_u8(env: &Env, bytes: Bytes) -> u8 {
+    decode(&env, bytes).get(0).unwrap_or(0)
 }
 
 pub fn decode_u32(env: &Env, bytes: Bytes) -> u32 {
