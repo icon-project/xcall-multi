@@ -27,9 +27,14 @@ module xcall::centralized_entry{
       centralized_state::set_fee(state,net_id,message_fee,response_fee,ctx.sender());
   }
 
-  entry fun get_receipt(states: &mut XCallState,net_id:String,sn:u128,ctx: &TxContext):bool{
+  entry fun get_receipt(states: &mut XCallState,net_id:String,sn:u128,_ctx: &TxContext):bool{
       let state = get_state(states.get_connection_states_mut());
       centralized_state::get_receipt(state,net_id,sn)
+  }
+
+entry fun get_fee(states: &mut XCallState,net_id:String,response:bool,_ctx: &TxContext):u64{
+      let state = get_state(states.get_connection_states_mut());
+      centralized_state::get_fee(state,&net_id,response)
   }
 
 

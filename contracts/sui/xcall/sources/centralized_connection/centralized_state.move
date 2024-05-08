@@ -99,7 +99,7 @@ module xcall::centralized_state {
                 &self.cap
     }
 
-    public(package) fun set_admin(self:&mut State,caller:address,admin:address){
+    public(package) fun set_admin(self:&mut State,admin:address,caller:address){
         ensure_admin(self,caller);
         self.admin=admin;
     }
