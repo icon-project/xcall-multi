@@ -19,6 +19,8 @@ impl Xcall {
         amount: u128,
         sender: Address,
     ) -> Result<u128, ContractError> {
+        sender.require_auth();
+
         let sequence_no = Self::get_next_sn(&env);
         let config = Self::get_config(&env)?;
         let (nid_to, dst_account) = to.parse_network_address(&env);

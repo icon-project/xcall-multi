@@ -2,8 +2,11 @@
 
 extern crate std;
 
-use soroban_sdk::testutils::Address as _;
-use soroban_sdk::{bytes, vec, Address, Bytes, String, Vec};
+use soroban_sdk::{
+    bytes, symbol_short,
+    testutils::{Address as _, AuthorizedFunction, AuthorizedInvocation},
+    vec, Address, Bytes, IntoVal, String, Vec,
+};
 
 use super::setup::*;
 use crate::contract::{Xcall, XcallClient};
@@ -36,16 +39,59 @@ fn test_send_call_message() {
         }),
     };
 
+    let protocol_fee = client.get_protocol_fee();
+    let fee = client.get_fee(&ctx.nid, &need_response, &Some(sources));
+    let connection_fee = fee - protocol_fee;
+
     let res = client.send_call(&envelope, &ctx.network_address, &sent_fee, &sender);
     assert_eq!(res, 1);
+    assert_eq!(
+        ctx.env.auths(),
+        std::vec![
+            (
+                sender.clone(),
+                AuthorizedInvocation {
+                    function: AuthorizedFunction::Contract((
+                        client.address.clone(),
+                        symbol_short!("send_call"),
+                        (envelope, ctx.network_address.clone(), sent_fee, &sender,)
+                            .into_val(&ctx.env)
+                    )),
+                    sub_invocations: std::vec![AuthorizedInvocation {
+                        function: AuthorizedFunction::Contract((
+                            ctx.native_token.clone(),
+                            symbol_short!("transfer"),
+                            (sender.clone(), ctx.contract.clone(), sent_fee as i128)
+                                .into_val(&ctx.env)
+                        )),
+                        sub_invocations: std::vec![]
+                    }]
+                }
+            ),
+            (
+                ctx.contract.clone(),
+                AuthorizedInvocation {
+                    function: AuthorizedFunction::Contract((
+                        ctx.native_token.clone(),
+                        symbol_short!("transfer"),
+                        (
+                            &ctx.contract.clone(),
+                            ctx.centralized_connection.clone(),
+                            connection_fee.clone() as i128
+                        )
+                            .into_val(&ctx.env)
+                    )),
+                    sub_invocations: std::vec![]
+                }
+            )
+        ]
+    );
 
     ctx.env.as_contract(&ctx.contract, || {
         let sn = Xcall::get_next_sn(&ctx.env);
         assert_eq!(sn, res + 1)
     });
 
-    let protocol_fee = client.get_protocol_fee();
-    let fee = client.get_fee(&ctx.nid, &need_response, &Some(sources));
     let fee_handler_balance = ctx.get_native_token_balance(&ctx.admin);
     let expected_balance = (sent_fee - fee) + protocol_fee;
     assert_eq!(fee_handler_balance, expected_balance);

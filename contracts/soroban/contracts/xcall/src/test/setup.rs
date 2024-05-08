@@ -126,7 +126,7 @@ impl TestContext {
     }
 
     pub fn init_context(&self, client: &XcallClient<'_>) {
-        self.env.mock_all_auths();
+        self.env.mock_all_auths_allowing_non_root_auth();
 
         client.initialize(&InitializeMsg {
             sender: self.admin.clone(),
