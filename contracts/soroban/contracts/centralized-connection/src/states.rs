@@ -15,35 +15,31 @@ impl CentralizedConnection {
     }
 
     pub fn admin(e: &Env) -> Result<Address, ContractError> {
-        if let Some(addr) = e.storage().instance().get(&StorageKey::Admin) {
-            Ok(addr)
-        } else {
-            Err(ContractError::Uninitialized)
-        }
+        e.storage()
+            .instance()
+            .get(&StorageKey::Admin)
+            .ok_or(ContractError::Uninitialized)
     }
 
     pub fn get_xcall(e: &Env) -> Result<Address, ContractError> {
-        if let Some(addr) = e.storage().instance().get(&StorageKey::Xcall) {
-            Ok(addr)
-        } else {
-            Err(ContractError::Uninitialized)
-        }
+        e.storage()
+            .instance()
+            .get(&StorageKey::Xcall)
+            .ok_or(ContractError::Uninitialized)
     }
 
     pub fn native_token(e: &Env) -> Result<Address, ContractError> {
-        if let Some(addr) = e.storage().instance().get(&StorageKey::Xlm) {
-            Ok(addr)
-        } else {
-            Err(ContractError::Uninitialized)
-        }
+        e.storage()
+            .instance()
+            .get(&StorageKey::Xlm)
+            .ok_or(ContractError::Uninitialized)
     }
 
     pub fn get_conn_sn(e: &Env) -> Result<u128, ContractError> {
-        if let Some(sn) = e.storage().instance().get(&StorageKey::ConnSn) {
-            Ok(sn)
-        } else {
-            Err(ContractError::Uninitialized)
-        }
+        e.storage()
+            .instance()
+            .get(&StorageKey::ConnSn)
+            .ok_or(ContractError::Uninitialized)
     }
 
     pub fn get_next_conn_sn(e: &Env) -> u128 {

@@ -251,8 +251,8 @@ fn test_send_message() {
     );
 
     let emit_msg = SendMsgEvent {
-        to: ctx.nid.clone(),
-        sn: 1_u128,
+        target_network: ctx.nid.clone(),
+        conn_sn: 1_u128,
         msg: msg.clone(),
     };
     let event = vec![&ctx.env, ctx.env.events().all().last_unchecked()];

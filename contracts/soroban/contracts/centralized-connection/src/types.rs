@@ -21,7 +21,7 @@ pub struct InitializeMsg {
 
 #[contracttype]
 pub struct SendMsgEvent {
-    pub to: String,
-    pub sn: u128,
+    pub target_network: String,
+    pub conn_sn: u128,
     pub msg: Bytes,
 }

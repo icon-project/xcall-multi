@@ -9,14 +9,14 @@ use crate::types::result::CSMessageResult;
 #[derive(Clone, Copy, Debug)]
 pub enum CSMessageType {
     CSMessageRequest = 1,
-    CSMessageResult = 0,
+    CSMessageResult = 2,
 }
 
 impl From<CSMessageType> for u32 {
     fn from(value: CSMessageType) -> Self {
         match value {
             CSMessageType::CSMessageRequest => 1,
-            CSMessageType::CSMessageResult => 0,
+            CSMessageType::CSMessageResult => 2,
         }
     }
 }
@@ -25,7 +25,7 @@ impl From<u32> for CSMessageType {
     fn from(value: u32) -> Self {
         match value {
             1 => CSMessageType::CSMessageRequest,
-            0 => CSMessageType::CSMessageResult,
+            2 => CSMessageType::CSMessageResult,
             _ => panic!("Invalid message type"),
         }
     }
@@ -76,13 +76,8 @@ impl CSMessage {
             return Err(ContractError::InvalidRlpLength);
         }
 
+        let message_type = decoder::decode_u32(&env, decoded.get(0).unwrap()).into();
         let payload = decoded.get(1).unwrap();
-        let msg_type = decoded.get(0).unwrap();
-        let message_type = if msg_type.len() > 0 {
-            decoder::decode_u32(&env, decoded.get(0).unwrap()).into()
-        } else {
-            CSMessageType::CSMessageResult
-        };
 
         Ok(Self {
             message_type,

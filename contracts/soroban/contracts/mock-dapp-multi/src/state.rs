@@ -46,31 +46,24 @@ impl MockDapp {
     }
 
     pub fn get_connections(e: &Env, network_id: String) -> Result<Vec<Connection>, ContractError> {
-        if let Some(connections) = e
-            .storage()
+        e.storage()
             .instance()
             .get(&StorageKey::Connections(network_id))
-        {
-            Ok(connections)
-        } else {
-            Err(ContractError::ConnectionNotFound)
-        }
+            .ok_or(ContractError::ConnectionNotFound)
     }
 
     pub fn get_xcall_address(e: &Env) -> Result<Address, ContractError> {
-        if let Some(xcall) = e.storage().instance().get(&StorageKey::XcallAddress) {
-            Ok(xcall)
-        } else {
-            Err(ContractError::Uninitialized)
-        }
+        e.storage()
+            .instance()
+            .get(&StorageKey::XcallAddress)
+            .ok_or(ContractError::Uninitialized)
     }
 
     pub fn get_sn(e: &Env) -> Result<u128, ContractError> {
-        if let Some(sn) = e.storage().instance().get(&StorageKey::Sn) {
-            Ok(sn)
-        } else {
-            Err(ContractError::Uninitialized)
-        }
+        e.storage()
+            .instance()
+            .get(&StorageKey::Sn)
+            .ok_or(ContractError::Uninitialized)
     }
 
     pub fn get_next_sn(e: &Env) -> Result<u128, ContractError> {

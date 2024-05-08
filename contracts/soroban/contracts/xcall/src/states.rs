@@ -23,28 +23,26 @@ impl Xcall {
             Ok(())
         }
     }
+
     pub fn admin(e: &Env) -> Result<Address, ContractError> {
-        if let Some(admin) = e.storage().instance().get(&StorageKey::Admin) {
-            Ok(admin)
-        } else {
-            Err(ContractError::Uninitialized)
-        }
+        e.storage()
+            .instance()
+            .get(&StorageKey::Admin)
+            .ok_or(ContractError::Uninitialized)
     }
 
     pub fn get_config(e: &Env) -> Result<Config, ContractError> {
-        if let Some(config) = e.storage().instance().get(&StorageKey::Config) {
-            Ok(config)
-        } else {
-            Err(ContractError::Uninitialized)
-        }
+        e.storage()
+            .instance()
+            .get(&StorageKey::Config)
+            .ok_or(ContractError::Uninitialized)
     }
 
     pub fn get_fee_handler(e: &Env) -> Result<Address, ContractError> {
-        if let Some(address) = e.storage().instance().get(&StorageKey::FeeHandler) {
-            Ok(address)
-        } else {
-            Err(ContractError::Uninitialized)
-        }
+        e.storage()
+            .instance()
+            .get(&StorageKey::FeeHandler)
+            .ok_or(ContractError::Uninitialized)
     }
 
     pub fn protocol_fee(e: &Env) -> u128 {
@@ -55,27 +53,17 @@ impl Xcall {
     }
 
     pub fn default_connection(e: &Env, nid: String) -> Result<Address, ContractError> {
-        if let Some(address) = e
-            .storage()
+        e.storage()
             .instance()
             .get(&StorageKey::DefaultConnections(nid))
-        {
-            Ok(address)
-        } else {
-            Err(ContractError::NoDefaultConnection)
-        }
+            .ok_or(ContractError::NoDefaultConnection)
     }
 
     pub fn get_rollback(e: &Env, sequence_no: u128) -> Result<Rollback, ContractError> {
-        if let Some(rollback) = e
-            .storage()
+        e.storage()
             .instance()
             .get(&StorageKey::Rollback(sequence_no))
-        {
-            return rollback;
-        } else {
-            Err(ContractError::CallRequestNotFound)
-        }
+            .ok_or(ContractError::CallRequestNotFound)
     }
 
     pub fn get_successful_response(e: &Env, sn: u128) -> bool {
@@ -94,15 +82,10 @@ impl Xcall {
     }
 
     pub fn get_proxy_request(e: &Env, req_id: u128) -> Result<CSMessageRequest, ContractError> {
-        if let Some(req) = e
-            .storage()
+        e.storage()
             .instance()
             .get(&StorageKey::ProxyRequest(req_id))
-        {
-            Ok(req)
-        } else {
-            Err(ContractError::InvalidRequestId)
-        }
+            .ok_or(ContractError::InvalidRequestId)
     }
 
     pub fn get_reply_state(e: &Env) -> Option<CSMessageRequest> {

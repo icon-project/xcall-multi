@@ -49,6 +49,11 @@ impl Xcall {
         Ok(())
     }
 
+    pub fn hash_data(e: &Env, data: &Bytes) -> Bytes {
+        let hash = e.crypto().keccak256(&data);
+        Bytes::from_array(&e, &hash.to_array())
+    }
+
     pub fn is_contract(e: &Env, address: &Address) -> bool {
         let bytes = address.to_string().to_xdr(&e);
         let char_index: u32 = bytes.get(SC_VALUE_START_INDEX).unwrap().into();

@@ -71,11 +71,6 @@ impl CSMessageRequest {
         self.data = Bytes::from_array(&e, &hash.to_array())
     }
 
-    pub fn get_hash_data(&self, e: &Env) -> Bytes {
-        let hash = e.crypto().keccak256(self.data());
-        Bytes::from_array(&e, &hash.to_array())
-    }
-
     pub fn encode(&self, e: &Env) -> Bytes {
         let mut list: Vec<Bytes> = Vec::new(&e);
 

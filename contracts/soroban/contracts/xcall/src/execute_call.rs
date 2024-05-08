@@ -14,7 +14,9 @@ use crate::{
 impl Xcall {
     pub fn execute_message(env: &Env, req_id: u128, data: Bytes) -> Result<(), ContractError> {
         let req = Self::get_proxy_request(&env, req_id)?;
-        if req.data() != &req.get_hash_data(&env) {
+
+        let hash_data = Self::hash_data(&env, &data);
+        if &hash_data != req.data() {
             return Err(ContractError::DataMismatch);
         }
         Self::remove_proxy_request(&env, req_id);
