@@ -34,3 +34,25 @@ impl IMessage for CallMessagePersisted {
         Ok(rlp::encode(self).to_vec())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use common::rlp::Rlp;
+
+    use super::*;
+
+    #[test]
+    fn test_call_message_persisted() {
+        let msg = CallMessagePersisted {
+            data: vec![1, 2, 3],
+        };
+
+        let encoded = msg.rlp_bytes().to_vec();
+        let decoded = CallMessagePersisted::decode(&Rlp::new(&encoded)).unwrap();
+
+        assert_eq!(msg, decoded);
+        assert_eq!(msg.rollback(), None);
+        assert_eq!(msg.data(), msg.data);
+        assert_eq!(msg.to_bytes().unwrap(), encoded)
+    }
+}
