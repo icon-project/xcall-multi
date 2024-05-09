@@ -36,6 +36,14 @@ module xcall::xcall_utils {
         object::id_from_bytes(hex_bytes)
     }
 
+    public fun format_sui_address(addr: &String): String {
+        let mut sui_addr = *addr;
+        if (sui_addr.sub_string(0, 2) == string::utf8(b"0x")) {
+            sui_addr = addr.sub_string(2, addr.length());
+        };
+        sui_addr
+    }
+
     public fun destroy_or_transfer_balance<T>(balance: Balance<T>, recipient: address, ctx: &mut TxContext) {
         if (balance::value(&balance) == 0) {
             balance::destroy_zero(balance);
@@ -72,4 +80,29 @@ module xcall::xcall_utils {
         object::delete(uid);
         scenario.end();
     }
+
+    #[test]
+    fun test_format_sui_address(){
+        let admin = @0xBABE;
+        let mut scenario = test_scenario::begin(admin);
+        let uid = object::new(scenario.ctx());
+        let id = object::uid_to_inner(&uid);
+
+        let id_hex = id_to_hex_string(&id);
+
+        let formatted1 = format_sui_address(&id_hex);
+
+        let mut prefix = b"0x".to_string();
+        prefix.append(id_hex);
+        let formatted2 = format_sui_address(&prefix);
+
+        let id_from_hex1 = id_from_hex_string(&formatted1);
+        let id_from_hex2 = id_from_hex_string(&formatted2);
+
+        assert!(id_from_hex1==id_from_hex2 && id_from_hex1==id, 0x01);
+        object::delete(uid);
+        scenario.end();
+    }
+
+
 }
