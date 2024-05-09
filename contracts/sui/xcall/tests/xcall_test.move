@@ -11,9 +11,8 @@ module xcall::xcall_tests {
     use xcall::message_request::{Self};
     use xcall::message_result::{Self};
     use xcall::cs_message::{Self};
-    use xcall::centralized_connection;
     use xcall::centralized_entry;
-    use xcall::centralized_state;
+    use xcall::xcall_utils as utils;
 
     #[test_only]
     fun setup_test(admin:address):Scenario {
@@ -242,9 +241,11 @@ module xcall::xcall_tests {
             let adminCap = test_scenario::take_from_sender<AdminCap>(&scenario);
             let mut storage = test_scenario::take_shared<Storage>(&scenario);
             let ctx = test_scenario::ctx(&mut scenario);
+            let idCap = xcall_state::create_id_cap(&storage, ctx);
             let sources = vector[string::utf8(b"centralized")];
             let data = b"data";
-            let sui_dapp = string::utf8(b"dsui/daddress");
+            let mut sui_dapp = b"0x".to_string();
+            sui_dapp.append(utils::id_to_hex_string(&xcall_state::get_id_cap_id(&idCap)));
             let icon_dapp = network_address::create(string::utf8(b"icon"), string::utf8(b"address"));
 
             let from_nid = string::utf8(b"icon");
@@ -253,20 +254,7 @@ module xcall::xcall_tests {
             let conn_cap = xcall_state::create_conn_cap_for_testing(&mut storage);
 
             main::handle_message(&mut storage,&conn_cap,from_nid,message,ctx);
-            test_scenario::return_to_sender(&scenario, adminCap);
-            test_scenario::return_shared( storage);
-        };  
-        {
-            let abc = test_scenario::next_tx(&mut scenario, admin);
-            let events = test_scenario::num_user_events(&abc);
-            assert!(events == 1, 0);
-        };
-        
-        test_scenario::next_tx(&mut scenario, admin);
-        {
-            let mut storage = test_scenario::take_shared<Storage>(&scenario);
-            let ctx = test_scenario::ctx(&mut scenario);
-            let idCap = xcall_state::create_id_cap(&storage, ctx);
+
             let fee = coin::mint_for_testing<SUI>(100, ctx);
             let data = b"data";
 
@@ -274,12 +262,13 @@ module xcall::xcall_tests {
 
             main::execute_call_result(&mut storage,ticket, true,fee,ctx);
             xcall_state::delete_id_cap_for_testing(idCap, ctx);
+            test_scenario::return_to_sender(&scenario, adminCap);
             test_scenario::return_shared( storage);
         };  
         {
             let abc = test_scenario::next_tx(&mut scenario, admin);
             let events = test_scenario::num_user_events(&abc);
-            assert!(events == 1, 0);
+            assert!(events == 2, 0);
         };
         test_scenario::end(scenario);
     }
