@@ -1,92 +1,149 @@
-## Solidity XCall
+## Solidity XCall Contracts
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+This repo contains the smart contracts for EVM CallService contracts in solidity.
 
-Foundry consists of:
+### Build and Deployment Setups
 
--   **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
--   **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
--   **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
--   **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+1. **Prerequisites**:
+   - Install Foundry and Node.js (v21.1.1) on your machine.
 
-## Documentation
+2. **Setup**
+    ```bash
+    git clone git@github.com:icon-project/xcall-multi.git
+    cd xcall-multi/contracts/evm
+    ```
 
-https://book.getfoundry.sh/
+3. **Install the project dependencies**
+    ```bash
+    forge install
+    ```
 
-## Usage
+4. **Compile your Solidity contracts**
 
-### Build
+    ```bash
+    $ forge build
+    ```
+
+5. **Testing**
+    Before deploying, it's recommended to run tests to ensure your contracts work as expected:
+
+    ```bash
+    $ forge test -vv
+    ```
+
+6. **Deployment Environment Setups**
+
+    - Create a new `.env` file by copying the `.env.example` file:
+     ```bash
+        cp .env.example .env
+    ```
+
+    - Open the .env file and update the following values:
+    ```env
+    PRIVATE_KEY: Your private key with the "0x" prefix.
+    
+    ADMIN: The address that should be set as the admin for the contracts.
+    ```
+
+    When deploying adapters/mock_dapps
+    * <CHAIN>_XCALL: xcall address of specific chains you are gonna deploy
+    * <CHAIN>_CENTRALIZED_RELAYER: address of centralized relayer(only when ddeploying centralized adapter)
+
+    You can also set other environment variables as needed, such as RPC URLs, NID (Network IDs), and contract addresses.
+
+    *Note: Have a complete look at the env once, you will understand the need to create and populate the `.env` file or set the required environment variables before deploying the contracts.*
+
+7. **Deployment**
+
+    ```shell
+    ./deploy_script.sh --contract <contract> --<action> --env <environment> --chain <chain1> <chain2> ... --version <filename-version>
+    ```
+
+    Adapter(Wormhole and Layerzero) Configuration between 2 chains
+    ```shell
+    ./deploy_script.sh --contract <contract> --configure --env <environment> --chain <chain1> <chain2> 
+    ```
+    Replace the placeholders with your specific values:
+
+    - `<contract>`: Contract to deploy or upgrade
+    - `<action>`: Choose either "--deploy" to deploy contracts or "--upgrade" to upgrade existing contracts.
+    - `<environment>`: Select the deployment environment ("mainnet," "testnet," or "local").
+    - `<chain1>`, `<chain2>`, ...: Specify one or more chains for deployment. Use "all" to deploy to all valid chains for the environment.
+    - `filename-version`: filename of new contract to upgrade like, CallServiceV2.sol (only needed in upgrade)
+
+    Valid Options
+
+    - *Actions*: "deploy", "upgrade"
+    - *Environments*: "mainnet", "testnet", "local"
+    - *Contract Types*: "callservice" "wormhole" "layerzero" "centralized" "mock"
+
+    i. **Local Deployment**
+    - Start a local Anvil node
+        ```bash
+        anvil
+        ```
+    - Make sure you have `PRIVATE_KEY` and `ADMIN` addresses provided by Avnil
+    - In a new terminal window, navigate to your `xcall-multi/contracts/evm` and run the deployment script
+
+        ```bash
+        ./deploy_script.sh --contract callservice --deploy --env local --chain local
+        ```
+    ii. **Testnet Deployment**
+    - Deploy the "callservice" contract to testnet on sepolia and optimism chains:
+
+        ```shell
+        ./deploy_script.sh --contract callservice --deploy --env testnet --chain sepolia optimism_sepolia
+        ```
+
+     *Testnet Chains Available*: "sepolia" "bsctest" "fuji" "base_sepolia" "optimism_sepolia" "arbitrum_sepolia" "all"
+
+    iii. **Mainnet Deployment**
+
+    - Deploy the "centralized" adapter contract to mainnet on Ethereum and Binance chains:
+
+        ```shell
+        ./deploy_script.sh --contract centralized --deploy --env mainnet --chain ethereum binance
+        ```
+
+    *Mainnet Chains Available: "ethereum" "binance" "avalanche" "base" "optimism" "arbitrum" "all"*
+
+### Upgrading a Contract
+
+To upgrade an existing contract, you need to create a new file with the updated changes and specify the previous contract version in the new contract file. Follow these steps:
+
+1. **Rename the Old Contract File**:
+  - Rename the old version of the contract file. For example, if you have a contract named `CallService.sol`, rename it to `CallServiceV1.sol`.
+
+2. **Create a New Contract File**:
+  - Create a new file with the updated contract changes. For example, create a new file named `CallService.sol`.
+
+3. **Add the Upgrade Annotation**:
+  - In the new contract file (`CallService.sol`), add the following line just above the contract declaration:
+
+  ```solidity
+  /// @custom:oz-upgrades-from contracts/xcall/CallServiceV1.sol:CallServiceV1
+  contract CallService is IBSH, ICallService, IFeeManage, Initializable {
+      // Contract code goes here
+  }
+  ```
+  This annotation specifies the previous contract version from which the upgrade is being performed.
+
+4. **Ensure Proxy Contract Addresses:**
+ - Make sure you have the proxy contract addresses for the chains and contracts you want to upgrade in your .env file.
+
+5. **Run the Upgrade Script:**
+ - With the admin account you provided during the initial deployment, run the following script:
 
 ```shell
-$ forge build
+./deploy_script.sh --contract <contract> --upgrade --env <environment> --chain <chain1> <chain2> ... --version <filename-version>
 ```
 
-### Test
-
+#### Upgrade the "callservice" contract to testnet on sepolia and fuji:
 
 ```shell
-$ forge test -vv
+./deploy_script.sh --contract callservice --upgrade --env testnet --chain sepolia fuji --version CallService.sol
 ```
 
-To learn more about logs and traces, check out the documentation [here](https://book.getfoundry.sh/forge/tests?highlight=-vv#logs-and-traces).
-
-To view all of the supported logging methods, check out the documentation [here](https://book.getfoundry.sh/reference/ds-test#logging).
-
-### Gas Snapshots
-
-```shell
-$ forge snapshot
-```
-
-### Anvil
-You can start the local EVM test network at any time:
-
-```shell
-$ anvil
-```
-### Env File
-Copy `.env.example` to `.env` and update with the required values.
-Note that the private key should have `0x` prefix.
-```sh
-cp .env.example .env
-```
-### Deploy
-
-```shell
-./deploy_script.sh --contract <contract> --<action> --env <environment> --chain <chain1> <chain2> ... --version <filename-version>
-```
-
-Adapter(Wormhole and Layerzero) Configuration between 2 chains
-```shell
-./deploy_script.sh --contract <contract> --configure --env <environment> --chain <chain1> <chain2> 
-```
-Replace the placeholders with your specific values:
-
-- `<contract>`: Contract to deploy or upgrade
-- `<action>`: Choose either "--deploy" to deploy contracts or "--upgrade" to upgrade existing contracts.
-- `<environment>`: Select the deployment environment ("mainnet," "testnet," or "local").
-- `<chain1>`, `<chain2>`, ...: Specify one or more chains for deployment. Use "all" to deploy to all valid chains for the environment.
-- `filename-version`: filename of new contract to upgrade like, CallServiceV2.sol (only needed in upgrade)
-
- Valid Options
-
-- *Actions*: "deploy", "upgrade"
-- *Environments*: "mainnet", "testnet", "local"
-- *Contract Types*: "callservice" "wormhole" "layerzero" "centralized" "mock"
-
-### Examples
-
-#### Deploy the "callservice" contract to mainnet on Ethereum and Binance chains:
-
-```shell
-./deploy_script.sh --contract callservice --deploy --env mainnet --chain ethereum binance
-```
-
-#### Upgrade the "callservice" contract to testnet on all available chains:
-
-```shell
-./deploy_script.sh --contract callservice --upgrade --env testnet --chain all --version CallServiceV2.sol
-```
 ### xCall Configurations
 
 ```shell
@@ -101,7 +158,7 @@ cast send <contract_address>  "setProtocolFeeHandler(address _addr)" <addr> --rp
 cast send <contract_address>  "setDefaultConnection(string memory _nid,address connection)" <nid> <connection> --rpc-url <rpc_url> --private-key <private-key>
 ```
 
-### xCall Flow Test
+### xCall Flow Test between 2 Chains (Only in EVM)
 
 #### Step 0: Copy Environment File
 
@@ -151,94 +208,5 @@ $ ./test_xcall_flow.sh --src <source_chain> --dest <destination_chain> --fee <va
 ```
 
 - `--fee <value>`: Sets the transaction fee (in wei). The value must be a number.
-- `--src <source_chain>`: Sets the source chain for the transaction. Valid chain options are `fuji`, `bsctest`, `base_goerli`, `optimism_sepolia`, and `arbitrum_goerli`.
-- `--dest <destination_chain>`: Sets the destination chain for the transaction. Valid chain options are `fuji`, `bsctest`, `base_goerli`, `optimism_sepolia`, and `arbitrum_goerli`.
-
-### Cast
-Set the CONTRACT_ADDRESS variable in your terminal:
-
-```sh
-export CONTRACT_ADDRESS=<your-contract-address>
-```
-
-Call initialize on the contract
-
-```sh
-cast send $CONTRACT_ADDRESS "initialize(string)" "ENTER Chain NID HERE" --private-key $PRIVATE_KEY
-```
-
-We can then use cast to interact with it.
-
-For read operations, we can use cast call: For Example:
-
-```sh
-cast call $CONTRACT_ADDRESS "admin()(address)"
-```
-
-For transactions, we can use cast send, passing in a private key and any arguments:
-
-```sh
-cast send $CONTRACT_ADDRESS "setAdmin(address)" 0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc --private-key $PRIVATE_KEY
-```
-
-To test that the greeting has been updated, run the `call` command again:
-
-```sh
-cast call $CONTRACT_ADDRESS "admin()(address)"
-```
-
-
-## Installing packages
-
-You can install packages using the `forge install` command.
-
-To try this out, let's install OpenZeppelin Contracts, then we'll use them to create an ERC721 token:
-
-> You may need to add and commit any changes to your code to `git` in order to run the install script.
-
-```sh
-forge install OpenZeppelin/openzeppelin-contracts
-```
-
-Next, create a file named `remappings.txt` in the root of the project and add the following configuration:
-
-```
-@openzeppelin/=lib/openzeppelin-contracts/
-```
-
-This will allow us to easily import with the following syntax:
-
-```solidity
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-```
-
-You can view all of the automatically inferred remappings for the project by running the following command:
-
-```sh
-forge remappings
-```
-
-
-### Test coverage
-
-You can check for test coverage by running the `coverage` command:
-
-```sh
-forge coverage
-```
-
-To debug in more details what has not been covered, use the `debug` report:
-
-```sh
-forge coverage --report debug
-```
-
-
-
-### Help
-
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
-```
+- `--src <source_chain>`: Sets the source chain for the transaction. Valid chain options are `fuji`, `bsctest`, `arbitrum_sepolia`, `optimism_sepolia`.
+- `--dest <destination_chain>`: Sets the destination chain for the transaction. Valid chain options are `fuji`, `bsctest`, `base_sepolia`, `optimism_sepolia`, and `arbitrum_sepolia`.
