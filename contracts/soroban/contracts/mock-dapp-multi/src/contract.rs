@@ -32,11 +32,13 @@ impl MockDapp {
         data: Bytes,
         msg_type: u32,
         rollback: Option<Bytes>,
-        fee: u128,
+        sender: Address,
     ) -> Result<(), ContractError> {
+        sender.require_auth();
+
         let network_id = to.nid(&env);
         let message = Self::process_message(msg_type as u8, data, rollback)?;
-        let (sources, destinations) = Self::get_network_connections(&env, network_id)?;
+        let (sources, destinations) = Self::get_network_connections(&env, network_id.clone())?;
 
         let envelope = Envelope {
             message,
@@ -45,7 +47,7 @@ impl MockDapp {
         };
 
         let xcall_address = Self::get_xcall_address(&env)?;
-        Self::xcall_send_call(&env, &to, &envelope, &fee, &xcall_address);
+        Self::xcall_send_call(&env, &sender, &to, &envelope, &xcall_address);
 
         Ok(())
     }
@@ -57,6 +59,8 @@ impl MockDapp {
         data: Bytes,
         _protocols: Option<Vec<String>>,
     ) {
+        sender.require_auth();
+
         let (nid, account) = from.parse_network_address(&env);
         if sender.to_string() == account {
             return;
@@ -84,7 +88,7 @@ impl MockDapp {
                     sources,
                     destinations,
                 };
-                Self::xcall_send_call(&env, &from, &envelope, &100_u128, &xcall_address.unwrap());
+                Self::xcall_send_call(&env, &sender, &from, &envelope, &xcall_address.unwrap());
             }
         }
     }

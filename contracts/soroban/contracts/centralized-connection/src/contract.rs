@@ -65,12 +65,12 @@ impl CentralizedConnection {
 
     pub fn send_message(
         env: Env,
-        amount: u128,
+        tx_origin: Address,
         to: String,
         sn: i64,
         msg: Bytes,
     ) -> Result<(), ContractError> {
-        let xcall = Self::ensure_xcall(&env)?;
+        Self::ensure_xcall(&env)?;
 
         let next_conn_sn = Self::get_next_conn_sn(&env);
         Self::store_conn_sn(&env, next_conn_sn);
@@ -79,12 +79,9 @@ impl CentralizedConnection {
         if sn >= 0 {
             fee = Self::get_network_fee(&env, to.clone(), sn > 0);
         }
-
-        if fee > amount {
-            return Err(ContractError::InsufficientFund);
+        if fee > 0 {
+            Self::transfer_token(&env, &tx_origin, &env.current_contract_address(), &fee)?;
         }
-
-        Self::transfer_token(&env, &xcall, &env.current_contract_address(), &amount)?;
         event::send_message(&env, to, next_conn_sn, msg);
 
         Ok(())

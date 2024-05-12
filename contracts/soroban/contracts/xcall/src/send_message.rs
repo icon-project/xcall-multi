@@ -14,14 +14,16 @@ use crate::{
 impl Xcall {
     pub fn send_message(
         env: &Env,
+        tx_origin: Address,
+        sender: Address,
         envelope: Envelope,
         to: NetworkAddress,
-        amount: u128,
-        sender: Address,
     ) -> Result<u128, ContractError> {
         sender.require_auth();
+        tx_origin.require_auth();
 
         let sequence_no = Self::get_next_sn(&env);
+
         let config = Self::get_config(&env)?;
         let (nid_to, dst_account) = to.parse_network_address(&env);
         let from = NetworkAddress::new(
@@ -50,42 +52,27 @@ impl Xcall {
         if Self::is_reply(&env, &nid_to, &envelope.sources) && !need_response {
             Self::store_call_reply(&env, &request);
         } else {
-            Self::transfer_token(&env, &sender, &env.current_contract_address(), &amount)?;
-            let connections_fee = Self::call_connection(
+            Self::call_connection(
                 &env,
+                &tx_origin,
                 &nid_to,
                 sequence_no,
                 envelope.sources,
                 need_response,
-                encode_msg,
+                encode_msg.clone(),
             )?;
-            Self::claim_protocol_fee(&env, amount, connections_fee)?;
+            Self::claim_protocol_fee(&env, &tx_origin)?;
         }
-
         event::message_sent(&env, sender, to, sequence_no);
 
         Ok(sequence_no)
     }
 
-    pub fn claim_protocol_fee(
-        e: &Env,
-        amount: u128,
-        connections_fee: u128,
-    ) -> Result<(), ContractError> {
+    pub fn claim_protocol_fee(e: &Env, tx_origin: &Address) -> Result<(), ContractError> {
         let protocol_fee = Self::get_protocol_fee(&e)?;
-        if amount < (protocol_fee + connections_fee) {
-            return Err(ContractError::InsufficientFunds);
-        }
-
-        let remaining_fee = amount - connections_fee;
-        if remaining_fee > 0 {
+        if protocol_fee > 0 {
             let fee_handler = Self::get_fee_handler(&e)?;
-            Self::transfer_token(
-                &e,
-                &e.current_contract_address(),
-                &fee_handler,
-                &remaining_fee,
-            )?;
+            Self::transfer_token(&e, &tx_origin, &fee_handler, &protocol_fee)?;
         }
 
         Ok(())
@@ -93,12 +80,13 @@ impl Xcall {
 
     pub fn call_connection(
         e: &Env,
+        tx_origin: &Address,
         nid: &String,
         sequence_no: u128,
         sources: Vec<String>,
         rollback: bool,
         msg: Bytes,
-    ) -> Result<u128, ContractError> {
+    ) -> Result<(), ContractError> {
         let mut sources = sources;
         let sn = if rollback { sequence_no as i64 } else { 0 };
         if sources.is_empty() {
@@ -106,16 +94,11 @@ impl Xcall {
             sources = vec![&e, default_conn.to_string()];
         }
 
-        let mut connections_fee = 0_u128;
         for source in sources.iter() {
-            let fee = Self::query_connection_fee(&e, &nid, rollback, &source)?;
-            if fee > 0 {
-                connections_fee = connections_fee.checked_add(fee).expect("no overflow");
-            }
-            Self::call_connection_send_message(&e, &source, fee, &nid, sn, &msg)?;
+            Self::call_connection_send_message(&e, tx_origin, &source, &nid, sn, &msg)?;
         }
 
-        Ok(connections_fee)
+        Ok(())
     }
 
     pub fn process_message(

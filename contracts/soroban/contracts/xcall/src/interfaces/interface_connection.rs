@@ -1,12 +1,12 @@
-use soroban_sdk::{contractclient, Bytes, Env, String};
+use soroban_sdk::{contractclient, Address, Bytes, Env, String};
 
 use crate::errors::ContractError;
 
-#[contractclient(name = "CentralizedConnectionClient")]
-pub trait ICentralizedConnection {
+#[contractclient(name = "ConnectionClient")]
+pub trait IConnection {
     fn send_message(
         env: Env,
-        amount: u128,
+        tx_origin: Address,
         to: String,
         sn: i64,
         msg: Bytes,

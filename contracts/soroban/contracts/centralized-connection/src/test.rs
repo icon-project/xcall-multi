@@ -53,6 +53,7 @@ impl TestContext {
 
     pub fn init_send_message(&self, client: &CentralizedConnectionClient<'static>) {
         self.init_context(&client);
+        self.env.mock_all_auths_allowing_non_root_auth();
 
         client.set_fee(&self.nid, &100, &100);
     }
@@ -219,35 +220,42 @@ fn test_claim_fees() {
 fn test_send_message() {
     let ctx = TestContext::default();
     let client = CentralizedConnectionClient::new(&ctx.env, &ctx.contract);
-
     ctx.init_send_message(&client);
 
+    let tx_origin = Address::generate(&ctx.env);
+
     let asset_client = token::StellarAssetClient::new(&ctx.env, &ctx.native_token);
-    asset_client.mint(&ctx.xcall, &1000);
+    asset_client.mint(&tx_origin, &1000);
 
     let msg = Bytes::from_array(&ctx.env, &[1, 2, 3]);
-    client.send_message(&200, &ctx.nid, &1, &msg);
+    client.send_message(&tx_origin, &ctx.nid, &1, &msg);
 
     assert_eq!(
         ctx.env.auths(),
-        std::vec![(
-            ctx.xcall.clone(),
-            AuthorizedInvocation {
-                function: AuthorizedFunction::Contract((
-                    client.address.clone(),
-                    Symbol::new(&ctx.env, "send_message"),
-                    (200_u128, ctx.nid.clone(), 1_i64, msg.clone()).into_val(&ctx.env)
-                )),
-                sub_invocations: std::vec![AuthorizedInvocation {
+        std::vec![
+            (
+                ctx.xcall.clone(),
+                AuthorizedInvocation {
+                    function: AuthorizedFunction::Contract((
+                        client.address.clone(),
+                        Symbol::new(&ctx.env, "send_message"),
+                        (tx_origin.clone(), ctx.nid.clone(), 1_i64, msg.clone()).into_val(&ctx.env)
+                    )),
+                    sub_invocations: std::vec![]
+                }
+            ),
+            (
+                tx_origin.clone(),
+                AuthorizedInvocation {
                     function: AuthorizedFunction::Contract((
                         ctx.native_token.clone(),
                         Symbol::new(&ctx.env, "transfer"),
-                        (ctx.xcall.clone(), client.address.clone(), 200_i128).into_val(&ctx.env)
+                        (tx_origin.clone(), ctx.contract.clone(), 200_i128).into_val(&ctx.env)
                     )),
                     sub_invocations: std::vec![]
-                }]
-            }
-        )]
+                }
+            )
+        ]
     );
 
     let emit_msg = SendMsgEvent {
@@ -270,18 +278,19 @@ fn test_send_message() {
 }
 
 #[test]
-#[should_panic(expected = "HostError: Error(Contract, #4)")]
+#[should_panic(expected = "HostError: Error(Contract, #10)")]
 fn test_send_message_fail_for_insufficient_fee() {
     let ctx = TestContext::default();
     let client = CentralizedConnectionClient::new(&ctx.env, &ctx.contract);
-
     ctx.init_send_message(&client);
 
+    let sender = Address::generate(&ctx.env);
+
     let asset_client = token::StellarAssetClient::new(&ctx.env, &ctx.native_token);
-    asset_client.mint(&ctx.xcall, &1000);
+    asset_client.mint(&sender, &100);
 
     let msg = Bytes::from_array(&ctx.env, &[1, 2, 3]);
-    client.send_message(&150, &ctx.nid, &1, &msg);
+    client.send_message(&sender, &ctx.nid, &1, &msg);
 }
 
 #[test]

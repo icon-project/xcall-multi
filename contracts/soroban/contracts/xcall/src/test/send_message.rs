@@ -9,10 +9,12 @@ use soroban_sdk::{
 };
 
 use super::setup::*;
-use crate::contract::{Xcall, XcallClient};
-use crate::messages::envelope::Envelope;
-use crate::messages::{
-    call_message::CallMessage, call_message_rollback::CallMessageWithRollback, AnyMessage,
+use crate::{
+    contract::{Xcall, XcallClient},
+    messages::{
+        call_message::CallMessage, call_message_rollback::CallMessageWithRollback,
+        envelope::Envelope, AnyMessage,
+    },
 };
 
 #[test]
@@ -20,30 +22,29 @@ fn test_send_call_message() {
     let ctx = TestContext::default();
     let client = XcallClient::new(&ctx.env, &ctx.contract);
     ctx.init_context(&client);
-    ctx.env.mock_all_auths_allowing_non_root_auth();
 
-    let sent_fee = 300;
     let need_response = false;
     let sender = Address::generate(&ctx.env);
+    let tx_origin = Address::generate(&ctx.env);
 
     let mint_amount = 500;
-    ctx.mint_native_token(&sender, mint_amount);
+    ctx.mint_native_token(&tx_origin, mint_amount);
 
     let sources = vec![&ctx.env, ctx.centralized_connection.to_string()];
     let destinations = vec![&ctx.env];
     let envelope = Envelope {
         sources: sources.clone(),
-        destinations,
+        destinations: destinations.clone(),
         message: AnyMessage::CallMessage(CallMessage {
             data: bytes!(&ctx.env, 0xabc),
         }),
     };
 
     let protocol_fee = client.get_protocol_fee();
-    let fee = client.get_fee(&ctx.nid, &need_response, &Some(sources));
+    let fee = client.get_fee(&ctx.nid, &need_response, &Some(sources.clone()));
     let connection_fee = fee - protocol_fee;
 
-    let res = client.send_call(&envelope, &ctx.network_address, &sent_fee, &sender);
+    let res = client.send_call(&tx_origin, &sender, &envelope, &ctx.network_address);
     assert_eq!(res, 1);
     assert_eq!(
         ctx.env.auths(),
@@ -52,36 +53,58 @@ fn test_send_call_message() {
                 sender.clone(),
                 AuthorizedInvocation {
                     function: AuthorizedFunction::Contract((
-                        client.address.clone(),
+                        ctx.contract.clone(),
                         symbol_short!("send_call"),
-                        (envelope, ctx.network_address.clone(), sent_fee, &sender,)
-                            .into_val(&ctx.env)
-                    )),
-                    sub_invocations: std::vec![AuthorizedInvocation {
-                        function: AuthorizedFunction::Contract((
-                            ctx.native_token.clone(),
-                            symbol_short!("transfer"),
-                            (sender.clone(), ctx.contract.clone(), sent_fee as i128)
-                                .into_val(&ctx.env)
-                        )),
-                        sub_invocations: std::vec![]
-                    }]
-                }
-            ),
-            (
-                ctx.contract.clone(),
-                AuthorizedInvocation {
-                    function: AuthorizedFunction::Contract((
-                        ctx.native_token.clone(),
-                        symbol_short!("transfer"),
                         (
-                            &ctx.contract.clone(),
-                            ctx.centralized_connection.clone(),
-                            connection_fee.clone() as i128
+                            &tx_origin,
+                            &sender,
+                            Envelope {
+                                sources: sources.clone(),
+                                destinations,
+                                message: AnyMessage::CallMessage(CallMessage {
+                                    data: bytes!(&ctx.env, 0xabc),
+                                }),
+                            },
+                            ctx.network_address.clone()
                         )
                             .into_val(&ctx.env)
                     )),
                     sub_invocations: std::vec![]
+                }
+            ),
+            (
+                tx_origin.clone(),
+                AuthorizedInvocation {
+                    function: AuthorizedFunction::Contract((
+                        ctx.contract.clone(),
+                        symbol_short!("send_call"),
+                        (&tx_origin, &sender, envelope, ctx.network_address.clone())
+                            .into_val(&ctx.env)
+                    )),
+                    sub_invocations: std::vec![
+                        AuthorizedInvocation {
+                            function: AuthorizedFunction::Contract((
+                                ctx.native_token.clone(),
+                                symbol_short!("transfer"),
+                                (
+                                    tx_origin.clone(),
+                                    ctx.centralized_connection.clone(),
+                                    connection_fee as i128
+                                )
+                                    .into_val(&ctx.env)
+                            )),
+                            sub_invocations: std::vec![]
+                        },
+                        AuthorizedInvocation {
+                            function: AuthorizedFunction::Contract((
+                                ctx.native_token.clone(),
+                                symbol_short!("transfer"),
+                                (tx_origin.clone(), ctx.admin.clone(), protocol_fee as i128)
+                                    .into_val(&ctx.env)
+                            )),
+                            sub_invocations: std::vec![]
+                        },
+                    ]
                 }
             )
         ]
@@ -93,14 +116,10 @@ fn test_send_call_message() {
     });
 
     let fee_handler_balance = ctx.get_native_token_balance(&ctx.admin);
-    let expected_balance = (sent_fee - fee) + protocol_fee;
-    assert_eq!(fee_handler_balance, expected_balance);
+    assert_eq!(fee_handler_balance, protocol_fee);
 
-    let xcall_balance = ctx.get_native_token_balance(&ctx.contract);
-    assert_eq!(xcall_balance, 0);
-
-    let sender_balance = ctx.get_native_token_balance(&sender);
-    assert_eq!(sender_balance, mint_amount - sent_fee);
+    let tx_origin_balance = ctx.get_native_token_balance(&tx_origin);
+    assert_eq!(tx_origin_balance, mint_amount - fee);
 }
 
 #[test]
@@ -113,9 +132,11 @@ fn test_send_message_with_greater_than_max_data_size() {
     let mut bytes = Bytes::new(&ctx.env);
     bytes.copy_from_slice(2050, &[1; 2050]);
 
+    let tx_origin = Address::generate(&ctx.env);
     let msg = AnyMessage::CallMessage(CallMessage { data: bytes });
     let envelope = get_dummy_envelope_msg(&ctx.env, msg);
-    client.send_call(&envelope, &ctx.network_address, &100, &ctx.admin);
+
+    client.send_call(&tx_origin, &ctx.admin, &envelope, &ctx.network_address);
 }
 
 #[test]
@@ -182,16 +203,19 @@ fn test_call_connection_for_rollback_message() {
     let ctx = TestContext::default();
     let client = XcallClient::new(&ctx.env, &ctx.contract);
     ctx.init_context(&client);
+    ctx.env.mock_all_auths_allowing_non_root_auth();
 
+    let sender = Address::generate(&ctx.env);
     let msg = Bytes::new(&ctx.env);
     let sources = vec![&ctx.env, ctx.centralized_connection.to_string()];
 
     let need_response = true;
     let fee = ctx.get_centralized_connection_fee(need_response);
-    // temporary mint to test call_connection
-    ctx.mint_native_token(&ctx.contract, fee);
-    let res = Xcall::call_connection(
+    ctx.mint_native_token(&sender, fee);
+
+    Xcall::call_connection(
         &ctx.env,
+        &sender,
         &ctx.nid,
         1,
         sources.clone(),
@@ -199,12 +223,11 @@ fn test_call_connection_for_rollback_message() {
         msg.clone(),
     )
     .unwrap();
-    assert_eq!(res, fee);
 
-    let xcall_balance = ctx.get_native_token_balance(&ctx.contract);
+    let sender_balance = ctx.get_native_token_balance(&sender);
     let connection_balance = ctx.get_native_token_balance(&ctx.centralized_connection);
 
-    assert_eq!(xcall_balance, 0);
+    assert_eq!(sender_balance, 0);
     assert_eq!(connection_balance, fee);
 }
 
@@ -213,16 +236,19 @@ fn test_call_connection_for_call_message() {
     let ctx = TestContext::default();
     let client = XcallClient::new(&ctx.env, &ctx.contract);
     ctx.init_context(&client);
+    ctx.env.mock_all_auths_allowing_non_root_auth();
 
+    let sender = Address::generate(&ctx.env);
     let msg = Bytes::new(&ctx.env);
     let sources = vec![&ctx.env, ctx.centralized_connection.to_string()];
 
     let need_response = false;
     let fee = ctx.get_centralized_connection_fee(need_response);
-    // temporary mint to test call_connection
-    ctx.mint_native_token(&ctx.contract, fee);
-    let res = Xcall::call_connection(
+    ctx.mint_native_token(&sender, fee);
+
+    Xcall::call_connection(
         &ctx.env,
+        &sender,
         &ctx.nid,
         1,
         sources.clone(),
@@ -230,12 +256,11 @@ fn test_call_connection_for_call_message() {
         msg.clone(),
     )
     .unwrap();
-    assert_eq!(res, fee);
 
-    let xcall_balance = ctx.get_native_token_balance(&ctx.contract);
+    let sender_balance = ctx.get_native_token_balance(&ctx.contract);
     let connection_balance = ctx.get_native_token_balance(&ctx.centralized_connection);
 
-    assert_eq!(xcall_balance, 0);
+    assert_eq!(sender_balance, 0);
     assert_eq!(connection_balance, fee);
 }
 
@@ -244,44 +269,38 @@ fn test_calim_protocol_fee() {
     let ctx = TestContext::default();
     let client = XcallClient::new(&ctx.env, &ctx.contract);
     ctx.init_context(&client);
+    ctx.env.mock_all_auths_allowing_non_root_auth();
 
-    let sent_amount = 300;
-    let connections_fee = 200;
-    let remaining_fee = sent_amount - connections_fee;
+    let protocol_fee = 100;
+    let sender = Address::generate(&ctx.env);
 
-    // temporary mint to test claim_protocol_fee
-    ctx.mint_native_token(&ctx.contract, 100);
+    ctx.mint_native_token(&sender, protocol_fee);
 
     ctx.env.as_contract(&ctx.contract, || {
-        Xcall::claim_protocol_fee(&ctx.env, sent_amount, connections_fee).unwrap();
+        Xcall::claim_protocol_fee(&ctx.env, &sender).unwrap();
 
         let fee_handler_balance = ctx.get_native_token_balance(&ctx.admin);
-        let xcall_balance = ctx.get_native_token_balance(&ctx.contract);
+        let sender_balance = ctx.get_native_token_balance(&sender);
 
-        assert_eq!(fee_handler_balance, remaining_fee);
-        assert_eq!(xcall_balance, 0);
+        assert_eq!(fee_handler_balance, protocol_fee);
+        assert_eq!(sender_balance, 0);
     });
 }
 
 #[test]
-#[should_panic(expected = "InsufficientFunds")]
+#[should_panic(expected = "HostError: Error(Contract, #10)")]
 fn test_claim_protocol_fail_for_insufficient_amount_sent() {
     let ctx = TestContext::default();
     let client = XcallClient::new(&ctx.env, &ctx.contract);
     ctx.init_context(&client);
+    ctx.env.mock_all_auths_allowing_non_root_auth();
 
-    let sent_amount = 300;
-    let connections_fee = 200;
-
-    // temporary mint to test claim_protocol_fee
-    ctx.mint_native_token(&ctx.contract, 100);
+    let sender = Address::generate(&ctx.env);
+    ctx.mint_native_token(&sender, 100);
 
     ctx.env.as_contract(&ctx.contract, || {
         Xcall::set_protocol_fee(&ctx.env, 150).unwrap();
-        Xcall::claim_protocol_fee(&ctx.env, sent_amount, connections_fee).unwrap();
-
-        let xcall_balance = ctx.get_native_token_balance(&ctx.contract);
-        assert_eq!(xcall_balance, 0);
+        Xcall::claim_protocol_fee(&ctx.env, &sender).unwrap();
     });
 }
 

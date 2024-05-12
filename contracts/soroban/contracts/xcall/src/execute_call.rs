@@ -12,7 +12,12 @@ use crate::{
 };
 
 impl Xcall {
-    pub fn execute_message(env: &Env, req_id: u128, data: Bytes) -> Result<(), ContractError> {
+    pub fn execute_message(
+        env: &Env,
+        sender: Address,
+        req_id: u128,
+        data: Bytes,
+    ) -> Result<(), ContractError> {
         let req = Self::get_proxy_request(&env, req_id)?;
 
         let hash_data = Self::hash_data(&env, &data);
@@ -75,8 +80,8 @@ impl Xcall {
                 for to in destinations {
                     Self::call_connection_send_message(
                         &env,
+                        &sender,
                         &to,
-                        0_u128,
                         &nid,
                         -(req.sequence_no() as i64),
                         &cs_message,

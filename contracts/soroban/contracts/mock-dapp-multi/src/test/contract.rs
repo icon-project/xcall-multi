@@ -1,8 +1,10 @@
 use soroban_rlp::encoder;
 use soroban_sdk::{bytes, testutils::Address as _, vec, Address, String};
+use xcall::types::network_address::NetworkAddress;
 
 use super::setup::*;
 
+extern crate std;
 use crate::{
     contract::{MockDapp, MockDappClient},
     types::Connection,
@@ -12,13 +14,11 @@ use crate::{
 fn test_init() {
     let ctx = TestContext::default();
     let client = MockDappClient::new(&ctx.env, &ctx.contract);
-
-    let xcall_addr = Address::generate(&ctx.env);
-    client.init(&xcall_addr);
+    ctx.init_context(&client);
 
     ctx.env.as_contract(&ctx.contract, || {
         let addr = MockDapp::get_xcall_address(&ctx.env).unwrap();
-        assert_eq!(xcall_addr, addr);
+        assert_eq!(addr, ctx.xcall);
     });
 
     let sn = client.get_sequence();
@@ -35,17 +35,102 @@ fn test_get_sequence_fail() {
 }
 
 #[test]
-#[should_panic(expected = "HostError: Error(Contract, #5)")]
-fn test_send_call_message_fail_connections_not_found() {
+fn test_sen_call_message() {
     let ctx = TestContext::default();
     let client = MockDappClient::new(&ctx.env, &ctx.contract);
+    ctx.init_context(&client);
+
+    let msg_type = 0;
+    let sender = Address::generate(&ctx.env);
+    ctx.mint_native_token(&sender, 500);
+    assert_eq!(ctx.get_native_token_balance(&sender), 500);
+
+    client.send_call_message(
+        &ctx.network_address,
+        &bytes!(&ctx.env, 0x00),
+        &msg_type,
+        &None,
+        &sender,
+    );
+    assert_eq!(ctx.get_native_token_balance(&sender), 300)
+}
+
+#[test]
+#[should_panic(expected = "HostError: Error(Contract, #5)")]
+fn test_send_rollback_message_fail_for_empty_rollback_data() {
+    let ctx = TestContext::default();
+    let client = MockDappClient::new(&ctx.env, &ctx.contract);
+    ctx.init_context(&client);
+
+    let msg_type = 1;
+    let sender = Address::generate(&ctx.env);
+    client.send_call_message(
+        &ctx.network_address,
+        &bytes!(&ctx.env, 0xabc),
+        &msg_type,
+        &None,
+        &sender,
+    );
+}
+
+#[test]
+fn test_send_rollback_message() {
+    let ctx = TestContext::default();
+    let client = MockDappClient::new(&ctx.env, &ctx.contract);
+    ctx.init_context(&client);
+
+    let msg_type = 1;
+    let sender = Address::generate(&ctx.env);
+    ctx.mint_native_token(&sender, 500);
+    assert_eq!(ctx.get_native_token_balance(&sender), 500);
 
     client.send_call_message(
         &ctx.network_address,
         &bytes!(&ctx.env, 0xabc),
+        &msg_type,
+        &Some(bytes!(&ctx.env, 0xabc)),
+        &sender,
+    );
+    assert_eq!(ctx.get_native_token_balance(&sender), 200)
+}
+
+#[test]
+fn test_send_call_message_persisted() {
+    let ctx = TestContext::default();
+    let client = MockDappClient::new(&ctx.env, &ctx.contract);
+    ctx.init_context(&client);
+
+    let msg_type = 2;
+    let sender = Address::generate(&ctx.env);
+    ctx.mint_native_token(&sender, 500);
+    assert_eq!(ctx.get_native_token_balance(&sender), 500);
+
+    client.send_call_message(
+        &ctx.network_address,
+        &bytes!(&ctx.env, 0xabc),
+        &msg_type,
+        &None,
+        &sender,
+    );
+    assert_eq!(ctx.get_native_token_balance(&sender), 300)
+}
+
+#[test]
+#[should_panic(expected = "HostError: Error(Contract, #5)")]
+fn test_send_call_message_fail_connections_not_found() {
+    let ctx = TestContext::default();
+    let client = MockDappClient::new(&ctx.env, &ctx.contract);
+    ctx.init_context(&client);
+
+    let nid = String::from_str(&ctx.env, "archway");
+    let account = Address::generate(&ctx.env).to_string();
+    let to = NetworkAddress::new(&ctx.env, nid, account);
+    client.send_call_message(
+        &to,
+        &bytes!(&ctx.env, 0xabc),
         &1,
         &None,
-        &u128::default(),
+        &Address::generate(&ctx.env),
     );
 }
 
@@ -54,6 +139,8 @@ fn test_send_call_message_fail_connections_not_found() {
 fn test_send_call_message_fail_xcall_address_not_set() {
     let ctx = TestContext::default();
     let client = MockDappClient::new(&ctx.env, &ctx.contract);
+
+    ctx.env.mock_all_auths();
 
     let network_address = &ctx.network_address;
     let src = Address::generate(&ctx.env).to_string();
@@ -71,7 +158,7 @@ fn test_send_call_message_fail_xcall_address_not_set() {
         &bytes!(&ctx.env, 0xabc),
         &1,
         &None,
-        &u128::default(),
+        &Address::generate(&ctx.env),
     );
 }
 
@@ -79,6 +166,7 @@ fn test_send_call_message_fail_xcall_address_not_set() {
 fn test_handle_call_message_pass() {
     let ctx = TestContext::default();
     let client = MockDappClient::new(&ctx.env, &ctx.contract);
+    ctx.env.mock_all_auths();
 
     let from = ctx.network_address;
     let sender = &from.account(&ctx.env);
@@ -97,6 +185,7 @@ fn test_handle_call_message_pass() {
 fn test_handle_call_message_revert() {
     let ctx = TestContext::default();
     let client = MockDappClient::new(&ctx.env, &ctx.contract);
+    ctx.env.mock_all_auths();
 
     let string_data = String::from_str(&ctx.env, "rollback");
     let encoded_data = encoder::encode_string(&ctx.env, string_data);
@@ -110,4 +199,21 @@ fn test_handle_call_message_revert() {
 }
 
 #[test]
-fn test_handle_call_message_reply() {}
+fn test_handle_call_message_reply() {
+    let ctx = TestContext::default();
+    let client = MockDappClient::new(&ctx.env, &ctx.contract);
+    ctx.init_context(&client);
+
+    let sender = Address::generate(&ctx.env);
+    ctx.mint_native_token(&sender, 500);
+
+    let string_data = String::from_str(&ctx.env, "reply-response");
+    let encoded_data = encoder::encode_string(&ctx.env, string_data);
+
+    client.handle_call_message(
+        &sender,
+        &ctx.network_address,
+        &encoded_data,
+        &Some(vec![&ctx.env]),
+    );
+}
