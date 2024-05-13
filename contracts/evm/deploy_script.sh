@@ -5,7 +5,7 @@ valid_actions=("deploy" "upgrade" "configure")
 valid_contracts=("callservice" "mock" "wormhole" "layerzero" "centralized")
 valid_environments=("mainnet" "testnet" "local")
 valid_mainnet_chains=("ethereum" "binance" "avalanche" "arbitrum" "optimism" "base" "all")
-valid_testnet_chains=("sepolia" "bsctest" "fuji" "arbitrum_goerli" "optimism_goerli" "base_goerli" "optimism_sepolia" "arbitrum_sepolia" "goerli" "all")
+valid_testnet_chains=("sepolia" "bsctest" "fuji" "base_sepolia" "optimism_sepolia" "arbitrum_sepolia" "all")
 valid_local_chains=("local" "all")
 
 # Initialize variables
@@ -78,8 +78,7 @@ fi
 
 if [ "$action" == "upgrade" ]; then
     if [ "$contractVersion" == "" ]; then
-        echo "Missing contract version, add --version <contract> (like --version CallServiceV2.sol)"
-        exit 1
+        contractVersion="CallService.sol"
     fi
 fi
 
@@ -118,7 +117,11 @@ if [ "$action" == "deploy" ]; then
     for chain in "${chains[@]}"; do
         echo "Deploying on $chain"
         rm -rf out
+        if [ "$chain" == "local" ] || [ "$chain" == "base-sepolia" ]; then
+        forge script DeployCallService  -s "deployContract(string memory env, string memory chain, string memory contractA)" $env $chain $contract --fork-url $chain --broadcast --sender ${ADMIN} --ffi
+        else
         forge script DeployCallService  -s "deployContract(string memory env, string memory chain, string memory contractA)" $env $chain $contract --fork-url $chain --broadcast --sender ${ADMIN} --verify --etherscan-api-key $chain --ffi
+        fi
     done
 elif [ "$action" == "upgrade" ]; then
     echo "Upgrading $contract on $env:"
@@ -127,8 +130,10 @@ elif [ "$action" == "upgrade" ]; then
         echo "Upgrading on $chain"
         if [ "$contract" == "mock" ]; then
         echo "Mock Contract is not upgradeable!"
+        elif [ "$chain" == "local" ] || [ "$chain" == "base-sepolia" ]; then
+        forge script DeployCallService  -s "upgradeContract(string memory chain, string memory contractName, string memory contractA)" $chain $contractVersion $contract --fork-url $chain --broadcast --sender ${ADMIN} --ffi       
         else
-        forge script DeployCallService  -s "upgradeContract(string memory chain, string memory contractName, string memory contractA)" $chain $contractVersion $contract --fork-url $chain --broadcast --sender ${ADMIN} --verify --etherscan-api-key $chain --ffi        
+        forge script DeployCallService  -s "upgradeContract(string memory chain, string memory contractName, string memory contractA)" $chain $contractVersion $contract --fork-url $chain --broadcast --sender ${ADMIN} --verify --etherscan-api-key $chain --ffi       
         fi
     done
 elif [ "$action" == "configure" ]; then
