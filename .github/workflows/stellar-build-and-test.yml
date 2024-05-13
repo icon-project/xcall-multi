@@ -2,7 +2,7 @@ name: Build and Test Stellar contracts
 on:
   push:
     branches:
-      - main
+      - '**'
   pull_request:
     branches:
       - main
