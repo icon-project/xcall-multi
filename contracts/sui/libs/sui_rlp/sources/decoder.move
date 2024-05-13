@@ -93,7 +93,7 @@ module sui_rlp::decoder {
             }else if(prefix > 0xf7){
                 let length_length = ((prefix - 0xF7) as u64);
                 let length = utils::from_bytes_u64(&utils::slice_vector(&encoded, ((i + 1) as u64), length_length));
-                vector::push_back(&mut values,utils::slice_vector(&encoded, ((i + length_length + 1) as u64), length));
+                vector::push_back(&mut values,utils::slice_vector(&encoded, ((i ) as u64),length + length_length + 1));
                 i = i+(length_length + length + 1);
 
             } else {
