@@ -1,0 +1,42 @@
+name: Build and Test Stellar contracts
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+    paths:
+      - contracts/soroban/**
+      - libraries/common/rust/**
+      - .github/workflows/stellar-build-and-test.yml
+jobs:
+  Build:
+    name: Build Stellar Contracts
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+        with:
+          submodules: true
+
+      - name: Install stable toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: 1.69.0
+          target: wasm32-unknown-unknown
+          override: true
+          profile: minimal
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Compile WASM
+        working-directory: ./contracts
+        run: |
+            cd soroban
+            cargo build —target wasm32-unknown-unknown
+            cargo test
+
+      
+
