@@ -4,6 +4,7 @@ module sui_rlp::decoder {
      use sui::bcs;
      use std::string::{Self,String};
      use std::debug;
+     const InvalidPrefix:u64=1;
 
      public fun decode(encoded:&vector<u8>):vector<u8>{
         assert(vector::length(encoded) > 0, 0x1);
@@ -83,12 +84,20 @@ module sui_rlp::decoder {
                 vector::push_back(&mut values,utils::slice_vector(&encoded, ((i) as u64), length+1));
                 i = i+(length+1);
             
-            } else {
+            } else if(prefix >0xb7 && prefix < 0xc0){
                 let length_length = ((prefix - 0xB7) as u64);
                 let length = utils::from_bytes_u64(&utils::slice_vector(&encoded, ((i + 1) as u64), length_length));
              
                 vector::push_back(&mut values,utils::slice_vector(&encoded, ((i + length_length + 1) as u64), length));
                 i = i+(length_length + length + 1);
+            }else if(prefix > 0xf7){
+                let length_length = ((prefix - 0xF7) as u64);
+                let length = utils::from_bytes_u64(&utils::slice_vector(&encoded, ((i + 1) as u64), length_length));
+                vector::push_back(&mut values,utils::slice_vector(&encoded, ((i + length_length + 1) as u64), length));
+                i = i+(length_length + length + 1);
+
+            } else {
+                abort InvalidPrefix
             };
         };
         values
