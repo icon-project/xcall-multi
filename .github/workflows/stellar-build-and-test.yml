@@ -30,12 +30,17 @@ jobs:
 
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
+        
+      - name: Install wasm32
+        run: |
+          rustup target add wasm32-unknown-unknown
 
-      - name: Compile WASM
+
+      - name: Build & Test Stellar Contracts
         working-directory: ./contracts
         run: |
             cd soroban
-            cargo build —target wasm32-unknown-unknown
+            cargo build --target wasm32-unknown-unknown
             cargo test
 
       
