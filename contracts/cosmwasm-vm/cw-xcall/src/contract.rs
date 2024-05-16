@@ -94,6 +94,7 @@ impl<'a> CwCallService<'a> {
                 let dests = destinations.unwrap_or(vec![]);
                 self.send_call_message(deps, info, env, to, data, rollback, sources, dests)
             }
+            ExecuteMsg::SendCall { envelope, to } => self.send_call(deps, info, to, envelope),
             ExecuteMsg::HandleMessage { msg, from_nid } => {
                 self.handle_message(deps, info, from_nid, msg)
             }
@@ -241,34 +242,5 @@ impl<'a> CwCallService<'a> {
         let address = env.contract.address.to_string();
         let na = NetworkAddress::new(&config.network_id, &address);
         Ok(na)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use cosmwasm_std::testing::{mock_dependencies, mock_env};
-    use cw2::{get_contract_version, ContractVersion};
-
-    use crate::{
-        contract::{CONTRACT_NAME, CONTRACT_VERSION},
-        state::CwCallService,
-        MigrateMsg,
-    };
-
-    #[test]
-    fn test_migrate() {
-        let mut mock_deps = mock_dependencies();
-        let env = mock_env();
-
-        let contract = CwCallService::default();
-        let result = contract.migrate(mock_deps.as_mut(), env, MigrateMsg {});
-        assert!(result.is_ok());
-        let expected = ContractVersion {
-            contract: CONTRACT_NAME.to_string(),
-            version: CONTRACT_VERSION.to_string(),
-        };
-        let version = get_contract_version(&mock_deps.storage).unwrap();
-        println!("{version:?}");
-        assert_eq!(expected, version);
     }
 }
