@@ -78,7 +78,7 @@ module xcall::xcall_tests {
             let sources = vector[string::utf8(b"centralized")];
             let destinations = vector[string::utf8(b"icon:hx234")];
             let fee = coin::mint_for_testing<SUI>(100, ctx);
-            let data = b"data";
+            let data = b"This implementation ensures that the RLP-encoded list is correctly decoded, including handling empty elements. The utility functions help manage byte operations and simplify the main decoding logic.";
             let envelope=envelope::wrap_call_message(data,sources,destinations);
             let envelope_bytes=envelope::encode(&envelope);
             main::send_call(&mut storage,fee,&idCap,string::utf8(b"dnetId/daddress"),envelope_bytes,ctx);

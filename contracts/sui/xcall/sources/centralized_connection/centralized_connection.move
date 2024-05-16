@@ -47,6 +47,9 @@ module xcall::centralized_connection {
       let balance = coin.into_balance();
       centralized_state::deposit(get_state(states),balance);
       let conn_sn = get_next_connection_sn(get_state(states));
+      std::debug::print(&b"MESSAGE".to_string());
+      std::debug::print(&msg);
+
       event::emit(Message {
             to,
             conn_sn,

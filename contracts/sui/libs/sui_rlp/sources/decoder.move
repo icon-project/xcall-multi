@@ -6,31 +6,26 @@ module sui_rlp::decoder {
      use std::debug;
      const InvalidPrefix:u64=1;
 
-     public fun decode(encoded:&vector<u8>):vector<u8>{
-        assert(vector::length(encoded) > 0, 0x1);
-        let byte = *vector::borrow(encoded,0);
-       let decoded= if (byte==0x80) {
-           vector::empty()
-       } else if (byte < 0x80) {
-            vector::singleton(byte)
-        } else if (byte < 0xb8) {
-            let length = byte - 0x80;
-            let data = utils::slice_vector(encoded,1, ((length) as u64));
-            data
-        } else {
-            let length_len = byte - 0xb7;
-          
-            let length_bytes= utils::slice_vector(encoded,1,((length_len) as u64));
-            let length = utils::from_bytes_u64(&length_bytes);
-           
-            let data_start = ((length_len + 1) as u64);
-           
-            let data = utils::slice_vector(encoded,data_start, length);
-            data
-        };
-        decoded
-     }
 
+    public fun decode(encoded: &vector<u8>): vector<u8> {
+            assert!(vector::length(encoded) > 0, 0x1);
+            let byte = *vector::borrow(encoded, 0);
+            if (byte == 0x80) {
+                vector::empty()
+            } else if (byte < 0x80) {
+                vector::singleton(byte)
+            } else if (byte < 0xb8) {
+                let length = byte - 0x80;
+                utils::slice_vector(encoded, 1, length as u64)
+            } else {
+                let length_len = byte - 0xb7;
+                let length_bytes = utils::slice_vector(encoded, 1, length_len as u64);
+                debug::print(&length_bytes);
+                let length = utils::from_bytes_u64(&length_bytes);
+                let data_start = (length_len + 1) as u64;
+                utils::slice_vector(encoded, data_start, length)
+            }
+    }
 
      public fun decode_length(data:&vector<u8>,offset:u8):u64{
        let length=vector::length(data);
@@ -42,7 +37,7 @@ module sui_rlp::decoder {
 
 
         }else {
-            let length_len=*vector::borrow(data,0)-offset-55;
+            let length_len=*vector::borrow(data,0)-offset;
           
             let length_bytes=utils::slice_vector(data,1,(length_len as u64));
             utils::from_bytes_u64(&length_bytes)
@@ -50,17 +45,23 @@ module sui_rlp::decoder {
         };
 
         len
-
-        
+  
     }
 
-
      public fun decode_list(list: &vector<u8>): vector<vector<u8>> {
-       
-        let list_length=decode_length(list,0xc0);
+
+        let mut values: vector<vector<u8>> = vector::empty();
+
+        if(vector::length(list)>0){
+        let prefix = *vector::borrow(list, 0);
+        let list_length = if (prefix <= 0xf7) {
+            (prefix - 0xc0) as u64
+        } else {
+            let length_of_length = (prefix - 0xf7) as u64;
+            utils::from_bytes_u64(&utils::slice_vector(list, 1, length_of_length))
+        };
         let start=vector::length(list)-list_length;
         let encoded= utils::slice_vector(list,start,vector::length(list)-start);
-        let mut values: vector<vector<u8>> = vector::empty();
         let mut i: u64 = 0;
         while (i < vector::length(&encoded)) {
             let prefix = *vector::borrow(&encoded,i);
@@ -99,6 +100,7 @@ module sui_rlp::decoder {
             } else {
                 abort InvalidPrefix
             };
+        };
         };
         values
     }
