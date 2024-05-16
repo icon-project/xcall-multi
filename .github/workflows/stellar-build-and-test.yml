@@ -10,6 +10,10 @@ on:
       - contracts/soroban/**
       - libraries/common/rust/**
       - .github/workflows/stellar-build-and-test.yml
+
+defaults:
+  run:
+    working-directory: contracts/soroban
 jobs:
   Build:
     name: Build Stellar Contracts
@@ -37,9 +41,7 @@ jobs:
 
 
       - name: Build & Test Stellar Contracts
-        working-directory: ./contracts
         run: |
-            cd soroban
             cargo build --target wasm32-unknown-unknown
             cargo test
 
