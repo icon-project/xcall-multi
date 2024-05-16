@@ -3,12 +3,13 @@ use soroban_sdk::{
     bytes, contract, contractimpl, panic_with_error, Address, Bytes, Env, String, Vec,
 };
 
-use xcall::{
+use soroban_xcall_lib::{
     messages::{
         call_message::CallMessage, call_message_persisted::CallMessagePersisted,
-        call_message_rollback::CallMessageWithRollback, envelope::Envelope, AnyMessage,
+        call_message_rollback::CallMessageWithRollback, envelope::Envelope, msg_type::MessageType,
+        AnyMessage,
     },
-    types::{message::MessageType, network_address::NetworkAddress},
+    network_address::NetworkAddress,
 };
 
 use crate::{errors::ContractError, types::Connection};

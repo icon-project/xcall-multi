@@ -1,17 +1,17 @@
 use soroban_rlp::{decoder, encoder};
 use soroban_sdk::{contracttype, Bytes, Env, String, Vec};
+use soroban_xcall_lib::{messages::msg_type::MessageType, network_address::NetworkAddress};
 
-use super::{message::MessageType, network_address::NetworkAddress};
 use crate::errors::ContractError;
 
 #[contracttype]
 #[derive(Clone, Debug)]
 pub struct CSMessageRequest {
-    from: NetworkAddress,
+    from: String,
     to: String,
     sequence_no: u128,
     protocols: Vec<String>,
-    msg_type: MessageType,
+    msg_type: u32,
     data: Bytes,
 }
 
@@ -21,21 +21,22 @@ impl CSMessageRequest {
         to: String,
         sequence_no: u128,
         protocols: Vec<String>,
-        msg_type: MessageType,
+        message_type: MessageType,
         data: Bytes,
     ) -> Self {
+        let msg_type: u8 = message_type.into();
         Self {
-            from,
+            from: from.to_string(),
             to,
             sequence_no,
             protocols,
-            msg_type,
+            msg_type: msg_type as u32,
             data,
         }
     }
 
-    pub fn from(&self) -> &NetworkAddress {
-        &self.from
+    pub fn from(&self) -> NetworkAddress {
+        NetworkAddress::from_string(self.from.clone())
     }
 
     pub fn to(&self) -> &String {
@@ -51,15 +52,18 @@ impl CSMessageRequest {
     }
 
     pub fn msg_type(&self) -> MessageType {
-        self.msg_type
+        let msg_type: u8 = self.msg_type as u8;
+        msg_type.into()
     }
 
     pub fn need_response(&self) -> bool {
-        self.msg_type == MessageType::CallMessageWithRollback
+        let msg_type: MessageType = (self.msg_type as u8).into();
+        msg_type == MessageType::CallMessageWithRollback
     }
 
     pub fn allow_retry(&self) -> bool {
-        self.msg_type == MessageType::CallMessagePersisted
+        let msg_type: MessageType = (self.msg_type as u8).into();
+        msg_type == MessageType::CallMessagePersisted
     }
 
     pub fn data(&self) -> &Bytes {
@@ -74,10 +78,10 @@ impl CSMessageRequest {
     pub fn encode(&self, e: &Env) -> Bytes {
         let mut list: Vec<Bytes> = Vec::new(&e);
 
-        list.push_back(encoder::encode_string(&e, self.from.as_string().clone()));
+        list.push_back(encoder::encode_string(&e, self.from.clone()));
         list.push_back(encoder::encode_string(&e, self.to.clone()));
         list.push_back(encoder::encode_u128(&e, self.sequence_no));
-        list.push_back(encoder::encode_u8(&e, self.msg_type.into()));
+        list.push_back(encoder::encode_u8(&e, self.msg_type as u8));
         list.push_back(encoder::encode(&e, self.data.clone()));
         list.push_back(encoder::encode_strings(&e, self.protocols.clone()));
 
@@ -99,7 +103,7 @@ impl CSMessageRequest {
         let protocols = decoder::decode_strings(&e, decoded.get(5).unwrap());
 
         Ok(Self {
-            from: NetworkAddress::to_network_address(from),
+            from,
             to,
             sequence_no,
             msg_type,

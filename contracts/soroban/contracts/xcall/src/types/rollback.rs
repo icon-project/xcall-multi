@@ -1,11 +1,11 @@
 use soroban_sdk::{contracttype, Address, Bytes, String, Vec};
-
-use super::network_address::NetworkAddress;
+use soroban_xcall_lib::network_address::NetworkAddress;
 
 #[contracttype]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Rollback {
     pub from: Address,
-    pub to: NetworkAddress,
+    pub to: String,
     pub protocols: Vec<String>,
     pub rollback: Bytes,
     pub enabled: bool,
@@ -21,7 +21,7 @@ impl Rollback {
     ) -> Self {
         Self {
             from,
-            to,
+            to: to.to_string(),
             protocols,
             rollback,
             enabled,
@@ -32,8 +32,8 @@ impl Rollback {
         &self.from
     }
 
-    pub fn to(&self) -> &NetworkAddress {
-        &self.to
+    pub fn to(&self) -> NetworkAddress {
+        NetworkAddress::from_string(self.to.clone())
     }
 
     pub fn protocols(&self) -> &Vec<String> {

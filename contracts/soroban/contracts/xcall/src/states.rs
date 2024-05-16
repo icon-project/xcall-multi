@@ -1,10 +1,10 @@
 use soroban_sdk::{Address, BytesN, Env, String, Vec};
+use soroban_xcall_lib::network_address::NetworkAddress;
 
 use crate::{
     contract::Xcall,
     errors::ContractError,
     types::{
-        network_address::NetworkAddress,
         request::CSMessageRequest,
         rollback::Rollback,
         storage_types::{Config, StorageKey},

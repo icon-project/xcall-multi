@@ -7,15 +7,13 @@ use soroban_sdk::{
     testutils::{Address as _, AuthorizedFunction, AuthorizedInvocation},
     vec, Address, Bytes, IntoVal, String, Vec,
 };
+use soroban_xcall_lib::messages::{
+    call_message::CallMessage, call_message_rollback::CallMessageWithRollback, envelope::Envelope,
+    AnyMessage,
+};
 
 use super::setup::*;
-use crate::{
-    contract::{Xcall, XcallClient},
-    messages::{
-        call_message::CallMessage, call_message_rollback::CallMessageWithRollback,
-        envelope::Envelope, AnyMessage,
-    },
-};
+use crate::contract::{Xcall, XcallClient};
 
 #[test]
 fn test_send_call_message() {
@@ -44,7 +42,12 @@ fn test_send_call_message() {
     let fee = client.get_fee(&ctx.nid, &need_response, &Some(sources.clone()));
     let connection_fee = fee - protocol_fee;
 
-    let res = client.send_call(&tx_origin, &sender, &envelope, &ctx.network_address);
+    let res = client.send_call(
+        &tx_origin,
+        &sender,
+        &envelope,
+        &ctx.network_address.to_string(),
+    );
     assert_eq!(res, 1);
     assert_eq!(
         ctx.env.auths(),
@@ -65,7 +68,7 @@ fn test_send_call_message() {
                                     data: bytes!(&ctx.env, 0xabc),
                                 }),
                             },
-                            ctx.network_address.clone()
+                            ctx.network_address.to_string().clone()
                         )
                             .into_val(&ctx.env)
                     )),
@@ -78,7 +81,12 @@ fn test_send_call_message() {
                     function: AuthorizedFunction::Contract((
                         ctx.contract.clone(),
                         symbol_short!("send_call"),
-                        (&tx_origin, &sender, envelope, ctx.network_address.clone())
+                        (
+                            &tx_origin,
+                            &sender,
+                            envelope,
+                            ctx.network_address.to_string().clone()
+                        )
                             .into_val(&ctx.env)
                     )),
                     sub_invocations: std::vec![
@@ -136,7 +144,12 @@ fn test_send_message_with_greater_than_max_data_size() {
     let msg = AnyMessage::CallMessage(CallMessage { data: bytes });
     let envelope = get_dummy_envelope_msg(&ctx.env, msg);
 
-    client.send_call(&tx_origin, &ctx.admin, &envelope, &ctx.network_address);
+    client.send_call(
+        &tx_origin,
+        &ctx.admin,
+        &envelope,
+        &ctx.network_address.to_string(),
+    );
 }
 
 #[test]

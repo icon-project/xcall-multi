@@ -1,4 +1,4 @@
-use soroban_sdk::{contracttype, Address, Bytes, String};
+use soroban_sdk::{contracttype, Address, String};
 
 #[contracttype]
 #[derive(Clone)]
@@ -17,11 +17,4 @@ pub struct InitializeMsg {
     pub relayer: Address,
     pub native_token: Address,
     pub xcall_address: Address,
-}
-
-#[contracttype]
-pub struct SendMsgEvent {
-    pub target_network: String,
-    pub conn_sn: u128,
-    pub msg: Bytes,
 }

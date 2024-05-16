@@ -1,18 +1,19 @@
 use soroban_sdk::{contracttype, Bytes};
 
-use crate::types::message::IMessage;
+use super::msg_trait::IMessage;
 
 #[contracttype]
-pub struct CallMessagePersisted {
+pub struct CallMessageWithRollback {
     pub data: Bytes,
+    pub rollback: Bytes,
 }
 
-impl IMessage for CallMessagePersisted {
+impl IMessage for CallMessageWithRollback {
     fn data(&self) -> Bytes {
         self.data.clone()
     }
 
     fn rollback(&self) -> Option<Bytes> {
-        None
+        Some(self.rollback.clone())
     }
 }

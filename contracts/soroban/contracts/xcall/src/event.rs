@@ -1,72 +1,66 @@
-use soroban_sdk::{contracttype, Address, Bytes, Env, String};
+#![allow(non_snake_case)]
 
-use crate::types::{network_address::NetworkAddress, result::CSResponseType};
+use crate::types::result::CSResponseType;
+use soroban_sdk::{contracttype, Address, Bytes, Env, String};
 
 #[contracttype]
 pub struct CallMsgSentEvent {
-    from: Address,
-    to: NetworkAddress,
-    sn: u128,
+    pub from: Address,
+    pub to: String,
+    pub sn: u128,
 }
 
 #[contracttype]
 pub struct CallMsgEvent {
-    pub from: NetworkAddress,
+    pub from: String,
     pub to: String,
     pub sn: u128,
-    pub req_id: u128,
+    pub reqId: u128,
     pub data: Bytes,
 }
 
 #[contracttype]
 pub struct ResponseMsgEvent {
-    code: CSResponseType,
-    sn: u128,
+    pub code: u32,
+    pub sn: u128,
 }
 
 #[contracttype]
 pub struct CallExecutedEvent {
-    req_id: u128,
-    code: u32,
-    msg: String,
+    pub reqId: u128,
+    pub code: u32,
+    pub msg: String,
 }
 
 #[contracttype]
 pub struct RollbackMsgEvent {
-    sn: u128,
+    pub sn: u128,
 }
 
 #[contracttype]
 pub struct RollbackExecutedEvent {
-    sn: u128,
+    pub sn: u128,
 }
 
-pub(crate) fn message_sent(e: &Env, from: Address, to: NetworkAddress, sn: u128) {
+pub(crate) fn message_sent(e: &Env, from: Address, to: String, sn: u128) {
     let data = CallMsgSentEvent { from, to, sn };
     e.events().publish(("CallMessageSent",), data)
 }
 
-pub(crate) fn call_message(
-    e: &Env,
-    from: NetworkAddress,
-    to: String,
-    sn: u128,
-    req_id: u128,
-    data: Bytes,
-) {
+pub(crate) fn call_message(e: &Env, from: String, to: String, sn: u128, reqId: u128, data: Bytes) {
     let data = CallMsgEvent {
         from,
         to,
         sn,
-        req_id,
+        reqId,
         data,
     };
     e.events().publish(("CallMessage",), data);
 }
 
-pub(crate) fn call_executed(e: &Env, req_id: u128, code: u8, msg: String) {
+pub(crate) fn call_executed(e: &Env, reqId: u128, code: u8, msg: String) {
     let data = CallExecutedEvent {
-        req_id,
+        reqId,
         code: code as u32,
         msg,
     };
@@ -74,7 +68,11 @@ pub(crate) fn call_executed(e: &Env, req_id: u128, code: u8, msg: String) {
 }
 
 pub(crate) fn response_message(e: &Env, code: CSResponseType, sn: u128) {
-    let data = ResponseMsgEvent { code, sn };
+    let response_code: u8 = code.into();
+    let data = ResponseMsgEvent {
+        code: response_code as u32,
+        sn,
+    };
     e.events().publish(("ResponseMessage",), data)
 }
 

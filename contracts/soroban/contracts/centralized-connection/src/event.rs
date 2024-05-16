@@ -1,12 +1,19 @@
-use soroban_sdk::{Bytes, Env, String};
+#![allow(non_snake_case)]
 
-use crate::types::SendMsgEvent;
+use soroban_sdk::{contracttype, Bytes, Env, String};
 
-pub(crate) fn send_message(e: &Env, to: String, sn: u128, msg: Bytes) {
+#[contracttype]
+pub struct SendMsgEvent {
+    pub targetNetwork: String,
+    pub connSn: u128,
+    pub msg: Bytes,
+}
+
+pub(crate) fn send_message(e: &Env, targetNetwork: String, connSn: u128, msg: Bytes) {
     let emit_message = SendMsgEvent {
-        target_network: to,
-        conn_sn: sn,
+        targetNetwork,
+        connSn,
         msg,
     };
-    e.events().publish(("EmitMessage",), emit_message);
+    e.events().publish(("Message",), emit_message);
 }

@@ -1,14 +1,14 @@
 use soroban_sdk::{vec, Address, Bytes, Env, String, Vec};
+use soroban_xcall_lib::{
+    messages::{envelope::Envelope, msg_trait::IMessage, AnyMessage},
+    network_address::NetworkAddress,
+};
 
 use crate::{
     contract::Xcall,
     errors::ContractError,
     event,
-    messages::{cs_message::CSMessage, envelope::Envelope, AnyMessage},
-    types::{
-        message::IMessage, network_address::NetworkAddress, request::CSMessageRequest,
-        rollback::Rollback,
-    },
+    types::{message::CSMessage, request::CSMessageRequest, rollback::Rollback},
 };
 
 impl Xcall {
@@ -17,20 +17,16 @@ impl Xcall {
         tx_origin: Address,
         sender: Address,
         envelope: Envelope,
-        to: NetworkAddress,
+        to: String,
     ) -> Result<u128, ContractError> {
         sender.require_auth();
         tx_origin.require_auth();
 
         let sequence_no = Self::get_next_sn(&env);
 
-        let config = Self::get_config(&env)?;
+        let to = NetworkAddress::from_string(to.clone());
         let (nid_to, dst_account) = to.parse_network_address(&env);
-        let from = NetworkAddress::new(
-            &env,
-            config.network_id,
-            env.current_contract_address().to_string(),
-        );
+        let from = Self::get_own_network_address(&env)?;
 
         Self::process_message(&env, &to, sequence_no, &sender, &envelope)?;
 
@@ -63,7 +59,7 @@ impl Xcall {
             )?;
             Self::claim_protocol_fee(&env, &tx_origin)?;
         }
-        event::message_sent(&env, sender, to, sequence_no);
+        event::message_sent(&env, sender, to.to_string(), sequence_no);
 
         Ok(sequence_no)
     }

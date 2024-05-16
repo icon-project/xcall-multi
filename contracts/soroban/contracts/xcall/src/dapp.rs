@@ -1,10 +1,8 @@
 use soroban_sdk::{Address, Bytes, Env, String, Vec};
+use soroban_xcall_lib::network_address::NetworkAddress;
 
 use crate::{
-    contract::Xcall,
-    event,
-    interfaces::interface_dapp::DappClient,
-    types::{network_address::NetworkAddress, result::CSResponseType},
+    contract::Xcall, event, interfaces::interface_dapp::DappClient, types::result::CSResponseType,
 };
 
 impl Xcall {
@@ -17,9 +15,19 @@ impl Xcall {
     ) {
         let client = DappClient::new(&e, &address);
         if protocols.len() > 0 {
-            client.handle_call_message(&e.current_contract_address(), &from, data, &Some(protocols))
+            client.handle_call_message(
+                &e.current_contract_address(),
+                &from.to_string(),
+                data,
+                &Some(protocols),
+            )
         } else {
-            client.handle_call_message(&e.current_contract_address(), &from, data, &None)
+            client.handle_call_message(
+                &e.current_contract_address(),
+                &from.to_string(),
+                data,
+                &None,
+            )
         }
     }
 
@@ -37,8 +45,12 @@ impl Xcall {
         }
 
         let client = DappClient::new(&e, &address);
-        let res =
-            client.try_handle_call_message(&e.current_contract_address(), &from, data, &protocols);
+        let res = client.try_handle_call_message(
+            &e.current_contract_address(),
+            &from.to_string(),
+            data,
+            &protocols,
+        );
 
         match res {
             Ok(_) => {

@@ -1,16 +1,15 @@
 use soroban_sdk::{contracttype, Bytes};
 
-use crate::types::message::{IMessage, MessageType};
-
 pub mod call_message;
 pub mod call_message_persisted;
 pub mod call_message_rollback;
-pub mod cs_message;
 pub mod envelope;
+pub mod msg_trait;
+pub mod msg_type;
 
 use self::{
     call_message::CallMessage, call_message_persisted::CallMessagePersisted,
-    call_message_rollback::CallMessageWithRollback,
+    call_message_rollback::CallMessageWithRollback, msg_trait::IMessage, msg_type::MessageType,
 };
 
 #[contracttype]

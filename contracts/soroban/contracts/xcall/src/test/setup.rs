@@ -1,6 +1,14 @@
 #![cfg(test)]
 
 use soroban_sdk::{bytes, testutils::Address as _, token, vec, Address, Bytes, Env, String, Vec};
+use soroban_xcall_lib::{
+    messages::{
+        call_message::CallMessage, call_message_persisted::CallMessagePersisted,
+        call_message_rollback::CallMessageWithRollback, envelope::Envelope, msg_type::MessageType,
+        AnyMessage,
+    },
+    network_address::NetworkAddress,
+};
 
 mod connection {
     soroban_sdk::contractimport!(
@@ -10,15 +18,7 @@ mod connection {
 
 use crate::{
     contract::{Xcall, XcallClient},
-    messages::{
-        call_message::CallMessage, call_message_persisted::CallMessagePersisted,
-        call_message_rollback::CallMessageWithRollback, envelope::Envelope, AnyMessage,
-    },
-    types::{
-        message::{InitializeMsg, MessageType},
-        network_address::NetworkAddress,
-        request::CSMessageRequest,
-    },
+    types::{message::InitializeMsg, request::CSMessageRequest},
 };
 
 pub fn get_dummy_message_request(env: &Env) -> CSMessageRequest {

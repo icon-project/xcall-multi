@@ -1,7 +1,7 @@
 use soroban_sdk::{Address, Env, String, Vec};
+use soroban_xcall_lib::{messages::envelope::Envelope, network_address::NetworkAddress};
 
 use crate::{contract::MockDapp, errors::ContractError, interfaces::interface_xcall::XcallClient};
-use xcall::{messages::envelope::Envelope, types::network_address::NetworkAddress};
 
 impl MockDapp {
     pub fn xcall_send_call(
@@ -12,7 +12,12 @@ impl MockDapp {
         xcall_address: &Address,
     ) {
         let client = XcallClient::new(&e, &xcall_address);
-        client.send_call(sender, &e.current_contract_address(), envelope, to);
+        client.send_call(
+            sender,
+            &e.current_contract_address(),
+            envelope,
+            &to.to_string(),
+        );
     }
 
     pub fn xcall_get_fee(

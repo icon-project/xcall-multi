@@ -1,12 +1,12 @@
 use soroban_sdk::{vec, Address, Bytes, Env};
+use soroban_xcall_lib::messages::msg_type::MessageType;
 
 use crate::{
     contract::Xcall,
     errors::ContractError,
     event,
-    messages::cs_message::CSMessage,
     types::{
-        message::MessageType,
+        message::CSMessage,
         result::{CSMessageResult, CSResponseType},
     },
 };
@@ -34,7 +34,7 @@ impl Xcall {
                     &env,
                     req_id,
                     to,
-                    req.from(),
+                    &req.from(),
                     &data,
                     req.protocols().clone(),
                 );
@@ -43,7 +43,7 @@ impl Xcall {
                 Self::handle_call_message(
                     &env,
                     to.clone(),
-                    req.from(),
+                    &req.from(),
                     &data,
                     req.protocols().clone(),
                 );
@@ -54,7 +54,7 @@ impl Xcall {
                     &env,
                     req_id,
                     to,
-                    req.from(),
+                    &req.from(),
                     &data,
                     req.protocols().clone(),
                 );

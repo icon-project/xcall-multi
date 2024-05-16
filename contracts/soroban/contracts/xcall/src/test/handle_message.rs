@@ -5,13 +5,13 @@ use soroban_sdk::{
     testutils::{Address as _, Events},
     vec, Address, IntoVal, String,
 };
+use soroban_xcall_lib::messages::msg_type::MessageType;
 
 use crate::{
     contract::{Xcall, XcallClient},
     event::CallMsgEvent,
-    messages::cs_message::CSMessage,
     types::{
-        message::MessageType,
+        message::CSMessage,
         request::CSMessageRequest,
         result::{CSMessageResult, CSResponseType},
         rollback::Rollback,
@@ -157,10 +157,10 @@ fn test_handle_message_request_from_multiple_sources() {
     }
 
     let event_msg = CallMsgEvent {
-        from: request.from().clone(),
+        from: request.from().to_string(),
         to: request.to().clone(),
         sn: 1_u128,
-        req_id: 1_u128,
+        reqId: 1_u128,
         data: request.data().clone(),
     };
     let event = vec![&ctx.env, ctx.env.events().all().last_unchecked()];

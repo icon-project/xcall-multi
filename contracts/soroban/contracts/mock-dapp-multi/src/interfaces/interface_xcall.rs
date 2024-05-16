@@ -1,7 +1,7 @@
 use soroban_sdk::{contractclient, Address, Env, String, Vec};
+use soroban_xcall_lib::messages::envelope::Envelope;
 
 use crate::errors::ContractError;
-use xcall::{messages::envelope::Envelope, types::network_address::NetworkAddress};
 
 #[contractclient(name = "XcallClient")]
 pub trait IXcall {
@@ -10,7 +10,7 @@ pub trait IXcall {
         tx_origin: Address,
         sender: Address,
         envelope: Envelope,
-        to: NetworkAddress,
+        to: String,
     ) -> Result<u128, ContractError>;
 
     fn get_fee(

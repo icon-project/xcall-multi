@@ -1,9 +1,9 @@
 use soroban_sdk::{contract, contractimpl, Address, Bytes, Env, String, Vec};
+use soroban_xcall_lib::messages::envelope::Envelope;
 
 use crate::{
     errors::ContractError,
-    messages::envelope::Envelope,
-    types::{message::InitializeMsg, network_address::NetworkAddress, storage_types::Config},
+    types::{message::InitializeMsg, storage_types::Config},
 };
 
 #[contract]
@@ -64,7 +64,7 @@ impl Xcall {
         tx_origin: Address,
         sender: Address,
         envelope: Envelope,
-        to: NetworkAddress,
+        to: String,
     ) -> Result<u128, ContractError> {
         Self::send_message(&env, tx_origin, sender, envelope, to)
     }
@@ -100,9 +100,9 @@ impl Xcall {
         Ok(admin)
     }
 
-    pub fn get_network_address(env: Env) -> Result<NetworkAddress, ContractError> {
+    pub fn get_network_address(env: Env) -> Result<String, ContractError> {
         let network_address = Self::get_own_network_address(&env)?;
-        Ok(network_address)
+        Ok(network_address.to_string())
     }
 
     pub fn get_fee(

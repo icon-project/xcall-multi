@@ -8,7 +8,8 @@ mod xcall {
 
 use crate::{
     contract::{CentralizedConnection, CentralizedConnectionClient},
-    types::{InitializeMsg, SendMsgEvent},
+    event::SendMsgEvent,
+    types::InitializeMsg,
 };
 use soroban_sdk::{
     symbol_short,
@@ -259,8 +260,8 @@ fn test_send_message() {
     );
 
     let emit_msg = SendMsgEvent {
-        target_network: ctx.nid.clone(),
-        conn_sn: 1_u128,
+        targetNetwork: ctx.nid.clone(),
+        connSn: 1_u128,
         msg: msg.clone(),
     };
     let event = vec![&ctx.env, ctx.env.events().all().last_unchecked()];
@@ -270,7 +271,7 @@ fn test_send_message() {
             &ctx.env,
             (
                 client.address.clone(),
-                ("EmitMessage",).into_val(&ctx.env),
+                ("Message",).into_val(&ctx.env),
                 emit_msg.into_val(&ctx.env)
             )
         ]

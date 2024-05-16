@@ -4,7 +4,7 @@ use crate::{
     contract::Xcall,
     errors::ContractError,
     event,
-    messages::cs_message::{CSMessage, CSMessageType},
+    types::message::{CSMessage, CSMessageType},
     types::{
         request::CSMessageRequest,
         result::{CSMessageResult, CSResponseType},
@@ -71,7 +71,7 @@ impl Xcall {
 
         event::call_message(
             &env,
-            req.from().clone(),
+            req.from().to_string(),
             req.to().clone(),
             req.sequence_no(),
             req_id,
@@ -150,7 +150,7 @@ impl Xcall {
 
         event::call_message(
             &env,
-            reply.from().clone(),
+            reply.from().to_string(),
             reply.to().clone(),
             reply.sequence_no(),
             req_id,

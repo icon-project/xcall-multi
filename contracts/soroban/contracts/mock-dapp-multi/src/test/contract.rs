@@ -1,6 +1,6 @@
 use soroban_rlp::encoder;
 use soroban_sdk::{bytes, testutils::Address as _, vec, Address, String};
-use xcall::types::network_address::NetworkAddress;
+use soroban_xcall_lib::network_address::NetworkAddress;
 
 use super::setup::*;
 
@@ -35,7 +35,7 @@ fn test_get_sequence_fail() {
 }
 
 #[test]
-fn test_sen_call_message() {
+fn test_send_call_message() {
     let ctx = TestContext::default();
     let client = MockDappClient::new(&ctx.env, &ctx.contract);
     ctx.init_context(&client);
@@ -154,7 +154,7 @@ fn test_send_call_message_fail_xcall_address_not_set() {
     });
 
     client.send_call_message(
-        &network_address,
+        network_address,
         &bytes!(&ctx.env, 0xabc),
         &1,
         &None,

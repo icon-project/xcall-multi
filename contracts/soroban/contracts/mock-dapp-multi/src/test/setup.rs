@@ -1,5 +1,5 @@
 use soroban_sdk::{testutils::Address as _, token, Address, Env, String};
-use xcall::types::network_address::NetworkAddress;
+use soroban_xcall_lib::network_address::NetworkAddress;
 
 use crate::contract::{MockDapp, MockDappClient};
 
