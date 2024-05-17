@@ -45,13 +45,14 @@ fn test_send_call_message() {
     ctx.mint_native_token(&sender, 500);
     assert_eq!(ctx.get_native_token_balance(&sender), 500);
 
-    client.send_call_message(
+    let res = client.send_call_message(
         &ctx.network_address,
         &bytes!(&ctx.env, 0x00),
         &msg_type,
         &None,
         &sender,
     );
+    assert_eq!(res, 1);
     assert_eq!(ctx.get_native_token_balance(&sender), 300)
 }
 

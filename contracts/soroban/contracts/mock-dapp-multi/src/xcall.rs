@@ -10,14 +10,14 @@ impl MockDapp {
         to: &NetworkAddress,
         envelope: &Envelope,
         xcall_address: &Address,
-    ) {
+    ) -> u128 {
         let client = XcallClient::new(&e, &xcall_address);
         client.send_call(
             sender,
             &e.current_contract_address(),
             envelope,
             &to.to_string(),
-        );
+        )
     }
 
     pub fn xcall_get_fee(

@@ -34,7 +34,7 @@ impl MockDapp {
         msg_type: u32,
         rollback: Option<Bytes>,
         sender: Address,
-    ) -> Result<(), ContractError> {
+    ) -> Result<u128, ContractError> {
         sender.require_auth();
 
         let network_id = to.nid(&env);
@@ -48,9 +48,9 @@ impl MockDapp {
         };
 
         let xcall_address = Self::get_xcall_address(&env)?;
-        Self::xcall_send_call(&env, &sender, &to, &envelope, &xcall_address);
+        let res = Self::xcall_send_call(&env, &sender, &to, &envelope, &xcall_address);
 
-        Ok(())
+        Ok(res)
     }
 
     pub fn handle_call_message(
