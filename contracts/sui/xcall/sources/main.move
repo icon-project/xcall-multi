@@ -454,7 +454,7 @@ module xcall::main {
         let code= if(success){1}else{0};
         let cs_message_result = if(msg_type==call_message_rollback::msg_type()){
             let callReply = xcall_state::get_call_reply(self);
-            if(vector::length(&callReply) > 0 && code == 0){
+            if(vector::length(&callReply) > 0 && code == 1){
                 message = callReply;
                 xcall_state::remove_call_reply(self);
             };
