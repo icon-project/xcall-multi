@@ -37,11 +37,12 @@ module sui_rlp::rlp_tests {
     }
 
     #[test]
-    fun test_encode_u64() {
+    fun test_encode_u64() {    
        
         let val=(12345667 as u64);
         let encoded= encoder::encode_u64(val);
-         let decoded_val= decoder::decode(&encoded);
+        std::debug::print(&encoded);
+        let decoded_val= decoder::decode(&encoded);
         let decoded= decoder::decode_u64(&decoded_val);
         assert!(decoded==val,0x01);
     }
