@@ -1,8 +1,6 @@
 module sui_rlp::utils {
      use std::vector::{Self};
      use std::string::{Self,String};
-
-
      public fun to_bytes_u32(number: u32): vector<u8> {
         let  mut bytes: vector<u8> = vector::empty();
         let mut i:u8=0;
@@ -11,21 +9,28 @@ module sui_rlp::utils {
             vector::push_back(&mut bytes,val);
             i=i+1;
         };
+        bytes.reverse();
         bytes
     }
 
     // Convert bytes to u32
-    public fun from_bytes_u32(bytes: &vector<u8>): u32 {
-        assert(vector::length(bytes) == 4, 0x1); // Ensure bytes length is correct
-        let  mut number: u32 = 0;
-       let  mut i = 0;
+    public fun from_bytes_u32(bytes: &vector<u8>): u32 {let mut result = 0;
+        let mut multiplier = 1;
+        let length = vector::length(bytes);
 
-        while (i < 4) {
-        let num = ((*vector::borrow(bytes,i)) as u32);
-        number =number | num << ((i * 8) as u8);
-        i =i+ 1;
+        let mut i = length;
+        while (i > 0) {
+            i = i - 1;
+            std::debug::print(vector::borrow(bytes, i));
+            result = result + ((*vector::borrow(bytes, i) as u32) * multiplier);
+            std::debug::print(&result);
+
+            if (i > 0) {
+            multiplier = multiplier * 256
+            };
+            
         };
-        number
+        result
     }
 
      public fun to_bytes_u64(number: u64): vector<u8> {
@@ -38,21 +43,35 @@ module sui_rlp::utils {
             };
             i=i+1;
         };
+        bytes.reverse();
         bytes
     }
 
     // Convert bytes to u64
-    public fun from_bytes_u64(bytes: &vector<u8>): u64 {
-        let  mut number: u64 = 0;
-       let  mut i = 0;
+ public fun from_bytes_u64(bytes: &vector<u8>): u64 {
+        let mut result = 0;
+        let mut multiplier = 1;
+        let length = vector::length(bytes);
 
-        while (i < vector::length(bytes)) {
-        let num = ((*vector::borrow(bytes,i)) as u64);
-        number =number | num << ((i * 8) as u8);
-        i =i+ 1;
+        let mut i = length;
+        while (i > 0) {
+            i = i - 1;
+            std::debug::print(vector::borrow(bytes, i));
+            result = result + ((*vector::borrow(bytes, i) as u64) * multiplier);
+            std::debug::print(&result);
+
+            if (i > 0) {
+            std::debug::print(&b"MULTIPLIER".to_string());
+            std::debug::print(&multiplier);
+            std::debug::print(&i);
+            multiplier = multiplier * 256
+            };
+            
         };
-        number
+        result
     }
+
+    
 
     // Convert u128 to bytes
     public fun to_bytes_u128(number: u128): vector<u8> {
@@ -66,32 +85,44 @@ module sui_rlp::utils {
             
             i=i+1;
         };
+        bytes.reverse();
         bytes
     }
 
     // Convert bytes to u128
     public fun from_bytes_u128(bytes: &vector<u8>): u128 {
-       let  mut number: u128 = 0;
-       let mut i:u64 = 0;
+       let mut result = 0;
+        let mut multiplier = 1;
+        let length = vector::length(bytes);
 
-        while (i < vector::length(bytes)) {
-        number =number | (*vector::borrow(bytes,i) as u128) << (i * 8 as u8) ;
-        i =i+ 1;
+        let mut i = length;
+        while (i > 0) {
+            i = i - 1;
+            std::debug::print(vector::borrow(bytes, i));
+            result = result + ((*vector::borrow(bytes, i) as u128) * multiplier);
+            std::debug::print(&result);
+
+            if (i > 0) {
+            multiplier = multiplier * 256
+            };
+            
         };
-        number
+        result
     }
+
     /* end is exclusive in slice*/
-    public fun slice_vector(arr: &vector<u8>, start: u64, length: u64): vector<u8> {
-        let  mut sliced: vector<u8> = vector::empty();
-        let mut start=start;
-        let end = start + length;
-        while(start < end){
-            let item=*vector::borrow(arr,start);
-            vector::push_back(&mut sliced, item);
-            start=start+1;
+   public fun slice_vector(vec: &vector<u8>, start: u64, length: u64): vector<u8> {
+        let mut result = vector::empty<u8>();
+        let mut i = 0;
+        while (i < length) {
+            let value = *vector::borrow(vec, start + i);
+            vector::push_back(&mut result, value);
+            i = i + 1;
         };
-        sliced
+        std::debug::print(&result);
+        result
     }
+
    
 }
 
@@ -99,6 +130,7 @@ module sui_rlp::utils_test {
     use sui_rlp::utils::{Self};
      use std::vector::{Self};
      use std::debug;
+     use sui::bcs::{Self};
 
 
       #[test]
