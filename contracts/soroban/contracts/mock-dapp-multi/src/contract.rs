@@ -56,13 +56,14 @@ impl MockDapp {
     pub fn handle_call_message(
         env: Env,
         sender: Address,
-        from: NetworkAddress,
+        from: String,
         data: Bytes,
         _protocols: Option<Vec<String>>,
     ) {
         sender.require_auth();
 
-        let (nid, account) = from.parse_network_address(&env);
+        let network_from = NetworkAddress::from_string(from);
+        let (nid, account) = network_from.parse_network_address(&env);
         if sender.to_string() == account {
             return;
         }
@@ -89,7 +90,13 @@ impl MockDapp {
                     sources,
                     destinations,
                 };
-                Self::xcall_send_call(&env, &sender, &from, &envelope, &xcall_address.unwrap());
+                Self::xcall_send_call(
+                    &env,
+                    &sender,
+                    &network_from,
+                    &envelope,
+                    &xcall_address.unwrap(),
+                );
             }
         }
     }

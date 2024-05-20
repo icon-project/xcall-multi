@@ -173,7 +173,7 @@ fn test_handle_call_message_pass() {
     let sender = &from.account(&ctx.env);
     let res = client.try_handle_call_message(
         &Address::from_string(&sender),
-        &from,
+        &from.to_string(),
         &bytes!(&ctx.env, 0xabc),
         &Some(vec![&ctx.env]),
     );
@@ -193,7 +193,7 @@ fn test_handle_call_message_revert() {
 
     client.handle_call_message(
         &Address::generate(&ctx.env),
-        &ctx.network_address,
+        &ctx.network_address.to_string(),
         &encoded_data,
         &Some(vec![&ctx.env]),
     );
@@ -213,7 +213,7 @@ fn test_handle_call_message_reply() {
 
     client.handle_call_message(
         &sender,
-        &ctx.network_address,
+        &ctx.network_address.to_string(),
         &encoded_data,
         &Some(vec![&ctx.env]),
     );
