@@ -6,23 +6,35 @@ pub fn decode(env: &Env, bytes: Bytes) -> Bytes {
 
     let rlp_byte = bytes.get(0).unwrap();
 
-    let decoded = if rlp_byte == 0x80 {
+    #[allow(unused_comparisons)]
+    let decoded = if rlp_byte == 0x80 || rlp_byte == 0xc0 {
         Bytes::new(&env)
     } else if rlp_byte < 0x80 {
         bytes
     } else if rlp_byte < 0xb8 {
         let data_len = rlp_byte - 0x80;
-        let data = slice_vector(&env, bytes, 1, data_len as u64);
-        data
-    } else {
+        slice_vector(&env, bytes, 1, data_len as u64)
+    } else if rlp_byte > 0xb7 && rlp_byte < 0xc0 {
         let data_bytes_len = rlp_byte - 0xb7;
         let len_bytes = slice_vector(&env, bytes.clone(), 1, data_bytes_len as u64);
 
         let data_len = bytes_to_u64(len_bytes.clone());
         let data_start = len_bytes.len() + 1;
 
-        let data = slice_vector(&env, bytes, data_start as u64, data_len);
-        data
+        slice_vector(&env, bytes, data_start as u64, data_len)
+    } else if rlp_byte > 0xc0 && rlp_byte <= 0xf7 {
+        let data_len = rlp_byte - 0xc0;
+        slice_vector(&env, bytes, 1, data_len as u64)
+    } else if rlp_byte > 0xf7 && rlp_byte <= 0xff {
+        let data_bytes_len = rlp_byte - 0xf7;
+        let len_bytes = slice_vector(&env, bytes.clone(), 1, data_bytes_len as u64);
+
+        let data_len = bytes_to_u64(len_bytes.clone());
+        let data_start = len_bytes.len() + 1;
+
+        slice_vector(&env, bytes, data_start as u64, data_len)
+    } else {
+        panic!("invalid rlp byte length")
     };
 
     decoded
@@ -39,7 +51,7 @@ pub fn decode_list(env: &Env, list: Bytes) -> Vec<Bytes> {
         let byte = encoded.get(i).unwrap();
 
         #[allow(unused_comparisons)]
-        if byte == 0x80 {
+        if byte == 0x80 || byte == 0xc0 {
             decoded.push_back(Bytes::new(&env));
             i = i + 1;
         } else if byte < 0x80 {
@@ -51,9 +63,6 @@ pub fn decode_list(env: &Env, list: Bytes) -> Vec<Bytes> {
             let len = (byte - 0x80) as u64;
             decoded.push_back(slice_vector(&env, encoded.clone(), i as u64 + 1, len));
             i = i + (len as u32 + 1);
-        } else if byte == 0xc0 {
-            decoded.push_back(Bytes::new(&env));
-            i = i + 1;
         } else if byte > 0xc0 && byte < 0xf7 {
             let len = (byte - 0xc0) as u64;
             decoded.push_back(slice_vector(&env, encoded.clone(), i as u64 + 1, len));
