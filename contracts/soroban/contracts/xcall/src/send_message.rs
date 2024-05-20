@@ -22,11 +22,12 @@ impl Xcall {
         sender.require_auth();
         tx_origin.require_auth();
 
+        let config = Self::get_config(&env)?;
         let sequence_no = Self::get_next_sn(&env);
 
         let to = NetworkAddress::from_string(to.clone());
         let (nid_to, dst_account) = to.parse_network_address(&env);
-        let from = Self::get_own_network_address(&env)?;
+        let from = NetworkAddress::new(&env, config.network_id, sender.to_string());
 
         Self::process_message(&env, &to, sequence_no, &sender, &envelope)?;
 
