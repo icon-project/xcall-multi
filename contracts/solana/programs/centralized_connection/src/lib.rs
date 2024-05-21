@@ -134,7 +134,7 @@ pub mod solana_centralized_connection {
 
         };
         let cpi_xcall_ctx = CpiContext::new(cpi_xcall_program, cpi_xcall_accounts);
-        xcall::cpi::handle_message(cpi_xcall_ctx,_src_network, _msg );
+        xcall::cpi::handle_message(cpi_xcall_ctx, _src_network, _msg );
 
         Ok(())
     }

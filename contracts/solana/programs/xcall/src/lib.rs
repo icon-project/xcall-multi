@@ -64,9 +64,6 @@ pub mod xcall {
         instructions::execute_call(ctx, req_id, msg)
     }
 
-    pub fn handle_message(ctx: Context<HandleMessageCtx>, from_nid: String, payload: Vec<u8>) -> Result<()> {
-        instructions::handle_request(ctx, from_nid, payload)
-    }
 
     pub fn execute_rollback(ctx: Context<Rollback>, sn: u128) -> Result<()> {
         instructions::execute_rollback(ctx, sn)
