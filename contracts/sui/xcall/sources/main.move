@@ -50,7 +50,6 @@ module xcall::main {
     const EInvalidAccess:u64 =12;
 
     const MAX_DATA_SIZE: u64 = 2048;
-    const NID: vector<u8> = b"sui";
     const CURRENT_VERSION: u64 = 1;
 
     /*************Events*****************/
@@ -108,9 +107,16 @@ module xcall::main {
         self.create_id_cap(ctx)
     }
 
-    entry fun get_net_id(self: &mut Storage): String{
-        string::utf8(NID)
+    entry public fun configure_nid(self:&mut Storage,admin:&AdminCap, net_id:String,ctx: &mut TxContext){
+        if(!(net_id == b"".to_string())){
+            xcall_state::set_net_id(self,net_id);
+        }
     }
+
+    entry fun get_nid(self: &mut Storage): String{
+        xcall_state::get_net_id(self)
+    }
+
 
     entry public fun register_connection(self:&mut Storage,admin:&AdminCap,net_id:String,package_id:String,ctx: &mut TxContext){
         self.set_connection(net_id,package_id);
@@ -286,7 +292,7 @@ module xcall::main {
     public fun send_call(self:&mut Storage,fee: Coin<SUI>,idCap:&IDCap,to:String,envelope_bytes:vector<u8>,ctx: &mut TxContext){
         let envelope=envelope::decode(&envelope_bytes);
         let to = network_address::from_string(to);
-        let from= network_address::create(string::utf8(NID),address::to_string(object::id_to_address(&object::id(idCap))));
+        let from= network_address::create(xcall_state::get_net_id(self),address::to_string(object::id_to_address(&object::id(idCap))));
 
         let remaining = send_call_inner(self,fee,from,to,envelope,ctx);
         transfer::public_transfer(remaining, ctx.sender());
@@ -297,7 +303,7 @@ module xcall::main {
     from:String, 
     msg:vector<u8>,
     ctx: &mut TxContext){
-        assert!(from != string::utf8(NID),EInvalidNID);
+        assert!(from != xcall_state::get_net_id(self),EInvalidNID);
         let cs_msg = cs_message::decode(&msg);
         let msg_type = cs_message::msg_type(&cs_msg);
         let payload = cs_message::payload(&cs_msg);
