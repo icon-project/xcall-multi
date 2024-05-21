@@ -1,6 +1,4 @@
-use anchor_lang::{
-    prelude::*,
-};
+use anchor_lang::prelude::*;
 
 use crate::{CSMessageRequest, NetworkAddress, XCallState};
 
