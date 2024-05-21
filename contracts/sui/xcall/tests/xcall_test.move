@@ -36,6 +36,20 @@ module xcall::xcall_tests {
         scenario_val
     }
 
+    #[test_only]
+    fun setup_nid(mut scenario_val: Scenario, nid: String, admin:address): Scenario {
+        let scenario = &mut scenario_val;
+        {
+            let mut storage = test_scenario::take_shared<Storage>(scenario);
+             let adminCap = scenario.take_from_sender<AdminCap>();
+            main::configure_nid(&mut storage, &adminCap,nid, scenario.ctx());
+            test_scenario::return_shared(storage);
+            scenario.return_to_sender(adminCap);
+        };
+        test_scenario::next_tx(scenario, admin);
+        scenario_val
+    }
+
     #[test]
     fun test_setter_getter() {
         let admin = @0xBABE;
@@ -68,6 +82,8 @@ module xcall::xcall_tests {
         let mut scenario = setup_test(admin);
 
         test_scenario::next_tx(&mut scenario, admin);
+
+        scenario = setup_nid(scenario, string::utf8(b"sui"), admin);
         
         scenario = setup_connection(scenario, string::utf8(b"icon"), admin);
         {
@@ -102,7 +118,7 @@ module xcall::xcall_tests {
         let mut scenario = setup_test(admin);
 
         test_scenario::next_tx(&mut scenario, admin);
-        
+        scenario = setup_nid(scenario, string::utf8(b"sui"), admin);
         scenario = setup_connection(scenario, string::utf8(b"icon"), admin);
         {
             let mut storage = test_scenario::take_shared<Storage>(&scenario);
@@ -149,6 +165,7 @@ module xcall::xcall_tests {
         let admin = @0xBABE;
 
         let mut scenario = setup_test(admin);
+        scenario = setup_nid(scenario, string::utf8(b"sui"), admin);
 
         test_scenario::next_tx(&mut scenario, admin);
         {
@@ -183,6 +200,7 @@ module xcall::xcall_tests {
         let admin = @0xBABE;
 
         let mut scenario = setup_test(admin);
+        scenario = setup_nid(scenario, string::utf8(b"sui"), admin);
 
         scenario = setup_connection(scenario, string::utf8(b"icon"), admin);
 
@@ -235,6 +253,7 @@ module xcall::xcall_tests {
         let admin = @0xBABE;
 
         let mut scenario = setup_test(admin);
+        scenario = setup_nid(scenario, string::utf8(b"sui"), admin);
 
         test_scenario::next_tx(&mut scenario, admin);
         {
@@ -278,6 +297,7 @@ module xcall::xcall_tests {
         let admin = @0xBABE;
 
         let mut scenario = setup_test(admin);
+        scenario = setup_nid(scenario, string::utf8(b"sui"), admin);
 
         test_scenario::next_tx(&mut scenario, admin);
         scenario = setup_connection(scenario, string::utf8(b"icon"), admin);
@@ -344,8 +364,9 @@ module xcall::xcall_tests {
         let admin = @0xBABE;
 
         let mut scenario = setup_test(admin);
+        scenario = setup_nid(scenario, string::utf8(b"sui"), admin);
 
-         test_scenario::next_tx(&mut scenario, admin);
+        test_scenario::next_tx(&mut scenario, admin);
         scenario = setup_connection(scenario, string::utf8(b"icon"), admin);
 
         {
