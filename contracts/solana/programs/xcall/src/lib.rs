@@ -44,6 +44,22 @@ pub mod xcall {
         instructions::send_message_with_rollback(ctx, to, msg)
     }
 
+    pub fn handle_message(
+        ctx: Context<HandleMessageCtx>,
+        from_nid: String,
+        msg: Vec<u8>,
+    ) -> Result<()> {
+        let cs_msg = CSMessage::unmarshal_from(&msg).unwrap();
+        let state_info = &ctx.accounts.xcall_state;
+        require_eq!(from_nid, state_info.network_id.clone());
+
+        let msg_type = CSMessageType::as_type(cs_msg.msg_type);
+        match msg_type {
+            CSMessageType::CSMessageRequest => handle_request(ctx, from_nid, cs_msg.payload),
+            CSMessageType::CSMessageResult => handle_result(ctx, cs_msg.payload),
+        }
+    }
+
     pub fn execute_call(ctx: Context<ExecuteCall>, req_id: u128, msg: Vec<u8>) -> Result<()> {
         instructions::execute_call(ctx, req_id, msg)
     }

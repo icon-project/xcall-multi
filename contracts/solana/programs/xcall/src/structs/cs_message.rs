@@ -7,12 +7,35 @@ pub enum CSMessageType {
     CSMessageResult,
 }
 
+impl From<CSMessageType> for u8 {
+    fn from(val: CSMessageType) -> Self {
+        match val {
+            CSMessageType::CSMessageRequest => 1,
+            CSMessageType::CSMessageResult => 2,
+        }
+    }
+}
+
+impl From<u8> for CSMessageType {
+    fn from(value: u8) -> Self {
+        match value {
+            1 => CSMessageType::CSMessageRequest,
+            2 => CSMessageType::CSMessageResult,
+            _ => panic!("unsupported message type"),
+        }
+    }
+}
+
 impl CSMessageType {
     pub fn to_int(&self) -> u8 {
         match self {
             CSMessageType::CSMessageRequest => 1 as u8,
             CSMessageType::CSMessageResult => 2 as u8,
         }
+    }
+
+    pub fn from_int(val: u8) -> Self {
+        CSMessageType::from(val)
     }
 
     pub fn as_type(v: u8) -> Self {
