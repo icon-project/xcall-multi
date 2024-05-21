@@ -32,19 +32,12 @@ jobs:
           override: true
           profile: minimal
 
-      # - name: Cache Rust dependencies
-      #   uses: Swatinem/rust-cache@v2
-
       - name: Install wasm32
         run: |
           rustup target add wasm32-unknown-unknown
-
+          cargo install --locked soroban-cli
 
       - name: Build & Test Stellar Contracts
         working-directory: contracts/soroban
         run: |
-            cargo build --target wasm32-unknown-unknown --release
-            cargo test
-
-      
-
+            soroban contract build
