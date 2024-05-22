@@ -6,8 +6,10 @@ module xcall::centralized_entry{
   use std::string::{String};
 
   entry public fun receive_message(xcall:&mut XCallState,src_net_id:String,sn:u128,msg:vector<u8>,ctx: &mut TxContext){
-      centralized_state::check_save_receipt(get_state(xcall_state::get_connection_states_mut(xcall)), src_net_id, sn);
-      let cap:ConnCap=* get_state(xcall_state::get_connection_states_mut(xcall)).conn_cap();
+      let state=get_state(xcall_state::get_connection_states_mut(xcall));
+      centralized_state::ensure_admin(state, ctx.sender());
+      centralized_state::check_save_receipt(state, src_net_id, sn);
+      let cap:ConnCap=* state.conn_cap();
       xcall::handle_message(xcall, &cap,src_net_id, msg,ctx);
   }
 
