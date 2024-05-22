@@ -28,8 +28,8 @@ function encodeXCallEnvelope(envelope: XCallEnvelope): string {
 
 function uint8ArrayToHex(uint8Array: Uint8Array): string {
   return Array.from(uint8Array)
-      .map(byte => byte.toString(16).padStart(2, '0'))
-      .join('');
+    .map(byte => byte.toString(16).padStart(2, '0'))
+    .join('');
 }
 
 describe("xcall", () => {
@@ -198,6 +198,8 @@ describe("xcall", () => {
 
     // console.log("connection program id ", connection1.programId)
 
+    let ow = anchor.web3.Keypair.generate().publicKey;
+
     tx = await xcall.methods.sendMessage(to, msg).accounts({
       xcallState: xcallStatePda,
       sender: notOwner.publicKey,
@@ -217,11 +219,25 @@ describe("xcall", () => {
       pubkey: connection1.programId,
       isSigner: false,
       isWritable: false
-    }])
+    }
+  ])
       .signers([notOwner]).rpc().catch(e => console.log(e))
 
     getTxnLogs(tx)
 
     // console.log(connection_fee_message.toNumber())
+
+    let k = await PublicKey.findProgramAddressSync([Buffer.from("rollback_data_state")], xcall.programId);
+    let l = await xcall.account.rollbackDataState.fetch(k[0])
+    console.log(l)
+    getBalance(k[0])
+
+    // flow for handle message
+    // let k = await PublicKey.findProgramAddressSync([Buffer.from("proxy_req"), Buffer.from(1.)], xcall.programId);
+    // conn1FeePda = k[0];
+
+    // new Uint8Array(new anchor.BN(dataEntryIndex).toArray("le", 8))
+    // tx = await xcall.methods.handleMessage
   });
+
 });

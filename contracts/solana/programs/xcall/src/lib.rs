@@ -36,14 +36,6 @@ pub mod xcall {
         instructions::send_message(ctx, to, msg)
     }
 
-    pub fn send_message_with_rollback<'a, 'b, 'c, 'info>(
-        ctx: Context<'a, 'b, 'c, 'info, SendMessageWithRollbackCtx<'info>>,
-        to: String,
-        msg: Vec<u8>,
-    ) -> Result<()> {
-        instructions::send_message_with_rollback(ctx, to, msg)
-    }
-
     pub fn handle_message(
         ctx: Context<HandleMessageCtx>,
         from_nid: String,

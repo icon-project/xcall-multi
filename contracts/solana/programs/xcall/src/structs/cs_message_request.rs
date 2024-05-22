@@ -69,17 +69,6 @@ impl CSMessageRequest {
         }
     }
 
-    pub fn null() -> Self {
-        Self {
-            from: String::new(),
-            to: String::new(),
-            sequence_no: 0,
-            protocols: vec![String::new()],
-            msg_type: u8::MAX,
-            data: vec![],
-        }
-    }
-
     pub fn unmarshal_from(value: &Vec<u8>) -> Result<Self, ErrorCode> {
         let rlp = Rlp::new(value as &[u8]);
         CSMessageRequest::decode(&rlp).map_err(|_error| ErrorCode::XCallEnvelopeDecodeError)
