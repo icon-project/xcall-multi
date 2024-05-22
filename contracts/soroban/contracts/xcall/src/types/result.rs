@@ -82,7 +82,11 @@ impl CSMessageResult {
 
         let sequence_no = decoder::decode_u128(&e, decoded.get(0).unwrap());
         let response_code = decoder::decode_u8(&e, decoded.get(1).unwrap()).into();
-        let message = decoder::decode(&e, decoded.get(2).unwrap_or(Bytes::new(&e)));
+
+        let mut message = decoded.get(2).unwrap();
+        if message.len() > 0 {
+            message = decoder::decode(&e, message)
+        }
 
         Ok(Self {
             sequence_no,

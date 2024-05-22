@@ -65,7 +65,7 @@ pub fn decode_list(env: &Env, list: Bytes) -> Vec<Bytes> {
             i = i + (len as u32 + 1);
         } else if byte > 0xc0 && byte < 0xf7 {
             let len = (byte - 0xc0) as u64;
-            decoded.push_back(slice_vector(&env, encoded.clone(), i as u64 + 1, len));
+            decoded.push_back(slice_vector(&env, encoded.clone(), i as u64, len + 1));
             i = i + (len as u32 + 1)
         } else if byte > 0xb7 && byte < 0xc0 {
             let data_bytes_len = (byte - 0xb7) as u64;
