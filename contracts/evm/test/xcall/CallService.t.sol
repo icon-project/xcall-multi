@@ -165,6 +165,52 @@ contract CallServiceTest is Test {
         callService.setProtocolFeeHandler(user);
     }
 
+    function testGetNetworkId() public {
+        assertEq(callService.getNetworkId(), ethNid);
+    }
+
+    function testGetDefaultConnection() public {
+        callService.setDefaultConnection(iconNid, address(baseConnection));
+
+        address defaultConnection = callService.getDefaultConnection(iconNid);
+        assertEq(defaultConnection, address(baseConnection));
+    }
+
+    function testGetConnectionFee() public {
+        connection1 = IConnection(address(0x0000000000000000000000000000000000000011));
+
+        callService.setDefaultConnection(iconNid, address(connection1));
+
+        vm.mockCall(address(connection1), abi.encodeWithSelector(connection1.getFee.selector), abi.encode(30));
+
+        uint256 fee = callService.getFee(iconNid, true);
+        assertEq(fee, 30);
+    }
+
+    function testGetFeeMultipleProtocols() public {
+        connection1 = IConnection(address(0x0000000000000000000000000000000000000011));
+        connection2 = IConnection(address(0x0000000000000000000000000000000000000012));
+
+        vm.mockCall(address(connection1), abi.encodeWithSelector(connection1.getFee.selector), abi.encode(10));
+        vm.mockCall(address(connection2), abi.encodeWithSelector(connection2.getFee.selector), abi.encode(20));
+
+        string[] memory sources = new string[](2);
+        sources[0] = ParseAddress.toString(address(connection1));
+        sources[1] = ParseAddress.toString(address(connection2));
+
+        uint256 fee = callService.getFee(iconNid, true, sources);
+        assertEq(fee, 30);
+    }
+
+    function testHandleMessageUnknownMsgType() public {
+        bytes memory data = bytes("data");
+
+        Types.CSMessage memory message = Types.CSMessage(3, data);
+
+        vm.expectRevert("UnknownMsgType(3)");
+        callService.handleMessage(iconNid, message.encodeCSMessage());
+    }
+
     function testSendMessageSingleProtocol() public {
         bytes memory data = bytes("test");
         bytes memory rollbackData = bytes("");
@@ -294,6 +340,16 @@ contract CallServiceTest is Test {
         vm.prank(address(dapp));
         uint256 sn = callService.sendCall{value: 0 ether}(iconDapp, _msg);
         assertEq(sn, 1);
+    }
+
+    function testSendInvalidMessageType() public {
+        bytes memory data = bytes("test");
+
+        bytes memory _msg = Types.XCallEnvelope(4, data, new string[](0), new string[](0)).encodeXCallEnvelope();
+
+        vm.expectRevert("Message type is not supported");
+        vm.prank(address(dapp));
+        uint256 sn = callService.sendCall{value: 0 ether}(iconDapp, _msg);
     }
 
     function testSendMessageResponse() public {
@@ -448,16 +504,11 @@ contract CallServiceTest is Test {
         callService.handleBTPMessage(iconNid, "xcallM", 1, RLPEncodeStruct.encodeCSMessage(message));
     }
 
-    function testInvalidNid() public {
-        bytes memory data = bytes("test");
-        callService.setDefaultConnection(iconNid, address(baseConnection));
+    function testHandleBTPError() public {
+        string memory data = "data";
 
-        Types.CSMessageRequestV2 memory request = Types.CSMessageRequestV2(iconDapp, ParseAddress.toString(address(dapp)), 1, 1, data, new string[](0));
-        Types.CSMessage memory message = Types.CSMessage(Types.CS_REQUEST,request.encodeCSMessageRequestV2());
-
-        vm.prank(address(baseConnection));
-        vm.expectRevert("Invalid Network ID");
-        callService.handleMessage(ethNid, RLPEncodeStruct.encodeCSMessage(message));
+        vm.expectRevert("CallRequestNotFound");
+        callService.handleBTPError(iconNid, Types.NAME, 1, 1, data);
     }
 
     function testHandleResponseDefaultProtocolInvalidSender() public {
@@ -488,46 +539,6 @@ contract CallServiceTest is Test {
         callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(message));
     }
 
-    function testHandleResponseSingleProtocolInvalidSender() public {
-        bytes memory data = bytes("test");
-
-        string[] memory sources = new string[](1);
-        sources[0] = ParseAddress.toString(address(baseConnection));
-
-        Types.CSMessageRequestV2 memory request = Types.CSMessageRequestV2(iconDapp, ParseAddress.toString(address(dapp)), 1, 1, data, sources);
-        Types.CSMessage memory message = Types.CSMessage(Types.CS_REQUEST,request.encodeCSMessageRequestV2());
-
-        vm.prank(address(connection1));
-        vm.expectRevert("NotAuthorized");
-
-        callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(message));
-    }
-
-    function testHandleResponseMultiProtocol() public {
-        bytes memory data = bytes("test");
-
-        connection1 = IConnection(address(0x0000000000000000000000000000000000000011));
-        connection2 = IConnection(address(0x0000000000000000000000000000000000000012));
-
-        vm.mockCall(address(connection1), abi.encodeWithSelector(connection1.getFee.selector), abi.encode(0));
-        vm.mockCall(address(connection2), abi.encodeWithSelector(connection2.getFee.selector), abi.encode(0));
-
-        string[] memory connections = new string[](2);
-        connections[0] = ParseAddress.toString(address(connection1));
-        connections[1] = ParseAddress.toString(address(connection2));
-
-        Types.CSMessageRequestV2 memory request = Types.CSMessageRequestV2(iconDapp, ParseAddress.toString(address(dapp)), 1, 1, data, connections);
-        Types.CSMessage memory message = Types.CSMessage(Types.CS_REQUEST,request.encodeCSMessageRequestV2());
-
-        vm.prank(address(connection1));
-        callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(message));
-
-        vm.expectEmit();
-        emit CallMessage(iconDapp, ParseAddress.toString(address(dapp)), 1, 1, data);
-        vm.prank(address(connection2));
-        callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(message));
-    }
-
     function testExecuteCallSingleProtocol() public {
         bytes memory data = bytes("test");
 
@@ -542,6 +553,20 @@ contract CallServiceTest is Test {
 
         vm.prank(user);
         vm.mockCall(address(receiver), abi.encodeWithSelector(receiver.handleCallMessage.selector, iconDapp, data, _baseSource), abi.encode(1));
+        callService.executeCall(1, data);
+    }
+
+    function testExecuteCallUnsupportedMessageType() public {
+        bytes memory data = bytes("test");
+
+        Types.CSMessageRequestV2 memory request = Types.CSMessageRequestV2(iconDapp, ParseAddress.toString(address(receiver)), 1, 4, data, _baseSource);
+        Types.CSMessage memory message = Types.CSMessage(Types.CS_REQUEST,request.encodeCSMessageRequestV2());
+
+        vm.prank(address(baseConnection));
+        callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(message));
+
+        vm.expectRevert("Message type is not yet supported");
+        vm.prank(user);
         callService.executeCall(1, data);
     }
 
@@ -564,7 +589,7 @@ contract CallServiceTest is Test {
         vm.mockCall(address(defaultServiceReceiver), abi.encodeWithSelector(defaultServiceReceiver.handleCallMessage.selector, iconDapp, data), abi.encode(1));
         callService.executeCall(1, data);
     }
-    
+
     function testExecuteCallPersistent() public {
         bytes memory data = bytes("test");
 
@@ -576,7 +601,7 @@ contract CallServiceTest is Test {
         Types.CSMessage memory message = Types.CSMessage(Types.CS_REQUEST,request.encodeCSMessageRequestV2());
 
         vm.prank(address(baseConnection));
-        callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(message));        
+        callService.handleMessage(iconNid, RLPEncodeStruct.encodeCSMessage(message));
 
         vm.mockCall(address(defaultServiceReceiver), abi.encodeWithSelector(defaultServiceReceiver.handleCallMessage.selector, iconDapp, data), abi.encode(1));
         vm.prank(user);
@@ -586,7 +611,7 @@ contract CallServiceTest is Test {
         vm.prank(user);
         callService.executeCall(1, data);
     }
-    
+
     function testExecuteCallMultiProtocol() public {
         bytes memory data = bytes("test");
 

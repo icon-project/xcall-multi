@@ -238,7 +238,6 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
 
     function claimProtocolFee() internal {
         uint256 balance = address(this).balance;
-        require(balance >= protocolFee, "InsufficientBalance");
         feeHandler.transfer(balance);
     }
 
@@ -361,7 +360,6 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
         Types.RollbackData memory req = rollbacks[_sn];
         require(req.from != address(0), "InvalidSerialNum");
         require(req.enabled, "RollbackNotEnabled");
-        cleanupCallRequest(_sn);
 
         this.executeMessage(
             req.from,
@@ -370,6 +368,7 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
             req.sources
         );
 
+        cleanupCallRequest(_sn);
         emit RollbackExecuted(_sn);
     }
 
@@ -401,7 +400,6 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
         string calldata _from,
         bytes calldata _msg
     ) public override {
-        require(!_from.compareTo(nid), "Invalid Network ID");
         Types.CSMessage memory csMsg = _msg.decodeCSMessage();
         if (csMsg.msgType == Types.CS_REQUEST) {
             handleRequest(_from, csMsg.payload);

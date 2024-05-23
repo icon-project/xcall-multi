@@ -502,7 +502,7 @@ public class CallServiceImpl implements CallService, FeeManage {
         switch (msgRes.getCode()) {
             case CSMessageResult.SUCCESS:
                 cleanupCallRequest(resSn);
-                if (msgRes.getMsg() != null) {
+                if (msgRes.getMsg() != null && msgRes.getMsg().length > 0) {
                     handleReply(rollback, CSMessageRequest.fromBytes(msgRes.getMsg()));
                 }
                 successfulResponses.set(resSn, true);
