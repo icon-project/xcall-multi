@@ -8,8 +8,9 @@ use soroban_sdk::{
 use soroban_xcall_lib::messages::msg_type::MessageType;
 
 use crate::{
-    contract::{Xcall, XcallClient},
+    contract::XcallClient,
     event::CallMsgEvent,
+    storage,
     types::{
         message::CSMessage,
         request::CSMessageRequest,
@@ -106,10 +107,10 @@ fn test_handle_message_request_from_default_connection() {
     assert_eq!(res, ());
 
     ctx.env.as_contract(&ctx.contract, || {
-        let last_request_id = Xcall::increment_last_request_id(&ctx.env);
+        let last_request_id = storage::increment_last_request_id(&ctx.env);
         assert_eq!(last_request_id, 2);
 
-        let proxy_request = Xcall::get_proxy_request(&ctx.env, 1).unwrap();
+        let proxy_request = storage::get_proxy_request(&ctx.env, 1).unwrap();
         assert_eq!(proxy_request.sequence_no(), 1);
         assert_eq!(proxy_request.from(), request.from());
         assert_eq!(proxy_request.msg_type(), request.msg_type());
@@ -145,7 +146,7 @@ fn test_handle_message_request_from_multiple_sources() {
         let hash = ctx.env.crypto().keccak256(cs_message.payload());
 
         ctx.env.as_contract(&ctx.contract, || {
-            let pending_requests = Xcall::get_pending_request(&ctx.env, hash);
+            let pending_requests = storage::get_pending_request(&ctx.env, hash);
 
             let i = i as u32 + 1;
             if i < protocols.len() {
@@ -215,7 +216,7 @@ fn test_handle_message_result_fail_for_invalid_sender() {
         false,
     );
     ctx.env.as_contract(&ctx.contract, || {
-        Xcall::store_rollback(&ctx.env, sequence_no, &rollback);
+        storage::store_rollback(&ctx.env, sequence_no, &rollback);
     });
 
     let result = CSMessageResult::new(

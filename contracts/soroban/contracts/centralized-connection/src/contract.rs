@@ -1,8 +1,6 @@
 use soroban_sdk::{contract, contractimpl, token, Address, Bytes, Env, String};
 
-use crate::errors::ContractError;
-use crate::event;
-use crate::types::InitializeMsg;
+use crate::{errors::ContractError, event, helpers, storage, types::InitializeMsg};
 
 #[contract]
 pub struct CentralizedConnection;
@@ -22,12 +20,12 @@ impl CentralizedConnection {
     ///
     /// a `Result<(), ContractError>`
     pub fn initialize(env: Env, msg: InitializeMsg) -> Result<(), ContractError> {
-        Self::is_initialized(&env)?;
+        storage::is_initialized(&env)?;
 
-        Self::store_native_token(&env, msg.native_token);
-        Self::store_conn_sn(&env, 0);
-        Self::store_admin(&env, msg.relayer);
-        Self::store_xcall(&env, msg.xcall_address);
+        storage::store_native_token(&env, msg.native_token);
+        storage::store_conn_sn(&env, 0);
+        storage::store_admin(&env, msg.relayer);
+        storage::store_xcall(&env, msg.xcall_address);
 
         Ok(())
     }
@@ -43,7 +41,7 @@ impl CentralizedConnection {
     ///
     /// a `Result<Address, ContractError>`
     pub fn get_admin(env: Env) -> Result<Address, ContractError> {
-        let address = Self::admin(&env)?;
+        let address = storage::admin(&env)?;
         Ok(address)
     }
 
@@ -58,8 +56,8 @@ impl CentralizedConnection {
     ///
     /// a `Result<(), ContractError>`
     pub fn set_admin(env: Env, address: Address) -> Result<(), ContractError> {
-        Self::ensure_admin(&env)?;
-        Self::store_admin(&env, address);
+        helpers::ensure_admin(&env)?;
+        storage::store_admin(&env, address);
         Ok(())
     }
 
@@ -70,17 +68,17 @@ impl CentralizedConnection {
         sn: i64,
         msg: Bytes,
     ) -> Result<(), ContractError> {
-        Self::ensure_xcall(&env)?;
+        helpers::ensure_xcall(&env)?;
 
-        let next_conn_sn = Self::get_next_conn_sn(&env);
-        Self::store_conn_sn(&env, next_conn_sn);
+        let next_conn_sn = storage::get_next_conn_sn(&env);
+        storage::store_conn_sn(&env, next_conn_sn);
 
         let mut fee: u128 = 0;
         if sn >= 0 {
-            fee = Self::get_network_fee(&env, to.clone(), sn > 0);
+            fee = helpers::get_network_fee(&env, to.clone(), sn > 0);
         }
         if fee > 0 {
-            Self::transfer_token(&env, &tx_origin, &env.current_contract_address(), &fee)?;
+            helpers::transfer_token(&env, &tx_origin, &env.current_contract_address(), &fee)?;
         }
         event::send_message(&env, to, next_conn_sn, msg);
 
@@ -93,14 +91,14 @@ impl CentralizedConnection {
         conn_sn: u128,
         msg: Bytes,
     ) -> Result<(), ContractError> {
-        Self::ensure_admin(&env)?;
+        helpers::ensure_admin(&env)?;
 
-        if Self::get_sn_receipt(&env, src_network.clone(), conn_sn) {
+        if storage::get_sn_receipt(&env, src_network.clone(), conn_sn) {
             return Err(ContractError::DuplicateMessage);
         }
-        Self::store_receipt(&env, src_network.clone(), conn_sn);
+        storage::store_receipt(&env, src_network.clone(), conn_sn);
 
-        Self::call_xcall_handle_message(&env, &src_network, msg)?;
+        helpers::call_xcall_handle_message(&env, &src_network, msg)?;
         Ok(())
     }
 
@@ -116,9 +114,9 @@ impl CentralizedConnection {
     ///
     /// a `Result<(), ContractError)`
     pub fn revert_message(env: &Env, sn: u128) -> Result<(), ContractError> {
-        Self::ensure_admin(&env)?;
+        helpers::ensure_admin(&env)?;
 
-        Self::call_xcall_handle_error(&env, sn)?;
+        helpers::call_xcall_handle_error(&env, sn)?;
         Ok(())
     }
 
@@ -141,9 +139,9 @@ impl CentralizedConnection {
         message_fee: u128,
         response_fee: u128,
     ) -> Result<(), ContractError> {
-        Self::ensure_admin(&env)?;
+        helpers::ensure_admin(&env)?;
 
-        Self::store_network_fee(&env, network_id, message_fee, response_fee);
+        storage::store_network_fee(&env, network_id, message_fee, response_fee);
         Ok(())
     }
 
@@ -155,9 +153,9 @@ impl CentralizedConnection {
     ///
     /// a `Result<(), ContractError>`
     pub fn claim_fees(env: Env) -> Result<(), ContractError> {
-        let admin = Self::ensure_admin(&env)?;
+        let admin = helpers::ensure_admin(&env)?;
 
-        let token_addr = Self::native_token(&env)?;
+        let token_addr = storage::native_token(&env)?;
         let client = token::Client::new(&env, &token_addr);
         let balance = client.balance(&env.current_contract_address());
 
@@ -178,10 +176,10 @@ impl CentralizedConnection {
     ///
     /// a `u128` fee required to send message
     pub fn get_fee(env: Env, network_id: String, response: bool) -> u128 {
-        Self::get_network_fee(&env, network_id, response)
+        helpers::get_network_fee(&env, network_id, response)
     }
 
     pub fn get_receipt(env: Env, network_id: String, sn: u128) -> bool {
-        Self::get_sn_receipt(&env, network_id, sn)
+        storage::get_sn_receipt(&env, network_id, sn)
     }
 }

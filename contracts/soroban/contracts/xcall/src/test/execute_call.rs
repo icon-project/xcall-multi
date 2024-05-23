@@ -1,9 +1,6 @@
 #![cfg(test)]
 
-use crate::{
-    contract::{Xcall, XcallClient},
-    types::rollback::Rollback,
-};
+use crate::{contract::XcallClient, storage, types::rollback::Rollback};
 use soroban_sdk::{bytes, testutils::Address as _, Address};
 
 use super::setup::*;
@@ -34,7 +31,7 @@ fn test_execute_rollback_fail_not_enabled() {
     );
 
     ctx.env.as_contract(&ctx.contract, || {
-        Xcall::store_rollback(&ctx.env, sequence_no, &rollback);
+        storage::store_rollback(&ctx.env, sequence_no, &rollback);
     });
 
     client.execute_rollback(&sequence_no);

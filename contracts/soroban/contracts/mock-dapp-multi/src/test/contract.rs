@@ -3,12 +3,9 @@ use soroban_sdk::{bytes, testutils::Address as _, vec, Address, String};
 use soroban_xcall_lib::network_address::NetworkAddress;
 
 use super::setup::*;
-
 extern crate std;
-use crate::{
-    contract::{MockDapp, MockDappClient},
-    types::Connection,
-};
+
+use crate::{contract::MockDappClient, storage, types::Connection};
 
 #[test]
 fn test_init() {
@@ -17,7 +14,7 @@ fn test_init() {
     ctx.init_context(&client);
 
     ctx.env.as_contract(&ctx.contract, || {
-        let addr = MockDapp::get_xcall_address(&ctx.env).unwrap();
+        let addr = storage::get_xcall_address(&ctx.env).unwrap();
         assert_eq!(addr, ctx.xcall);
     });
 
@@ -150,7 +147,7 @@ fn test_send_call_message_fail_xcall_address_not_set() {
 
     ctx.env.as_contract(&ctx.contract, || {
         let connections =
-            MockDapp::get_connections(&ctx.env, network_address.nid(&ctx.env)).unwrap();
+            storage::get_connections(&ctx.env, network_address.nid(&ctx.env)).unwrap();
         assert_eq!(connections, vec![&ctx.env, Connection::new(src, dst)]);
     });
 

@@ -2,111 +2,109 @@ use soroban_sdk::{vec, Address, Bytes, Env};
 use soroban_xcall_lib::messages::msg_type::MessageType;
 
 use crate::{
-    contract::Xcall,
+    connection, dapp,
     errors::ContractError,
-    event,
+    event, helpers, storage,
     types::{
         message::CSMessage,
         result::{CSMessageResult, CSResponseType},
     },
 };
 
-impl Xcall {
-    pub fn execute_message(
-        env: &Env,
-        sender: Address,
-        req_id: u128,
-        data: Bytes,
-    ) -> Result<(), ContractError> {
-        let req = Self::get_proxy_request(&env, req_id)?;
+pub fn execute_message(
+    env: &Env,
+    sender: Address,
+    req_id: u128,
+    data: Bytes,
+) -> Result<(), ContractError> {
+    let req = storage::get_proxy_request(&env, req_id)?;
 
-        let hash_data = Self::hash_data(&env, &data);
-        if &hash_data != req.data() {
-            return Err(ContractError::DataMismatch);
+    let hash_data = helpers::hash_data(&env, &data);
+    if &hash_data != req.data() {
+        return Err(ContractError::DataMismatch);
+    }
+    storage::remove_proxy_request(&env, req_id);
+
+    let to = Address::from_string(&req.to());
+
+    match req.msg_type() {
+        MessageType::CallMessage => {
+            dapp::try_handle_call_message(
+                &env,
+                req_id,
+                to,
+                &req.from(),
+                &data,
+                req.protocols().clone(),
+            );
         }
-        Self::remove_proxy_request(&env, req_id);
+        MessageType::CallMessagePersisted => {
+            dapp::handle_call_message(
+                &env,
+                to.clone(),
+                &req.from(),
+                &data,
+                req.protocols().clone(),
+            );
+        }
+        MessageType::CallMessageWithRollback => {
+            storage::store_reply_state(&env, &req);
+            let code = dapp::try_handle_call_message(
+                &env,
+                req_id,
+                to,
+                &req.from(),
+                &data,
+                req.protocols().clone(),
+            );
+            storage::remove_reply_state(&env);
 
-        let to = Address::from_string(&req.to());
-
-        match req.msg_type() {
-            MessageType::CallMessage => {
-                Self::try_handle_call_message(
-                    &env,
-                    req_id,
-                    to,
-                    &req.from(),
-                    &data,
-                    req.protocols().clone(),
-                );
+            let response_code = code.into();
+            let mut message = Bytes::new(&env);
+            let call_reply = storage::remove_call_reply(&env);
+            if call_reply.is_some() && response_code == CSResponseType::CSResponseSuccess {
+                message = call_reply.unwrap().encode(&env);
             }
-            MessageType::CallMessagePersisted => {
-                Self::handle_call_message(
-                    &env,
-                    to.clone(),
-                    &req.from(),
-                    &data,
-                    req.protocols().clone(),
-                );
+
+            let result = CSMessageResult::new(req.sequence_no(), response_code, message);
+            let cs_message = CSMessage::from_result(&env, &result).encode(&env);
+
+            let nid = req.from().nid(&env);
+            let mut destinations = req.protocols().clone();
+            if destinations.is_empty() {
+                let deafult_connection = storage::default_connection(&env, nid.clone())?;
+                destinations = vec![&env, deafult_connection.to_string()];
             }
-            MessageType::CallMessageWithRollback => {
-                Self::store_reply_state(&env, &req);
-                let code = Self::try_handle_call_message(
+
+            for to in destinations {
+                connection::call_connection_send_message(
                     &env,
-                    req_id,
-                    to,
-                    &req.from(),
-                    &data,
-                    req.protocols().clone(),
-                );
-                Self::remove_reply_state(&env);
-
-                let response_code = code.into();
-                let mut message = Bytes::new(&env);
-                let call_reply = Self::remove_call_reply(&env);
-                if call_reply.is_some() && response_code == CSResponseType::CSResponseSuccess {
-                    message = call_reply.unwrap().encode(&env);
-                }
-
-                let result = CSMessageResult::new(req.sequence_no(), response_code, message);
-                let cs_message = CSMessage::from_result(&env, &result).encode(&env);
-
-                let nid = req.from().nid(&env);
-                let mut destinations = req.protocols().clone();
-                if destinations.is_empty() {
-                    let deafult_connection = Self::default_connection(&env, nid.clone())?;
-                    destinations = vec![&env, deafult_connection.to_string()];
-                }
-
-                for to in destinations {
-                    Self::call_connection_send_message(
-                        &env,
-                        &sender,
-                        &to,
-                        &nid,
-                        -(req.sequence_no() as i64),
-                        &cs_message,
-                    )?;
-                }
+                    &sender,
+                    &to,
+                    &nid,
+                    -(req.sequence_no() as i64),
+                    &cs_message,
+                )?;
             }
-        };
+        }
+    };
 
-        Ok(())
-    }
+    Ok(())
+}
 
-    pub fn execute_rollback_message(env: &Env, sequence_no: u128) -> Result<(), ContractError> {
-        let rollback = Self::get_rollback(&env, sequence_no)?;
-        Self::ensure_rollback_enabled(&rollback)?;
-        Self::remove_rollback(&env, sequence_no);
+pub fn execute_rollback_message(env: &Env, sequence_no: u128) -> Result<(), ContractError> {
+    let rollback = storage::get_rollback(&env, sequence_no)?;
+    helpers::ensure_rollback_enabled(&rollback)?;
+    storage::remove_rollback(&env, sequence_no);
 
-        Self::handle_call_message(
-            &env,
-            rollback.from().clone(),
-            &Self::get_own_network_address(&env)?,
-            rollback.rollback(),
-            rollback.protocols().clone(),
-        );
-        event::rollback_executed(&env, sequence_no);
+    dapp::handle_call_message(
+        &env,
+        rollback.from().clone(),
+        &storage::get_own_network_address(&env)?,
+        rollback.rollback(),
+        rollback.protocols().clone(),
+    );
+    event::rollback_executed(&env, sequence_no);
 
-        Ok(())
-    }
+    Ok(())
 }

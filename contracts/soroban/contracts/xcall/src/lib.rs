@@ -10,6 +10,6 @@ pub mod handle_message;
 pub mod helpers;
 pub mod interfaces;
 pub mod send_message;
-pub mod states;
+pub mod storage;
 pub mod test;
 pub mod types;

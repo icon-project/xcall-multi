@@ -3,7 +3,7 @@
 pub mod contract;
 pub mod errors;
 pub mod interfaces;
-pub mod state;
+pub mod storage;
 pub mod types;
 pub mod xcall;
 

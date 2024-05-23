@@ -9,6 +9,7 @@ mod xcall {
 use crate::{
     contract::{CentralizedConnection, CentralizedConnectionClient},
     event::SendMsgEvent,
+    storage,
     types::InitializeMsg,
 };
 use soroban_sdk::{
@@ -304,7 +305,7 @@ fn test_get_receipt_returns_false() {
     assert_eq!(receipt, false);
 
     ctx.env.as_contract(&ctx.contract, || {
-        CentralizedConnection::store_receipt(&ctx.env, ctx.nid.clone(), sequence_no);
+        storage::store_receipt(&ctx.env, ctx.nid.clone(), sequence_no);
     });
 
     let receipt = client.get_receipt(&ctx.nid, &sequence_no);

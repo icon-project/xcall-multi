@@ -13,7 +13,10 @@ use soroban_xcall_lib::messages::{
 };
 
 use super::setup::*;
-use crate::contract::{Xcall, XcallClient};
+use crate::{
+    contract::{Xcall, XcallClient},
+    send_message, storage,
+};
 
 #[test]
 fn test_send_call_message() {
@@ -119,7 +122,7 @@ fn test_send_call_message() {
     );
 
     ctx.env.as_contract(&ctx.contract, || {
-        let sn = Xcall::get_next_sn(&ctx.env);
+        let sn = storage::get_next_sn(&ctx.env);
         assert_eq!(sn, res + 1)
     });
 
@@ -166,7 +169,7 @@ fn test_process_rollback_message_with_invalid_contract_address() {
     let message = AnyMessage::CallMessageWithRollback(rollback_msg);
     let envelope = &get_dummy_envelope_msg(&ctx.env, message);
 
-    Xcall::process_message(&ctx.env, &ctx.network_address, 1, &sender, envelope).unwrap();
+    send_message::process_message(&ctx.env, &ctx.network_address, 1, &sender, envelope).unwrap();
 }
 
 #[test]
@@ -186,7 +189,8 @@ fn test_process_rollback_message_with_greater_than_max_rollback_size() {
     let message = AnyMessage::CallMessageWithRollback(rollback_msg);
     let envelope = &get_dummy_envelope_msg(&ctx.env, message);
 
-    Xcall::process_message(&ctx.env, &ctx.network_address, 1, &ctx.contract, envelope).unwrap();
+    send_message::process_message(&ctx.env, &ctx.network_address, 1, &ctx.contract, envelope)
+        .unwrap();
 }
 
 #[test]
@@ -203,9 +207,14 @@ fn test_process_rollback_message() {
     let envelope = &get_dummy_envelope_msg(&ctx.env, message);
 
     ctx.env.as_contract(&client.address, || {
-        let res =
-            Xcall::process_message(&ctx.env, &ctx.network_address, 1, &ctx.contract, envelope);
-        let rollback = Xcall::get_rollback(&ctx.env, 1);
+        let res = send_message::process_message(
+            &ctx.env,
+            &ctx.network_address,
+            1,
+            &ctx.contract,
+            envelope,
+        );
+        let rollback = storage::get_rollback(&ctx.env, 1);
         assert!(rollback.is_ok());
         assert!(res.is_ok())
     });
@@ -226,7 +235,7 @@ fn test_call_connection_for_rollback_message() {
     let fee = ctx.get_centralized_connection_fee(need_response);
     ctx.mint_native_token(&sender, fee);
 
-    Xcall::call_connection(
+    send_message::call_connection(
         &ctx.env,
         &sender,
         &ctx.nid,
@@ -259,7 +268,7 @@ fn test_call_connection_for_call_message() {
     let fee = ctx.get_centralized_connection_fee(need_response);
     ctx.mint_native_token(&sender, fee);
 
-    Xcall::call_connection(
+    send_message::call_connection(
         &ctx.env,
         &sender,
         &ctx.nid,
@@ -290,7 +299,7 @@ fn test_calim_protocol_fee() {
     ctx.mint_native_token(&sender, protocol_fee);
 
     ctx.env.as_contract(&ctx.contract, || {
-        Xcall::claim_protocol_fee(&ctx.env, &sender).unwrap();
+        send_message::claim_protocol_fee(&ctx.env, &sender).unwrap();
 
         let fee_handler_balance = ctx.get_native_token_balance(&ctx.admin);
         let sender_balance = ctx.get_native_token_balance(&sender);
@@ -313,7 +322,7 @@ fn test_claim_protocol_fail_for_insufficient_amount_sent() {
 
     ctx.env.as_contract(&ctx.contract, || {
         Xcall::set_protocol_fee(&ctx.env, 150).unwrap();
-        Xcall::claim_protocol_fee(&ctx.env, &sender).unwrap();
+        send_message::claim_protocol_fee(&ctx.env, &sender).unwrap();
     });
 }
 
@@ -325,7 +334,7 @@ fn test_array_equal_for_mismatch_length() {
     let sources: Vec<String> = vec![&ctx.env];
 
     ctx.env.as_contract(&ctx.contract, || {
-        let res = Xcall::are_array_equal(&protocols, &sources);
+        let res = send_message::are_array_equal(&protocols, &sources);
         assert_eq!(res, false)
     });
 }
@@ -342,7 +351,7 @@ fn test_array_equal_returns_false_for_unknown_protocol() {
     ];
 
     ctx.env.as_contract(&ctx.contract, || {
-        let res = Xcall::are_array_equal(&protocols, &sources);
+        let res = send_message::are_array_equal(&protocols, &sources);
         assert_eq!(res, false)
     });
 }
@@ -355,7 +364,7 @@ fn test_array_equal() {
     let sources = get_dummy_destinations(&ctx.env);
 
     ctx.env.as_contract(&ctx.contract, || {
-        let res = Xcall::are_array_equal(&protocols, &sources);
+        let res = send_message::are_array_equal(&protocols, &sources);
         assert_eq!(res, true)
     });
 }
@@ -366,10 +375,10 @@ fn test_is_reply_for_mismatch_network() {
 
     ctx.env.as_contract(&ctx.contract, || {
         let req = get_dummy_message_request(&ctx.env);
-        Xcall::store_reply_state(&ctx.env, &req);
+        storage::store_reply_state(&ctx.env, &req);
 
         let nid = String::from_str(&ctx.env, "icon");
-        let res = Xcall::is_reply(&ctx.env, &nid, req.protocols());
+        let res = send_message::is_reply(&ctx.env, &nid, req.protocols());
         assert_eq!(res, false)
     });
 }
@@ -382,7 +391,7 @@ fn test_is_reply_returns_false_when_missing_reply_state() {
     let nid = String::from_str(&ctx.env, "icon");
 
     ctx.env.as_contract(&ctx.contract, || {
-        let res = Xcall::is_reply(&ctx.env, &nid, &sources);
+        let res = send_message::is_reply(&ctx.env, &nid, &sources);
         assert_eq!(res, false)
     });
 }

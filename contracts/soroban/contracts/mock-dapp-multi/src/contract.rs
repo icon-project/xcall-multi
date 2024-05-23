@@ -12,7 +12,7 @@ use soroban_xcall_lib::{
     network_address::NetworkAddress,
 };
 
-use crate::{errors::ContractError, types::Connection};
+use crate::{errors::ContractError, storage, types::Connection};
 
 #[contract]
 pub struct MockDapp;
@@ -20,9 +20,8 @@ pub struct MockDapp;
 #[contractimpl]
 impl MockDapp {
     pub fn init(env: Env, xcall_address: Address) -> Result<(), ContractError> {
-        let sn = u128::default();
-        Self::store_sn_no(&env, &sn);
-        Self::store_xcall_address(&env, &xcall_address);
+        storage::store_sn_no(&env, &u128::default());
+        storage::store_xcall_address(&env, &xcall_address);
 
         Ok(())
     }
@@ -47,7 +46,7 @@ impl MockDapp {
             destinations,
         };
 
-        let xcall_address = Self::get_xcall_address(&env)?;
+        let xcall_address = storage::get_xcall_address(&env)?;
         let res = Self::xcall_send_call(&env, &sender, &to, &envelope, &xcall_address);
 
         Ok(res)
@@ -77,7 +76,7 @@ impl MockDapp {
                     data: bytes!(&env, 0xabc),
                 });
 
-                let xcall_address = Self::get_xcall_address(&env).ok();
+                let xcall_address = storage::get_xcall_address(&env).ok();
                 if xcall_address.is_none() {
                     panic_with_error!(&env, ContractError::Uninitialized)
                 }
@@ -107,7 +106,7 @@ impl MockDapp {
         dst_endpoint: String,
         network_id: String,
     ) {
-        Self::add_new_connection(
+        storage::add_new_connection(
             &env,
             network_id,
             Connection::new(src_endpoint, dst_endpoint),
@@ -115,7 +114,7 @@ impl MockDapp {
     }
 
     pub fn get_sequence(env: Env) -> Result<u128, ContractError> {
-        Self::get_sn(&env)
+        storage::get_sn(&env)
     }
 
     fn process_message(
@@ -144,7 +143,7 @@ impl MockDapp {
         env: &Env,
         network_id: String,
     ) -> Result<(Vec<String>, Vec<String>), ContractError> {
-        let connections = Self::get_connections(&env, network_id)?;
+        let connections = storage::get_connections(&env, network_id)?;
 
         let mut sources = Vec::new(&env);
         let mut destinations = Vec::new(&env);
