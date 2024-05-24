@@ -5,6 +5,7 @@
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.30.0",
+    "@project-serum/anchor": "^0.26.0",
     "rlp": "^3.0.0"
   },
   "devDependencies": {

@@ -1,14 +1,14 @@
-use std::str::FromStr;
-
 use anchor_lang::solana_program::system_instruction;
 use borsh::{BorshDeserialize, BorshSerialize};
+use std::mem::size_of;
+use std::str::FromStr;
 
 use crate::error::ErrorCode;
 use crate::{CSMessageRequest, MessageType, NetworkAddress, ReplyData, XCallEnvelope, XCallState};
 
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::instruction::Instruction;
-use anchor_lang::solana_program::program::invoke;
+use anchor_lang::solana_program::program::{invoke, invoke_signed};
 
 const MAX_DATA_SIZE: u32 = 2048;
 const DISCRIMINANT_END: usize = 8;
@@ -40,19 +40,16 @@ pub struct CallMessageSent {
 
 #[derive(Accounts)]
 pub struct SendMessageCtx<'info> {
-    #[account(mut)]
-    pub xcall_state: Account<'info, XCallState>,
+    #[account(mut, seeds = [b"xcall"], bump)]
+    pub xcall_state: Box<Account<'info, XCallState>>,
 
     #[account(mut)]
     pub sender: Signer<'info>,
-
     #[account(mut)]
-    pub reply_data: Account<'info, ReplyData>,
-
+    pub reply_data: Box<Account<'info, ReplyData>>,
     /// CHECK: to transfer protocol fee
     #[account(mut)]
     pub fee_handler: AccountInfo<'info>,
-
     pub system_program: Program<'info, System>,
 }
 
@@ -61,7 +58,7 @@ pub fn send_message<'a, 'b, 'c, 'info>(
     to: String,
     msg: Vec<u8>,
 ) -> Result<()> {
-    let envelope = XCallEnvelope::unmarshal_from(&msg).unwrap();
+    let envelope: XCallEnvelope = XCallEnvelope::unmarshal_from(&msg).unwrap();
     let dst = NetworkAddress::split(to.clone());
 
     let new_seq = increment_sn(&mut ctx.accounts.xcall_state);
@@ -124,10 +121,12 @@ pub fn send_message<'a, 'b, 'c, 'info>(
         };
 
         for (i, source) in sources.iter().enumerate() {
+            msg!("the value of i is : {} {} {}", i, 3 * i, 3 * i + 1);
             let connection = &ctx.remaining_accounts[3 * i];
             let connection_fee = &ctx.remaining_accounts[3 * i + 1];
-            let conn_fee = get_fee(connection_fee, send_sn as i128).unwrap();
-
+            let connection_program = &ctx.remaining_accounts[3 * i + 2];
+            // let conn_fee = 10; // temp fee due to error from line below
+                               let conn_fee = get_fee(connection_fee, send_sn as i128).unwrap();
             require_keys_eq!(
                 *connection.owner,
                 Pubkey::from_str(source.as_str()).unwrap()
@@ -142,32 +141,48 @@ pub fn send_message<'a, 'b, 'c, 'info>(
                     system_program_info.clone(),
                 ],
             )?;
-
+            let temp_to  = String::from("testnet");
             // Call send message of connection program
             let args = SendMessageArgs {
-                to: to.clone(),
+                to: temp_to,
+                // to: to.clone(),
                 sn: new_seq,
                 msg: msg_bytes.clone(),
             };
+
             let mut data = vec![];
             args.serialize(&mut data).unwrap();
+
+            let user = &ctx.accounts.xcall_state.to_account_info();
 
             let mut instruction_data = Vec::new();
             instruction_data.extend_from_slice(&sighash("global", "send_message"));
             instruction_data.extend_from_slice(&data);
-
-            let i = Instruction {
+            let instruc = Instruction {
                 program_id: *connection.owner,
                 accounts: vec![
                     AccountMeta::new(connection.key(), false),
-                    AccountMeta::new_readonly(connection_fee.key(), false),
+                    AccountMeta::new(connection_fee.key(), false),
+                    AccountMeta::new(user.key(), true),
+                    AccountMeta::new_readonly(system.key(), false),
                 ],
                 data: instruction_data,
             };
+      
+            msg!(" to {}" , to.clone());
 
-            let account_infos = vec![connection.clone(), connection_fee.clone(), system.clone()];
+            let bumps = ctx.bumps.xcall_state;
+         
+            let signers_seeds: &[&[u8]] = &[b"xcall", &[bumps]];
+            msg!("signer seed {:?}" , signers_seeds);
+            let account_infos: Vec<AccountInfo<'info>> = vec![
+                connection.clone(),
+                connection_fee.clone(),
+                user.clone(),
+                system.clone(),
+            ];
 
-            let _ = invoke(&i, &account_infos);
+            let _ = invoke_signed(&instruc, &account_infos, &[signers_seeds]); // memory allocation failed error comes from here
         }
     }
 
@@ -203,6 +218,7 @@ pub fn get_fee(connection_fee: &AccountInfo, sn: i128) -> Result<u64> {
     }
     let serialized_fee = &connection_fee.try_borrow_mut_data()?[DISCRIMINANT_END..];
     let conn_fee = FeesState::try_from_slice(&serialized_fee).unwrap();
+    // let conn_fee = FeesState::try_from_slice(&serialized_fee).unwrap();
     if sn > 0 {
         return Ok(conn_fee.message_fees + conn_fee.response_fees);
     }
@@ -230,4 +246,3 @@ pub fn sighash(namespace: &str, name: &str) -> Vec<u8> {
     );
     sighash.to_vec()
 }
-

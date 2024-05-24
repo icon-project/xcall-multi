@@ -33,6 +33,7 @@ pub mod xcall {
         to: String,
         msg: Vec<u8>,
     ) -> Result<()> {
+        // instructions::send_message(ctx, to)
         instructions::send_message(ctx, to, msg)
     }
 
