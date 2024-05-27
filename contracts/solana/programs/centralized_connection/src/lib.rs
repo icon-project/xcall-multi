@@ -8,6 +8,7 @@ use xcall::cpi::accounts::HandleMessageCtx;
 use xcall::instructions::admin::XCallState;
 use xcall::instructions::handle_request::ProxyReq;
 use xcall::instructions::handle_request::RollbackDataAccount;
+use xcall::instructions::handle_request::PendingResponses;
 use xcall::program::Xcall;
 
 declare_id!("ser4Nbop2SKCZLYmtKGBvo8963ceMEEVKjceT9aAZKo");
@@ -122,7 +123,9 @@ pub mod centralized_connection {
 
         let cpi_xcall_accounts = HandleMessageCtx {
             proxy_req: _ctx.accounts.proxy_recp.to_account_info(),
-            new_rollback_data: _ctx.accounts.new_rollback_data.to_account_info(),
+            // new_rollback_data: _ctx.accounts.new_rollback_data.to_account_info(),
+            pending_responses: _ctx.accounts.pending_responses.to_account_info(),
+            fee_handler: _ctx.accounts.fee_handler.to_account_info(),
             xcall_state: _ctx.accounts.xcall_state.to_account_info(),
             rollback_data: _ctx.accounts.roll_back_data.to_account_info(),
             user: _ctx.accounts.user.to_account_info(),
@@ -147,7 +150,8 @@ pub mod centralized_connection {
 
 // Instructure context structures
 #[derive(Accounts)]
-#[instruction( _to: String)]
+#[instruction( _to: String)]            // new_rollback_data: _ctx.accounts.new_rollback_data.to_account_info(),
+
 pub struct SendMessageCtx<'info> {
     #[account(mut, seeds = [b"centralized_state"],  bump)]
     pub centralized_connection_state: Account<'info, CentralizedConnectionState>,
@@ -159,7 +163,8 @@ pub struct SendMessageCtx<'info> {
 }
 
 #[derive(Accounts)]
-pub struct InitializeCtx<'info> {
+pub struct InitializeCtx<'info> {            // new_rollback_data: _ctx.accounts.new_rollback_data.to_account_info(),
+
     #[account(mut)]
     pub user: Signer<'info>,
 
@@ -210,9 +215,11 @@ pub struct RecvReceiptCtx<'info> {
     pub receipt: Account<'info, ReceiptState>,
     #[account(mut)]
     pub proxy_recp: Account<'info, ProxyReq>,
+    pub pending_responses: Account<'info, PendingResponses>,
     pub new_rollback_data: Account<'info, RollbackDataAccount>,
     pub roll_back_data: Account<'info, RollbackDataAccount>,
     pub xcall_state: Account<'info, XCallState>,
+    pub fee_handler: AccountInfo<'info>,
     #[account(mut)]
     pub user: Signer<'info>,
     pub xcall_program: Program<'info, Xcall>,
