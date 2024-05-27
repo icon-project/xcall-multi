@@ -4,24 +4,17 @@ use std::mem::size_of;
 use std::str::FromStr;
 
 use crate::error::ErrorCode;
-use crate::{CSMessageRequest, MessageType, NetworkAddress, ReplyData, XCallEnvelope, XCallState};
+use crate::{get_fee, is_reply, sighash, transfer_lamports, CSMessageRequest, CallMessageWithRollback, MessageType, NetworkAddress, ReplyData, RollbackData, XCallEnvelope, XCallState};
 
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::instruction::Instruction;
 use anchor_lang::solana_program::program::{invoke, invoke_signed};
 
 const MAX_DATA_SIZE: u32 = 2048;
-const DISCRIMINANT_END: usize = 8;
 
 pub struct ProcessResult {
     pub need_response: bool,
     pub message: Vec<u8>,
-}
-
-#[derive(BorshDeserialize, BorshSerialize)]
-pub struct FeesState {
-    message_fees: u64,
-    response_fees: u64,
 }
 
 #[derive(BorshSerialize, BorshDeserialize, Clone)]
@@ -38,8 +31,23 @@ pub struct CallMessageSent {
     pub sn: u128,
 }
 
+#[account]
+pub struct RollbackDataState {
+    pub sequence_number: u128,
+    pub data: RollbackData,
+}
+
 #[derive(Accounts)]
 pub struct SendMessageCtx<'info> {
+    #[account(
+        init_if_needed, 
+        payer = sender, 
+        space = 8 + 512,
+        seeds=[b"rollback_data_state"],
+        bump
+    )]
+    pub rollback_data_state: Account<'info, RollbackDataState>,
+
     #[account(mut, seeds = [b"xcall"], bump)]
     pub xcall_state: Box<Account<'info, XCallState>>,
 
@@ -65,22 +73,32 @@ pub fn send_message<'a, 'b, 'c, 'info>(
     let signer = ctx.accounts.sender.key();
 
     let msg_type = MessageType::from_int(envelope.msg_type.clone());
+
+    let system_program_info = &ctx.accounts.system_program.to_account_info();
     let processed_msg = match msg_type {
-        MessageType::CallMessageNormal => ProcessResult {
-            need_response: false,
-            message: envelope.message,
+        MessageType::CallMessageWithRollback => {
+            let call_message = CallMessageWithRollback::unmarshal_from(&envelope.message).unwrap();
+
+            // todo: require signer to be a program, and not user, maybe limit what seed the program should use to call this method?
+
+            let rollback = RollbackData::new(signer, dst.net.clone(), envelope.sources.clone(), call_message.rollback, true);
+
+            let rollback_acc = &mut ctx.accounts.rollback_data_state;
+            rollback_acc.data = rollback;
+            rollback_acc.sequence_number = new_seq;
+
+            ProcessResult {
+                need_response: true,
+                message: call_message.data,
+            }
         },
-        MessageType::CallMessagePersisted => ProcessResult {
-            need_response: false,
-            message: envelope.message,
-        },
-        _ => {
-            require!(false, ErrorCode::UseSendMessageWithRollback);
+        MessageType::CallMessageNormal | MessageType::CallMessagePersisted => {
+            
             ProcessResult {
                 need_response: false,
-                message: vec![],
-            }
+                message: envelope.message,
         }
+    },
     };
 
     let xcall_state = &ctx.accounts.xcall_state;
@@ -102,7 +120,6 @@ pub fn send_message<'a, 'b, 'c, 'info>(
 
     let sources = envelope.sources;
     let signer_account = &ctx.accounts.sender;
-    let system_program_info = &ctx.accounts.system_program.to_account_info();
 
     if is_reply(
         ctx.accounts.reply_data.reply_state.clone(),
@@ -112,7 +129,7 @@ pub fn send_message<'a, 'b, 'c, 'info>(
     {
         let reply_data = &mut ctx.accounts.reply_data;
         reply_data.call_reply = msg_bytes.clone();
-        reply_data.reply_state = CSMessageRequest::null();
+        reply_data.reply_state = CSMessageRequest::default();
     } else {
         let send_sn = if processed_msg.need_response {
             new_seq
