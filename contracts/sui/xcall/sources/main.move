@@ -292,7 +292,7 @@ module xcall::main {
     public fun send_call(self:&mut Storage,fee: Coin<SUI>,idCap:&IDCap,to:String,envelope_bytes:vector<u8>,ctx: &mut TxContext){
         let envelope=envelope::decode(&envelope_bytes);
         let to = network_address::from_string(to);
-        let from= network_address::create(xcall_state::get_net_id(self),address::to_string(object::id_to_address(&object::id(idCap))));
+        let from= network_address::create(xcall_state::get_net_id(self),utils::id_to_hex_string(&object::id(idCap)));
 
         let remaining = send_call_inner(self,fee,from,to,envelope,ctx);
         transfer::public_transfer(remaining, ctx.sender());
