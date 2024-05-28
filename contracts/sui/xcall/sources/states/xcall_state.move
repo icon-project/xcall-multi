@@ -62,6 +62,7 @@ module xcall::xcall_state {
      public struct Storage has key {
         id: UID,
         version:u64,
+        net_id:String,
         admin:ID,
         requests:LinkedTable<u128, vector<u8>>,
         sequence_no:u128,
@@ -99,6 +100,7 @@ module xcall::xcall_state {
          let storage = Storage {
             id: object::new(ctx),
             version:version,
+            net_id:string::utf8(b""),
             admin:object::id(admin),
             requests:linked_table::new<u128, vector<u8>>(ctx),
             sequence_no:0,
@@ -119,6 +121,15 @@ module xcall::xcall_state {
         storage
     }
 
+
+    public(package) fun set_net_id(self:&mut Storage,net_id:String){
+            self.net_id=net_id;
+    }
+
+    public(package) fun get_net_id(self:&mut Storage): String{
+            self.net_id
+    }
+    
     public(package) fun set_version(self:&mut Storage,version:u64){
             self.version=version;
     }
