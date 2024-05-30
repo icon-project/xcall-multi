@@ -21,14 +21,14 @@ module sui_rlp::encoder {
             vector::append(&mut result,*bytes);
            result
         };
-        std::debug::print(&encoded);
+        //std::debug::print(&encoded);
         encoded
         
     }
 
     public fun encode_list(list:&vector<vector<u8>>,raw:bool):vector<u8>{
-        std::debug::print(&b"ENCODELIST".to_string());
-        std::debug::print(list);
+        //std::debug::print(&b"ENCODELIST".to_string());
+        //std::debug::print(list);
         let mut result=vector::empty();
         let mut encoded_list = vector::empty<u8>();
         let mut list=*list;
@@ -40,7 +40,7 @@ module sui_rlp::encoder {
               vector::append(&mut result,encode(&vector::pop_back(&mut list)));
             }else{
               vector::append(&mut result,vector::pop_back(&mut list));
-              std::debug::print(&result);
+              //std::debug::print(&result);
             };
            
         };
@@ -55,15 +55,15 @@ module sui_rlp::encoder {
         } else {
            let length_bytes = utils::to_bytes_u64(len);
            let prefix = (0xf7 + vector::length(&length_bytes)) as u8;
-            std::debug::print(&b"PREFIX".to_string());
-            std::debug::print(&prefix);
+            //std::debug::print(&b"PREFIX".to_string());
+            //std::debug::print(&prefix);
            vector::push_back(&mut encoded_list, prefix);
-            std::debug::print(&encoded_list);
+            //std::debug::print(&encoded_list);
            vector::append(&mut encoded_list, length_bytes);
-                       std::debug::print(&encoded_list);
+                       //std::debug::print(&encoded_list);
 
            vector::append(&mut encoded_list, result);
-                       std::debug::print(&encoded_list);
+                       //std::debug::print(&encoded_list);
 
 
         }
@@ -72,8 +72,8 @@ module sui_rlp::encoder {
             vector::push_back(&mut encoded_list,0xc0);
 
         };
-        std::debug::print(&b"FINAL_ENCODED_LIST".to_string());
-        std::debug::print(&encoded_list);
+        //std::debug::print(&b"FINAL_ENCODED_LIST".to_string());
+        //std::debug::print(&encoded_list);
         encoded_list   
     }
 

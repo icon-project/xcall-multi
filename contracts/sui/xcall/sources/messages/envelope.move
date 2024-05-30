@@ -115,7 +115,7 @@ use sui_rlp::decoder;
         let destinations = vector[string::utf8(b"archway8dhd8dd8ddisjjsissiisisisiiiiiiiiiiiiiiiiiiissssjjjjsiisisisisiiiiiiiiiiiiiiiii")];
         let data = b"Most people are familiar with the decimal, or base-10, system of numbers (all possible numbers can be notated using the 10 digits, 0,1,2,3,4,5,6,7,8,9). With only 10 digits, extra digits need to be used at certain intervals to correctly notate a number. For example, the number 423,004 uses twice as much digits as the number 961.";
         let envelope=wrap_call_message(data,sources,destinations);
-        std::debug::print(&envelope);
+        //std::debug::print(&envelope);
         let envelope_bytes=encode(&envelope);
         assert!(envelope==decode(&envelope_bytes),0x01)
     }
