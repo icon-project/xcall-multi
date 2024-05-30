@@ -180,7 +180,7 @@ module xcall::main {
         }
         else if(msg_type == call_message_rollback::msg_type()){
             let msg = call_message_rollback::decode(&envelope::message(&envelope));
-            std::debug::print(&network_address::addr(&from));
+            //std::debug::print(&network_address::addr(&from));
             let from_id = utils::id_from_hex_string(&network_address::addr(&from));
 
             let rollback = rollback_data::create(
@@ -388,14 +388,14 @@ module xcall::main {
     } else {
         let mut_rollback = xcall_state::get_mut_rollback(self, sequence_no);
         rollback_data::enable_rollback(mut_rollback);
-        std::debug::print(&rollback_data::enabled(mut_rollback));
+        //std::debug::print(&rollback_data::enabled(mut_rollback));
         event::emit(RollbackMessage{sn:sequence_no})
     };
     }
 
     fun handle_reply(self:&mut Storage, rollback:&RollbackData, reply: &CSMessageRequest, ctx: &mut TxContext){
-        std::debug::print(&rollback_data::to(rollback));
-        std::debug::print(&message_request::from_nid(reply) );
+        //std::debug::print(&rollback_data::to(rollback));
+        //std::debug::print(&message_request::from_nid(reply) );
         assert!(rollback_data::to(rollback) == message_request::from_nid(reply), EInvalidReply);
 
         let req_id = get_next_req_id(self);

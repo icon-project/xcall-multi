@@ -70,7 +70,7 @@ module mock_dapp::mock_dapp_tests {
         scenario= setup_register_xcall(admin,scenario);
         scenario.next_tx(admin);
         let dapp_state=scenario.take_shared<DappState>();
-        debug::print(&dapp_state);
+       //debug::print(&dapp_state);
         test_scenario::return_shared<DappState>(dapp_state);
         scenario.end();
 
@@ -99,12 +99,12 @@ module mock_dapp::mock_dapp_tests {
         scenario.next_tx(admin);
         let dapp_state=scenario.take_shared<DappState>();
         let mut xcall_state= scenario.take_shared<XCallState>();
-        debug::print(&xcall_state);
+       //debug::print(&xcall_state);
         let payload= create_message_request_payload(b"somedata",dapp_state.id_str());
         connection_in::receive_message(&mut xcall_state,string::utf8(b"dnetId"),1,payload,scenario.ctx());
-        debug::print(&dapp_state);
+       //debug::print(&dapp_state);
         test_scenario::return_shared<DappState>(dapp_state);
-        debug::print(&xcall_state);
+       //debug::print(&xcall_state);
         assert!(xcall_state::get_proxy_requests_size(&xcall_state)==1,0x01);
         test_scenario::return_shared<XCallState>(xcall_state);
 

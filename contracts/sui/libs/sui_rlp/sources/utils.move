@@ -21,9 +21,9 @@ module sui_rlp::utils {
         let mut i = length;
         while (i > 0) {
             i = i - 1;
-            std::debug::print(vector::borrow(bytes, i));
+            //std::debug::print(vector::borrow(bytes, i));
             result = result + ((*vector::borrow(bytes, i) as u32) * multiplier);
-            std::debug::print(&result);
+            //std::debug::print(&result);
 
             if (i > 0) {
             multiplier = multiplier * 256
@@ -56,14 +56,14 @@ module sui_rlp::utils {
         let mut i = length;
         while (i > 0) {
             i = i - 1;
-            std::debug::print(vector::borrow(bytes, i));
+            //std::debug::print(vector::borrow(bytes, i));
             result = result + ((*vector::borrow(bytes, i) as u64) * multiplier);
-            std::debug::print(&result);
+            //std::debug::print(&result);
 
             if (i > 0) {
-            std::debug::print(&b"MULTIPLIER".to_string());
-            std::debug::print(&multiplier);
-            std::debug::print(&i);
+            //std::debug::print(&b"MULTIPLIER".to_string());
+            //std::debug::print(&multiplier);
+            //std::debug::print(&i);
             multiplier = multiplier * 256
             };
             
@@ -98,9 +98,9 @@ module sui_rlp::utils {
         let mut i = length;
         while (i > 0) {
             i = i - 1;
-            std::debug::print(vector::borrow(bytes, i));
+            //std::debug::print(vector::borrow(bytes, i));
             result = result + ((*vector::borrow(bytes, i) as u128) * multiplier);
-            std::debug::print(&result);
+            //std::debug::print(&result);
 
             if (i > 0) {
             multiplier = multiplier * 256
@@ -119,7 +119,7 @@ module sui_rlp::utils {
             vector::push_back(&mut result, value);
             i = i + 1;
         };
-        std::debug::print(&result);
+        //std::debug::print(&result);
         result
     }
 
@@ -165,9 +165,9 @@ module sui_rlp::utils_test {
         let data=create_vector(10);
         let slice= utils::slice_vector(&data,0,3);
         let expected= create_vector(3);
-        debug::print(&expected);
-        debug::print(&slice);
-        debug::print(&data);
+       //debug::print(&expected);
+       //debug::print(&slice);
+       //debug::print(&data);
         assert!(slice==expected,0x01);
 
         
