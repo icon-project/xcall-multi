@@ -75,7 +75,8 @@ module xcall::main {
     }
 
     public struct RollbackMessage has copy, drop{
-        sn:u128
+        sn:u128,
+        dapp: String
     }
 
     public struct RollbackExecuted has copy, drop{
@@ -390,7 +391,7 @@ module xcall::main {
         let mut_rollback = xcall_state::get_mut_rollback(self, sequence_no);
         rollback_data::enable_rollback(mut_rollback);
         //std::debug::print(&rollback_data::enabled(mut_rollback));
-        event::emit(RollbackMessage{sn:sequence_no})
+        event::emit(RollbackMessage{sn:sequence_no, dapp: utils::id_to_hex_string(&rollback_data::from(&rollback)) });
     };
     }
 
