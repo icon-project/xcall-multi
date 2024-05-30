@@ -18,11 +18,6 @@ module xcall::rollback_ticket {
          self.rollback
     }
 
-    //FOR BACKWARD COMPATIBILITY: DO NOT REMOVE
-    public fun message(self:&RollbackTicket):vector<u8>{
-         self.rollback
-    }
-
     public fun sn(self:&RollbackTicket):u128 {
         self.sn
     }
