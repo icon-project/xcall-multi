@@ -17,6 +17,8 @@ module xcall::xcall_state {
     use sui::vec_map::{Self, VecMap};
     use sui::versioned::{Self, Versioned};
 
+    const EWrongVersion: u64 = 0x01;
+
 
     public struct IDCap has key,store {
         id:UID,
@@ -134,6 +136,9 @@ module xcall::xcall_state {
             self.version=version;
     }
 
+    public(package) fun enforce_version(self:&mut Storage,version:u64){
+            assert!(self.version==version,EWrongVersion);
+    }
 
     public(package) fun set_connection(self:&mut Storage,net_id:String,package_id:String){
             if (vec_map::contains(&self.connections,&net_id)){
