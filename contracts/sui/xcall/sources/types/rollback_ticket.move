@@ -23,6 +23,7 @@ module xcall::rollback_ticket {
          self.rollback
     }
 
+
     public fun sn(self:&RollbackTicket):u128 {
         self.sn
     }
