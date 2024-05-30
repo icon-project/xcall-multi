@@ -319,42 +319,29 @@ module xcall::xcall_tests {
             let envelope_bytes=envelope::encode(&envelope);
             main::send_call(&mut storage,fee,&idCap,string::utf8(b"dnetId/daddress"),envelope_bytes,ctx);
 
-            xcall_state::delete_id_cap_for_testing(idCap, ctx);
-            test_scenario::return_to_sender(&scenario, adminCap);
-            test_scenario::return_shared( storage);
-
-        };
-         test_scenario::next_tx(&mut scenario, admin);
-
-        {
-            let mut storage = test_scenario::take_shared<Storage>(&scenario);
-            let ctx = test_scenario::ctx(&mut scenario);
-
             let response = message_result::create(1, message_result::failure(),b"");
             let message = cs_message::encode(&cs_message::new(cs_message::result_code(), message_result::encode(&response)));
             let from_nid = string::utf8(b"icon");
             let conn_cap = xcall_state::create_conn_cap_for_testing(&mut storage);
 
             main::handle_message(&mut storage,&conn_cap,from_nid,message,ctx);
-            test_scenario::return_shared( storage);
-        };  
-        {
-            let abc = test_scenario::next_tx(&mut scenario, admin);
-            let events = test_scenario::num_user_events(&abc);
-            assert!(events == 2, 0);
-        };
-             test_scenario::next_tx(&mut scenario, admin);
-        {
-            let mut storage = test_scenario::take_shared<Storage>(&scenario);
-            let ctx = test_scenario::ctx(&mut scenario);
-            let idCap = xcall_state::create_id_cap(&storage, ctx);
 
             let ticket = main::execute_rollback(&mut storage,&idCap,1, ctx);
 
             main::execute_rollback_result(&mut storage,ticket,true);
+
             xcall_state::delete_id_cap_for_testing(idCap, ctx);
+            test_scenario::return_to_sender(&scenario, adminCap);
             test_scenario::return_shared( storage);
-        };  
+        };
+
+        {
+            let abc = test_scenario::next_tx(&mut scenario, admin);
+            let events = test_scenario::num_user_events(&abc);
+            
+            assert!(events == 5, 0);
+        };
+       
         test_scenario::end(scenario);
     }
 

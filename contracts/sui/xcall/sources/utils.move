@@ -27,11 +27,14 @@ module xcall::xcall_utils {
     public fun id_to_hex_string(id:&ID): String {
         let bytes = object::id_to_bytes(id);
         let hex_bytes = hex::encode(bytes);
-        string::utf8(hex_bytes)
+        let mut prefix = string::utf8(b"0x");
+        prefix.append(string::utf8(hex_bytes));
+        prefix
     }
 
     public fun id_from_hex_string(str: &String): ID {
-        let bytes = str.bytes();
+        let encoded = format_sui_address(str);
+        let bytes = encoded.bytes();
         let hex_bytes = hex::decode(*bytes);
         object::id_from_bytes(hex_bytes)
     }
