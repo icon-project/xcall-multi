@@ -409,7 +409,7 @@ module xcall::main {
         let msg_type = reply.msg_type();
 
         let req_id = get_next_req_id(self);
-        let proxy_request = message_request::create(from, utils::format_sui_address(&to), sn, msg_type, hash::keccak256(&data), protocols);
+        let proxy_request = message_request::create(from, to, sn, msg_type, hash::keccak256(&data), protocols);
         self.add_proxy_request(req_id, proxy_request);
         event::emit(CallMessage{from,to, sn, req_id,data});
 
