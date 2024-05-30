@@ -119,6 +119,7 @@ module xcall::main {
 
 
     entry public fun register_connection(self:&mut Storage,admin:&AdminCap,net_id:String,package_id:String,ctx: &mut TxContext){
+        self.enforce_version(CURRENT_VERSION);
         self.set_connection(net_id,package_id);
         let cap= xcall_state::new_conn_cap(self.get_id(),package_id);
         register(self.get_connection_states_mut(),package_id,cap,ctx);
@@ -167,7 +168,7 @@ module xcall::main {
 
 
     fun send_call_inner(self:&mut Storage,fee:Coin<SUI>,from:NetworkAddress,to:NetworkAddress,envelope:XCallEnvelope,ctx: &mut TxContext):Coin<SUI>{
-
+        self.enforce_version(CURRENT_VERSION);
         let sequence_no=get_next_sequence(self);
         let rollback=envelope::rollback(&envelope);
         let msg_type=envelope::msg_type(&envelope);
@@ -278,14 +279,13 @@ module xcall::main {
         req_id
     }
 
-    entry fun set_admin(addr:address,ctx: &mut TxContext){}
-
-
     entry fun set_protocol_fee(self:&mut Storage,admin:&AdminCap,fee:u64){
+        self.enforce_version(CURRENT_VERSION);
         xcall_state::set_protocol_fee(self,fee);
     }
 
     entry fun set_protocol_fee_handler(self:&mut Storage,admin:&AdminCap,fee_handler:address){
+        self.enforce_version(CURRENT_VERSION);
         xcall_state::set_protocol_fee_handler(self,fee_handler);
     }
 
@@ -303,6 +303,7 @@ module xcall::main {
     from:String, 
     msg:vector<u8>,
     ctx: &mut TxContext){
+        self.enforce_version(CURRENT_VERSION);
         assert!(from != xcall_state::get_net_id(self),EInvalidNID);
         let cs_msg = cs_message::decode(&msg);
         let msg_type = cs_message::msg_type(&cs_msg);
@@ -416,7 +417,7 @@ module xcall::main {
 
 
     public fun execute_call(self:&mut Storage,cap:&IDCap,request_id:u128,data:vector<u8>,ctx: &mut TxContext):ExecuteTicket{
-
+        self.enforce_version(CURRENT_VERSION);
         let proxy_request = xcall_state::get_proxy_request(self, request_id);
         let from = message_request::from(proxy_request);
         let to = message_request::to(proxy_request);
@@ -443,6 +444,7 @@ module xcall::main {
 
 
     public fun execute_call_result(self:&mut Storage,ticket:ExecuteTicket,success:bool,mut fee:Coin<SUI>,ctx:&mut TxContext){
+        self.enforce_version(CURRENT_VERSION);
         let request_id=ticket.request_id();
         let proxy_request = xcall_state::get_proxy_request(self, request_id);
         let msg_type = message_request::msg_type(proxy_request);
@@ -481,6 +483,7 @@ module xcall::main {
     }
 
     public fun execute_rollback(self:&mut Storage,cap:&IDCap, sn:u128,ctx: &mut TxContext):RollbackTicket{
+        self.enforce_version(CURRENT_VERSION);
         assert!(xcall_state::has_rollback(self, sn), ENoRollback);
         let rollback = xcall_state::get_rollback(self, sn);
         let rollback_data= rollback_data::rollback(&rollback);
@@ -491,6 +494,7 @@ module xcall::main {
     }
 
     public fun execute_rollback_result(self:&mut Storage,ticket:RollbackTicket,success:bool){
+        self.enforce_version(CURRENT_VERSION);
         let sn= rollback_ticket::sn(&ticket);
         if(success){
         xcall_state::remove_rollback(self, sn);
@@ -516,14 +520,14 @@ module xcall::main {
     }
 
     entry fun verify_success(self:&mut Storage,sn:u128,ctx: &mut TxContext){
+        self.enforce_version(CURRENT_VERSION);
         xcall_state::get_successful_responses(self, sn);
     }
 
     entry fun migrate(self: &mut Storage, a: &AdminCap) {
         assert!(xcall_state::get_admin(self) == object::id(a), ENotAdmin);
         assert!(xcall_state::get_version(self) < CURRENT_VERSION, ENotUpgrade);
-        xcall_state::set_version(self, CURRENT_VERSION);
-       
+        xcall_state::set_version(self, CURRENT_VERSION);   
     }
 
     #[test_only] use sui::test_scenario::{Self,Scenario};
