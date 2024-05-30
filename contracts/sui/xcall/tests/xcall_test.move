@@ -263,7 +263,7 @@ module xcall::xcall_tests {
             let idCap = xcall_state::create_id_cap(&storage, ctx);
             let sources = vector[string::utf8(b"centralized")];
             let data = b"data";
-            let mut sui_dapp = b"0x".to_string();
+            let mut sui_dapp = b"".to_string();
             sui_dapp.append(utils::id_to_hex_string(&xcall_state::get_id_cap_id(&idCap)));
             let icon_dapp = network_address::create(string::utf8(b"icon"), string::utf8(b"address"));
 
