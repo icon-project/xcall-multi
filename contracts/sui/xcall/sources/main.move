@@ -231,7 +231,7 @@ module xcall::main {
             ctx)
         };
 
-        event::emit(CallMessageSent{from:network_address::net_id(&from),to:network_address::net_id(&to),sn:sequence_no});  
+        event::emit(CallMessageSent{from:network_address::addr(&from),to:network_address::to_string(&to),sn:sequence_no});  
         fee    
     }
 
@@ -292,7 +292,7 @@ module xcall::main {
     public fun send_call(self:&mut Storage,fee: Coin<SUI>,idCap:&IDCap,to:String,envelope_bytes:vector<u8>,ctx: &mut TxContext){
         let envelope=envelope::decode(&envelope_bytes);
         let to = network_address::from_string(to);
-        let from= network_address::create(xcall_state::get_net_id(self),utils::format_sui_address(&utils::id_to_hex_string(&object::id(idCap))));
+        let from= network_address::create(xcall_state::get_net_id(self),utils::id_to_hex_string(&object::id(idCap)));
 
         let remaining = send_call_inner(self,fee,from,to,envelope,ctx);
         transfer::public_transfer(remaining, ctx.sender());
@@ -484,6 +484,7 @@ module xcall::main {
         assert!(xcall_state::has_rollback(self, sn), ENoRollback);
         let rollback = xcall_state::get_rollback(self, sn);
         let rollback_data= rollback_data::rollback(&rollback);
+        assert!(rollback_data::from(&rollback) == object::id(cap), EInvalidAccess);
         assert!(rollback_data::enabled(&rollback), ERollbackNotEnabled);
         let ticket=rollback_ticket::new(sn,rollback_data,xcall_state::get_id_cap_id(cap));
         ticket
