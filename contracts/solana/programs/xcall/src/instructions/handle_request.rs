@@ -27,7 +27,8 @@ pub struct PendingResponses {
 #[derive(Accounts)]
 #[instruction(req_id: u128)]
 pub struct HandleMessageCtx<'info> {
-    #[account(init_if_needed, payer = user, space = 8 + 1024, seeds=[b"pending_responses", user.key().as_ref(), req_id.to_le_bytes().as_ref() ], bump)]
+    #[account(init_if_needed, payer = user, space = 8 + 1024, seeds=[b"pending", req_id.to_le_bytes().as_ref() ], bump)]
+    // #[account(init_if_needed, payer = user, space = 8 + 1024, seeds=[b"pending", user.key().as_ref(), req_id.to_le_bytes().as_ref() ], bump)]
     pub pending_responses: Account<'info, PendingResponses>,
 
     #[account(

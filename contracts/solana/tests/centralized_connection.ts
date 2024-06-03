@@ -41,6 +41,11 @@ describe("centralized_connection", async () => {
     program.programId
   );
 
+  const [proxy_req_pda] = anchor.web3.PublicKey.findProgramAddressSync(
+    [utf8.encode("proxy_req")],
+    program.programId
+  );
+
   let [fees, _] = anchor.web3.PublicKey.findProgramAddressSync(
     [utf8.encode("fees"), utf8.encode(NETWORK_ID)],
     program.programId
@@ -182,5 +187,26 @@ describe("centralized_connection", async () => {
       .catch((e) => console.error(e));
   });
 
-  it("should receive receipt");
+  it("should recv message", async () => {
+    let airDropTx = await anchor
+      .getProvider()
+      .connection.requestAirdrop(admin.publicKey, 10000000);
+    await anchor.getProvider().connection.confirmTransaction(airDropTx);
+
+    const tx = await program.methods
+      .recvMessage(
+        NETWORK_ID,
+        // new BN(1), // out of bound error occurs when this is string
+        new BN(1),
+        Buffer.from("message")
+      )
+      .accounts({
+        user: admin.publicKey,
+      })
+      .signers([xcall])
+      .rpc()
+      .catch((e) => console.error(e));
+  });
+
+  it("should receive message");
 });

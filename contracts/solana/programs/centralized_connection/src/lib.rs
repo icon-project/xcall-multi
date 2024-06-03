@@ -104,8 +104,8 @@ pub mod centralized_connection {
         Ok(*message_fee)
     }
 
-    pub fn recv_receipt(
-        _ctx: Context<RecvReceiptCtx>,
+    pub fn recv_message(
+        _ctx: Context<RecvMessageCtx>,
         _src_network: String,
         _conn_sn: u128,
         _msg: Vec<u8>,
@@ -122,7 +122,7 @@ pub mod centralized_connection {
         let cpi_xcall_program = _ctx.accounts.xcall_program.to_account_info();
 
         let cpi_xcall_accounts = HandleMessageCtx {
-            proxy_req: _ctx.accounts.proxy_recp.to_account_info(),
+            proxy_req: _ctx.accounts.proxy_req.to_account_info(),
             // new_rollback_data: _ctx.accounts.new_rollback_data.to_account_info(),
             pending_responses: _ctx.accounts.pending_responses.to_account_info(),
             fee_handler: _ctx.accounts.fee_handler.to_account_info(),
@@ -210,16 +210,16 @@ pub struct GetFeeCtx<'info> {
 #[derive(Accounts)]
 #[instruction(_src_network: String, _conn_sn: u64)]
 
-pub struct RecvReceiptCtx<'info> {
-    #[account(init, space = 8 + size_of::<ReceiptState>() ,  payer = user , seeds = [b"receipt" , _src_network.as_bytes(), &_conn_sn.to_le_bytes()] , bump)]
+pub struct RecvMessageCtx<'info> {
+    #[account(init, space = 8 + size_of::<ReceiptState>(), payer = user , seeds = [b"receipt" , _src_network.as_bytes(), &_conn_sn.to_le_bytes()] , bump)]
     pub receipt: Account<'info, ReceiptState>,
     #[account(mut)]
-    pub proxy_recp: Account<'info, ProxyReq>,
-    pub pending_responses: Account<'info, PendingResponses>,
-    pub new_rollback_data: Account<'info, RollbackDataAccount>,
-    pub roll_back_data: Account<'info, RollbackDataAccount>,
+    pub proxy_req: Account<'info, ProxyReq>,
+    // pub pending_responses: Account<'info, PendingResponses>,
+    // pub new_rollback_data: Account<'info, RollbackDataAccount>,
+    // pub roll_back_data: Account<'info, RollbackDataAccount>,
     pub xcall_state: Account<'info, XCallState>,
-    pub fee_handler: AccountInfo<'info>,
+    // pub fee_handler: AccountInfo<'info>,
     #[account(mut)]
     pub user: Signer<'info>,
     pub xcall_program: Program<'info, Xcall>,

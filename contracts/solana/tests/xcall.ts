@@ -93,7 +93,7 @@ describe("xcall", () => {
     console.log("Account Balance is: ", balance);
   };
 
-  beforeEach(async () => {
+  before(async () => {
     owner = anchor.web3.Keypair.generate();
     notOwner = anchor.web3.Keypair.generate();
     feeHandler = anchor.web3.Keypair.generate();
@@ -151,20 +151,18 @@ describe("xcall", () => {
   };
 
   const setConnectionFee = async () => {
-    console.debug("Set connection fee : program id :", connection1.programId);
+    console.log("Setting connection fee")
     let [k, ] = await PublicKey.findProgramAddressSync(
       [utf8.encode("fees"), utf8.encode(network_id)],
       connection1.programId
     );
 
     conn1FeePda = k;
-    console.log(connection1.programId)
     let airdropTx = await anchor
       .getProvider()
       .connection.requestAirdrop(owner.publicKey, 100000000);
     await anchor.getProvider().connection.confirmTransaction(airdropTx);
 
-    console.log("conn1FeePda " , conn1FeePda)
     const tx = await connection1.methods.setFee(network_id ,new anchor.BN(1), new anchor.BN(5)).accounts({
       // connectionAccount: conn1StatePda,
       // feeAccount: conn1FeePda,
@@ -173,13 +171,12 @@ describe("xcall", () => {
     }).signers([owner]).rpc().catch(e => console.error(e))
 
     let feeState = await connection1.account.feesState.fetch(conn1FeePda);
-    console.log("feeState : " , feeState);
 
     assert(feeState.messageFees, connection_fee_message.toString());
     assert(feeState.messageFees, connection_fee_message.toString());
   };
 
-  it("Is initialized!", async () => {
+  it("It should send message!", async () => {
     await setProtocolFee();
     await setConnectionFee();
     // await initializeConnection2()
@@ -231,14 +228,13 @@ describe("xcall", () => {
       .rpc()
       .catch((e) => console.log(e));
     
-      getTxnLogs(tx)
+      // getTxnLogs(tx)
 
     // console.log(connection_fee_message.toNumber())
 
     let k = await PublicKey.findProgramAddressSync([Buffer.from("rollback_data_state")], xcall.programId);
     let l = await xcall.account.rollbackDataState.fetch(k[0])
-    console.log(l)
-    getBalance(k[0])
+    // getBalance(k[0])
 
     // flow for handle message
     // let k = await PublicKey.findProgramAddressSync([Buffer.from("proxy_req"), Buffer.from(1.)], xcall.programId);
@@ -248,4 +244,68 @@ describe("xcall", () => {
     // tx = await xcall.methods.handleMessage
   });
 
+
+it("should receive message" , async () => {
+
+
+  let src_network = "0x1.icon";
+  let conn_sn = new anchor.BN(5);
+  const exampleEnvelope: XCallEnvelope = {
+    msg_type: 0,
+    message: new Uint8Array([1, 2, 3, 4]),
+    sources: [connection1.programId.toString()],
+    destinations: ["cx7235a0296f4f0323587c1840181afbee84bbc91a"],
+  };
+  const encoded = encodeXCallEnvelope(exampleEnvelope);
+
+  let msg = Buffer.from(encoded, "hex");
+  
+  let receipt_pda = await PublicKey.findProgramAddressSync([Buffer.from("receipt") ,  Buffer.from(src_network) , Buffer.from(conn_sn.toString())], connection1.programId);
+  console.log("receipt pda is : " , receipt_pda)
+
+    let [proxy_req_pda,] = await PublicKey.findProgramAddressSync([Buffer.from("proxy_req"), Buffer.from("1")], xcall.programId);
+    let [pending_response_pda,] = await PublicKey.findProgramAddressSync([Buffer.from("pending"), Buffer.from("1")], xcall.programId);
+
+
+  tx = await connection1.methods
+    .recvMessage(src_network, conn_sn, msg)
+    .accounts({
+      xcallState: xcallStatePda.publicKey,
+      proxyReq: proxy_req_pda,
+      pendingResponses: pending_response_pda,
+      feeHandler: feeHandler.publicKey,
+      // systemProgram: SystemProgram.programId,
+    })
+    .remainingAccounts([
+      {
+        pubkey: conn1StatePda,
+        isWritable: true,
+        isSigner: false,
+      },
+  
+      {
+        pubkey: conn1FeePda,
+        isWritable: true,
+        isSigner: false,
+      },
+      {
+        pubkey: connection1.programId,
+        isSigner: false,
+        isWritable: true,
+      },
+    ])
+    .signers([notOwner])
+    .rpc()
+    .catch((e) => console.log(e));
+  
+    getTxnLogs(tx)
+
+  // console.log(connection_fee_message.toNumber())
+
+  let k = await PublicKey.findProgramAddressSync([Buffer.from("rollback_data_state")], xcall.programId);
+  let l = await xcall.account.rollbackDataState.fetch(k[0])
+  getBalance(k[0])
+})
+
+  
 });
