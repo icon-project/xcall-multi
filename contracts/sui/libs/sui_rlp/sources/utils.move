@@ -44,7 +44,10 @@ module sui_rlp::utils {
             i=i+1;
         };
         bytes.reverse();
-        bytes
+
+        let mut prefix = vector<u8>[0];
+        prefix.append(bytes);
+        prefix
     }
 
     // Convert bytes to u64
@@ -144,9 +147,11 @@ module sui_rlp::utils_test {
 
     #[test]
     fun test_u64_conversion() {
-        let num= (1222233 as u64);
+        let num= (55000 as u64);
         let bytes= utils::to_bytes_u64(num);
         let converted=utils::from_bytes_u64(&bytes);
+        std::debug::print(&bytes);
+        std::debug::print(&converted);
         assert!(num==converted,0x01);
         
     }
