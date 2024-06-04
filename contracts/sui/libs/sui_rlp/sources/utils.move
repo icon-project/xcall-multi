@@ -89,7 +89,9 @@ module sui_rlp::utils {
             i=i+1;
         };
         bytes.reverse();
-        bytes
+        let mut prefix = vector<u8>[0];
+        prefix.append(bytes);
+        prefix
     }
 
     // Convert bytes to u128
