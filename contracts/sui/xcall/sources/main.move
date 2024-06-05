@@ -136,9 +136,9 @@ module xcall::main {
         xcall_state::get_protocol_fee_handler(self)
     }
 
-    fun get_connection_fee(self:&mut Storage,connection:String,net_id:String, need_response:bool ):u64{
+    fun get_connection_fee(self:&Storage,connection:String,net_id:String, need_response:bool ):u64{
         connections::get_fee(
-            xcall_state::get_connection_states_mut(self),
+            xcall_state::get_connection_states(self),
             connection,
             net_id,
             need_response
@@ -152,7 +152,7 @@ module xcall::main {
         fee
     }
 
-    entry public fun get_fee_sources(self:&mut Storage, net_id:String, rollback:bool, sources:vector<String>):u64{
+    entry public fun get_fee_sources(self:&Storage, net_id:String, rollback:bool, sources:vector<String>):u64{
         let mut fee = xcall_state::get_protocol_fee(self);
 
         if(isReply(self,net_id,sources) && !rollback){
@@ -507,7 +507,7 @@ module xcall::main {
         rollback_ticket::consume(ticket);
     }
 
-    fun is_valid_source(self:&mut Storage,nid:String,source:String,protocols:vector<String>):bool{
+    fun is_valid_source(self:&Storage,nid:String,source:String,protocols:vector<String>):bool{
 
         if(vector::contains(&protocols,&source)){
             return true
@@ -516,7 +516,7 @@ module xcall::main {
         (connection == source)
     }
 
-    fun isReply(self:&mut Storage,net_id:String, sources: vector<String>):bool{
+    fun isReply(self:&Storage,net_id:String, sources: vector<String>):bool{
         let reply_state = xcall_state::get_reply_state(self);
         return message_request::from_nid(&reply_state) == net_id && 
             message_request::protocols(&reply_state) == sources

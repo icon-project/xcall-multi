@@ -15,8 +15,13 @@ module xcall::centralized_state {
     //     string::utf8(PackageId)
     // }
 
-     public fun get_state(states:&mut Bag,connection_id:String):&mut State {
+     public fun get_state_mut(states:&mut Bag,connection_id:String):&mut State {
       let state:&mut State=bag::borrow_mut(states,connection_id);
+      state
+    }
+
+     public fun get_state(states:&Bag,connection_id:String):&State {
+      let state:&State=bag::borrow(states,connection_id);
       state
     }
     

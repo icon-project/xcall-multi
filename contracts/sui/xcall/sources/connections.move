@@ -18,7 +18,7 @@ const ConnCentralized:vector<u8> =b"centralized";
 
 
 
-    public fun register(states:&mut Bag,connection_id:String,ctx:&mut TxContext){
+    public(package) fun register(states:&mut Bag,connection_id:String,ctx:&mut TxContext){
        
         if (get_connection_type(&connection_id).bytes()==ConnCentralized){
               let state= centralized_connection::connect();
@@ -30,7 +30,7 @@ const ConnCentralized:vector<u8> =b"centralized";
         
     }
 
-    public fun get_fee(states:&mut Bag,connection_id:String,netId:String,response:bool):u64{
+     public(package) fun get_fee(states:&Bag,connection_id:String,netId:String,response:bool):u64{
 
         if (get_connection_type(&connection_id).bytes()==ConnCentralized){
             let fee= centralized_connection::get_fee(states,connection_id,netId,response);
@@ -40,7 +40,7 @@ const ConnCentralized:vector<u8> =b"centralized";
         } 
     }
 
-    public fun send_message(states:&mut Bag,
+     public(package) fun send_message(states:&mut Bag,
         connection_id:String,
         coin:Coin<SUI>,
         netId:String,
@@ -60,8 +60,6 @@ const ConnCentralized:vector<u8> =b"centralized";
         let separator_index=string::index_of(connection_id,&string::utf8(b"-"));
         let connType=string::sub_string(connection_id,0,separator_index);
         connType
-        
-
     }
     
 }

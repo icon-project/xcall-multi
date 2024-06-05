@@ -209,6 +209,10 @@ module xcall::xcall_state {
         &mut self.connection_states
     }
 
+     public fun get_connection_states(self:&Storage):&Bag{
+        &self.connection_states
+    }
+
     public fun get_protocol_fee(self:&Storage):u64{
         self.protocol_fee
     }
