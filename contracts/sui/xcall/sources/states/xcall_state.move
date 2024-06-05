@@ -34,23 +34,25 @@ module xcall::xcall_state {
         id: UID
     }
 
-    public struct ConnCap has store,copy,drop{
+    public struct ConnCap has key {
+        id:UID,
         xcall_id:ID,
-        package_id:String,
+        connection_id:String,
     }
 
-    public(package) fun new_conn_cap(xcall_id:ID,package_id:String):ConnCap{
+    public(package) fun new_conn_cap(xcall_id:ID,connection_id:String,ctx: &mut TxContext):ConnCap{
         ConnCap {
+            id:object::new(ctx),
             xcall_id,
-            package_id
+            connection_id
         }
     }
 
     public fun xcall_id(self:&ConnCap):ID {
         self.xcall_id
     }
-    public fun package_id(self:&ConnCap):String {
-        self.package_id
+    public fun connection_id(self:&ConnCap):String {
+        self.connection_id
     }
 
 
@@ -246,6 +248,10 @@ module xcall::xcall_state {
         transfer::transfer(admin, tx_context::sender(ctx));
     }
 
+     public(package) fun transfer_conn_cap(cap:ConnCap,relayer:address,ctx: &mut TxContext){
+        transfer::transfer(cap,relayer);
+    }
+
     public(package) fun share(self:Storage){
          transfer::share_object(self);
     }
@@ -352,10 +358,10 @@ module xcall::xcall_state {
     }
 
          #[test_only]
-    public fun create_conn_cap_for_testing(storage: &mut Storage): ConnCap {
-        let package_id =string::utf8(b"centralized");
+    public fun create_conn_cap_for_testing(storage: &mut Storage,ctx: &mut TxContext): ConnCap {
+        let connection_id =string::utf8(b"centralized-1");
         let xcall_id=object::id(storage);
-        let idcap = new_conn_cap(xcall_id,package_id);
+        let idcap = new_conn_cap(xcall_id,connection_id,ctx);
         idcap
         }
 

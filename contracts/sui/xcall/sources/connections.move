@@ -18,11 +18,11 @@ const ConnCentralized:vector<u8> =b"centralized";
 
 
 
-    public fun register(states:&mut Bag,package_id:String,cap:ConnCap,ctx:&mut TxContext){
+    public fun register(states:&mut Bag,connection_id:String,ctx:&mut TxContext){
        
-        if (package_id==centralized_state::package_id_str()){
-              let state= centralized_connection::connect(cap,ctx.sender());
-              bag::add(states, package_id, state);
+        if (get_connection_type(&connection_id).bytes()==ConnCentralized){
+              let state= centralized_connection::connect();
+              bag::add(states, connection_id, state);
         }else{
            abort EConnectionNotFound
         }
@@ -30,10 +30,10 @@ const ConnCentralized:vector<u8> =b"centralized";
         
     }
 
-    public fun get_fee(states:&mut Bag,package_id:String,netId:String,response:bool):u64{
+    public fun get_fee(states:&mut Bag,connection_id:String,netId:String,response:bool):u64{
 
-        if (package_id==centralized_state::package_id_str()){
-            let fee= centralized_connection::get_fee(states,netId,response);
+        if (get_connection_type(&connection_id).bytes()==ConnCentralized){
+            let fee= centralized_connection::get_fee(states,connection_id,netId,response);
             fee
         }else{
            abort EConnectionNotFound
@@ -41,7 +41,7 @@ const ConnCentralized:vector<u8> =b"centralized";
     }
 
     public fun send_message(states:&mut Bag,
-        package_id:String,
+        connection_id:String,
         coin:Coin<SUI>,
         netId:String,
         sn:u128,
@@ -49,11 +49,19 @@ const ConnCentralized:vector<u8> =b"centralized";
         is_response:bool,
         ctx:&mut TxContext){
             
-        if (package_id==centralized_state::package_id_str()){
-            centralized_connection::send_message(states,coin,netId,sn,msg,is_response,ctx);
+         if (get_connection_type(&connection_id).bytes()==ConnCentralized){
+            centralized_connection::send_message(states,connection_id,coin,netId,sn,msg,is_response,ctx);
         }else{
            abort EConnectionNotFound
         } 
+    }
+
+    fun get_connection_type(connection_id:&String):String{
+        let separator_index=string::index_of(connection_id,&string::utf8(b"-"));
+        let connType=string::sub_string(connection_id,0,separator_index);
+        connType
+        
+
     }
     
 }
