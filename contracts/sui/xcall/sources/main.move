@@ -115,16 +115,17 @@ module xcall::main {
         }
     }
 
-    entry fun get_nid(self: &mut Storage): String{
+    entry public fun get_nid(self: &mut Storage): String{
         xcall_state::get_net_id(self)
     }
 
 
-    entry public fun register_connection(self:&mut Storage,admin:&AdminCap,net_id:String,package_id:String,ctx: &mut TxContext){
+    entry public fun register_connection(self:&mut Storage,admin:&AdminCap,net_id:String,connection_id:String,relayer:address,ctx: &mut TxContext){
         self.enforce_version(CURRENT_VERSION);
-        self.set_connection(net_id,package_id);
-        let cap= xcall_state::new_conn_cap(self.get_id(),package_id);
-        register(self.get_connection_states_mut(),package_id,cap,ctx);
+        self.set_connection(net_id,connection_id);
+        let cap= xcall_state::new_conn_cap(self.get_id(),connection_id,ctx);
+        xcall_state::transfer_conn_cap(cap,relayer,ctx);
+        register(self.get_connection_states_mut(),connection_id,ctx);
     }
 
     public fun admin(self:&mut Storage):ID{
@@ -299,6 +300,7 @@ module xcall::main {
         let remaining = send_call_inner(self,fee,from,to,envelope,ctx);
         transfer::public_transfer(remaining, ctx.sender());
     }
+   
 
     public fun handle_message(self:&mut Storage,
     cap:&ConnCap, 
@@ -330,7 +332,7 @@ module xcall::main {
 
         assert!(from_nid == net_from,EInvalidNID);
 
-        let source = cap.package_id();
+        let source = cap.connection_id();
         let to = message_request::to(&req);
         let protocols = message_request::protocols(&req);
 
@@ -365,7 +367,7 @@ module xcall::main {
         let sources = rollback_data::sources(&rollback);
         let to = rollback_data::to(&rollback);
 
-        let source = cap.package_id();
+        let source = cap.connection_id();
 
         let source_valid = is_valid_source(self, to, source, sources);
 

@@ -28,7 +28,7 @@ module xcall::xcall_tests {
         {
             let mut storage = test_scenario::take_shared<Storage>(scenario);
              let adminCap = scenario.take_from_sender<AdminCap>();
-            main::register_connection(&mut storage, &adminCap,from_nid, string::utf8(b"centralized"), scenario.ctx());
+            main::register_connection(&mut storage, &adminCap,from_nid, string::utf8(b"centralized-1"),admin, scenario.ctx());
             test_scenario::return_shared(storage);
             scenario.return_to_sender(adminCap);
         };
@@ -123,9 +123,9 @@ module xcall::xcall_tests {
         {
             let mut storage = test_scenario::take_shared<Storage>(&scenario);
             let ctx = test_scenario::ctx(&mut scenario);
-            centralized_entry::set_fee(&mut storage, b"icon".to_string(),50, 50, ctx);
-
-            let fee = centralized_entry::get_fee(&mut storage, b"icon".to_string(),true, ctx);
+            let conn_cap = xcall_state::create_conn_cap_for_testing(&mut storage,ctx);
+            centralized_entry::set_fee(&mut storage,&conn_cap, b"icon".to_string(),50, 50, ctx);
+            let fee = centralized_entry::get_fee(&mut storage,&conn_cap, b"icon".to_string(),true, ctx);
 
             assert!(fee == 100, 3);
 
@@ -153,7 +153,8 @@ module xcall::xcall_tests {
         {
             let mut storage = test_scenario::take_shared<Storage>(&scenario);
             let ctx = test_scenario::ctx(&mut scenario);
-            centralized_entry::claim_fees(&mut storage, ctx);
+            let conn_cap = xcall_state::create_conn_cap_for_testing(&mut storage,ctx);
+            centralized_entry::claim_fees(&mut storage,&conn_cap, ctx);
             test_scenario::return_shared( storage);
         };
         
@@ -181,7 +182,7 @@ module xcall::xcall_tests {
             let from_nid = string::utf8(b"icon");
             let request = message_request::create(icon_dapp, sui_dapp, 1, 1, data, sources);
             let message = cs_message::encode(&cs_message::new(cs_message::request_code(), message_request::encode(&request)));
-            let conn_cap = xcall_state::create_conn_cap_for_testing(&mut storage);
+            let conn_cap = xcall_state::create_conn_cap_for_testing(&mut storage,ctx);
             main::handle_message(&mut storage,&conn_cap,from_nid,message,ctx);
             xcall_state::delete_id_cap_for_testing(idCap, ctx);
             test_scenario::return_to_sender(&scenario, adminCap);
@@ -235,7 +236,7 @@ module xcall::xcall_tests {
             let response = message_result::create(1, message_result::failure(),b"");
             let message = cs_message::encode(&cs_message::new(cs_message::result_code(), message_result::encode(&response)));
             let from_nid = string::utf8(b"icon");
-            let conn_cap = xcall_state::create_conn_cap_for_testing(&mut storage);
+            let conn_cap = xcall_state::create_conn_cap_for_testing(&mut storage,ctx);
 
             main::handle_message(&mut storage,&conn_cap,from_nid,message,ctx);
             test_scenario::return_shared( storage);
@@ -270,7 +271,7 @@ module xcall::xcall_tests {
             let from_nid = string::utf8(b"icon");
             let request = message_request::create(icon_dapp, sui_dapp, 1, 0, data, sources);
             let message = cs_message::encode(&cs_message::new(cs_message::request_code(), message_request::encode(&request)));
-            let conn_cap = xcall_state::create_conn_cap_for_testing(&mut storage);
+            let conn_cap = xcall_state::create_conn_cap_for_testing(&mut storage,scenario.ctx());
 
             main::handle_message(&mut storage,&conn_cap,from_nid,message,ctx);
 
@@ -322,7 +323,7 @@ module xcall::xcall_tests {
             let response = message_result::create(1, message_result::failure(),b"");
             let message = cs_message::encode(&cs_message::new(cs_message::result_code(), message_result::encode(&response)));
             let from_nid = string::utf8(b"icon");
-            let conn_cap = xcall_state::create_conn_cap_for_testing(&mut storage);
+            let conn_cap = xcall_state::create_conn_cap_for_testing(&mut storage,scenario.ctx());
 
             main::handle_message(&mut storage,&conn_cap,from_nid,message,ctx);
 
@@ -394,7 +395,7 @@ module xcall::xcall_tests {
             let response = message_result::create(1, message_result::success(),request.encode());
             let message = cs_message::encode(&cs_message::new(cs_message::result_code(), response.encode()));
             let from_nid = string::utf8(b"icon");
-            let conn_cap = xcall_state::create_conn_cap_for_testing(&mut storage);
+            let conn_cap = xcall_state::create_conn_cap_for_testing(&mut storage,scenario.ctx());
 
             main::handle_message(&mut storage,&conn_cap,from_nid,message,ctx);
             test_scenario::return_shared( storage);
