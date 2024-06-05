@@ -3,7 +3,7 @@ module xcall::xcall_tests {
     use sui::test_scenario::{Self, Scenario};
     use sui::coin::{Self};
     use xcall::main::{Self};
-    use xcall::xcall_state::{Self, AdminCap, Storage};
+    use xcall::xcall_state::{Self, AdminCap, Storage,ConnCap};
     use std::string::{Self, String};
     use sui::sui::SUI;
     use xcall::network_address::{Self};
@@ -91,7 +91,7 @@ module xcall::xcall_tests {
             let mut storage = test_scenario::take_shared<Storage>(&scenario);
             let ctx = test_scenario::ctx(&mut scenario);
             let idCap = xcall_state::create_id_cap(&storage, ctx);
-            let sources = vector[string::utf8(b"centralized")];
+            let sources = vector[string::utf8(b"centralized-1")];
             let destinations = vector[string::utf8(b"icon:hx234")];
             let fee = coin::mint_for_testing<SUI>(100, ctx);
             let data = b"This implementation ensures that the RLP-encoded list is correctly decoded, including handling empty elements. The utility functions help manage byte operations and simplify the main decoding logic.";
@@ -122,12 +122,13 @@ module xcall::xcall_tests {
         scenario = setup_connection(scenario, string::utf8(b"icon"), admin);
         {
             let mut storage = test_scenario::take_shared<Storage>(&scenario);
-            let ctx = test_scenario::ctx(&mut scenario);
-            let conn_cap = xcall_state::create_conn_cap_for_testing(&mut storage,ctx);
-            centralized_entry::set_fee(&mut storage,&conn_cap, b"icon".to_string(),50, 50, ctx);
-            let fee = centralized_entry::get_fee(&mut storage,&conn_cap, b"icon".to_string(),true, ctx);
+           // let ctx = test_scenario::ctx(&mut scenario);
+           let conn_cap = test_scenario::take_from_sender<ConnCap>(&scenario);
+            centralized_entry::set_fee(&mut storage,&conn_cap, b"icon".to_string(),50, 50, scenario.ctx());
+            let fee = centralized_entry::get_fee(&mut storage,&conn_cap, b"icon".to_string(),true, scenario.ctx());
 
             assert!(fee == 100, 3);
+             scenario.return_to_sender(conn_cap);
 
             test_scenario::return_shared( storage);
 
@@ -138,7 +139,7 @@ module xcall::xcall_tests {
             let mut storage = test_scenario::take_shared<Storage>(&scenario);
             let ctx = test_scenario::ctx(&mut scenario);
             let idCap = xcall_state::create_id_cap(&storage, ctx);
-            let sources = vector[string::utf8(b"centralized")];
+            let sources = vector[string::utf8(b"centralized-1")];
             let destinations = vector[string::utf8(b"icon:hx234")];
             let fee = coin::mint_for_testing<SUI>(100, ctx);
             let data = b"data";
@@ -152,9 +153,10 @@ module xcall::xcall_tests {
         test_scenario::next_tx(&mut scenario, admin);
         {
             let mut storage = test_scenario::take_shared<Storage>(&scenario);
-            let ctx = test_scenario::ctx(&mut scenario);
-            let conn_cap = xcall_state::create_conn_cap_for_testing(&mut storage,ctx);
-            centralized_entry::claim_fees(&mut storage,&conn_cap, ctx);
+           // let ctx = test_scenario::ctx(&mut scenario);
+            let conn_cap = test_scenario::take_from_sender<ConnCap>(&scenario);
+            centralized_entry::claim_fees(&mut storage,&conn_cap, scenario.ctx());
+             scenario.return_to_sender(conn_cap);
             test_scenario::return_shared( storage);
         };
         
@@ -167,14 +169,14 @@ module xcall::xcall_tests {
 
         let mut scenario = setup_test(admin);
         scenario = setup_nid(scenario, string::utf8(b"sui"), admin);
-
+scenario = setup_connection(scenario, string::utf8(b"icon"), admin);
         test_scenario::next_tx(&mut scenario, admin);
         {
             let adminCap = test_scenario::take_from_sender<AdminCap>(&scenario);
             let mut storage = test_scenario::take_shared<Storage>(&scenario);
-            let ctx = test_scenario::ctx(&mut scenario);
-            let idCap = xcall_state::create_id_cap(&storage, ctx);
-            let sources = vector[string::utf8(b"centralized")];
+           // let ctx = test_scenario::ctx(&mut scenario);
+            let idCap = xcall_state::create_id_cap(&storage, scenario.ctx());
+            let sources = vector[string::utf8(b"centralized-1")];
             let data = b"data";
             let sui_dapp = string::utf8(b"dsui/daddress");
             let icon_dapp = network_address::create(string::utf8(b"icon"), string::utf8(b"address"));
@@ -182,10 +184,11 @@ module xcall::xcall_tests {
             let from_nid = string::utf8(b"icon");
             let request = message_request::create(icon_dapp, sui_dapp, 1, 1, data, sources);
             let message = cs_message::encode(&cs_message::new(cs_message::request_code(), message_request::encode(&request)));
-            let conn_cap = xcall_state::create_conn_cap_for_testing(&mut storage,ctx);
-            main::handle_message(&mut storage,&conn_cap,from_nid,message,ctx);
-            xcall_state::delete_id_cap_for_testing(idCap, ctx);
+            let conn_cap = test_scenario::take_from_sender<ConnCap>(&scenario);
+            main::handle_message(&mut storage,&conn_cap,from_nid,message,scenario.ctx());
+            xcall_state::delete_id_cap_for_testing(idCap, scenario.ctx());
             test_scenario::return_to_sender(&scenario, adminCap);
+             scenario.return_to_sender(conn_cap);
             test_scenario::return_shared( storage);
         };  
         {
@@ -208,21 +211,21 @@ module xcall::xcall_tests {
         {
             let adminCap = test_scenario::take_from_sender<AdminCap>(&scenario);
             let mut storage = test_scenario::take_shared<Storage>(&scenario);
-            let ctx = test_scenario::ctx(&mut scenario);
-            let idCap = xcall_state::create_id_cap(&storage, ctx);
+           // let ctx = test_scenario::ctx(&mut scenario);
+            let idCap = xcall_state::create_id_cap(&storage, scenario.ctx());
 
             let data = b"data";
             let rollback_data = b"rollback";
 
-            let sources = vector[string::utf8(b"centralized")];
+            let sources = vector[string::utf8(b"centralized-1")];
             let destinations = vector[string::utf8(b"icon")];
-            let fee = coin::mint_for_testing<SUI>(100, ctx);
+            let fee = coin::mint_for_testing<SUI>(100, scenario.ctx());
 
             let envelope=envelope::wrap_call_message_rollback(data,rollback_data,sources,destinations);
             let envelope_bytes=envelope::encode(&envelope);
-            main::send_call(&mut storage,fee,&idCap,string::utf8(b"dnetId/daddress"),envelope_bytes,ctx);
+            main::send_call(&mut storage,fee,&idCap,string::utf8(b"dnetId/daddress"),envelope_bytes,scenario.ctx());
 
-            xcall_state::delete_id_cap_for_testing(idCap, ctx);
+            xcall_state::delete_id_cap_for_testing(idCap, scenario.ctx());
             test_scenario::return_to_sender(&scenario, adminCap);
             test_scenario::return_shared( storage);
 
@@ -231,14 +234,14 @@ module xcall::xcall_tests {
 
         {
             let mut storage = test_scenario::take_shared<Storage>(&scenario);
-            let ctx = test_scenario::ctx(&mut scenario);
+         //   let ctx = test_scenario::ctx(&mut scenario);
 
             let response = message_result::create(1, message_result::failure(),b"");
             let message = cs_message::encode(&cs_message::new(cs_message::result_code(), message_result::encode(&response)));
             let from_nid = string::utf8(b"icon");
-            let conn_cap = xcall_state::create_conn_cap_for_testing(&mut storage,ctx);
-
-            main::handle_message(&mut storage,&conn_cap,from_nid,message,ctx);
+           let conn_cap = test_scenario::take_from_sender<ConnCap>(&scenario);
+            main::handle_message(&mut storage,&conn_cap,from_nid,message,scenario.ctx());
+             scenario.return_to_sender(conn_cap);
             test_scenario::return_shared( storage);
         };  
         {
@@ -255,13 +258,14 @@ module xcall::xcall_tests {
 
         let mut scenario = setup_test(admin);
         scenario = setup_nid(scenario, string::utf8(b"sui"), admin);
+        scenario = setup_connection(scenario, string::utf8(b"icon"), admin);
 
         test_scenario::next_tx(&mut scenario, admin);
         {
             let adminCap = test_scenario::take_from_sender<AdminCap>(&scenario);
             let mut storage = test_scenario::take_shared<Storage>(&scenario);
-            let ctx = test_scenario::ctx(&mut scenario);
-            let idCap = xcall_state::create_id_cap(&storage, ctx);
+            //let ctx = test_scenario::ctx(&mut scenario);
+            let idCap = xcall_state::create_id_cap(&storage, scenario.ctx());
             let sources = vector[string::utf8(b"centralized")];
             let data = b"data";
             let mut sui_dapp = b"".to_string();
@@ -271,18 +275,18 @@ module xcall::xcall_tests {
             let from_nid = string::utf8(b"icon");
             let request = message_request::create(icon_dapp, sui_dapp, 1, 0, data, sources);
             let message = cs_message::encode(&cs_message::new(cs_message::request_code(), message_request::encode(&request)));
-            let conn_cap = xcall_state::create_conn_cap_for_testing(&mut storage,scenario.ctx());
+             let conn_cap = test_scenario::take_from_sender<ConnCap>(&scenario);
+            main::handle_message(&mut storage,&conn_cap,from_nid,message,scenario.ctx());
 
-            main::handle_message(&mut storage,&conn_cap,from_nid,message,ctx);
-
-            let fee = coin::mint_for_testing<SUI>(100, ctx);
+            let fee = coin::mint_for_testing<SUI>(100, scenario.ctx());
             let data = b"data";
 
-            let ticket = main::execute_call(&mut storage,&idCap,1,data, ctx);
+            let ticket = main::execute_call(&mut storage,&idCap,1,data, scenario.ctx());
 
-            main::execute_call_result(&mut storage,ticket, true,fee,ctx);
-            xcall_state::delete_id_cap_for_testing(idCap, ctx);
+            main::execute_call_result(&mut storage,ticket, true,fee,scenario.ctx());
+            xcall_state::delete_id_cap_for_testing(idCap, scenario.ctx());
             test_scenario::return_to_sender(&scenario, adminCap);
+             scenario.return_to_sender(conn_cap);
             test_scenario::return_shared( storage);
         };  
         {
@@ -306,33 +310,34 @@ module xcall::xcall_tests {
         {
             let adminCap = test_scenario::take_from_sender<AdminCap>(&scenario);
             let mut storage = test_scenario::take_shared<Storage>(&scenario);
-            let ctx = test_scenario::ctx(&mut scenario);
-            let idCap = xcall_state::create_id_cap(&storage, ctx);
+           // let ctx = test_scenario::ctx(&mut scenario);
+            let idCap = xcall_state::create_id_cap(&storage, scenario.ctx());
 
             let data = b"data";
             let rollback_data = b"rollback";
 
-            let sources = vector[string::utf8(b"centralized")];
+            let sources = vector[string::utf8(b"centralized-1")];
             let destinations = vector[string::utf8(b"icon")];
-            let fee = coin::mint_for_testing<SUI>(100, ctx);
+            let fee = coin::mint_for_testing<SUI>(100, scenario.ctx());
 
             let envelope=envelope::wrap_call_message_rollback(data,rollback_data,sources,destinations);
             let envelope_bytes=envelope::encode(&envelope);
-            main::send_call(&mut storage,fee,&idCap,string::utf8(b"dnetId/daddress"),envelope_bytes,ctx);
+            main::send_call(&mut storage,fee,&idCap,string::utf8(b"dnetId/daddress"),envelope_bytes,scenario.ctx());
 
             let response = message_result::create(1, message_result::failure(),b"");
             let message = cs_message::encode(&cs_message::new(cs_message::result_code(), message_result::encode(&response)));
             let from_nid = string::utf8(b"icon");
-            let conn_cap = xcall_state::create_conn_cap_for_testing(&mut storage,scenario.ctx());
+             let conn_cap = test_scenario::take_from_sender<ConnCap>(&scenario);
 
-            main::handle_message(&mut storage,&conn_cap,from_nid,message,ctx);
+            main::handle_message(&mut storage,&conn_cap,from_nid,message,scenario.ctx());
 
-            let ticket = main::execute_rollback(&mut storage,&idCap,1, ctx);
+            let ticket = main::execute_rollback(&mut storage,&idCap,1, scenario.ctx());
 
             main::execute_rollback_result(&mut storage,ticket,true);
 
-            xcall_state::delete_id_cap_for_testing(idCap, ctx);
+            xcall_state::delete_id_cap_for_testing(idCap, scenario.ctx());
             test_scenario::return_to_sender(&scenario, adminCap);
+            scenario.return_to_sender(conn_cap);
             test_scenario::return_shared( storage);
         };
 
@@ -366,7 +371,7 @@ module xcall::xcall_tests {
             let data = b"data";
             let rollback_data = b"data";
 
-            let sources = vector[string::utf8(b"centralized")];
+            let sources = vector[string::utf8(b"centralized-1")];
             let destinations = vector[string::utf8(b"icon")];
             let fee = coin::mint_for_testing<SUI>(100, ctx);
 
@@ -384,7 +389,7 @@ module xcall::xcall_tests {
         test_scenario::next_tx(&mut scenario, admin);
         {
             let mut storage = test_scenario::take_shared<Storage>(&scenario);
-            let ctx = test_scenario::ctx(&mut scenario);
+           // let ctx = test_scenario::ctx(&mut scenario);
 
             let sources = vector[string::utf8(b"centralized")];
             let data = b"data";
@@ -395,9 +400,10 @@ module xcall::xcall_tests {
             let response = message_result::create(1, message_result::success(),request.encode());
             let message = cs_message::encode(&cs_message::new(cs_message::result_code(), response.encode()));
             let from_nid = string::utf8(b"icon");
-            let conn_cap = xcall_state::create_conn_cap_for_testing(&mut storage,scenario.ctx());
+            let conn_cap = test_scenario::take_from_sender<ConnCap>(&scenario);
 
-            main::handle_message(&mut storage,&conn_cap,from_nid,message,ctx);
+            main::handle_message(&mut storage,&conn_cap,from_nid,message,scenario.ctx());
+            scenario.return_to_sender(conn_cap);
             test_scenario::return_shared( storage);
         };  
         {
