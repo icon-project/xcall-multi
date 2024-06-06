@@ -8,12 +8,7 @@ module xcall::centralized_state {
     use xcall::xcall_state::{ConnCap};
     use sui::bag::{Bag, Self};
 
-    // const PackageId:vector<u8> =b"centralized";
-     const ENotAdmin:u64=1;
-
-    // public fun package_id_str():String {
-    //     string::utf8(PackageId)
-    // }
+   
 
      public fun get_state_mut(states:&mut Bag,connection_id:String):&mut State {
       let state:&mut State=bag::borrow_mut(states,connection_id);

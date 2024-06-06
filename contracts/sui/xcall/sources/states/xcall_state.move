@@ -27,8 +27,9 @@ module xcall::xcall_state {
     public fun get_id_cap_id(cap:&IDCap):ID{
         cap.id.to_inner()
     }
-    public struct PackageCap has store {
-        package_id:String,
+
+    public fun get_id_cap_xcall(cap:&IDCap):ID {
+        cap.xcall_id
     }
      public struct AdminCap has key {
         id: UID
