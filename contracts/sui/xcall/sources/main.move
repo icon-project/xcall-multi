@@ -136,10 +136,10 @@ module xcall::main {
         xcall_state::get_protocol_fee_handler(self)
     }
 
-    fun get_connection_fee(self:&Storage,connection:String,net_id:String, need_response:bool ):u64{
+    fun get_connection_fee(self:&Storage,connection_id:String,net_id:String, need_response:bool ):u64{
         connections::get_fee(
             xcall_state::get_connection_states(self),
-            connection,
+            connection_id,
             net_id,
             need_response
         )
