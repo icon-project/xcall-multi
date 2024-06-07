@@ -125,7 +125,7 @@ module xcall::xcall_tests {
            // let ctx = test_scenario::ctx(&mut scenario);
            let conn_cap = test_scenario::take_from_sender<ConnCap>(&scenario);
             centralized_entry::set_fee(&mut storage,&conn_cap, b"icon".to_string(),50, 50, scenario.ctx());
-            let fee = centralized_entry::get_fee(&mut storage,&conn_cap, b"icon".to_string(),true, scenario.ctx());
+            let fee = centralized_entry::get_fee(&mut storage,conn_cap.connection_id(), b"icon".to_string(),true, scenario.ctx());
 
             assert!(fee == 100, 3);
              scenario.return_to_sender(conn_cap);
