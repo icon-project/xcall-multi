@@ -8,16 +8,15 @@ module xcall::centralized_state {
     use xcall::xcall_state::{ConnCap};
     use sui::bag::{Bag, Self};
 
-    const PackageId:vector<u8> =b"centralized";
-     const ENotAdmin:u64=1;
+   
 
-    public fun package_id_str():String {
-        string::utf8(PackageId)
+     public fun get_state_mut(states:&mut Bag,connection_id:String):&mut State {
+      let state:&mut State=bag::borrow_mut(states,connection_id);
+      state
     }
 
-     public fun get_state(states:&mut Bag):&mut State {
-      let package_id= package_id_str();
-      let state:&mut State=bag::borrow_mut(states,package_id);
+     public fun get_state(states:&Bag,connection_id:String):&State {
+      let state:&State=bag::borrow(states,connection_id);
       state
     }
     
@@ -31,23 +30,17 @@ module xcall::centralized_state {
         message_fee: VecMap<String, u64>,
         response_fee: VecMap<String, u64>,
         receipts: VecMap<ReceiptKey, bool>,
-        xcall: String,
-        admin: address,
         conn_sn: u128,
         balance: Balance<SUI>,
-        cap:ConnCap,
     }
 
-    public fun create(cap:ConnCap,admin:address): State {
+    public(package) fun create(): State {
         State {
             message_fee: vec_map::empty<String, u64>(),
             response_fee: vec_map::empty<String, u64>(),
             conn_sn: 0,
             receipts: vec_map::empty(),
-            xcall: string::utf8(b""), 
-            admin: admin,
             balance:balance::zero(),
-            cap
         }
     }
 
@@ -68,7 +61,6 @@ module xcall::centralized_state {
     }
 
     public(package) fun set_fee(self: &mut State, net_id: String, message_fee: u64, response_fee: u64,caller:address) {
-        ensure_admin(self,caller);
         if (vec_map::contains(&self.message_fee,&net_id)){
             vec_map::remove(&mut self.message_fee,&net_id);
         };
@@ -95,28 +87,14 @@ module xcall::centralized_state {
 
     }
 
-    public(package) fun conn_cap(self:&State):&ConnCap{
-                &self.cap
-    }
+  
 
-    public(package) fun get_admin(self:&State):address{
-        self.admin
-    }
-
-    public(package) fun set_admin(self:&mut State,admin:address,caller:address){
-        ensure_admin(self,caller);
-        self.admin=admin;
-    }
-
-    public(package) fun claim_fees(self:&mut State,caller:address,ctx:&mut TxContext){
-        ensure_admin(self,caller);
+    public(package) fun claim_fees(self:&mut State,ctx:&mut TxContext){
         let total= self.balance.withdraw_all();
         let coin= coin::from_balance(total,ctx);
-        transfer::public_transfer(coin,caller);
+        transfer::public_transfer(coin,ctx.sender());
 
     }
 
-    public(package) fun ensure_admin(self:&State,caller:address){
-        assert!(self.admin==caller,ENotAdmin);
-    }
+   
 }
