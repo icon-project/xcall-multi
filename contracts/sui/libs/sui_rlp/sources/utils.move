@@ -38,20 +38,34 @@ module sui_rlp::utils {
         let mut i:u8=0;
         while(i < 8){
             let val =( (number>>(i * 8) & 0xFF) as u8) ;
-            if (val > 0) {
              vector::push_back(&mut bytes,val);
-            };
             i=i+1;
         };
         bytes.reverse();
+        truncate_zeros(&bytes)
+    }
+
+    fun truncate_zeros(bytes: &vector<u8>): vector<u8> {
+        let mut i = 0;
+        let mut started = false;
+        let mut result: vector<u8> = vector::empty();
+        while (i < vector::length(bytes)) {
+            let val = *vector::borrow(bytes, i) as u8;
+            if (val > 0 || started) {
+                started = true;
+                vector::push_back(&mut result, val);
+            };
+
+            i = i + 1;
+        };
 
         let mut prefix = vector<u8>[0];
-        prefix.append(bytes);
+        prefix.append(result);
         prefix
     }
 
     // Convert bytes to u64
- public fun from_bytes_u64(bytes: &vector<u8>): u64 {
+    public fun from_bytes_u64(bytes: &vector<u8>): u64 {
         let mut result = 0;
         let mut multiplier = 1;
         let length = vector::length(bytes);
@@ -64,9 +78,6 @@ module sui_rlp::utils {
             //std::debug::print(&result);
 
             if (i > 0) {
-            //std::debug::print(&b"MULTIPLIER".to_string());
-            //std::debug::print(&multiplier);
-            //std::debug::print(&i);
             multiplier = multiplier * 256
             };
             
@@ -82,16 +93,11 @@ module sui_rlp::utils {
         let mut i:u8=0;
         while(i < 16){
             let val = ((number>>(i * 8) & 0xFF) as u8) ;
-            if (val > 0) {
              vector::push_back(&mut bytes,val);
-            };
-            
             i=i+1;
         };
         bytes.reverse();
-        let mut prefix = vector<u8>[0];
-        prefix.append(bytes);
-        prefix
+        truncate_zeros(&bytes)
     }
 
     // Convert bytes to u128
@@ -162,7 +168,9 @@ module sui_rlp::utils_test {
     fun test_u128_conversion() {
         let num= (1222223333 as u128);
         let bytes= utils::to_bytes_u128(num);
+        std::debug::print(&bytes);
         let converted=utils::from_bytes_u128(&bytes);
+        std::debug::print(&converted);
         assert!(num==converted,0x01); 
         
     }
