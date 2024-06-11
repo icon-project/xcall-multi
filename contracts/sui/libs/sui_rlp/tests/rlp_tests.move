@@ -39,20 +39,23 @@ module sui_rlp::rlp_tests {
     #[test]
     fun test_encode_u64() {    
        
-        let val=(12345667 as u64);
+        let val=(2*100000000000 as u64);
         let encoded= encoder::encode_u64(val);
-        //std::debug::print(&encoded);
+        std::debug::print(&encoded);
         let decoded_val= decoder::decode(&encoded);
         let decoded= decoder::decode_u64(&decoded_val);
+        std::debug::print(&decoded);
         assert!(decoded==val,0x01);
     }
 
     #[test]
     fun test_encode_u128() {
-        let val=(2245667788 as u128);
+        let val=(2*100000000000000000 as u128);
         let encoded= encoder::encode_u128(val);
+        std::debug::print(&encoded);
         let decoded_val= decoder::decode(&encoded);
         let decoded= decoder::decode_u128(&decoded_val);
+        std::debug::print(&decoded);
         assert!(decoded==val,0x01);
     }
 
