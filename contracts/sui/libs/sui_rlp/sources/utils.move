@@ -42,7 +42,9 @@ module sui_rlp::utils {
             i=i+1;
         };
         bytes.reverse();
-        truncate_zeros(&bytes)
+        let mut prefix = vector<u8>[0];
+        prefix.append(truncate_zeros(&bytes));
+        prefix
     }
 
     fun truncate_zeros(bytes: &vector<u8>): vector<u8> {
@@ -59,24 +61,22 @@ module sui_rlp::utils {
             i = i + 1;
         };
 
-        let mut prefix = vector<u8>[0];
-        prefix.append(result);
-        prefix
+        result
     }
 
     // Convert bytes to u64
     public fun from_bytes_u64(bytes: &vector<u8>): u64 {
+        let bytes = truncate_zeros(bytes);
         let mut result = 0;
         let mut multiplier = 1;
-        let length = vector::length(bytes);
+        let length = vector::length(&bytes);
 
         let mut i = length;
         while (i > 0) {
             i = i - 1;
             //std::debug::print(vector::borrow(bytes, i));
-            result = result + ((*vector::borrow(bytes, i) as u64) * multiplier);
+            result = result + ((*vector::borrow(&bytes, i) as u64) * (multiplier));
             //std::debug::print(&result);
-
             if (i > 0) {
             multiplier = multiplier * 256
             };
@@ -97,20 +97,23 @@ module sui_rlp::utils {
             i=i+1;
         };
         bytes.reverse();
-        truncate_zeros(&bytes)
+        let mut prefix = vector<u8>[0];
+        prefix.append(truncate_zeros(&bytes));
+        prefix
     }
 
     // Convert bytes to u128
     public fun from_bytes_u128(bytes: &vector<u8>): u128 {
+        let bytes = truncate_zeros(bytes);
        let mut result = 0;
         let mut multiplier = 1;
-        let length = vector::length(bytes);
+        let length = vector::length(&bytes);
 
         let mut i = length;
         while (i > 0) {
             i = i - 1;
             //std::debug::print(vector::borrow(bytes, i));
-            result = result + ((*vector::borrow(bytes, i) as u128) * multiplier);
+            result = result + ((*vector::borrow(&bytes, i) as u128) * multiplier);
             //std::debug::print(&result);
 
             if (i > 0) {
