@@ -1,11 +1,8 @@
-use rlp::{Decodable, Encodable, RlpStream, DecoderError};
-use borsh::{BorshDeserialize, BorshSerialize};
+use super::*;
 
-use super::msg_trait::IMessage;
-
-#[derive(BorshSerialize,BorshDeserialize,Clone,Debug)]
+#[derive(BorshSerialize, BorshDeserialize, Clone, Debug)]
 pub struct CallMessage {
-    pub data : Vec<u8>,
+    pub data: Vec<u8>,
 }
 
 impl Encodable for CallMessage {
@@ -16,8 +13,8 @@ impl Encodable for CallMessage {
 
 impl Decodable for CallMessage {
     fn decode(rlp: &rlp::Rlp) -> Result<Self, rlp::DecoderError> {
-        Ok(Self{
-            data:rlp.val_at(0)?,
+        Ok(Self {
+            data: rlp.val_at(0)?,
         })
     }
 }
@@ -42,17 +39,15 @@ mod tests {
     use rlp::Rlp;
 
     #[test]
-    fn test_encoding_decoding_message(){
-
-        let original_message = CallMessage{
-            data : vec![1,2,3,4],
+    fn test_encoding_decoding_message() {
+        let original_message = CallMessage {
+            data: vec![1, 2, 3, 4],
         };
         let encoded = original_message.to_bytes().unwrap();
 
         let decoded_rlp = Rlp::new(&encoded);
         let decoded_message = CallMessage::decode(&decoded_rlp).unwrap();
-        
-        assert_eq!(decoded_message.data,original_message.data);  
-         
+
+        assert_eq!(decoded_message.data, original_message.data);
     }
 }

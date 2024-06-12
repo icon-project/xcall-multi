@@ -1,5 +1,7 @@
-// TODO: Net id might not be required
 use borsh::{BorshDeserialize, BorshSerialize};
+use std::str::FromStr;
+
+use crate::error::NetworkError;
 
 pub struct NetId(String);
 
@@ -21,53 +23,67 @@ impl NetId {
     }
 }
 
-#[derive(Clone,BorshDeserialize,BorshSerialize)]
-pub struct NetworkAddress {
-    pub net: String,
-    pub account: String,
+impl FromStr for NetId {
+    type Err = NetworkError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(Self(s.to_owned()))
+    }
 }
+
+#[derive(Clone, BorshDeserialize, BorshSerialize)]
+pub struct NetworkAddress(String);
 
 impl NetworkAddress {
-    pub fn new(net: String, account: String) -> Self {
-        Self { net, account }
+    pub fn new(nid: &str, address: &str) -> Self {
+        Self(format!("{}/{}", nid, address))
     }
 
-    pub fn from_str(value: &String) -> Self {
-        let mut iter = value.split('/');
-        NetworkAddress {
-            net: iter.next().unwrap_or("").to_string(),
-            account: iter.next().unwrap_or("").to_string(),
+    pub fn nid(&self) -> NetId {
+        NetId(self.get_parts()[0].to_string())
+    }
+
+    pub fn account(&self) -> &str {
+        self.get_parts()[1]
+    }
+
+    pub fn get_parts(&self) -> Vec<&str> {
+        let parts = self.0.split('/').collect::<Vec<&str>>();
+        if parts.len() != 2 {
+            panic!("Invalid Network Address");
         }
-    }
-
-    pub fn to_string(&self) -> String {
-        format!("{}/{}", &self.net, &self.account)
+        parts
     }
 }
 
-// impl  FromStr for NetworkAddress {
-//     type Err;
+impl ToString for NetworkAddress {
+    fn to_string(&self) -> String {
+        self.0.to_string()
+    }
+}
 
-//     fn from_str(s: &str) -> Result<Self, Self::Err> {
-//         let mut iter = s.split('/');
-//         Ok(NetworkAddress {
-//             net: iter.next().unwrap_or("").to_string(),
-//             account: iter.next().unwrap_or("").to_string(),
-//         })
-//     }
-// }
+impl FromStr for NetworkAddress {
+    type Err = NetworkError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let parts = s.split('/').collect::<Vec<&str>>();
+        if parts.len() != 2 {
+            return Err(NetworkError::InvalidNetworkAddress);
+        }
+        let na = format!("{}/{}", parts[0], parts[1]);
+        Ok(Self(na))
+    }
+}
 
 #[cfg(test)]
 mod tests {
-
     use super::*;
 
     #[test]
     fn test_split_network_address() {
         let na = String::from("0x1.icon/hx124324687");
-        let parsed = NetworkAddress::from_str(&na);
-        assert_eq!(String::from("0x1.icon"), parsed.net);
-        assert_eq!(String::from("hx124324687"), parsed.account);
+        let parsed = NetworkAddress::from_str(&na).unwrap();
+        assert_eq!(String::from("0x1.icon"), parsed.nid().to_string());
+        assert_eq!(String::from("hx124324687"), parsed.account());
     }
 }
-

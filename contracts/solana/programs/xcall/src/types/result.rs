@@ -1,10 +1,9 @@
-use crate::error::ErrorCode;
-use rlp::{Decodable, Encodable, Rlp};
+use rlp::{Decodable, Encodable};
 
-#[derive(Clone,Debug,PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum CallServiceResponseType {
-    CallServiceResponseFailure ,
-    CallServiceResponseSuccess ,
+    CallServiceResponseFailure,
+    CallServiceResponseSuccess,
 }
 
 impl From<CallServiceResponseType> for u8 {
@@ -25,39 +24,18 @@ impl TryFrom<u8> for CallServiceResponseType {
     }
 }
 
-
-impl CallServiceResponseType {
-    // pub fn as_int(&self) -> u8 {
-    //     match &self {
-    //         CallServiceResponseType::CallServiceResponseFailure => 0,
-    //         CallServiceResponseType::CallServiceResponseSuccess => 1,
-    //     }
-    // }
-
-    // pub fn from(v : u8) -> Self {
-    //     let a = match v {
-    //         0 => Ok(CallServiceResponseType::CallServiceResponseFailure),
-    //         1 => Ok(CallServiceResponseType::CallServiceResponseSuccess),
-    //         _ => Err("eerr"), // TODO: define the error codes here
-    //     };
-    //     return a.unwrap();
-    // }
-}
-
-#[derive(Clone,Debug,PartialEq)]
-pub struct CSMessageResult{
-    sequence_no : u128,
+#[derive(Clone, Debug, PartialEq)]
+pub struct CSMessageResult {
+    sequence_no: u128,
     response_code: CallServiceResponseType,
     message: Vec<u8>,
 }
 
-impl  CSMessageResult {
-    
+impl CSMessageResult {
     pub fn new(
         sequence_no: u128,
         response_code: CallServiceResponseType,
-        reply: Option<Vec<u8>>, // TODO: is reply an optional thing?
-
+        reply: Option<Vec<u8>>,
     ) -> Self {
         Self {
             sequence_no,
@@ -66,7 +44,7 @@ impl  CSMessageResult {
         }
     }
 
-    pub fn sequence_no(&self) -> u128{
+    pub fn sequence_no(&self) -> u128 {
         self.sequence_no
     }
 
@@ -74,23 +52,15 @@ impl  CSMessageResult {
         &self.response_code
     }
 
-    pub fn message(&self) -> Option<CSMessageResult>{
+    pub fn message(&self) -> Option<CSMessageResult> {
         if self.message.is_empty() {
             return None;
         }
         rlp::decode(&self.message).ok()
-
     }
 
     pub fn as_bytes(&self) -> Vec<u8> {
         rlp::encode(&self.clone()).to_vec()
-    }
-    
-    pub fn decode_from(data: &[u8]) -> std::result::Result<Self, ErrorCode> {
-        let rlp = Rlp::new(data);
-
-        CSMessageResult::decode(&rlp).map_err(|_error| ErrorCode::CSMessageRequestDecodeError)
-        
     }
 }
 
@@ -114,71 +84,4 @@ impl Decodable for CSMessageResult {
             message: rlp.val_at(2).unwrap_or(vec![]),
         })
     }
-}
-
-
-
-#[cfg(test)]
-mod tests {
-
-    /*
-    CSMessageResponse
-     sn: 1
-     code: CSMessageResponse.SUCCESS
-     errorMessage: errorMessage
-     RLP: c3010180
-
-     CSMessageResponse
-     sn: 2
-     code: CSMessageResponse.FAILURE
-     errorMessage: errorMessage
-     RLP: c3020080
-     */
-
-
-    
-    
-    use rlp::Encodable;
-
-    use super::{CSMessageResult,CallServiceResponseType};
-
-    #[test]
-    fn test_cs_message_reponse_encoding(){
-        let cs_response = CSMessageResult::new(
-            1, CallServiceResponseType::CallServiceResponseSuccess, 
-            None);
-
-        let mut stream = rlp::RlpStream::new();
-        cs_response.rlp_append(&mut stream);
-        let encoded = stream.as_raw();
-        
-        assert_eq!("c3010180", hex::encode(encoded));
-        let decoded=CSMessageResult::decode_from(&encoded).unwrap();
-        assert_eq!(cs_response.sequence_no(),decoded.sequence_no());
-        assert_eq!(cs_response.message(),decoded.message());
-        assert_eq!(cs_response.response_code(),decoded.response_code());
-    
-        }
-
-    #[test]
-    fn test_cs_message_reponse_encoding2(){
-        let cs_response =
-            CSMessageResult::new(2, 
-                CallServiceResponseType::CallServiceResponseFailure, 
-                None);
-
-        let mut stream = rlp::RlpStream::new();
-        cs_response.rlp_append(&mut stream);
-        let encoded = stream.as_raw();
-
-        assert_eq!("c3020080", hex::encode(encoded));
-
-        let decoded = CSMessageResult::decode_from(&encoded).unwrap();
-        assert_eq!(cs_response.sequence_no(),decoded.sequence_no());
-        assert_eq!(cs_response.message(),decoded.message());
-        assert_eq!(cs_response.response_code(),decoded.response_code());
-        
-        }
-
-
 }

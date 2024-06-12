@@ -17,4 +17,8 @@ no-log-ix-name = []
 idl-build = ["anchor-lang/idl-build"]
 
 [dependencies]
-anchor-lang = "0.30.0"
+anchor-lang = { workspace = true }
+borsh = { workspace = true }
+hex = { workspace = true }
+rlp = { workspace = true }
+xcall-lib = { workspace = true }
