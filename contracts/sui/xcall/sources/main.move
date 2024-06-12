@@ -464,6 +464,7 @@ module xcall::main {
         xcall_state::remove_reply_state(self);
         let mut message = vector::empty<u8>();
         let code= if(success){1}else{0};
+        let err_msg = if(success){string::utf8(b"success")}else{string::utf8(b"unknown error")};
         let cs_message_result = if(msg_type==call_message_rollback::msg_type()){
             let callReply = xcall_state::get_call_reply(self);
             if(vector::length(&callReply) > 0 && code == 1){
@@ -482,7 +483,7 @@ module xcall::main {
         };
 
         transfer::public_transfer(fee, ctx.sender());
-        event::emit(CallExecuted{req_id:request_id, code: code, err_msg:string::utf8(b"unknown error")});
+        event::emit(CallExecuted{req_id:request_id, code: code, err_msg: err_msg});
        
     }
 
