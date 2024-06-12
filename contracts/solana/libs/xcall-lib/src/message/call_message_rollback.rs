@@ -1,8 +1,6 @@
-use rlp::{DecoderError, Encodable, RlpStream, Decodable};
-use borsh::{BorshDeserialize, BorshSerialize};
-use super::msg_trait::IMessage;
+use super::*;
 
-#[derive(Clone,Debug,BorshDeserialize, BorshSerialize)]
+#[derive(Clone, Debug, BorshDeserialize, BorshSerialize)]
 pub struct CallMessageWithRollback {
     pub data: Vec<u8>,
     pub rollback: Vec<u8>,
@@ -11,9 +9,9 @@ pub struct CallMessageWithRollback {
 impl Encodable for CallMessageWithRollback {
     fn rlp_append(&self, stream: &mut RlpStream) {
         stream
-        .begin_list(2)
-        .append(&self.data)
-        .append(&self.rollback);
+            .begin_list(2)
+            .append(&self.data)
+            .append(&self.rollback);
     }
 }
 
@@ -42,21 +40,18 @@ impl IMessage for CallMessageWithRollback {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use rlp::Encodable;
     use rlp::Rlp;
-    use super::*;
-
 
     #[test]
-    fn test_encoding_decoding_message(){
-        let original_message = CallMessageWithRollback{
-            data : vec![0,11,255],
-            rollback: vec![1,2,3],
-
+    fn test_encoding_decoding_message() {
+        let original_message = CallMessageWithRollback {
+            data: vec![0, 11, 255],
+            rollback: vec![1, 2, 3],
         };
 
-
-       let mut stream = RlpStream::new();
+        let mut stream = RlpStream::new();
         original_message.rlp_append(&mut stream);
         let encoded = stream.out();
 
@@ -65,6 +60,5 @@ mod tests {
 
         assert_eq!(decoded_message.data, original_message.data);
         assert_eq!(decoded_message.rollback, original_message.rollback);
-
     }
 }

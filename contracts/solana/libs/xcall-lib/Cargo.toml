@@ -1,22 +1,15 @@
 [package]
 name = "xcall-lib"
 version = "0.1.0"
-description = "Created with Anchor"
 edition = "2021"
 
 [lib]
 crate-type = ["cdylib", "lib"]
 
 [features]
-default = []
-cpi = ["no-entrypoint"]
-no-entrypoint = []
-no-idl = []
-no-log-ix-name = []
-idl-build = ["anchor-lang/idl-build"]
+library = []
 
 [dependencies]
-anchor-lang = "0.30.0"
-rlp = {path = "../rlp"}
-borsh = "1.5.1"
-
+borsh = { workspace = true }
+rlp = { workspace = true }
+anchor-lang = { workspace = true }

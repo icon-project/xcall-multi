@@ -3,25 +3,23 @@ use self::{
     call_message_rollback::CallMessageWithRollback, msg_trait::IMessage, msg_type::MessageType,
 };
 use borsh::{BorshDeserialize, BorshSerialize};
-use rlp::DecoderError;
+use rlp::{Decodable, DecoderError, Encodable, RlpStream};
 
-pub mod call_message_rollback;
-pub mod call_message_persisted;
-pub mod msg_trait;
 pub mod call_message;
-pub mod msg_type;
+pub mod call_message_persisted;
+pub mod call_message_rollback;
 pub mod envelope;
+pub mod msg_trait;
+pub mod msg_type;
 
-#[derive(Clone,Debug,BorshSerialize,BorshDeserialize)]
+#[derive(Clone, Debug, BorshSerialize, BorshDeserialize)]
 pub enum AnyMessage {
     CallMessage(CallMessage),
     CallMessageWithRollback(CallMessageWithRollback),
-    CallMessagePersisted(CallMessagePersisted), // the variant of this enum store the data of CallMessagePersisted
-    // type
+    CallMessagePersisted(CallMessagePersisted),
 }
 
 impl IMessage for AnyMessage {
-
     fn rollback(&self) -> Option<Vec<u8>> {
         match self {
             AnyMessage::CallMessage(m) => m.rollback(),

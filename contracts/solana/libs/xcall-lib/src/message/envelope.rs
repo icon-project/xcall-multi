@@ -1,22 +1,14 @@
-use borsh::{BorshDeserialize, BorshSerialize};
-use rlp::{self,Decodable, Encodable, DecoderError};
-
-use super::{call_message::CallMessage, call_message_persisted::CallMessagePersisted,
-     call_message_rollback::CallMessageWithRollback, 
-     msg_trait::IMessage, msg_type::MessageType, 
-     AnyMessage};
-
+use super::*;
 
 #[derive(BorshDeserialize, BorshSerialize, Clone)]
 pub struct Envelope {
     pub message: AnyMessage,
-
     pub sources: Vec<String>,
     pub destinations: Vec<String>,
 }
 
 impl Envelope {
-    pub fn new(msg: AnyMessage, sources: Vec<String>,destinations: Vec<String>) -> Self{
+    pub fn new(msg: AnyMessage, sources: Vec<String>, destinations: Vec<String>) -> Self {
         Self {
             message: msg,
             sources,
@@ -26,7 +18,6 @@ impl Envelope {
 }
 
 impl Encodable for Envelope {
-
     fn rlp_append(&self, stream: &mut rlp::RlpStream) {
         stream.begin_list(4);
         stream.append(&Into::<u8>::into(self.message.msg_type().clone()));
@@ -40,7 +31,6 @@ impl Encodable for Envelope {
             stream.append(dest);
         }
     }
-    
 }
 
 impl Decodable for Envelope {
@@ -82,27 +72,21 @@ pub fn decode_message(msg_type: MessageType, bytes: Vec<u8>) -> Result<AnyMessag
 }
 
 #[cfg(test)]
-mod tests{
-
+mod tests {
     use super::*;
 
     #[test]
     fn test_decode_message() {
-        // Create some sample data
-
         let msg_bytes = CallMessagePersisted {
-            data: vec![1,2,3],
+            data: vec![1, 2, 3],
         };
 
         let encoded = msg_bytes.to_bytes();
-        let msg_type = MessageType::CallMessagePersisted; // an instance of call message persisted
-        
-        println!("{:?}",msg_type);
-    
+
         // Decode the message
-        let decoded_message = decode_message(msg_type, encoded.clone().unwrap()).unwrap();
+        let decoded_message =
+            decode_message(MessageType::CallMessagePersisted, encoded.clone().unwrap()).unwrap();
 
         assert_eq!(decoded_message.data(), msg_bytes.data);
-    
     }
 }

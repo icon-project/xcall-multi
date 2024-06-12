@@ -1,23 +1,16 @@
+use super::*;
 
-
-use anchor_lang::prelude::borsh::BorshSerialize;
-use borsh::BorshDeserialize;
-use rlp::{Decodable, Encodable};
+use std::str::FromStr;
 use xcall_lib::{message::msg_type::MessageType, network_address::NetworkAddress};
 
-
-#[derive(Clone,BorshDeserialize, BorshSerialize)]
+#[derive(Clone, BorshDeserialize, BorshSerialize)]
 pub struct CSMessageRequest {
     from: NetworkAddress,
-    // to is kept as String,
-    // pubkey lai toString ma convert garera we can use
-    // took refrence to SUI
-    to : String, 
-    sequence_no : u128,
-    msg_type : MessageType,
+    to: String,
+    sequence_no: u128,
+    msg_type: MessageType,
     data: Vec<u8>, // TODO: cosmos this is nullable??
-    protocols : Vec<String>,
-
+    protocols: Vec<String>,
 }
 
 impl CSMessageRequest {
@@ -55,7 +48,7 @@ impl CSMessageRequest {
         self.msg_type.clone()
     }
 
-    pub fn data(&self) ->Vec<u8> {
+    pub fn data(&self) -> Vec<u8> {
         self.data.clone()
     }
 
@@ -74,9 +67,6 @@ impl CSMessageRequest {
     pub fn as_bytes(&self) -> Vec<u8> {
         rlp::encode(self).to_vec()
     }
-
-    
-
 }
 
 impl Encodable for CSMessageRequest {
@@ -102,26 +92,26 @@ impl Decodable for CSMessageRequest {
         }
 
         let rlp_protocols = rlp.at(5)?;
-        let list : Vec<String> = rlp_protocols.as_list()?;
-        let str_from : String = rlp.val_at(0)?;
-        let int_msg_type : u8 = rlp.val_at(3)?;
+        let list: Vec<String> = rlp_protocols.as_list()?;
+        let str_from: String = rlp.val_at(0)?;
+        let int_msg_type: u8 = rlp.val_at(3)?;
 
-        Ok(Self{
-            from : NetworkAddress::from_str(&str_from),
+        Ok(Self {
+            from: NetworkAddress::from_str(&str_from)
+                .map_err(|_e| rlp::DecoderError::RlpInvalidLength)?,
             to: rlp.val_at(1)?,
             sequence_no: rlp.val_at(2)?,
-            msg_type : MessageType::from_int(int_msg_type),
+            msg_type: MessageType::from_int(int_msg_type),
             data: rlp.val_at(4)?,
             protocols: list,
         })
-
     }
 }
 
 #[cfg(test)]
 mod tests {
 
-     /*
+    /*
     CSMessageRequest
      from: 0x1.ETH/0xa
      to: cx0000000000000000000000000000000000000102
@@ -152,67 +142,66 @@ mod tests {
 
      */
 
-    use std::vec;
+    use std::{str::FromStr, vec};
 
     use xcall_lib::{message::msg_type::MessageType, network_address::NetworkAddress};
 
     use super::CSMessageRequest;
 
     #[test]
-    fn test_cs_message_request_encoding(){
+    fn test_cs_message_request_encoding() {
         let data = hex::decode("74657374").unwrap();
 
         let from: String = String::from("0x1.ETH/0xa");
 
         let msg = CSMessageRequest::new(
-            NetworkAddress::from_str(&from),
-            String::from("cx0000000000000000000000000000000000000102"), 
-            21, 
-            MessageType::CallMessageWithRollback, 
-            data.clone(), 
-            vec![]);
+            NetworkAddress::from_str(&from).unwrap(),
+            String::from("cx0000000000000000000000000000000000000102"),
+            21,
+            MessageType::CallMessageWithRollback,
+            data.clone(),
+            vec![],
+        );
 
         let encoded = rlp::encode(&msg);
         assert_eq!("f83f8b3078312e4554482f307861aa63783030303030303030303030303030303030303030303030303030303030303030303030303031303215018474657374c0",hex::encode(encoded));
-
     }
 
     #[test]
-    fn test_cs_message_request_encoding2(){
+    fn test_cs_message_request_encoding2() {
         let data = hex::decode("74657374").unwrap();
 
         let from: String = String::from("0x1.ETH/0xa");
 
         let msg = CSMessageRequest::new(
-            NetworkAddress::from_str(&from),
-            String::from("cx0000000000000000000000000000000000000102"), 
-            21, 
-            MessageType::CallMessageWithRollback, 
-            data.clone(), 
-            vec!["abc".to_string(),"cde".to_string(),"efg".to_string()]);
+            NetworkAddress::from_str(&from).unwrap(),
+            String::from("cx0000000000000000000000000000000000000102"),
+            21,
+            MessageType::CallMessageWithRollback,
+            data.clone(),
+            vec!["abc".to_string(), "cde".to_string(), "efg".to_string()],
+        );
 
         let encoded = rlp::encode(&msg);
         assert_eq!("f84b8b3078312e4554482f307861aa63783030303030303030303030303030303030303030303030303030303030303030303030303031303215018474657374cc836162638363646583656667",hex::encode(encoded));
-
     }
 
     #[test]
-    fn test_cs_message_request_encoding3(){
+    fn test_cs_message_request_encoding3() {
         let data = hex::decode("74657374").unwrap();
 
         let from: String = String::from("0x1.ETH/0xa");
 
         let msg = CSMessageRequest::new(
-            NetworkAddress::from_str(&from),
-            String::from("cx0000000000000000000000000000000000000102"), 
-            21, 
-            MessageType::CallMessagePersisted, 
-            data.clone(), 
-            vec!["abc".to_string(),"cde".to_string(),"efg".to_string()]);
+            NetworkAddress::from_str(&from).unwrap(),
+            String::from("cx0000000000000000000000000000000000000102"),
+            21,
+            MessageType::CallMessagePersisted,
+            data.clone(),
+            vec!["abc".to_string(), "cde".to_string(), "efg".to_string()],
+        );
 
         let encoded = rlp::encode(&msg);
         assert_eq!("f84b8b3078312e4554482f307861aa63783030303030303030303030303030303030303030303030303030303030303030303030303031303215028474657374cc836162638363646583656667",hex::encode(encoded));
-
     }
-
 }

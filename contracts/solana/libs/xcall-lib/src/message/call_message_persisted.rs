@@ -1,9 +1,6 @@
-use super::msg_trait::IMessage;
-use rlp::{Encodable,Decodable,RlpStream};
-use borsh::{BorshDeserialize, BorshSerialize};
+use super::*;
 
-
-#[derive(Clone,Debug,BorshDeserialize, BorshSerialize)]
+#[derive(Clone, Debug, BorshDeserialize, BorshSerialize)]
 pub struct CallMessagePersisted {
     pub data: Vec<u8>,
 }
@@ -23,11 +20,10 @@ impl Decodable for CallMessagePersisted {
 }
 
 impl IMessage for CallMessagePersisted {
-    
     fn rollback(&self) -> Option<Vec<u8>> {
         None
     }
-    
+
     fn data(&self) -> Vec<u8> {
         self.data.clone()
     }
@@ -35,5 +31,4 @@ impl IMessage for CallMessagePersisted {
     fn to_bytes(&self) -> Result<Vec<u8>, rlp::DecoderError> {
         Ok(rlp::encode(self).to_vec())
     }
-    
 }

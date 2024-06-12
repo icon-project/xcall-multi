@@ -1,8 +1,17 @@
 [workspace]
 members = [
-    "programs/*"
+    "programs/*",
+    "libs/*"
 ]
 resolver = "2"
+
+[workspace.dependencies]
+anchor-lang = { version = "0.30.0" }
+borsh = { version = "1.5.1" }
+hex ={ version = "0.4.3", default-features = false }
+
+rlp = { path = "./libs/rlp" }
+xcall-lib = { path = "./libs/xcall-lib" }
 
 [profile.release]
 overflow-checks = true
