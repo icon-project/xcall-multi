@@ -11,6 +11,24 @@ This document outlines the major changes in the implementation of xCall in the S
 #### Change
 - The `execute_call` and `execute_rollback` functions will now be executed from the dApps rather than xCall.
 
+#### Process
+
+1. **Initiate Call from dApp**:
+   - dApp initiates a call to xCall and receives a ticket containing execution data and protocol information.
+
+2. **Retrieve Execution Data**:
+   - dApp retrieves execution data from the ticket.
+
+3. **Execute Call within dApp**:
+   - dApp executes the call using its own state and data.
+
+4. **Report Execution Result**:
+   - If successful, dApp sends `true` to `execute_call_result` in xCall.
+   - If failed, dApp sends `false` to `execute_call_result` in xCall.
+
+5. **Execute Rollback if Necessary**:
+   - If xCall receives `false`, it triggers the rollback process using the data and protocols specified in the initial ticket.
+
 #### Rationale
 - Sui is a stateless blockchain, meaning it does not maintain the state of every dApp.
 - Executing calls from xCall would require accessing the data of each dApp, which is inefficient.
@@ -51,7 +69,77 @@ This document outlines the major changes in the implementation of xCall in the S
 #### Relayer Changes
 - To change the relayer, the connection cap can be transferred externally.
 
+## Sui Object ID, Cap ID, Address Format
+
+### External and Internal of Contract ID Format
+
+- **External Format**: IDs in Sui are formatted to start with `0x`.
+- **Internal Format**: Internally, IDs are handled without the `0x` prefix.
+
+### Implementation
+
+- To maintain consistency and efficiency within the contract, all IDs are managed as hex strings.
+- This dual-format approach ensures that the contract can seamlessly handle both formats(`0x` prefixed and non-prefixed), converting as necessary when sending or receiving IDs externally.
+
+## Deployment Process
+
+### Sui Network Branches
+
+- **Sui maintains different branches for testnet and mainnet.**
+- So, packages such as `xcall` and `balanced` need to align with the respective Sui network (testnet or mainnet).
+
+### Contract Branch Management
+
+1. **Main Contract Branch**:
+   - The common xcall package will be managed under the branch: `feat/sui-xcall-contracts`.
+   - The common balanced package will be managed under the branch: `main`.
+
+2. **Testnet and Mainnet Branches**:
+   - Separate branches will be maintained for testnet and mainnet deployments.
+   - These branches will reflect the state of the contracts as per the latest deployments and upgrades.
+
+### Deployment Steps
+
+1. **Branch Creation**:
+   - Create and maintain `testnet` and `mainnet` branches from `feat/sui-xcall-contracts`.
+
+2. **Deployment and Upgrades**:
+   - Deployment is done from specific(testnet/mainnet) branch
+   - After each deployment or upgrade, update the `Move.toml` file with the deployed package id.
+   - A new field `published-at` will be introduced to package manifests, to designate a package's on-chain address(latest address), while the addresses in the `[addresses]` section of the manifest will continue to represent package addresses for type resolution and access purposes.
+   - Push the updated `Move.toml` file to the respective branch (`testnet` or `mainnet`).
+   - This ensures the branch is the official release branch for the corresponding network.
+
+### Dependency Management for Balanced
+
+- **Testnet**:
+  - While using `xcall` as a dependency in Balanced, the `testnet` branch of `xCall` should be used.
+- **Mainnet**:
+  - For mainnet deployments, the `mainnet` branch of `xCall` should be utilized.
+
+### Summary
+
+- Maintaining separate branches for testnet and mainnet ensures clear and organized deployment processes.
+- Updating the `move.toml` file with deployment details keeps the branches accurate and reflective of the current state.
+- Dependency management aligns with the respective network branches, ensuring seamless integration and functionality.
+
 ## Upgrading Packages
+
+### Upgrade Compatibility
+Upgraded packages must maintain compatibility with all their previous versions, so a package published to run with version V of a dependency can run against some later version, V + k. This property is guaranteed by doing a link and layout compatibility check during publishing, enforcing the following:
+
+#### Compatible Changes
+- Adding new types, functions and modules.
+- Changing the implementations of existing functions.
+- Changing the signatures of non-public functions.
+- Removing ability constraints on type parameters.
+- Adding abilities to struct definitions.
+
+#### Incompatible Changes
+- Changing the signatures of public functions.
+- Changing the layout of existing types (adding, removing or modifying field names or types).
+- Adding new ability constraints on type parameters.
+-Removing abilities from structs.
 
 ### Immutability and Versioning
 
