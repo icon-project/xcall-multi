@@ -27,7 +27,7 @@ This document outlines the major changes in the implementation of xCall in the S
    - If failed, dApp sends `false` to `execute_call_result` in xCall.
 
 5. **Execute Rollback if Necessary**:
-   - If xCall receives `false`, it triggers the rollback process using the data and protocols specified in the initial ticket.
+   - If xCall receives `false`, it triggers the rollback process using the data and protocols specified in the initial ticket and closes the ticket.
 
 #### Rationale
 - Sui is a stateless blockchain, meaning it does not maintain the state of every dApp.
