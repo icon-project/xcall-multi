@@ -40,7 +40,7 @@ This document outlines the major changes in the implementation of xCall in the S
 - Introduced `execute_forced_rollback` in dApps (e.g., Balanced), which can be executed by an admin in case of a failure in `execute_call`.
 
 #### Rationale
-- Sui lacks try-catch mechanisms in xCall, making it impossible to rollback every message that fails in `execute_call`. Instead, it will fail the entire transaction if there is a configuration failure.
+- There is no concept of exception handling in sui such as try-catch, making it impossible to rollback every message that fails in `execute_call`. Instead, it will fail the entire transaction if there is a configuration failure.
 
 ### 3. RollbackMessage event Change
 
@@ -170,7 +170,7 @@ Upgraded packages must maintain compatibility with all their previous versions, 
 #### Balanced Package
 - **Modules**: Asset Manager, xCall Manager, Balanced Dollar.
 - **Identifiers**: Each package has one package ID and three cap IDs (one for each module). Cap IDs are akin to contract addresses in other chains.
-- **Usage**: Cap IDs are used for configuring Balanced in other chains, while the package ID is used for function calls from the Sui side.
+- **Usage**: While configuring balanced in other chains, we configure Cap ID for each module. Like sending message from icon would require sending to specific cap id.
 
 ## Conclusion
 
