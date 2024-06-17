@@ -1,6 +1,6 @@
 use super::*;
 
-#[derive(BorshSerialize, BorshDeserialize, Clone, Debug)]
+#[derive(Clone, Debug, AnchorSerialize, AnchorDeserialize)]
 pub struct CallMessage {
     pub data: Vec<u8>,
 }
