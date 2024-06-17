@@ -1,7 +1,12 @@
+use anchor_lang::{
+    prelude::{borsh, Pubkey},
+    AnchorDeserialize, AnchorSerialize,
+};
 use xcall_lib::network_address::NetworkAddress;
 
+#[derive(Clone, AnchorSerialize, AnchorDeserialize)]
 pub struct Rollback {
-    from: String,
+    from: Pubkey,
     to: NetworkAddress,
     protocols: Vec<String>,
     rollback: Vec<u8>,
@@ -10,7 +15,7 @@ pub struct Rollback {
 
 impl Rollback {
     pub fn new(
-        from: String,
+        from: Pubkey,
         to: NetworkAddress,
         protocols: Vec<String>,
         rollback: Vec<u8>,
@@ -25,7 +30,7 @@ impl Rollback {
         }
     }
 
-    pub fn from(&self) -> &String {
+    pub fn from(&self) -> &Pubkey {
         &self.from
     }
 
@@ -45,7 +50,7 @@ impl Rollback {
         &self.protocols
     }
 
-    pub fn enable_rollback(&mut self){
+    pub fn enable_rollback(&mut self) {
         self.enabled = true;
     }
 }
