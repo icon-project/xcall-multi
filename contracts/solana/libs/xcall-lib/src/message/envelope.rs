@@ -1,6 +1,6 @@
 use super::*;
 
-#[derive(BorshDeserialize, BorshSerialize, Clone)]
+#[derive(Clone, AnchorSerialize, AnchorDeserialize)]
 pub struct Envelope {
     pub message: AnyMessage,
     pub sources: Vec<String>,

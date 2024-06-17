@@ -1,6 +1,6 @@
 use super::*;
 
-#[derive(Clone, Debug, BorshDeserialize, BorshSerialize)]
+#[derive(Clone, Debug, AnchorSerialize, AnchorDeserialize)]
 pub struct CallMessageWithRollback {
     pub data: Vec<u8>,
     pub rollback: Vec<u8>,

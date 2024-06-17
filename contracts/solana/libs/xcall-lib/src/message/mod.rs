@@ -2,7 +2,7 @@ use self::{
     call_message::CallMessage, call_message_persisted::CallMessagePersisted,
     call_message_rollback::CallMessageWithRollback, msg_trait::IMessage, msg_type::MessageType,
 };
-use borsh::{BorshDeserialize, BorshSerialize};
+use anchor_lang::{prelude::borsh, AnchorDeserialize, AnchorSerialize};
 use rlp::{Decodable, DecoderError, Encodable, RlpStream};
 
 pub mod call_message;
@@ -12,7 +12,7 @@ pub mod envelope;
 pub mod msg_trait;
 pub mod msg_type;
 
-#[derive(Clone, Debug, BorshSerialize, BorshDeserialize)]
+#[derive(Clone, Debug, AnchorSerialize, AnchorDeserialize)]
 pub enum AnyMessage {
     CallMessage(CallMessage),
     CallMessageWithRollback(CallMessageWithRollback),
@@ -46,11 +46,11 @@ impl IMessage for AnyMessage {
 }
 
 impl AnyMessage {
-    pub fn msg_type(&self) -> &MessageType {
+    pub fn msg_type(&self) -> MessageType {
         match self {
-            AnyMessage::CallMessage(_m) => &MessageType::CallMessage,
-            AnyMessage::CallMessageWithRollback(_m) => &MessageType::CallMessageWithRollback,
-            AnyMessage::CallMessagePersisted(_m) => &MessageType::CallMessagePersisted,
+            AnyMessage::CallMessage(_m) => MessageType::CallMessage,
+            AnyMessage::CallMessageWithRollback(_m) => MessageType::CallMessageWithRollback,
+            AnyMessage::CallMessagePersisted(_m) => MessageType::CallMessagePersisted,
         }
     }
 }
