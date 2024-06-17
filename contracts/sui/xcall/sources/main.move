@@ -343,7 +343,8 @@ module xcall::main {
         if(vector::length(&protocols) > 1){
             let key = hash::keccak256(&payload);
             xcall_state::save_pending_requests(self, key, source);
-            if(xcall_state::check_pending_requests(self, key, protocols)) return;
+
+            if(!xcall_state::check_pending_requests(self, key, protocols)) return;
 
             xcall_state::remove_pending_requests(self, key, protocols);
         };
@@ -377,7 +378,7 @@ module xcall::main {
             let key = hash::keccak256(&payload);
             xcall_state::save_pending_responses(self, key, source);
             let i = 0;
-            if(xcall_state::check_pending_responses(self, key, sources)) return;
+            if(!xcall_state::check_pending_responses(self, key, sources)) return;
 
             xcall_state::remove_pending_responses(self, key, sources);
         };
