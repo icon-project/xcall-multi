@@ -1,8 +1,10 @@
-use borsh::{BorshDeserialize, BorshSerialize};
-use std::str::FromStr;
+use anchor_lang::prelude::borsh;
+use anchor_lang::{AnchorDeserialize, AnchorSerialize};
 
 use crate::error::NetworkError;
+use std::str::FromStr;
 
+#[derive(Debug, PartialEq, Eq, AnchorSerialize, AnchorDeserialize)]
 pub struct NetId(String);
 
 impl From<String> for NetId {
@@ -31,7 +33,7 @@ impl FromStr for NetId {
     }
 }
 
-#[derive(Clone, BorshDeserialize, BorshSerialize)]
+#[derive(Clone, AnchorSerialize, AnchorDeserialize)]
 pub struct NetworkAddress(String);
 
 impl NetworkAddress {
@@ -43,8 +45,13 @@ impl NetworkAddress {
         NetId(self.get_parts()[0].to_string())
     }
 
-    pub fn account(&self) -> &str {
-        self.get_parts()[1]
+    pub fn account(&self) -> String {
+        self.get_parts()[1].to_owned()
+    }
+
+    pub fn parse_network_address(&self) -> (NetId, String) {
+        let parts = self.get_parts();
+        (NetId(parts[0].to_owned()), parts[1].to_owned())
     }
 
     pub fn get_parts(&self) -> Vec<&str> {

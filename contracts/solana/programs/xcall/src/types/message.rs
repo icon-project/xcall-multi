@@ -3,6 +3,8 @@ use super::*;
 use request::CSMessageRequest;
 use result::CSMessageResult;
 
+use crate::error::XcallError;
+
 #[derive(Clone)]
 pub enum CSMessageType {
     CSMessageRequest = 1,
@@ -81,5 +83,14 @@ impl From<CSMessageResult> for CSMessage {
             message_type: CSMessageType::CSMessageResult,
             payload: rlp::encode(&value).to_vec(),
         }
+    }
+}
+
+impl TryFrom<Vec<u8>> for CSMessage {
+    type Error = XcallError;
+
+    fn try_from(value: Vec<u8>) -> Result<Self, Self::Error> {
+        let rlp = rlp::Rlp::new(&value);
+        Self::decode(&rlp).map_err(|_error| XcallError::DecodeFailed)
     }
 }
