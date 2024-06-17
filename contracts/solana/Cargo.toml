@@ -6,7 +6,7 @@ members = [
 resolver = "2"
 
 [workspace.dependencies]
-anchor-lang = { version = "0.30.0" }
+anchor-lang = { version = "0.30.0", features = ["init-if-needed"] }
 borsh = { version = "1.5.1" }
 hex ={ version = "0.4.3", default-features = false }
 

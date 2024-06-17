@@ -1960,7 +1960,6 @@ name = "xcall"
 version = "0.1.0"
 dependencies = [
  "anchor-lang",
- "borsh 1.5.1",
  "hex",
  "rlp",
  "xcall-lib",

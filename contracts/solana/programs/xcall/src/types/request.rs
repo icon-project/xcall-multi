@@ -1,9 +1,15 @@
 use super::*;
 
+use anchor_lang::{
+    prelude::borsh,
+    solana_program, {AnchorDeserialize, AnchorSerialize},
+};
+
+use crate::error::XcallError;
 use std::str::FromStr;
 use xcall_lib::{message::msg_type::MessageType, network_address::NetworkAddress};
 
-#[derive(Clone, BorshDeserialize, BorshSerialize)]
+#[derive(Clone, AnchorSerialize, AnchorDeserialize)]
 pub struct CSMessageRequest {
     from: NetworkAddress,
     to: String,
@@ -50,6 +56,11 @@ impl CSMessageRequest {
 
     pub fn data(&self) -> Vec<u8> {
         self.data.clone()
+    }
+
+    pub fn hash_data(&mut self) {
+        let hash = solana_program::hash::hash(&self.data());
+        self.data = hash.to_bytes().to_vec();
     }
 
     pub fn need_response(&self) -> bool {
@@ -105,6 +116,22 @@ impl Decodable for CSMessageRequest {
             data: rlp.val_at(4)?,
             protocols: list,
         })
+    }
+}
+
+impl TryFrom<&Vec<u8>> for CSMessageRequest {
+    type Error = XcallError;
+    fn try_from(value: &Vec<u8>) -> Result<Self, Self::Error> {
+        let rlp = rlp::Rlp::new(value as &[u8]);
+        Self::decode(&rlp).map_err(|_error| XcallError::DecodeFailed)
+    }
+}
+
+impl TryFrom<&[u8]> for CSMessageRequest {
+    type Error = XcallError;
+    fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
+        let rlp = rlp::Rlp::new(value);
+        Self::decode(&rlp).map_err(|_error| XcallError::DecodeFailed)
     }
 }
 

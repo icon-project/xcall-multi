@@ -1,7 +1,6 @@
-use super::{BorshDeserialize, BorshSerialize};
+use super::{borsh, AnchorDeserialize, AnchorSerialize};
 
-#[derive(Clone, Debug, PartialEq, BorshDeserialize, BorshSerialize)]
-#[borsh(use_discriminant = false)]
+#[derive(Clone, Debug, PartialEq, AnchorSerialize, AnchorDeserialize)]
 pub enum MessageType {
     CallMessage = 0,
     CallMessageWithRollback = 1,
