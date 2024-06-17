@@ -29,6 +29,8 @@ module xcall::xcall_tests {
             let mut storage = test_scenario::take_shared<Storage>(scenario);
              let adminCap = scenario.take_from_sender<AdminCap>();
             main::register_connection(&mut storage, &adminCap,from_nid, string::utf8(b"centralized-1"),admin, scenario.ctx());
+            main::register_connection(&mut storage, &adminCap,from_nid, string::utf8(b"centralized-2"),admin, scenario.ctx());
+
             test_scenario::return_shared(storage);
             scenario.return_to_sender(adminCap);
         };
@@ -412,6 +414,43 @@ scenario = setup_connection(scenario, string::utf8(b"icon"), admin);
             assert!(events == 2, 0);
         };
         
+        test_scenario::end(scenario);
+    }
+
+        #[test]
+    fun test_handle_message_multi_protocols() {
+        let admin = @0xBABE;
+
+        let mut scenario = setup_test(admin);
+        scenario = setup_nid(scenario, string::utf8(b"sui"), admin);
+        scenario = setup_connection(scenario, string::utf8(b"icon"), admin);
+        test_scenario::next_tx(&mut scenario, admin);
+        {
+            let adminCap = test_scenario::take_from_sender<AdminCap>(&scenario);
+            let mut storage = test_scenario::take_shared<Storage>(&scenario);
+           // let ctx = test_scenario::ctx(&mut scenario);
+            let idCap = xcall_state::create_id_cap(&storage, scenario.ctx());
+            let sources = vector[string::utf8(b"centralized-1"), string::utf8(b"centralized-2")];
+            let data = b"data";
+            let sui_dapp = string::utf8(b"dsui/daddress");
+            let icon_dapp = network_address::create(string::utf8(b"icon"), string::utf8(b"address"));
+
+            let from_nid = string::utf8(b"icon");
+            let request = message_request::create(icon_dapp, sui_dapp, 1, 1, data, sources);
+            let message = cs_message::encode(&cs_message::new(cs_message::request_code(), message_request::encode(&request)));
+            let conn_cap = test_scenario::take_from_sender<ConnCap>(&scenario);
+            main::handle_message(&mut storage,&conn_cap,from_nid,message,scenario.ctx());
+            
+            xcall_state::delete_id_cap_for_testing(idCap, scenario.ctx());
+            test_scenario::return_to_sender(&scenario, adminCap);
+             scenario.return_to_sender(conn_cap);
+            test_scenario::return_shared( storage);
+        };  
+        {
+            let abc = test_scenario::next_tx(&mut scenario, admin);
+            let events = test_scenario::num_user_events(&abc);
+            assert!(events == 0, 0);
+        };
         test_scenario::end(scenario);
     }
 
