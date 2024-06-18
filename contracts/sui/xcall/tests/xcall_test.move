@@ -13,6 +13,7 @@ module xcall::xcall_tests {
     use xcall::cs_message::{Self};
     use xcall::centralized_entry;
     use xcall::xcall_utils as utils;
+    use sui::package::UpgradeCap;
 
     #[test_only]
     fun setup_test(admin:address):Scenario {
@@ -43,8 +44,8 @@ module xcall::xcall_tests {
         let scenario = &mut scenario_val;
         {
             let mut storage = test_scenario::take_shared<Storage>(scenario);
-             let adminCap = scenario.take_from_sender<AdminCap>();
-            main::configure_nid(&mut storage, &adminCap,nid, scenario.ctx());
+            let adminCap = scenario.take_from_sender<AdminCap>();
+            main::configure_nid_test(&mut storage, &adminCap,nid, scenario.ctx());
             test_scenario::return_shared(storage);
             scenario.return_to_sender(adminCap);
         };
@@ -218,8 +219,8 @@ scenario = setup_connection(scenario, string::utf8(b"icon"), admin);
 
             let data = b"data";
             let rollback_data = b"rollback";
-
-            let sources = vector[string::utf8(b"centralized-1")];
+             // since we are registering 2 connections take_from_sender returns latest one.
+            let sources = vector[string::utf8(b"centralized-2")];
             let destinations = vector[string::utf8(b"icon")];
             let fee = coin::mint_for_testing<SUI>(100, scenario.ctx());
 
@@ -318,7 +319,7 @@ scenario = setup_connection(scenario, string::utf8(b"icon"), admin);
             let data = b"data";
             let rollback_data = b"rollback";
 
-            let sources = vector[string::utf8(b"centralized-1")];
+            let sources = vector[string::utf8(b"centralized-2")];
             let destinations = vector[string::utf8(b"icon")];
             let fee = coin::mint_for_testing<SUI>(100, scenario.ctx());
 
@@ -330,6 +331,7 @@ scenario = setup_connection(scenario, string::utf8(b"icon"), admin);
             let message = cs_message::encode(&cs_message::new(cs_message::result_code(), message_result::encode(&response)));
             let from_nid = string::utf8(b"icon");
              let conn_cap = test_scenario::take_from_sender<ConnCap>(&scenario);
+             std::debug::print(&conn_cap);
 
             main::handle_message(&mut storage,&conn_cap,from_nid,message,scenario.ctx());
 
