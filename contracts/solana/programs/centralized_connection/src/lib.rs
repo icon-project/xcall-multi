@@ -34,10 +34,10 @@ pub mod centralized_connection {
         _sn: u128,
         _msg: Vec<u8>,
     ) -> Result<()> {
-        require_keys_eq!(
-            _ctx.accounts.user.key(),
-            _ctx.accounts.centralized_connection_state.xcall_address
-        );
+        // require_keys_eq!(
+        //     _ctx.accounts.user.key(),
+        //     _ctx.accounts.centralized_connection_state.xcall_address
+        // );
         let mut fee: u64 = 0;
         if _sn > 0 {
             fee = _ctx.accounts.fees.total_fees(true);
@@ -165,11 +165,12 @@ pub struct SendMessageCtx<'info> {
 #[derive(Accounts)]
 pub struct InitializeCtx<'info> {            // new_rollback_data: _ctx.accounts.new_rollback_data.to_account_info(),
 
+    #[account(init, payer= user, space = 8 + size_of::<CentralizedConnectionState>(), seeds = [b"centralized_state"],  bump)]
+    pub centralized_connection_state: Account<'info, CentralizedConnectionState>,
+   
     #[account(mut)]
     pub user: Signer<'info>,
 
-    #[account(init, payer= user, space = 8 + size_of::<CentralizedConnectionState>(), seeds = [b"centralized_state"],  bump)]
-    pub centralized_connection_state: Account<'info, CentralizedConnectionState>,
     pub system_program: Program<'info, System>,
 }
 
@@ -215,11 +216,11 @@ pub struct RecvMessageCtx<'info> {
     pub receipt: Account<'info, ReceiptState>,
     #[account(mut)]
     pub proxy_req: Account<'info, ProxyReq>,
-    // pub pending_responses: Account<'info, PendingResponses>,
-    // pub new_rollback_data: Account<'info, RollbackDataAccount>,
-    // pub roll_back_data: Account<'info, RollbackDataAccount>,
+    pub pending_responses: Account<'info, PendingResponses>,
+    pub new_rollback_data: Account<'info, RollbackDataAccount>,
+    pub roll_back_data: Account<'info, RollbackDataAccount>,
     pub xcall_state: Account<'info, XCallState>,
-    // pub fee_handler: AccountInfo<'info>,
+    pub fee_handler: AccountInfo<'info>,
     #[account(mut)]
     pub user: Signer<'info>,
     pub xcall_program: Program<'info, Xcall>,

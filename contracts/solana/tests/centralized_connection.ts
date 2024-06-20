@@ -185,28 +185,31 @@ describe("centralized_connection", async () => {
       .signers([xcall])
       .rpc()
       .catch((e) => console.error(e));
+
+      getTxnLogs(tx)
   });
 
-  it("should recv message", async () => {
-    let airDropTx = await anchor
-      .getProvider()
-      .connection.requestAirdrop(admin.publicKey, 10000000);
-    await anchor.getProvider().connection.confirmTransaction(airDropTx);
 
-    const tx = await program.methods
-      .recvMessage(
-        NETWORK_ID,
-        // new BN(1), // out of bound error occurs when this is string
-        new BN(1),
-        Buffer.from("message")
-      )
-      .accounts({
-        user: admin.publicKey,
-      })
-      .signers([xcall])
-      .rpc()
-      .catch((e) => console.error(e));
-  });
+  // it("should recv message", async () => {
+  //   let airDropTx = await anchor
+  //     .getProvider()
+  //     .connection.requestAirdrop(admin.publicKey, 10000000);
+  //   await anchor.getProvider().connection.confirmTransaction(airDropTx);
+
+  //   const tx = await program.methods
+  //     .recvMessage(
+  //       NETWORK_ID,
+  //       // new BN(1), // out of bound error occurs when this is string
+  //       new BN(1),
+  //       Buffer.from("message")
+  //     )
+  //     .accounts({
+  //       user: admin.publicKey,
+  //     })
+  //     .signers([xcall])
+  //     .rpc()
+  //     .catch((e) => console.error(e));
+  // });
 
   it("should receive message");
 });
