@@ -10,23 +10,18 @@ pub mod types;
 use instructions::*;
 use state::*;
 
-use xcall_lib::{
-    message::envelope::Envelope,
-    network_address::{NetId, NetworkAddress},
-};
+use xcall_lib::{message::envelope::Envelope, network_address::NetworkAddress};
 
-declare_id!("8zs31mXHopbEZ9RBJWXdFvPHZehnEMeSypkyVDjbTK5p");
+declare_id!("DoSLJH36FLrQVjZ8wDD4tHHfLbisj4VwMzpvTV9yyyp2");
 
 #[program]
 pub mod xcall {
     use super::*;
 
     pub fn initialize(ctx: Context<ConfigCtx>, network_id: String) -> Result<()> {
-        ctx.accounts.config.set_inner(Config::new(
-            ctx.accounts.signer.key(),
-            network_id,
-            ctx.bumps.config,
-        ));
+        ctx.accounts
+            .config
+            .set_inner(Config::new(ctx.accounts.signer.key(), network_id));
 
         ctx.accounts.reply.set_inner(Reply {
             reply_state: None,
@@ -69,8 +64,10 @@ pub mod xcall {
         Ok(())
     }
 
+    #[allow(unused_variables)]
     pub fn set_default_connection(
         ctx: Context<DefaultConnectionCtx>,
+        network_id: String,
         connection: Pubkey,
     ) -> Result<()> {
         ctx.accounts
@@ -90,11 +87,15 @@ pub mod xcall {
         instructions::send_call(ctx, envelope, to)
     }
 
+    #[allow(unused_variables)]
     pub fn handle_message(
         ctx: Context<HandleMessageCtx>,
-        from_nid: NetId,
-        msg: Vec<u8>,
+        from_nid: String,
+        message: Vec<u8>,
+        req_id: u128,
+        sequence_no: u128,
+        message_seed: Vec<u8>,
     ) -> Result<()> {
-        instructions::handle_message(ctx, from_nid, msg)
+        instructions::handle_message(ctx, from_nid, message, message_seed)
     }
 }

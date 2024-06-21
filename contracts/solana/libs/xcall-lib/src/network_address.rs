@@ -49,9 +49,9 @@ impl NetworkAddress {
         self.get_parts()[1].to_owned()
     }
 
-    pub fn parse_network_address(&self) -> (NetId, String) {
+    pub fn parse_network_address(&self) -> (String, String) {
         let parts = self.get_parts();
-        (NetId(parts[0].to_owned()), parts[1].to_owned())
+        (parts[0].to_owned(), parts[1].to_owned())
     }
 
     pub fn get_parts(&self) -> Vec<&str> {

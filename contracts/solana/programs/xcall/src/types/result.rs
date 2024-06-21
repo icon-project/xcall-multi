@@ -1,6 +1,8 @@
 use crate::error::XcallError;
 use rlp::{Decodable, Encodable};
 
+use super::request::CSMessageRequest;
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum CSResponseType {
     CSResponseFailure,
@@ -49,7 +51,7 @@ impl CSMessageResult {
         &self.response_code
     }
 
-    pub fn message(&self) -> Option<CSMessageResult> {
+    pub fn message(&self) -> Option<CSMessageRequest> {
         if self.message.is_empty() {
             return None;
         }

@@ -6,22 +6,20 @@ use crate::{
 };
 
 #[account]
-#[derive(InitSpace)]
+#[derive(Debug)]
 pub struct Config {
     pub admin: Pubkey,
     pub fee_handler: Pubkey,
-    #[max_len(25)]
     pub network_id: String,
     pub protocol_fee: u128,
     pub sequence_no: u128,
     pub last_req_id: u128,
-    pub bump: u8,
 }
 
 impl Config {
     pub const SEED_PREFIX: &'static str = "config";
 
-    pub fn new(admin: Pubkey, network_id: String, bump: u8) -> Self {
+    pub fn new(admin: Pubkey, network_id: String) -> Self {
         Self {
             admin,
             fee_handler: admin,
@@ -29,7 +27,6 @@ impl Config {
             protocol_fee: 0,
             sequence_no: 0,
             last_req_id: 0,
-            bump,
         }
     }
 
@@ -97,9 +94,31 @@ impl Reply {
 #[account]
 pub struct RollbackAccount {
     pub rollback: Rollback,
-    bump: u8,
+    pub bump: u8,
 }
 
 impl RollbackAccount {
     pub const SEED_PREFIX: &'static str = "rollback";
+}
+
+#[account]
+pub struct PendingRequest {
+    pub sources: Vec<String>,
+}
+
+#[account]
+#[derive(Debug)]
+pub struct PendingResponse {
+    pub sources: Vec<String>,
+}
+
+#[account]
+pub struct SuccessfulResponse {
+    pub success: bool,
+}
+
+#[account]
+pub struct ProxyRequest {
+    pub req: CSMessageRequest,
+    pub bump: u8,
 }

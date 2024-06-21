@@ -9,7 +9,7 @@ pub mod state;
 use contexts::*;
 use state::*;
 
-declare_id!("9Ne7Fbo7hvKdLTDjpC2wghZbfcmKZqQ3fHcbvqR7ESza");
+declare_id!("CgXQcZ26YLCoqM1wUK4nCXBwtbNeVZoZgt8ueVJ8Bva1");
 
 #[program]
 pub mod centralized_connection {

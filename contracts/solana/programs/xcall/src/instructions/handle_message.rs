@@ -1,7 +1,4 @@
-use std::ops::DerefMut;
-
-use anchor_lang::prelude::*;
-use xcall_lib::network_address::NetId;
+use anchor_lang::{prelude::*, solana_program::hash};
 
 use crate::{
     error::XcallError,
@@ -16,12 +13,17 @@ use crate::{
 
 pub fn handle_message(
     ctx: Context<HandleMessageCtx>,
-    from_nid: NetId,
+    from_nid: String,
     message: Vec<u8>,
+    message_seed: Vec<u8>,
 ) -> Result<()> {
     let config = &ctx.accounts.config;
     if config.network_id == from_nid.to_string() {
         return Err(XcallError::ProtocolMismatch.into());
+    }
+    let hash = hash::hash(&message).to_bytes().to_vec();
+    if hash != message_seed {
+        return Err(XcallError::InvalidMessageSeed.into());
     }
 
     let cs_message: CSMessage = message.try_into()?;
@@ -33,7 +35,7 @@ pub fn handle_message(
 
 pub fn handle_request(
     ctx: Context<HandleMessageCtx>,
-    from_nid: NetId,
+    from_nid: String,
     payload: &[u8],
 ) -> Result<()> {
     let mut req: CSMessageRequest = payload.try_into()?;
@@ -52,7 +54,7 @@ pub fn handle_request(
     if req.protocols().len() > 1 {
         let pending_requests = ctx
             .accounts
-            .pending_requests
+            .pending_request
             .as_mut()
             .ok_or(XcallError::PendingRequestsAccountNotSpecified)?;
 
@@ -65,13 +67,14 @@ pub fn handle_request(
         // TODO: close account and refund lamports to sources
     }
 
-    let req_id = ctx.accounts.config.get_next_req_id();
+    // let config = &mut ctx.accounts.config;
+    ctx.accounts.config.last_req_id = ctx.accounts.config.last_req_id + 1;
 
     emit!(event::CallMessage {
         from: req.from().to_string(),
         to: req.to().clone(),
         sn: req.sequence_no(),
-        reqId: req_id,
+        reqId: ctx.accounts.config.last_req_id,
         data: req.data()
     });
 
@@ -89,7 +92,13 @@ pub fn handle_result(ctx: Context<HandleMessageCtx>, payload: &[u8]) -> Result<(
 
     let default_connection = ctx.accounts.default_connection.key().to_string();
     let sender = ctx.accounts.signer.key().to_string();
-    let rollback = &mut ctx.accounts.rollback_accunt.deref_mut().rollback;
+    let rollback = &mut ctx
+        .accounts
+        .rollback_accunt
+        .clone()
+        .unwrap()
+        .clone()
+        .rollback;
 
     let source_valid = is_valid_source(&default_connection, &sender, rollback.protocols())?;
     if !source_valid {
@@ -99,7 +108,7 @@ pub fn handle_result(ctx: Context<HandleMessageCtx>, payload: &[u8]) -> Result<(
     if rollback.protocols().len() > 1 {
         let pending_responses = ctx
             .accounts
-            .pending_responses
+            .pending_response
             .as_mut()
             .ok_or(XcallError::PendingResponsesAccountNotSpecified)?;
 
@@ -120,13 +129,34 @@ pub fn handle_result(ctx: Context<HandleMessageCtx>, payload: &[u8]) -> Result<(
 
     match response_code {
         CSResponseType::CSResponseSuccess => {
-            // TODO:
-            // close rollback account and refund lamports
-            // save success reponse to an account
+            // TODO: close rollback account and refund lamports
+
+            if let Some(succ_res) = &mut ctx.accounts.successful_response {
+                succ_res.success = true
+            } else {
+                return Err(XcallError::SuccessfulResponseAccountNotSpecified.into());
+            }
 
             if result.message().is_some() {
-                let _reply_msg = result.message().unwrap();
-                // TODO: handle reply
+                let reply = &mut result.message().unwrap();
+                if rollback.to().nid() != reply.from().nid() {
+                    return Err(XcallError::InvalidReplyReceived.into());
+                }
+                // let req_id = ctx.accounts.config.get_next_req_id();
+
+                emit!(event::CallMessage {
+                    from: reply.from().to_string(),
+                    to: reply.to().clone(),
+                    sn: reply.sequence_no(),
+                    reqId: 1,
+                    data: reply.data()
+                });
+
+                reply.hash_data();
+                ctx.accounts.proxy_request.set_inner(ProxyRequest {
+                    req: reply.to_owned(),
+                    bump: ctx.bumps.proxy_request,
+                });
             }
         }
         _ => {
@@ -157,71 +187,68 @@ pub fn is_valid_source(
 }
 
 #[derive(Accounts)]
-#[instruction(from_nid: NetId, msg: Vec<u8>, sequence_no: u128 )]
+#[instruction(from_nid: String, message: Vec<u8>, req_id: u128, sequence_no: u128, message_seed: Vec<u8>)]
 pub struct HandleMessageCtx<'info> {
     #[account(
         mut,
         seeds = [Config::SEED_PREFIX.as_bytes()],
-        bump = config.bump
+        bump
     )]
     pub config: Account<'info, Config>,
 
-    /// TODO: include hash of payload in seeds
     #[account(
         init_if_needed,
         payer = signer,
-        space = 8 + 1024,
-        seeds = [],
+        space = 8 + 640,
+        seeds = ["req".as_bytes(), &message_seed],
         bump
     )]
-    pub pending_requests: Option<Account<'info, PendingRequests>>,
-
-    /// TODO: include hash of payload in seeds
-    #[account(
-        init_if_needed,
-        payer = signer,
-        space = 8 + 1024,
-        seeds = [],
-        bump
-    )]
-    pub pending_responses: Option<Account<'info, PendingResponses>>,
+    pub pending_request: Option<Account<'info, PendingRequest>>,
 
     #[account(
         init_if_needed,
         payer = signer,
+        space = 8 + 640,
+        seeds = ["res".as_bytes(), &message_seed],
+        bump
+    )]
+    pub pending_response: Option<Account<'info, PendingResponse>>,
+
+    #[account(
+        init_if_needed,
+        payer = signer,
+        space = 8 + 1,
+        seeds = ["success".as_bytes(), sequence_no.to_string().as_bytes()],
+        bump
+    )]
+    pub successful_response: Option<Account<'info, SuccessfulResponse>>,
+
+    #[account(
+        init_if_needed,
+        payer = signer,
         space = 8 + 1024,
-        seeds = ["proxy".as_bytes(), config.last_req_id.to_le_bytes().as_ref()],
+        seeds = ["proxy".as_bytes(), (config.last_req_id + 1).to_string().as_bytes()],
         bump
     )]
     pub proxy_request: Account<'info, ProxyRequest>,
 
     #[account(
-        seeds = [DefaultConnection::SEED_PREFIX.as_bytes(), from_nid.to_string().as_bytes()],
+        seeds = [DefaultConnection::SEED_PREFIX.as_bytes(), from_nid.as_bytes()],
         bump
     )]
     pub default_connection: Account<'info, DefaultConnection>,
 
-    #[account(mut)]
-    pub rollback_accunt: Account<'info, RollbackAccount>,
+    #[account(
+        init_if_needed,
+        space = 8 + 1024,
+        payer = signer,
+        seeds = ["rollback".as_bytes(), sequence_no.to_string().as_bytes()],
+        bump
+    )]
+    pub rollback_accunt: Option<Account<'info, RollbackAccount>>,
 
     #[account(mut)]
     pub signer: Signer<'info>,
 
     pub system_program: Program<'info, System>,
-}
-
-#[account]
-pub struct PendingRequests {
-    pub sources: Vec<String>,
-}
-
-#[account]
-pub struct PendingResponses {
-    pub sources: Vec<String>,
-}
-
-#[account]
-pub struct ProxyRequest {
-    pub req: CSMessageRequest,
-    pub bump: u8,
 }

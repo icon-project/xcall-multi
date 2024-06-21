@@ -7,7 +7,7 @@ pub struct ConfigCtx<'info> {
     #[account(
         init,
         payer = signer,
-        space = Config::INIT_SPACE,
+        space = 8 + 1048,
         seeds = [Config::SEED_PREFIX.as_bytes()],
         bump
     )]
@@ -47,7 +47,7 @@ pub struct DefaultConnectionCtx<'info> {
     #[account(
         init,
         payer = signer,
-        space = DefaultConnection::INIT_SPACE,
+        space = 8 + DefaultConnection::INIT_SPACE,
         seeds = [DefaultConnection::SEED_PREFIX.as_bytes(), network_id.as_bytes()],
         bump
     )]

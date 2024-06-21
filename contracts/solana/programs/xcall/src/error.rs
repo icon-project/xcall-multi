@@ -23,6 +23,12 @@ pub enum XcallError {
     #[msg("Pending request account is not specified")]
     PendingResponsesAccountNotSpecified,
 
+    #[msg("Invalid message seed")]
+    InvalidMessageSeed,
+
+    #[msg("Successful response account is not specified")]
+    SuccessfulResponseAccountNotSpecified,
+
     #[msg("Protocol mismatch")]
     ProtocolMismatch,
 
@@ -31,6 +37,9 @@ pub enum XcallError {
 
     #[msg("No rollback data")]
     NoRollbackData,
+
+    #[msg("Invalid reply received")]
+    InvalidReplyReceived,
 
     #[msg("Decode failed")]
     DecodeFailed,
