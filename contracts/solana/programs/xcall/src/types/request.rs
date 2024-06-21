@@ -2,7 +2,8 @@ use super::*;
 
 use anchor_lang::{
     prelude::borsh,
-    solana_program, {AnchorDeserialize, AnchorSerialize},
+    solana_program::{self, msg},
+    AnchorDeserialize, AnchorSerialize,
 };
 
 use crate::error::XcallError;
@@ -130,6 +131,7 @@ impl TryFrom<&Vec<u8>> for CSMessageRequest {
 impl TryFrom<&[u8]> for CSMessageRequest {
     type Error = XcallError;
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
+        msg!("heyy");
         let rlp = rlp::Rlp::new(value);
         Self::decode(&rlp).map_err(|_error| XcallError::DecodeFailed)
     }
