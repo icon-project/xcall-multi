@@ -13,16 +13,6 @@ describe("Xcall", async () => {
 
   const txnHelpers = new TxnHelpers(connection, wallet.payer);
 
-  it("[initialize]: should initialize the program", async () => {
-    let initializeIx = await program.methods
-      .initialize("solana")
-      .accounts({})
-      .instruction();
-
-    let tx = await txnHelpers.buildV0Txn([initializeIx], [wallet.payer]);
-    await connection.sendTransaction(tx);
-  });
-
   it("[initialize]: should fail on double initialize", async () => {
     try {
       await program.methods

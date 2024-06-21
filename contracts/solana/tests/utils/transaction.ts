@@ -37,6 +37,8 @@ export class TxnHelpers {
   }
 
   async extendAddressLookupTable(addresses: PublicKey[]) {
+    await sleep(2);
+
     let extendLookupTableIx = AddressLookupTableProgram.extendLookupTable({
       addresses,
       authority: this.payer.publicKey,
@@ -106,6 +108,6 @@ export class TxnHelpers {
 
     const tx = new VersionedTransaction(messageV0);
     signers.forEach((s) => tx.sign([s]));
-    tx;
+    return tx;
   }
 }
