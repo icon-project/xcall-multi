@@ -4,9 +4,9 @@ use anchor_lang::prelude::*;
 
 #[event]
 pub struct CallMessageSent {
-    pub reqId: u128,
-    pub code: u8,
-    pub msg: String,
+    pub from: Pubkey,
+    pub to: String,
+    pub sn: u128,
 }
 
 #[event]

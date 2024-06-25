@@ -1,6 +1,7 @@
 use anchor_lang::prelude::*;
 
 use crate::{
+    constants::*,
     error::XcallError,
     types::{request::CSMessageRequest, rollback::Rollback},
 };
@@ -11,13 +12,15 @@ pub struct Config {
     pub admin: Pubkey,
     pub fee_handler: Pubkey,
     pub network_id: String,
-    pub protocol_fee: u128,
+    pub protocol_fee: u64,
     pub sequence_no: u128,
     pub last_req_id: u128,
 }
 
 impl Config {
     pub const SEED_PREFIX: &'static str = "config";
+
+    pub const SIZE: usize = 8 + 1048;
 
     pub fn new(admin: Pubkey, network_id: String) -> Self {
         Self {
@@ -52,7 +55,7 @@ impl Config {
         self.fee_handler = fee_handler
     }
 
-    pub fn set_protocol_fee(&mut self, fee: u128) {
+    pub fn set_protocol_fee(&mut self, fee: u64) {
         self.protocol_fee = fee
     }
 
@@ -68,16 +71,19 @@ impl Config {
 }
 
 #[account]
-#[derive(InitSpace)]
 pub struct DefaultConnection {
     pub address: Pubkey,
+    pub bump: u8,
 }
 
 impl DefaultConnection {
     pub const SEED_PREFIX: &'static str = "conn";
 
-    pub fn set(&mut self, address: Pubkey) {
-        self.address = address
+    pub const SIZE: usize = 8 + 32 + 1;
+
+    pub fn set(&mut self, address: Pubkey, bump: u8) {
+        self.address = address;
+        self.bump = bump
     }
 }
 
@@ -89,27 +95,54 @@ pub struct Reply {
 
 impl Reply {
     pub const SEED_PREFIX: &'static str = "reply";
+
+    pub const SIZE: usize = 8 + 1024 + 1024 + 1;
+
+    pub fn new(&mut self) {
+        self.reply_state = None;
+        self.call_reply = None;
+    }
+
+    pub fn set_reply_state(&mut self, req: CSMessageRequest) {
+        self.reply_state = Some(req);
+    }
+
+    pub fn set_call_reply(&mut self, req: CSMessageRequest) {
+        self.call_reply = Some(req)
+    }
 }
 
 #[account]
 pub struct RollbackAccount {
     pub rollback: Rollback,
+    pub owner: Pubkey,
     pub bump: u8,
 }
 
 impl RollbackAccount {
     pub const SEED_PREFIX: &'static str = "rollback";
+
+    pub const SIZE: usize = 8 + 1024 + 1;
+
+    pub fn new(rollback: Rollback, owner: Pubkey, bump: u8) -> Self {
+        Self {
+            rollback,
+            owner,
+            bump,
+        }
+    }
 }
 
 #[account]
+#[derive(Debug)]
 pub struct PendingRequest {
-    pub sources: Vec<String>,
+    pub sources: Vec<Pubkey>,
 }
 
 #[account]
 #[derive(Debug)]
 pub struct PendingResponse {
-    pub sources: Vec<String>,
+    pub sources: Vec<Pubkey>,
 }
 
 #[account]
@@ -120,5 +153,16 @@ pub struct SuccessfulResponse {
 #[account]
 pub struct ProxyRequest {
     pub req: CSMessageRequest,
+    pub owner: Pubkey,
     pub bump: u8,
+}
+
+impl ProxyRequest {
+    pub const SEED_PREFIX: &'static str = "proxy";
+
+    pub const SIZE: usize = ACCOUNT_DISCRIMINATOR_SIZE + 1024 + 32 + 1;
+
+    pub fn new(req: CSMessageRequest, owner: Pubkey, bump: u8) -> Self {
+        Self { req, owner, bump }
+    }
 }

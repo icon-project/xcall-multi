@@ -1,5 +1,6 @@
 use anchor_lang::prelude::*;
 
+pub mod assertion;
 pub mod constants;
 pub mod error;
 pub mod event;
@@ -10,7 +11,7 @@ pub mod types;
 use instructions::*;
 use state::*;
 
-use xcall_lib::{message::envelope::Envelope, network_address::NetworkAddress};
+use xcall_lib::network_address::NetworkAddress;
 
 declare_id!("DoSLJH36FLrQVjZ8wDD4tHHfLbisj4VwMzpvTV9yyyp2");
 
@@ -23,10 +24,7 @@ pub mod xcall {
             .config
             .set_inner(Config::new(ctx.accounts.signer.key(), network_id));
 
-        ctx.accounts.reply.set_inner(Reply {
-            reply_state: None,
-            call_reply: None,
-        });
+        ctx.accounts.reply.new();
 
         Ok(())
     }
@@ -41,7 +39,7 @@ pub mod xcall {
         Ok(())
     }
 
-    pub fn set_protocol_fee(ctx: Context<UpdateConfigCtx>, fee: u128) -> Result<()> {
+    pub fn set_protocol_fee(ctx: Context<UpdateConfigCtx>, fee: u64) -> Result<()> {
         ctx.accounts
             .config
             .ensure_fee_handler(ctx.accounts.signer.key())?;
@@ -74,14 +72,16 @@ pub mod xcall {
             .config
             .ensure_admin(ctx.accounts.signer.key())?;
 
-        ctx.accounts.default_connection.set(connection);
+        ctx.accounts
+            .default_connection
+            .set(connection, ctx.bumps.default_connection);
 
         Ok(())
     }
 
-    pub fn send_call(
-        ctx: Context<SendCallCtx>,
-        envelope: Envelope,
+    pub fn send_call<'a, 'b, 'c, 'info>(
+        ctx: Context<'a, 'b, 'c, 'info, SendCallCtx<'info>>,
+        envelope: Vec<u8>,
         to: NetworkAddress,
     ) -> Result<u128> {
         instructions::send_call(ctx, envelope, to)
@@ -92,10 +92,8 @@ pub mod xcall {
         ctx: Context<HandleMessageCtx>,
         from_nid: String,
         message: Vec<u8>,
-        req_id: u128,
         sequence_no: u128,
-        message_seed: Vec<u8>,
     ) -> Result<()> {
-        instructions::handle_message(ctx, from_nid, message, message_seed)
+        instructions::handle_message(ctx, from_nid, message, sequence_no)
     }
 }

@@ -34,9 +34,22 @@ impl Config {
     /// It throws error if `signer` is not an admin account
     pub fn ensure_admin(&self, signer: Pubkey) -> Result<()> {
         if self.admin != signer {
-            return Err(ConnectionError::OnlAdmin.into());
+            return Err(ConnectionError::OnlyAdmin.into());
         }
         Ok(())
+    }
+
+    /// It throws error if `address` is not an xcall account
+    pub fn ensure_xcall(&self, address: Pubkey) -> Result<()> {
+        if self.xcall != address {
+            return Err(ConnectionError::OnlyXcall.into());
+        }
+        Ok(())
+    }
+
+    pub fn get_next_conn_sn(&mut self) -> Result<u128> {
+        self.sn += 1;
+        Ok(self.sn)
     }
 }
 
@@ -63,19 +76,28 @@ impl Fee {
         }
     }
 
-    pub fn get(&self, response: bool) -> u64 {
+    pub fn get(&self, response: bool) -> Result<u64> {
         let mut fee = self.message_fee;
         if response {
             fee += self.response_fee
         }
 
-        fee
+        Ok(fee)
     }
 }
 
-pub fn get_claimable_fees(fee_account: &UncheckedAccount) -> Result<u64> {
-    let rent = Rent::default();
-    let rent_exempt_balance = rent.minimum_balance(constants::ACCOUNT_DISCRIMINATOR_SIZE);
+#[account]
+pub struct ClaimFee {
+    pub bump: u8,
+}
 
-    Ok(fee_account.lamports() - rent_exempt_balance)
+impl ClaimFee {
+    pub const LEN: usize = constants::ACCOUNT_DISCRIMINATOR_SIZE + 1;
+
+    pub fn get_claimable_fees(&self, fee_account: &AccountInfo) -> Result<u64> {
+        let rent = Rent::default();
+        let rent_exempt_balance = rent.minimum_balance(ClaimFee::LEN);
+
+        Ok(fee_account.lamports() - rent_exempt_balance)
+    }
 }
