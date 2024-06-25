@@ -44,7 +44,8 @@ module mock_dapp::mock_dapp_tests {
     fun setup_connection(admin:address,mut scenario:Scenario):Scenario {
         let mut xcall_state= scenario.take_shared<XCallState>();
         let adminCap=scenario.take_from_sender<AdminCap>();
-        xcall::register_connection(&mut xcall_state,&adminCap,string::utf8(b"netid"),string::utf8(b"centralized-1"),admin,scenario.ctx());
+        xcall::register_connection_admin(&mut xcall_state,&adminCap,string::utf8(b"centralized-1"),admin,scenario.ctx());
+        xcall::set_default_connection(&mut xcall_state,&adminCap,string::utf8(b"netid"),string::utf8(b"centralized-1"),scenario.ctx());
         test_scenario::return_shared<XCallState>(xcall_state);
         scenario.return_to_sender(adminCap);
         scenario.next_tx(admin);
