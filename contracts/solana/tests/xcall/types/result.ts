@@ -5,14 +5,16 @@ import { CSMessageType, CSResponseType } from "./message";
 export class CSMessageResult {
   sequence_no: number;
   response_code: CSResponseType;
-  data: Uint8Array;
+  data: Uint8Array | null;
 
-  new(sequence_no: number, response_code: CSMessageType, data: Uint8Array) {
-    return {
-      sequence_no,
-      response_code,
-      data,
-    };
+  constructor(
+    sequence_no: number,
+    response_code: CSResponseType,
+    data: Uint8Array | null
+  ) {
+    this.sequence_no = sequence_no;
+    this.response_code = response_code;
+    this.data = data;
   }
 
   encode() {

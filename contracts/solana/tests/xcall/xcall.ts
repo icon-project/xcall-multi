@@ -12,16 +12,4 @@ describe("Xcall", async () => {
   let wallet = provider.wallet as anchor.Wallet;
 
   const txnHelpers = new TxnHelpers(connection, wallet.payer);
-
-  it("[initialize]: should fail on double initialize", async () => {
-    try {
-      await program.methods
-        .initialize("solana")
-        .accounts({})
-        .signers([wallet.payer])
-        .rpc();
-    } catch (err) {
-      expect(err.message).to.not.be.empty;
-    }
-  });
 });

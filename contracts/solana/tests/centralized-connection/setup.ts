@@ -1,18 +1,19 @@
 import * as anchor from "@coral-xyz/anchor";
-import {
-  PublicKey,
-  Connection,
-  SystemProgram,
-  TransactionMessage,
-  VersionedTransaction,
-} from "@solana/web3.js";
+import { PublicKey, Connection, Keypair } from "@solana/web3.js";
 
 import { CentralizedConnection } from "../../target/types/centralized_connection";
+import { SYSTEM_PROGRAM_ID } from "@coral-xyz/anchor/dist/cjs/native/system";
+import { Xcall } from "../../target/types/xcall";
+
+const connectionProgram: anchor.Program<CentralizedConnection> =
+  anchor.workspace.CentralizedConnection;
+
+const xcallProgram: anchor.Program<Xcall> = anchor.workspace.Xcall;
 
 export class TestContext {
   program: anchor.Program<CentralizedConnection>;
   signer: anchor.Wallet;
-  admin: anchor.Wallet;
+  admin: Keypair;
   connection: Connection;
   networkId: string;
 
@@ -22,84 +23,79 @@ export class TestContext {
 
     this.program = anchor.workspace.CentralizedConnection;
     this.signer = provider.wallet as anchor.Wallet;
-    this.admin = provider.wallet as anchor.Wallet;
+    this.admin = (provider.wallet as anchor.Wallet).payer;
     this.connection = new Connection("http://127.0.0.1:8899", "processed");
     this.networkId = "icx";
   }
 
   async initialize() {
     await this.program.methods
-      .initialize(this.signer.publicKey, this.signer.publicKey)
+      .initialize(xcallProgram.programId, this.signer.publicKey)
       .signers([this.signer.payer])
-      .accounts({})
+      .accountsStrict({
+        signer: this.signer.publicKey,
+        systemProgram: SYSTEM_PROGRAM_ID,
+        config: connectionPDA.config().pda,
+        claimFee: connectionPDA.claimFees().pda,
+      })
       .rpc();
   }
 
-  async setAdmin(pubkey: PublicKey) {
+  async setAdmin(keypair: Keypair) {
     await this.program.methods
-      .setAdmin(pubkey)
-      .accounts({})
-      .signers([this.signer.payer])
+      .setAdmin(keypair.publicKey)
+      .accountsStrict({
+        admin: this.admin.publicKey,
+        config: connectionPDA.config().pda,
+      })
+      .signers([this.admin])
       .rpc();
+
+    this.admin = keypair;
   }
 
-  async getConfigAccount() {
-    let [config_account] = PublicKey.findProgramAddressSync(
+  async getConfig() {
+    return await this.program.account.config.fetch(
+      connectionPDA.config().pda,
+      "confirmed"
+    );
+  }
+
+  async getFee(nid: string) {
+    return await this.program.account.fee.fetch(
+      connectionPDA.fee(nid).pda,
+      "confirmed"
+    );
+  }
+}
+
+export class connectionPDA {
+  constructor() {}
+
+  static config() {
+    let [pda, bump] = PublicKey.findProgramAddressSync(
       [Buffer.from("config")],
-      this.program.programId
+      connectionProgram.programId
     );
 
-    let { data } = await this.program.account.config.fetchAndContext(
-      config_account
-    );
-
-    return data;
+    return { bump, pda };
   }
 
-  async getFeeAccount() {
-    let [fee_account] = PublicKey.findProgramAddressSync(
-      [Buffer.from("fee"), Buffer.from(this.networkId)],
-      this.program.programId
+  static fee(networkId: string) {
+    const [pda, bump] = PublicKey.findProgramAddressSync(
+      [Buffer.from("fee"), Buffer.from(networkId)],
+      connectionProgram.programId
     );
 
-    let { data } = await this.program.account.fee.fetchAndContext(fee_account);
-
-    return data;
+    return { pda, bump };
   }
 
-  getClaimFeesAddress() {
-    let [claimFees] = PublicKey.findProgramAddressSync(
+  static claimFees() {
+    const [pda, bump] = PublicKey.findProgramAddressSync(
       [Buffer.from("claim_fees")],
-      this.program.programId
+      connectionProgram.programId
     );
 
-    return claimFees;
-  }
-
-  sleep(ms: number) {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-  }
-
-  async transferLamports(to: PublicKey, lamports: number) {
-    let recentBlock = await this.connection.getLatestBlockhash();
-
-    let transfer_to_pda = SystemProgram.transfer({
-      lamports,
-      fromPubkey: this.signer.publicKey,
-      toPubkey: to,
-      programId: SystemProgram.programId,
-    });
-
-    const message = new TransactionMessage({
-      payerKey: this.signer.publicKey,
-      recentBlockhash: recentBlock.blockhash,
-      instructions: [transfer_to_pda],
-    }).compileToV0Message();
-
-    let tx = new VersionedTransaction(message);
-    tx.sign([this.signer.payer]);
-
-    const signature = await this.connection.sendTransaction(tx);
-    return signature;
+    return { pda, bump };
   }
 }

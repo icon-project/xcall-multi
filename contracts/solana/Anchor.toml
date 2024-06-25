@@ -1,7 +1,7 @@
 [toolchain]
 
 [features]
-resolution = true
+resolution = false
 skip-lint = false
 
 [programs.localnet]

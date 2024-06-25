@@ -76,7 +76,7 @@ export class TxnHelpers {
       .then((res) => res.blockhash);
 
     const messageV0 = new TransactionMessage({
-      payerKey: this.payer.publicKey,
+      payerKey: signers[0].publicKey,
       recentBlockhash: blockHash,
       instructions,
     }).compileToV0Message();
@@ -101,7 +101,7 @@ export class TxnHelpers {
       .then((res) => res.blockhash);
 
     let messageV0 = new TransactionMessage({
-      payerKey: this.payer.publicKey,
+      payerKey: signers[0].publicKey,
       recentBlockhash: blockhash,
       instructions,
     }).compileToV0Message([lookupTableAccount]);
@@ -109,5 +109,20 @@ export class TxnHelpers {
     const tx = new VersionedTransaction(messageV0);
     signers.forEach((s) => tx.sign([s]));
     return tx;
+  }
+
+  async airdrop(to: PublicKey, lamports: number) {
+    let aridropTx = await this.connection.requestAirdrop(to, lamports);
+    await this.connection.confirmTransaction(aridropTx, "confirmed");
+  }
+
+  async logParsedTx(txSignature: string) {
+    await sleep(3);
+    console.log(
+      await this.connection.getParsedTransaction(txSignature, {
+        commitment: "confirmed",
+        maxSupportedTransactionVersion: 0,
+      })
+    );
   }
 }
