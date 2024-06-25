@@ -1,5 +1,6 @@
 import fs from "fs";
-import { Keypair } from "@solana/web3.js";
+import { createHash } from "crypto";
+import { Keypair, Connection, PublicKey } from "@solana/web3.js";
 
 export const loadKeypariFromFile = (path: string) => {
   return Keypair.fromSecretKey(
@@ -9,6 +10,10 @@ export const loadKeypariFromFile = (path: string) => {
 
 export const sleep = (seconds: number) => {
   return new Promise((resolve) => setTimeout(resolve, seconds * 1000));
+};
+
+export const hash = (message: Uint8Array) => {
+  return createHash("sha256").update(message).digest("hex");
 };
 
 export * from "./transaction";
