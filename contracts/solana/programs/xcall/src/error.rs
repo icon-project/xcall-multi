@@ -52,4 +52,10 @@ pub enum XcallError {
 
     #[msg("Invalid source")]
     InvalidSource,
+
+    #[msg("Invalid request id")]
+    InvalidRequestId,
+
+    #[msg("Data mismatch")]
+    DataMismatch,
 }
