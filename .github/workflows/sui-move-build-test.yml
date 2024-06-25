@@ -1,0 +1,29 @@
+name: SUI Move Build and Test
+
+on:
+  pull_request:
+    branches:
+      - "main"
+  push:
+    branches:
+      - "**"
+
+jobs:
+  build:
+    name: sui move build and test
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO_OWNER: MystenLabs
+      REPO_NAME: sui
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: Install sui
+        run: bash -x ./scripts/install_sui.sh
+      
+      - name: build and test
+        run: bash ./scripts/optimize-move.sh
+       
