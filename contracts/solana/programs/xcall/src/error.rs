@@ -35,12 +35,21 @@ pub enum XcallError {
     #[msg("Rollback not possible")]
     RollbackNotPossible,
 
+    #[msg("Call request not found")]
+    CallRequestNotFound,
+
     #[msg("No rollback data")]
     NoRollbackData,
 
     #[msg("Invalid reply received")]
     InvalidReplyReceived,
 
+    #[msg("Invalid message sequence received")]
+    InvalidMessageSequence,
+
     #[msg("Decode failed")]
     DecodeFailed,
+
+    #[msg("Invalid source")]
+    InvalidSource,
 }

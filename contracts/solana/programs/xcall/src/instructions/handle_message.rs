@@ -15,21 +15,17 @@ pub fn handle_message(
     ctx: Context<HandleMessageCtx>,
     from_nid: String,
     message: Vec<u8>,
-    message_seed: Vec<u8>,
+    sequence_no: u128,
 ) -> Result<()> {
     let config = &ctx.accounts.config;
     if config.network_id == from_nid.to_string() {
         return Err(XcallError::ProtocolMismatch.into());
     }
-    let hash = hash::hash(&message).to_bytes().to_vec();
-    if hash != message_seed {
-        return Err(XcallError::InvalidMessageSeed.into());
-    }
 
     let cs_message: CSMessage = message.try_into()?;
     match cs_message.message_type() {
         CSMessageType::CSMessageRequest => handle_request(ctx, from_nid, cs_message.payload()),
-        CSMessageType::CSMessageResult => handle_result(ctx, cs_message.payload()),
+        CSMessageType::CSMessageResult => handle_result(ctx, cs_message.payload(), sequence_no),
     }
 }
 
@@ -44,9 +40,12 @@ pub fn handle_request(
     if src_nid != from_nid {
         return Err(XcallError::ProtocolMismatch.into());
     }
-    let default_connection = ctx.accounts.default_connection.key().to_string();
-    let source = ctx.accounts.signer.key().to_string();
-    let source_valid = is_valid_source(&default_connection, &source, &req.protocols())?;
+    let source = ctx.accounts.signer.key();
+    let source_valid = is_valid_source(
+        &ctx.accounts.default_connection.key(),
+        &source.to_string(),
+        &req.protocols(),
+    )?;
     if !source_valid {
         return Err(XcallError::ProtocolMismatch.into());
     }
@@ -67,45 +66,51 @@ pub fn handle_request(
         // TODO: close account and refund lamports to sources
     }
 
-    // let config = &mut ctx.accounts.config;
-    ctx.accounts.config.last_req_id = ctx.accounts.config.last_req_id + 1;
+    let req_id = ctx.accounts.config.get_next_req_id();
 
     emit!(event::CallMessage {
         from: req.from().to_string(),
         to: req.to().clone(),
         sn: req.sequence_no(),
-        reqId: ctx.accounts.config.last_req_id,
+        reqId: req_id,
         data: req.data()
     });
 
     req.hash_data();
-    ctx.accounts.proxy_request.set_inner(ProxyRequest {
-        req: req.clone(),
-        bump: ctx.bumps.proxy_request,
-    });
+    ctx.accounts
+        .proxy_request
+        .set_inner(ProxyRequest::new(req, source, ctx.bumps.proxy_request));
 
     Ok(())
 }
 
-pub fn handle_result(ctx: Context<HandleMessageCtx>, payload: &[u8]) -> Result<()> {
+pub fn handle_result(
+    ctx: Context<HandleMessageCtx>,
+    payload: &[u8],
+    sequence_no: u128,
+) -> Result<()> {
     let result: CSMessageResult = payload.try_into()?;
 
-    let default_connection = ctx.accounts.default_connection.key().to_string();
-    let sender = ctx.accounts.signer.key().to_string();
-    let rollback = &mut ctx
+    let sender = ctx.accounts.signer.key();
+    let rollback_account = ctx
         .accounts
-        .rollback_accunt
-        .clone()
-        .unwrap()
-        .clone()
-        .rollback;
+        .rollback_account
+        .as_mut()
+        .ok_or(XcallError::CallRequestNotFound)?;
 
-    let source_valid = is_valid_source(&default_connection, &sender, rollback.protocols())?;
+    let source_valid = is_valid_source(
+        &ctx.accounts.default_connection.key(),
+        &sender.to_string(),
+        rollback_account.rollback.protocols(),
+    )?;
     if !source_valid {
         return Err(XcallError::ProtocolMismatch.into());
     }
+    if sequence_no != result.sequence_no() {
+        return Err(XcallError::InvalidMessageSequence.into());
+    }
 
-    if rollback.protocols().len() > 1 {
+    if rollback_account.rollback.protocols().len() > 1 {
         let pending_responses = ctx
             .accounts
             .pending_response
@@ -115,13 +120,14 @@ pub fn handle_result(ctx: Context<HandleMessageCtx>, payload: &[u8]) -> Result<(
         if !pending_responses.sources.contains(&sender) {
             pending_responses.sources.push(sender)
         }
-        if pending_responses.sources.len() != rollback.protocols().len() {
+        if pending_responses.sources.len() != rollback_account.rollback.protocols().len() {
             return Ok(());
         }
         // TODO: close account and refund lamports to sources
     }
 
     let response_code = result.response_code();
+
     emit!(event::ResponseMessage {
         code: response_code.clone().into(),
         sn: result.sequence_no()
@@ -131,39 +137,23 @@ pub fn handle_result(ctx: Context<HandleMessageCtx>, payload: &[u8]) -> Result<(
         CSResponseType::CSResponseSuccess => {
             // TODO: close rollback account and refund lamports
 
-            if let Some(succ_res) = &mut ctx.accounts.successful_response {
-                succ_res.success = true
-            } else {
-                return Err(XcallError::SuccessfulResponseAccountNotSpecified.into());
-            }
+            let success_res = ctx
+                .accounts
+                .successful_response
+                .as_mut()
+                .ok_or(XcallError::SuccessfulResponseAccountNotSpecified)?;
+            success_res.success = true;
 
             if result.message().is_some() {
                 let reply = &mut result.message().unwrap();
-                if rollback.to().nid() != reply.from().nid() {
-                    return Err(XcallError::InvalidReplyReceived.into());
-                }
-                // let req_id = ctx.accounts.config.get_next_req_id();
-
-                emit!(event::CallMessage {
-                    from: reply.from().to_string(),
-                    to: reply.to().clone(),
-                    sn: reply.sequence_no(),
-                    reqId: 1,
-                    data: reply.data()
-                });
-
-                reply.hash_data();
-                ctx.accounts.proxy_request.set_inner(ProxyRequest {
-                    req: reply.to_owned(),
-                    bump: ctx.bumps.proxy_request,
-                });
+                handle_reply(ctx, reply)?;
             }
         }
         _ => {
-            if rollback.rollback().len() < 1 {
+            if rollback_account.rollback.rollback().len() < 1 {
                 return Err(XcallError::NoRollbackData.into());
             }
-            rollback.enable_rollback();
+            rollback_account.rollback.enable_rollback();
 
             emit!(event::RollbackMessage {
                 sn: result.sequence_no()
@@ -174,8 +164,35 @@ pub fn handle_result(ctx: Context<HandleMessageCtx>, payload: &[u8]) -> Result<(
     Ok(())
 }
 
+pub fn handle_reply(ctx: Context<HandleMessageCtx>, reply: &mut CSMessageRequest) -> Result<()> {
+    if let Some(rollback_account) = &ctx.accounts.rollback_account {
+        if rollback_account.rollback.to().nid() != reply.from().nid() {
+            return Err(XcallError::InvalidReplyReceived.into());
+        }
+    }
+
+    let req_id = ctx.accounts.config.get_next_req_id();
+
+    emit!(event::CallMessage {
+        from: reply.from().to_string(),
+        to: reply.to().clone(),
+        sn: reply.sequence_no(),
+        reqId: req_id,
+        data: reply.data()
+    });
+
+    reply.hash_data();
+    ctx.accounts.proxy_request.set_inner(ProxyRequest::new(
+        reply.to_owned(),
+        ctx.accounts.signer.key(),
+        ctx.bumps.proxy_request,
+    ));
+
+    Ok(())
+}
+
 pub fn is_valid_source(
-    default_conn: &String,
+    default_connection: &Pubkey,
     sender: &String,
     protocols: &Vec<String>,
 ) -> Result<bool> {
@@ -183,11 +200,11 @@ pub fn is_valid_source(
         return Ok(true);
     }
 
-    Ok(sender == default_conn)
+    Ok(sender == &default_connection.to_string())
 }
 
 #[derive(Accounts)]
-#[instruction(from_nid: String, message: Vec<u8>, req_id: u128, sequence_no: u128, message_seed: Vec<u8>)]
+#[instruction(from_nid: String, message: Vec<u8>, sequence_no: u128)]
 pub struct HandleMessageCtx<'info> {
     #[account(
         mut,
@@ -200,7 +217,7 @@ pub struct HandleMessageCtx<'info> {
         init_if_needed,
         payer = signer,
         space = 8 + 640,
-        seeds = ["req".as_bytes(), &message_seed],
+        seeds = ["req".as_bytes(), &hash::hash(&message).to_bytes()],
         bump
     )]
     pub pending_request: Option<Account<'info, PendingRequest>>,
@@ -209,7 +226,7 @@ pub struct HandleMessageCtx<'info> {
         init_if_needed,
         payer = signer,
         space = 8 + 640,
-        seeds = ["res".as_bytes(), &message_seed],
+        seeds = ["res".as_bytes(), &hash::hash(&message).to_bytes()],
         bump
     )]
     pub pending_response: Option<Account<'info, PendingResponse>>,
@@ -226,26 +243,23 @@ pub struct HandleMessageCtx<'info> {
     #[account(
         init_if_needed,
         payer = signer,
-        space = 8 + 1024,
-        seeds = ["proxy".as_bytes(), (config.last_req_id + 1).to_string().as_bytes()],
+        space = ProxyRequest::SIZE,
+        seeds = [ProxyRequest::SEED_PREFIX.as_bytes(), (config.last_req_id + 1).to_string().as_bytes()],
         bump
     )]
     pub proxy_request: Account<'info, ProxyRequest>,
 
     #[account(
         seeds = [DefaultConnection::SEED_PREFIX.as_bytes(), from_nid.as_bytes()],
-        bump
+        bump = default_connection.bump
     )]
     pub default_connection: Account<'info, DefaultConnection>,
 
     #[account(
-        init_if_needed,
-        space = 8 + 1024,
-        payer = signer,
-        seeds = ["rollback".as_bytes(), sequence_no.to_string().as_bytes()],
+        seeds = [RollbackAccount::SEED_PREFIX.as_bytes(), sequence_no.to_string().as_bytes()],
         bump
     )]
-    pub rollback_accunt: Option<Account<'info, RollbackAccount>>,
+    pub rollback_account: Option<Account<'info, RollbackAccount>>,
 
     #[account(mut)]
     pub signer: Signer<'info>,
