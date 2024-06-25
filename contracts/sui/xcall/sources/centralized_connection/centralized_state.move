@@ -50,8 +50,8 @@ module xcall::centralized_state {
         sn
     }
 
-    public fun get_fee(self: &State, netId: &String, response: bool): u64 {
-        let fee: u64 = if (response == true) {
+    public fun get_fee(self: &State, netId: &String, need_response: bool): u64 {
+        let fee: u64 = if (need_response == true) {
             utils::get_or_default(&self.message_fee, netId, 0)
                 + utils::get_or_default(&self.response_fee, netId, 0)
         } else {

@@ -29,8 +29,9 @@ module xcall::xcall_tests {
         {
             let mut storage = test_scenario::take_shared<Storage>(scenario);
              let adminCap = scenario.take_from_sender<AdminCap>();
-            main::register_connection(&mut storage, &adminCap,from_nid, string::utf8(b"centralized-1"),admin, scenario.ctx());
-            main::register_connection(&mut storage, &adminCap,from_nid, string::utf8(b"centralized-2"),admin, scenario.ctx());
+            main::register_connection_admin(&mut storage, &adminCap, string::utf8(b"centralized-1"),admin, scenario.ctx());
+            main::register_connection_admin(&mut storage, &adminCap, string::utf8(b"centralized-2"),admin, scenario.ctx());
+            main::set_default_connection(&mut storage, &adminCap,from_nid, string::utf8(b"centralized-2"), scenario.ctx());
 
             test_scenario::return_shared(storage);
             scenario.return_to_sender(adminCap);
