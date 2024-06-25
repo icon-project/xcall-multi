@@ -41,8 +41,8 @@ impl NetworkAddress {
         Self(format!("{}/{}", nid, address))
     }
 
-    pub fn nid(&self) -> NetId {
-        NetId(self.get_parts()[0].to_string())
+    pub fn nid(&self) -> String {
+        self.get_parts()[0].to_string()
     }
 
     pub fn account(&self) -> String {

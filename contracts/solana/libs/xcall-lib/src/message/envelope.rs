@@ -64,7 +64,6 @@ pub fn decode_message(msg_type: MessageType, bytes: Vec<u8>) -> Result<AnyMessag
             Ok(AnyMessage::CallMessageWithRollback(msg))
         }
         MessageType::CallMessagePersisted => {
-            print!("heree");
             let msg: CallMessagePersisted = rlp::decode(&bytes)?;
             Ok(AnyMessage::CallMessagePersisted(msg))
         }
