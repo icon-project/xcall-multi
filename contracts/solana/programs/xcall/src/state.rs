@@ -103,12 +103,12 @@ impl Reply {
         self.call_reply = None;
     }
 
-    pub fn set_reply_state(&mut self, req: CSMessageRequest) {
-        self.reply_state = Some(req);
+    pub fn set_reply_state(&mut self, req: Option<CSMessageRequest>) {
+        self.reply_state = req;
     }
 
-    pub fn set_call_reply(&mut self, req: CSMessageRequest) {
-        self.call_reply = Some(req)
+    pub fn set_call_reply(&mut self, req: Option<CSMessageRequest>) {
+        self.call_reply = req
     }
 }
 
@@ -165,4 +165,11 @@ impl ProxyRequest {
     pub fn new(req: CSMessageRequest, owner: Pubkey, bump: u8) -> Self {
         Self { req, owner, bump }
     }
+}
+
+#[derive(Debug, Clone, AnchorSerialize, AnchorDeserialize)]
+pub struct SendMessageArgs {
+    pub to: String,
+    pub sn: i64,
+    pub msg: Vec<u8>,
 }
