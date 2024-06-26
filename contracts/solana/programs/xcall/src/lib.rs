@@ -96,4 +96,13 @@ pub mod xcall {
     ) -> Result<()> {
         instructions::handle_message(ctx, from_nid, message, sequence_no)
     }
+
+
+    #[allow(unused_variables)]
+    pub fn execute_rollback<'a, 'b, 'c, 'info>(
+        ctx: Context<'a, 'b, 'c, 'info, ExecuteRollbackCtx<'info>>,
+        sequence_no: u128,
+    ) -> Result<()> {
+        instructions::execute_rollback(ctx, sequence_no)
+    }
 }

@@ -136,6 +136,21 @@ export class TestContext {
       "confirmed"
     );
   }
+
+  async executeRollback(sn: number) {
+    let ix = await xcallProgram.methods
+      .executeRollback(new anchor.BN(sn))
+      .accountsStrict({
+        rollback: XcallPDA.rollback(sn).pda,
+        signer: this.fee_handler.publicKey,
+        systemProgram: xcallProgram.programId
+      })
+      .instruction();
+
+    let tx = await this.txnHelpers.buildV0Txn([ix], [this.fee_handler]);
+    await this.connection.sendTransaction(tx);
+    await sleep(3);
+  }
 }
 export class XcallPDA {
   constructor() {}
