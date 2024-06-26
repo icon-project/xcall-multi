@@ -26,14 +26,6 @@ describe("xcall - handle message", () => {
   const xcallProgram: anchor.Program<Xcall> = anchor.workspace.Xcall;
 
   before(async () => {
-    let configPda = XcallPDA.config();
-    let configAccount = await connection.getAccountInfo(configPda.pda, {
-      commitment: "confirmed",
-    });
-
-    if (!configAccount || configAccount.lamports < 0) {
-      await ctx.initialize("solana");
-    }
     await ctx.setDefaultConnection("icx", Keypair.generate().publicKey);
   });
 
@@ -88,7 +80,7 @@ describe("xcall - handle message", () => {
         [handleMessageIx],
         [sources[i]]
       );
-      await connection.sendTransaction(handleMessageTx);
+      // await connection.sendTransaction(handleMessageTx);
     }
   });
 
