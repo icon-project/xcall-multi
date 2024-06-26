@@ -2,13 +2,12 @@
 // each msg has different msg type
 
 
-use std::str::FromStr;
+use std::{str::FromStr, vec};
 
 use anchor_lang::{
-    prelude::*,
-    solana_program::{
+    prelude::*, solana_program::{
         hash, instruction::Instruction, keccak, program::{get_return_data, invoke_signed},
-    },
+    }
 };
 
 use rlp::Encodable;
@@ -17,15 +16,14 @@ use xcall_lib::{message::msg_type::MessageType,
     state::CpiDappResponse};
 
 use crate::{
-    error::XcallError, event, state::ProxyRequest, 
-    types::{message::CSMessage, result::{ CSMessageResult, CSResponseType}}, 
-    DefaultConnection, Reply 
+    error::XcallError, event, state::ProxyRequest, types::{message::CSMessage, result::{ CSMessageResult, CSResponseType}}, DefaultConnection, Reply, SendMessageArgs 
 };
 
 pub fn execute_call<'a, 'b, 'c, 'info>(
     ctx: Context<'a, 'b, 'c, 'info, ExecuteCallCtx<'info>>,
     req_id: u128,
     data: Vec<u8>,
+    nid: String
 ) -> Result<()> {
 
     let proxy_request = ctx.accounts.proxy_requests.as_mut()
@@ -45,6 +43,8 @@ pub fn execute_call<'a, 'b, 'c, 'info>(
     let signer =  &ctx.accounts.signer;
     let program = &ctx.accounts.system_program;
     let remaining_accounts = ctx.remaining_accounts;
+    let signer_seeds:&[&[&[u8]]]=&[&[DefaultConnection::SEED_PREFIX.as_bytes(), &[ctx.accounts.default_connection.bump]]];
+
     
 
     match proxy_request.req.msg_type() {
@@ -57,29 +57,29 @@ pub fn execute_call<'a, 'b, 'c, 'info>(
         MessageType::CallMessagePersisted => {
             handle_call_message(signer, 
                 program, 
-                remaining_accounts, &[&[b"xcall"]], 
+                remaining_accounts, signer_seeds, 
                 to,
                 &request.from(), &data, protocols)?;
         }
         MessageType::CallMessageWithRollback => {
 
             if let Some (rep) = ctx.accounts.reply_state.as_deref_mut() {
-                rep.reply_state = Some(request.clone())
+                rep.set_reply_state(Some(request.clone()))
             }
 
             let dapp_response = handle_call_message(
                 signer,
                 program,
                 remaining_accounts,
-                &[&[b"xcall"]],
+                signer_seeds,
                 to,
                 &request.from(),
                 &data,
                 protocols.clone())?;
 
-            // TODO:better way to set the reply state
+
             if let Some (rep) = ctx.accounts.reply_state.as_deref_mut() {
-                rep.reply_state = None
+                rep.set_reply_state(None)
             }
 
             let sucess = dapp_response.success;
@@ -91,8 +91,6 @@ pub fn execute_call<'a, 'b, 'c, 'info>(
                 response_code = CSResponseType::CSResponseFailure
             }
             
-
-            // TODO: from where the call reply is added and how to access it
             let mut message = vec![];
             if let Some (rep) = ctx.accounts.reply_state.as_deref_mut() {
                 if rep.call_reply.is_some() && sucess {
@@ -100,9 +98,8 @@ pub fn execute_call<'a, 'b, 'c, 'info>(
                 }
             }
 
-            // TODO:better way to set the call reply as none
             if let Some (rep) = ctx.accounts.reply_state.as_deref_mut() {
-                rep.call_reply = None
+                rep.set_call_reply(None)
             }
 
             let result = CSMessageResult::new(request.sequence_no(),
@@ -114,12 +111,16 @@ pub fn execute_call<'a, 'b, 'c, 'info>(
             let mut destinations = request.protocols().clone();
 
             if destinations.is_empty() {
-                let default_connection = ctx.accounts.default_connections.as_deref_mut().unwrap();
-                destinations = vec![default_connection.address.to_string()]
+                let default_connection = ctx.accounts.default_connection.key();
+                destinations = vec![default_connection.to_string()]
             }
 
-            for to in destinations {
-                // TODO: call connection contract --> the flow is not completed
+            for (i,to) in destinations.iter().enumerate(){
+
+                // TODO: should i check to with connection contract address -> if yes pass connection from remaining 
+                let config = &remaining_accounts[4*i];
+                let network_fee = &remaining_accounts[4*i+1];
+                let claim_fee = &remaining_accounts[4*i+2];
 
                 let ix_name = format!("{}:{}", "global", "send_message");
                 let ix_discriminator = hash::hash(ix_name.as_bytes()).to_bytes()[..8].to_vec();
@@ -136,10 +137,13 @@ pub fn execute_call<'a, 'b, 'c, 'info>(
                 ix_data.extend_from_slice(&ix_discriminator);
                 ix_data.extend_from_slice(&data);
 
-                // TODO: the context of centralized call needs more
                 let account_metas: Vec<AccountMeta> = vec![
+                    AccountMeta::new_readonly(ctx.accounts.default_connection.key(), true),
                     AccountMeta::new(ctx.accounts.signer.key(), true),
                     AccountMeta::new_readonly(ctx.accounts.system_program.key(), false),
+                    AccountMeta::new(config.key(), false),
+                    AccountMeta::new_readonly(network_fee.key(), false),
+                    AccountMeta::new(claim_fee.key(), false),
                 ];
 
                 let ix = Instruction {
@@ -149,13 +153,16 @@ pub fn execute_call<'a, 'b, 'c, 'info>(
                 };
 
                 let account_infos: Vec<AccountInfo<'info>> = vec![
+                    ctx.accounts.default_connection.to_account_info(),
                     ctx.accounts.signer.to_account_info(),
                     ctx.accounts.system_program.to_account_info(),
+                    config.to_account_info(),
+                    network_fee.to_account_info(),
+                    claim_fee.to_account_info(),
                   
                 ];
 
-                // TODO: figure out the signer seeds
-                invoke_signed(&ix, &account_infos, &[&[b"execute+call"]])?
+                invoke_signed(&ix, &account_infos, signer_seeds)?
 
             }
 
@@ -164,13 +171,8 @@ pub fn execute_call<'a, 'b, 'c, 'info>(
 
     Ok(())
 }
-#[derive(Debug, Clone, AnchorSerialize, AnchorDeserialize)]
-pub struct SendMessageArgs {
-    pub to: String,
-    pub sn: i64,
-    pub msg: Vec<u8>,
-}
-// from and data
+
+
 pub fn try_handle_call_message<'a, 'b, 'c, 'info>(
     signer : &Signer<'info>,
     program : &Program<'info,System>,
@@ -194,7 +196,7 @@ pub fn try_handle_call_message<'a, 'b, 'c, 'info>(
         remaining_accounts, &[&[b"xcall"]], 
         to, 
         from,
-        &data, protocols.unwrap())?;
+        &data, protocols.unwrap_or_else(|| vec![]))?;
 
     match dapp_response.success {
         true => {
@@ -208,7 +210,7 @@ pub fn try_handle_call_message<'a, 'b, 'c, 'info>(
             emit!(event::CallExecuted {
                 reqId: req_id,
                 code: CSResponseType::CSResponseFailure.into(),
-                msg: dapp_response.data.unwrap(),
+                msg: dapp_response.data.unwrap_or_default(),
             });
         }
     }
@@ -222,8 +224,7 @@ pub struct DappArgs {
     pub protocols: Vec<String>,
 }
 
-// TODO: pass the xcall signer seed here
-pub fn handle_call_message<'c,'info>(
+pub fn handle_call_message<'info>(
     signer : &Signer<'info>,
     program : &Program<'info,System>,
     remaining_accounts :&[AccountInfo<'info>],
@@ -275,6 +276,7 @@ pub fn handle_call_message<'c,'info>(
     invoke_signed(&ix, &account_infos, signers_seeds)?;
 
     let (_, data) = get_return_data().unwrap();
+    
 
     let mut data_slice : &[u8] = &data;
     let data_ref : &mut &[u8] = &mut data_slice;
@@ -289,11 +291,11 @@ pub fn get_hash(data: &Vec<u8>) -> Vec<u8> {
 }
 
 #[derive(Accounts)]
-#[instruction(req_id : u128,)]
+#[instruction(req_id : u128, nid: String)]
 pub struct ExecuteCallCtx<'info> {
     #[account(
         mut, 
-        seeds = ["proxy".as_bytes(), &req_id.to_le_bytes()], 
+        seeds = [ProxyRequest::SEED_PREFIX.as_bytes(), &req_id.to_le_bytes()], 
         bump = proxy_requests.bump)]
     pub proxy_requests: Option<Account<'info, ProxyRequest>>,
 
@@ -305,11 +307,10 @@ pub struct ExecuteCallCtx<'info> {
     pub reply_state: Option<Account<'info, Reply>>,
 
     #[account(
-        mut,
-        seeds = ["conn".as_bytes()],
-        bump
+        seeds = [DefaultConnection::SEED_PREFIX.as_bytes(), nid.as_bytes()],
+        bump = default_connection.bump
     )]
-    pub default_connections : Option<Account<'info,DefaultConnection>>,
+    pub default_connection: Account<'info, DefaultConnection>,
 
     #[account(mut)]
     pub signer: Signer<'info>,
