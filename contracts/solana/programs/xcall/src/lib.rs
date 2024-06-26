@@ -96,4 +96,13 @@ pub mod xcall {
     ) -> Result<()> {
         instructions::handle_message(ctx, from_nid, message, sequence_no)
     }
+
+    pub fn execute_call<'a, 'b, 'c, 'info>(
+        ctx: Context<'a, 'b, 'c, 'info, ExecuteCallCtx<'info>>,
+        req_id: u128,
+        data: Vec<u8>,
+        nid: String
+    ) -> Result<()> {
+        instructions::execute_call(ctx, req_id, data,nid)
+    }
 }
