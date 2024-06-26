@@ -22,12 +22,6 @@ use crate::{
     types::{message::CSMessage, request::CSMessageRequest, rollback::Rollback},
 };
 
-#[derive(Debug, Clone, AnchorSerialize, AnchorDeserialize)]
-pub struct SendMessageArgs {
-    pub to: String,
-    pub sn: i64,
-    pub msg: Vec<u8>,
-}
 
 pub fn send_call<'a, 'b, 'c, 'info>(
     ctx: Context<'a, 'b, 'c, 'info, SendCallCtx<'info>>,
@@ -66,7 +60,7 @@ pub fn send_call<'a, 'b, 'c, 'info>(
     assertion::ensure_data_length(&encode_msg)?;
 
     if is_reply(&ctx.accounts.reply, &to.nid(), &envelope.sources) && !need_response {
-        ctx.accounts.reply.set_call_reply(request);
+        ctx.accounts.reply.set_call_reply(Some(request));
     } else {
         let sn = if need_response { sequence_no as i64 } else { 0 };
 
