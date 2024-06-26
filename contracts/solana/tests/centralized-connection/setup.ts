@@ -3,42 +3,50 @@ import { PublicKey, Connection, Keypair } from "@solana/web3.js";
 
 import { CentralizedConnection } from "../../target/types/centralized_connection";
 import { SYSTEM_PROGRAM_ID } from "@coral-xyz/anchor/dist/cjs/native/system";
+import { TxnHelpers } from "../utils";
+
 import { Xcall } from "../../target/types/xcall";
+
+const xcallProgram: anchor.Program<Xcall> = anchor.workspace.Xcall;
 
 const connectionProgram: anchor.Program<CentralizedConnection> =
   anchor.workspace.CentralizedConnection;
 
-const xcallProgram: anchor.Program<Xcall> = anchor.workspace.Xcall;
-
 export class TestContext {
   program: anchor.Program<CentralizedConnection>;
-  signer: anchor.Wallet;
+  signer: Keypair;
   admin: Keypair;
   connection: Connection;
   networkId: string;
+  txnHelpers: TxnHelpers;
+  isInitialized: boolean;
 
-  constructor() {
+  constructor(connection: Connection, txnHelpers: TxnHelpers, admin: Keypair) {
     let provider = anchor.AnchorProvider.env();
     anchor.setProvider(provider);
 
     this.program = anchor.workspace.CentralizedConnection;
-    this.signer = provider.wallet as anchor.Wallet;
-    this.admin = (provider.wallet as anchor.Wallet).payer;
-    this.connection = new Connection("http://127.0.0.1:8899", "processed");
+    this.signer = admin;
+    this.admin = admin;
+    this.connection = connection;
+    this.txnHelpers = txnHelpers;
     this.networkId = "icx";
+    this.isInitialized = false;
   }
 
   async initialize() {
     await this.program.methods
       .initialize(xcallProgram.programId, this.signer.publicKey)
-      .signers([this.signer.payer])
+      .signers([this.signer])
       .accountsStrict({
         signer: this.signer.publicKey,
         systemProgram: SYSTEM_PROGRAM_ID,
-        config: connectionPDA.config().pda,
-        claimFee: connectionPDA.claimFees().pda,
+        config: ConnectionPDA.config().pda,
+        claimFee: ConnectionPDA.claimFees().pda,
       })
       .rpc();
+
+    this.isInitialized = true;
   }
 
   async setAdmin(keypair: Keypair) {
@@ -46,7 +54,7 @@ export class TestContext {
       .setAdmin(keypair.publicKey)
       .accountsStrict({
         admin: this.admin.publicKey,
-        config: connectionPDA.config().pda,
+        config: ConnectionPDA.config().pda,
       })
       .signers([this.admin])
       .rpc();
@@ -56,20 +64,20 @@ export class TestContext {
 
   async getConfig() {
     return await this.program.account.config.fetch(
-      connectionPDA.config().pda,
+      ConnectionPDA.config().pda,
       "confirmed"
     );
   }
 
   async getFee(nid: string) {
     return await this.program.account.fee.fetch(
-      connectionPDA.fee(nid).pda,
+      ConnectionPDA.fee(nid).pda,
       "confirmed"
     );
   }
 }
 
-export class connectionPDA {
+export class ConnectionPDA {
   constructor() {}
 
   static config() {
@@ -93,6 +101,15 @@ export class connectionPDA {
   static claimFees() {
     const [pda, bump] = PublicKey.findProgramAddressSync(
       [Buffer.from("claim_fees")],
+      connectionProgram.programId
+    );
+
+    return { pda, bump };
+  }
+
+  static receipt(sn: number) {
+    const [pda, bump] = PublicKey.findProgramAddressSync(
+      [Buffer.from("receipt"), Buffer.from(sn.toString())],
       connectionProgram.programId
     );
 

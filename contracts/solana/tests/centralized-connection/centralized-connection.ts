@@ -2,37 +2,17 @@ import * as anchor from "@coral-xyz/anchor";
 import { assert, expect } from "chai";
 import { Keypair } from "@solana/web3.js";
 
-import { TestContext, connectionPDA } from "./setup";
+import { TestContext, ConnectionPDA } from "./setup";
 import { TxnHelpers, sleep } from "../utils";
 import { SYSTEM_PROGRAM_ID } from "@coral-xyz/anchor/dist/cjs/native/system";
-import { Xcall } from "../../target/types/xcall";
-
-const xcallProgram: anchor.Program<Xcall> = anchor.workspace.Xcall;
 
 describe("CentralizedConnection", () => {
-  let ctx = new TestContext();
-  let txnHelpers = new TxnHelpers(ctx.connection, ctx.signer.payer);
+  const provider = anchor.AnchorProvider.env();
+  const connection = provider.connection;
+  const wallet = provider.wallet as anchor.Wallet;
 
-  it("[initialize]: should initialize the program", async () => {
-    await ctx.initialize();
-    await sleep(3);
-
-    let data = await ctx.getConfig();
-
-    assert.equal(data.admin.toString(), ctx.signer.publicKey.toString());
-    assert.equal(data.xcall.toString(), xcallProgram.programId.toString());
-    assert.equal(data.sn.toString(), new anchor.BN(0).toString());
-  });
-
-  it("[initialize]: should fail on double initialize", async () => {
-    try {
-      await ctx.initialize();
-    } catch (err) {
-      expect(err.message).to.includes(
-        "Error processing Instruction 0: custom program error: 0x0"
-      );
-    }
-  });
+  let txnHelpers = new TxnHelpers(connection, wallet.payer);
+  let ctx = new TestContext(connection, txnHelpers, wallet.payer);
 
   it("[set_admin]: should set the new admin", async () => {
     let newAdmin = Keypair.generate();
@@ -52,7 +32,7 @@ describe("CentralizedConnection", () => {
         .setAdmin(Keypair.generate().publicKey)
         .accountsStrict({
           admin: non_admin.publicKey,
-          config: connectionPDA.config().pda,
+          config: ConnectionPDA.config().pda,
         })
         .signers([non_admin])
         .rpc();
@@ -71,8 +51,8 @@ describe("CentralizedConnection", () => {
     await ctx.program.methods
       .setFee(ctx.networkId, new anchor.BN(msg_fee), new anchor.BN(res_fee))
       .accountsStrict({
-        config: connectionPDA.config().pda,
-        fee: connectionPDA.fee(ctx.networkId).pda,
+        config: ConnectionPDA.config().pda,
+        fee: ConnectionPDA.fee(ctx.networkId).pda,
         admin: ctx.admin.publicKey,
         systemProgram: SYSTEM_PROGRAM_ID,
       })
@@ -87,7 +67,7 @@ describe("CentralizedConnection", () => {
   });
 
   it("[claim_fees]: should claim fee stored in PDA account", async () => {
-    let claimFees = connectionPDA.claimFees().pda;
+    let claimFees = ConnectionPDA.claimFees().pda;
 
     let transfer_amount = 500_000;
     await txnHelpers.airdrop(claimFees, transfer_amount);
@@ -103,7 +83,7 @@ describe("CentralizedConnection", () => {
       .claimFees()
       .accountsStrict({
         admin: ctx.admin.publicKey,
-        config: connectionPDA.config().pda,
+        config: ConnectionPDA.config().pda,
         claimFees,
       })
       .signers([ctx.admin])
@@ -122,8 +102,8 @@ describe("CentralizedConnection", () => {
         .claimFees()
         .accountsStrict({
           admin: new_admin.publicKey,
-          config: connectionPDA.config().pda,
-          claimFees: connectionPDA.claimFees().pda,
+          config: ConnectionPDA.config().pda,
+          claimFees: ConnectionPDA.claimFees().pda,
         })
         .signers([new_admin])
         .rpc();

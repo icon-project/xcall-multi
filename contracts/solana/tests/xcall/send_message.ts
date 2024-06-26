@@ -5,14 +5,15 @@ import { SYSTEM_PROGRAM_ID } from "@coral-xyz/anchor/dist/cjs/native/system";
 import { TestContext, XcallPDA } from "./setup";
 import { TxnHelpers } from "../utils";
 import { Xcall } from "../../target/types/xcall";
-import { CentralizedConnection } from "../../target/types/centralized_connection";
 import { Envelope, CallMessage, MessageType } from "./types";
 
-const xcallProgram: anchor.Program<Xcall> = anchor.workspace.Xcall;
+import { CentralizedConnection } from "../../target/types/centralized_connection";
+import { ConnectionPDA } from "../centralized-connection/setup";
 
 const connectionProgram: anchor.Program<CentralizedConnection> =
   anchor.workspace.CentralizedConnection;
-import { connectionPDA } from "../centralized-connection/setup";
+
+const xcallProgram: anchor.Program<Xcall> = anchor.workspace.Xcall;
 
 describe("xcall - send message", () => {
   const provider = anchor.AnchorProvider.env();
@@ -57,17 +58,17 @@ describe("xcall - send message", () => {
           isWritable: true,
         },
         {
-          pubkey: connectionPDA.config().pda,
+          pubkey: ConnectionPDA.config().pda,
           isSigner: false,
           isWritable: true,
         },
         {
-          pubkey: connectionPDA.fee("icx").pda,
+          pubkey: ConnectionPDA.fee("icx").pda,
           isSigner: false,
           isWritable: true,
         },
         {
-          pubkey: connectionPDA.claimFees().pda,
+          pubkey: ConnectionPDA.claimFees().pda,
           isSigner: false,
           isWritable: true,
         },
