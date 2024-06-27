@@ -105,4 +105,11 @@ pub mod xcall {
     ) -> Result<()> {
         instructions::execute_call(ctx, req_id, data,nid)
     }
+
+    pub fn execute_rollback<'a, 'b, 'c, 'info>(
+        ctx : Context<'a, 'b, 'c, 'info, ExecuteRollbackCtx<'info>>,
+        sn : u128
+    ) -> Result<()> {
+        instructions::execute_rollback(ctx,sn)
+    }
 }
