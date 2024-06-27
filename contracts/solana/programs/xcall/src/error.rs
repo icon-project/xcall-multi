@@ -64,4 +64,7 @@ pub enum XcallError {
 
     #[msg("Data mismatch")]
     DataMismatch,
+
+    #[msg("Invalid pubkey")]
+    InvalidPubkey,
 }
