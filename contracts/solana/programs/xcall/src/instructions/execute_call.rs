@@ -25,6 +25,7 @@ pub fn execute_call<'a, 'b, 'c, 'info>(
     data: Vec<u8>,
     nid: String
 ) -> Result<()> {
+    let _ = nid;
 
     let proxy_request = ctx.accounts.proxy_requests.as_mut()
         .ok_or(XcallError::InvalidRequestId)?;

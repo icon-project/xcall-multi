@@ -8,6 +8,12 @@ pub enum XcallError {
     #[msg("Maximum rollback data size exceeded")]
     MaxRollbackSizeExceeded,
 
+    #[msg("Invalid SN")]
+    InvalidSn,
+
+    #[msg("Rollback not enabled")]
+    RollbackNotEnabled,
+    
     #[msg("Maximum data size exceeded")]
     MaxDataSizeExceeded,
 
