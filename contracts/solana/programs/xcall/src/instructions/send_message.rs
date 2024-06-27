@@ -156,7 +156,7 @@ pub fn process_message(
             if msg.rollback().is_some() {
                 let rollback_data = envelope.message.rollback().unwrap();
                 let rollback = Rollback::new(
-                    from.key(),
+                    from.key().to_string(),
                     to.clone(),
                     envelope.sources.clone(),
                     rollback_data,
