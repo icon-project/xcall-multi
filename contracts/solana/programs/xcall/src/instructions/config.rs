@@ -45,7 +45,7 @@ pub struct UpdateConfigCtx<'info> {
 #[instruction(network_id: String)]
 pub struct DefaultConnectionCtx<'info> {
     #[account(
-        init,
+        init_if_needed,
         payer = signer,
         space = DefaultConnection::SIZE,
         seeds = [DefaultConnection::SEED_PREFIX.as_bytes(), network_id.as_bytes()],
