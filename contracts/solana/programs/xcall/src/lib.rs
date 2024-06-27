@@ -13,7 +13,7 @@ use state::*;
 
 use xcall_lib::network_address::NetworkAddress;
 
-declare_id!("DoSLJH36FLrQVjZ8wDD4tHHfLbisj4VwMzpvTV9yyyp2");
+declare_id!("DL5ULXfYtnE5m8swfivfxtaPM4y3bcsDphseZkWFXgft");
 
 #[program]
 pub mod xcall {

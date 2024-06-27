@@ -6,7 +6,7 @@ use std::{str::FromStr, vec};
 
 use anchor_lang::{
     prelude::*, solana_program::{
-        hash, instruction::Instruction, keccak, program::{get_return_data, invoke_signed},
+        hash, instruction::Instruction, keccak, program::{get_return_data, invoke_signed}, pubkey::ParsePubkeyError,
     }
 };
 
@@ -23,16 +23,18 @@ pub fn execute_call<'a, 'b, 'c, 'info>(
     ctx: Context<'a, 'b, 'c, 'info, ExecuteCallCtx<'info>>,
     req_id: u128,
     data: Vec<u8>,
-    nid: String
+    from_nid: String
 ) -> Result<()> {
     let _ = nid;
 
+    
     let proxy_request = ctx.accounts.proxy_requests.as_mut()
-        .ok_or(XcallError::InvalidRequestId)?;
+    .ok_or(XcallError::InvalidRequestId)?;
 
     let request = &proxy_request.req; 
 
     
+
     if get_hash(&data) != request.data() {
         return Err(XcallError::DataMismatch.into());
     }
@@ -269,7 +271,7 @@ pub fn handle_call_message<'info>(
     }
 
     let ix = Instruction {
-        program_id: Pubkey::from_str(to).unwrap(),
+        program_id:Pubkey::from_str(to).map_err(|_| XcallError::InvalidPubkey)?,
         accounts: account_metas,
         data: ix_data,
     };
@@ -288,15 +290,15 @@ pub fn handle_call_message<'info>(
 }
 
 pub fn get_hash(data: &Vec<u8>) -> Vec<u8> {
-    return keccak::hash(&data).as_ref().to_vec();
+    return hash::hash(data).to_bytes().to_vec();
 }
 
 #[derive(Accounts)]
-#[instruction(req_id : u128, nid: String)]
+#[instruction(req_id : u128, data:Vec<u8>,from_nid: String)]
 pub struct ExecuteCallCtx<'info> {
     #[account(
         mut, 
-        seeds = [ProxyRequest::SEED_PREFIX.as_bytes(), &req_id.to_le_bytes()], 
+        seeds = [ProxyRequest::SEED_PREFIX.as_bytes(), &req_id.to_string().as_bytes()], 
         bump = proxy_requests.bump)]
     pub proxy_requests: Option<Account<'info, ProxyRequest>>,
 
@@ -308,7 +310,7 @@ pub struct ExecuteCallCtx<'info> {
     pub reply_state: Option<Account<'info, Reply>>,
 
     #[account(
-        seeds = [DefaultConnection::SEED_PREFIX.as_bytes(), nid.as_bytes()],
+        seeds = [DefaultConnection::SEED_PREFIX.as_bytes(), from_nid.as_bytes()],
         bump = default_connection.bump
     )]
     pub default_connection: Account<'info, DefaultConnection>,
