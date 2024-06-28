@@ -6,8 +6,8 @@ module xcall::message_result {
     use sui_rlp::decoder::{Self};
 
 
-   const RESPONSE_SUCCESS:u8=1;
-   const RESPONSE_FAILURE:u8=0;
+    const RESPONSE_SUCCESS:u8=1;
+    const RESPONSE_FAILURE:u8=0;
 
     public struct CSMessageResult has store, drop{
         sn:u128,
@@ -37,33 +37,33 @@ module xcall::message_result {
         self.message
     }
 
-     public fun encode(self:&CSMessageResult):vector<u8>{
-         let mut list=vector::empty<vector<u8>>();
-           
-          vector::push_back(&mut list,encoder::encode_u128(self.sn));
-          vector::push_back(&mut list,encoder::encode_u8(self.code));
-          vector::push_back(&mut list,encoder::encode(&self.message));
+    public fun encode(self:&CSMessageResult):vector<u8>{
+        let mut list=vector::empty<vector<u8>>();
 
-          let encoded=encoder::encode_list(&list,false);
-          encoded
+        vector::push_back(&mut list,encoder::encode_u128(self.sn));
+        vector::push_back(&mut list,encoder::encode_u8(self.code));
+        vector::push_back(&mut list,encoder::encode(&self.message));
+
+        let encoded=encoder::encode_list(&list,false);
+        encoded
 
     }
 
 
     public fun decode(bytes:&vector<u8>):CSMessageResult {
 
-         let decoded=decoder::decode_list(bytes);
-         
-         let sn= decoder::decode_u128(vector::borrow(&decoded,0));
-         let code= decoder::decode_u8(vector::borrow(&decoded,1));
-         let message= *vector::borrow(&decoded,2);
-        
-         let req=CSMessageResult {
+        let decoded=decoder::decode_list(bytes);
+
+        let sn= decoder::decode_u128(vector::borrow(&decoded,0));
+        let code= decoder::decode_u8(vector::borrow(&decoded,1));
+        let message= *vector::borrow(&decoded,2);
+
+        let req=CSMessageResult {
             sn,
             code,
             message,
-         };
-         req
+            };
+        req
 
     }
 
@@ -75,12 +75,6 @@ module xcall::message_result {
         RESPONSE_FAILURE
     }
 
-
-
-
-
-   
-
 }
 
 module xcall::message_result_tests {
@@ -88,7 +82,7 @@ module xcall::message_result_tests {
     use std::debug::{Self};
 
 
-      #[test]
+    #[test]
     fun test_message_result_encoding_1(){
         let msg= message_result::create(1,message_result::success(),vector::empty());
         let encoded= message_result::encode(&msg);
@@ -100,7 +94,7 @@ module xcall::message_result_tests {
 
     }
 
-     #[test]
+    #[test]
     fun test_message_result_encoding_2(){
         let msg= message_result::create(2,message_result::failure(),vector::empty());
         let encoded= message_result::encode(&msg);

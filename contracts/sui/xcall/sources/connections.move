@@ -35,14 +35,7 @@ module xcall::connections{
         } 
     }
 
-    public(package) fun send_message(states:&mut Bag,
-    connection_id:String,
-    coin:Coin<SUI>,
-    netId:String,
-    sn:u128,
-    msg:vector<u8>,
-    is_response:bool,
-    ctx:&mut TxContext){
+    public(package) fun send_message(states:&mut Bag,connection_id:String,coin:Coin<SUI>,netId:String,sn:u128,msg:vector<u8>,is_response:bool,ctx:&mut TxContext){
 
         if (get_connection_type(&connection_id).bytes()==ConnCentralized){
             centralized_connection::send_message(states,connection_id,coin,netId,sn,msg,is_response,ctx);

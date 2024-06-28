@@ -102,6 +102,14 @@ use std::string::{Self, String};
         network_address::net_id(&self.from)
     }
 
+    public(package) fun set_protocols(self:&mut CSMessageRequest,sources:vector<String>){
+           self.protocols=sources
+    }
+
+    public(package) fun set_msg_type(self:&mut CSMessageRequest,msg_type:u8){
+        self.message_type=msg_type;
+    }
+
 }
 
 module xcall::message_request_tests {

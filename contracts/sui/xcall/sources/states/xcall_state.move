@@ -126,6 +126,18 @@ module xcall::xcall_state {
         storage
     }
 
+    public fun pending_responses(self:&Storage):&VecMap<PendingReqResKey,bool>{
+       &self.pending_responses
+    }
+
+    public fun pending_requests(self:&Storage):&VecMap<PendingReqResKey,bool>{
+       &self.pending_requests
+    }
+
+     public fun proxy_requests(self:&Storage):&Table<u128, CSMessageRequest>{
+       &self.proxy_requests
+    }
+
 
     public(package) fun set_net_id(self:&mut Storage,net_id:String){
             self.net_id=net_id;
