@@ -460,6 +460,8 @@ module xcall::main {
         let data_hash = hash::keccak256(&data);
 
         assert!(msg_data_hash == data_hash, EDataMismatch);
+        std::debug::print(&to);
+        std::debug::print(&utils::id_to_hex_string(&xcall_state::get_id_cap_id(cap)));
         assert!(to==utils::id_to_hex_string(&xcall_state::get_id_cap_id(cap)),EInvalidAccess);
 
         if(msg_type==call_message_rollback::msg_type()){
@@ -545,12 +547,17 @@ module xcall::main {
     }
 
     fun is_valid_source(self:&Storage,nid:String,source:String,protocols:vector<String>):bool{
-
+         std::debug::print(&source);
+         std::debug::print(&protocols);
         if(vector::contains(&protocols,&source)){
             return true
         };
+        if (protocols.is_empty()){
         let connection = xcall_state::get_connection(self, nid);
-        (connection == source)
+            return (connection == source)
+        };
+        return false
+       
     }
 
     fun isReply(self:&Storage,net_id:String, sources: vector<String>):bool{

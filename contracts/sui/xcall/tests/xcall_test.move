@@ -8,19 +8,20 @@ module xcall::xcall_tests {
     use sui::sui::SUI;
     use xcall::network_address::{Self};
     use xcall::envelope::{Self};
-    use xcall::message_request::{Self};
+    use xcall::message_request::{Self,CSMessageRequest};
     use xcall::message_result::{Self};
     use xcall::cs_message::{Self};
     use xcall::centralized_entry;
     use xcall::xcall_utils as utils;
-    use sui::package::UpgradeCap;
+    use sui::hash::{Self};
+    use xcall::rollback_data::{Self,RollbackData};
 
     #[test_only]
     fun setup_test(admin:address):Scenario {
         let mut scenario = test_scenario::begin(admin);
-         scenario.next_tx(admin);
-         scenario=main::init_xcall_state(admin,scenario);
-         scenario
+        scenario.next_tx(admin);
+        scenario=main::init_xcall_state(admin,scenario);
+        scenario
     }
 
     #[test_only]
@@ -28,7 +29,7 @@ module xcall::xcall_tests {
         let scenario = &mut scenario_val;
         {
             let mut storage = test_scenario::take_shared<Storage>(scenario);
-             let adminCap = scenario.take_from_sender<AdminCap>();
+            let adminCap = scenario.take_from_sender<AdminCap>();
             main::register_connection_admin(&mut storage, &adminCap, string::utf8(b"centralized-1"),admin, scenario.ctx());
             main::register_connection_admin(&mut storage, &adminCap, string::utf8(b"centralized-2"),admin, scenario.ctx());
             main::set_default_connection(&mut storage, &adminCap,from_nid, string::utf8(b"centralized-2"), scenario.ctx());
@@ -64,7 +65,7 @@ module xcall::xcall_tests {
         {
             let adminCap = test_scenario::take_from_sender<AdminCap>(scenario);
             let mut storage = test_scenario::take_shared<Storage>(scenario);
-            
+
             main::set_protocol_fee(&mut storage, &adminCap, 100);
             assert!(xcall_state::get_protocol_fee(&storage) == 100, 1);
 
@@ -88,7 +89,7 @@ module xcall::xcall_tests {
         test_scenario::next_tx(&mut scenario, admin);
 
         scenario = setup_nid(scenario, string::utf8(b"sui"), admin);
-        
+
         scenario = setup_connection(scenario, string::utf8(b"icon"), admin);
         {
             let adminCap = test_scenario::take_from_sender<AdminCap>(&scenario);
@@ -106,7 +107,7 @@ module xcall::xcall_tests {
             test_scenario::return_to_sender(&scenario, adminCap);
             test_scenario::return_shared( storage);
         };
-        
+
         {
             let abc = test_scenario::next_tx(&mut scenario, admin);
             let events = test_scenario::num_user_events(&abc);
@@ -115,7 +116,7 @@ module xcall::xcall_tests {
         test_scenario::end(scenario);
     }
 
-     #[test]
+    #[test]
     fun test_set_fee_claim_fee() {
         let admin = @0xBABE;
 
@@ -126,13 +127,13 @@ module xcall::xcall_tests {
         scenario = setup_connection(scenario, string::utf8(b"icon"), admin);
         {
             let mut storage = test_scenario::take_shared<Storage>(&scenario);
-           // let ctx = test_scenario::ctx(&mut scenario);
-           let conn_cap = test_scenario::take_from_sender<ConnCap>(&scenario);
+            // let ctx = test_scenario::ctx(&mut scenario);
+            let conn_cap = test_scenario::take_from_sender<ConnCap>(&scenario);
             centralized_entry::set_fee(&mut storage,&conn_cap, b"icon".to_string(),50, 50, scenario.ctx());
             let fee = centralized_entry::get_fee(&mut storage,conn_cap.connection_id(), b"icon".to_string(),true, scenario.ctx());
 
             assert!(fee == 100, 3);
-             scenario.return_to_sender(conn_cap);
+            scenario.return_to_sender(conn_cap);
 
             test_scenario::return_shared( storage);
 
@@ -157,13 +158,13 @@ module xcall::xcall_tests {
         test_scenario::next_tx(&mut scenario, admin);
         {
             let mut storage = test_scenario::take_shared<Storage>(&scenario);
-           // let ctx = test_scenario::ctx(&mut scenario);
+            // let ctx = test_scenario::ctx(&mut scenario);
             let conn_cap = test_scenario::take_from_sender<ConnCap>(&scenario);
             centralized_entry::claim_fees(&mut storage,&conn_cap, scenario.ctx());
-             scenario.return_to_sender(conn_cap);
+            scenario.return_to_sender(conn_cap);
             test_scenario::return_shared( storage);
         };
-        
+
         test_scenario::end(scenario);
     }
 
@@ -173,14 +174,14 @@ module xcall::xcall_tests {
 
         let mut scenario = setup_test(admin);
         scenario = setup_nid(scenario, string::utf8(b"sui"), admin);
-scenario = setup_connection(scenario, string::utf8(b"icon"), admin);
+        scenario = setup_connection(scenario, string::utf8(b"icon"), admin);
         test_scenario::next_tx(&mut scenario, admin);
         {
             let adminCap = test_scenario::take_from_sender<AdminCap>(&scenario);
             let mut storage = test_scenario::take_shared<Storage>(&scenario);
-           // let ctx = test_scenario::ctx(&mut scenario);
+            // let ctx = test_scenario::ctx(&mut scenario);
             let idCap = xcall_state::create_id_cap(&storage, scenario.ctx());
-            let sources = vector[string::utf8(b"centralized-1")];
+            let sources = vector[string::utf8(b"centralized-2")];
             let data = b"data";
             let sui_dapp = string::utf8(b"dsui/daddress");
             let icon_dapp = network_address::create(string::utf8(b"icon"), string::utf8(b"address"));
@@ -192,7 +193,7 @@ scenario = setup_connection(scenario, string::utf8(b"icon"), admin);
             main::handle_message(&mut storage,&conn_cap,from_nid,message,scenario.ctx());
             xcall_state::delete_id_cap_for_testing(idCap, scenario.ctx());
             test_scenario::return_to_sender(&scenario, adminCap);
-             scenario.return_to_sender(conn_cap);
+            scenario.return_to_sender(conn_cap);
             test_scenario::return_shared( storage);
         };  
         {
@@ -215,12 +216,12 @@ scenario = setup_connection(scenario, string::utf8(b"icon"), admin);
         {
             let adminCap = test_scenario::take_from_sender<AdminCap>(&scenario);
             let mut storage = test_scenario::take_shared<Storage>(&scenario);
-           // let ctx = test_scenario::ctx(&mut scenario);
+            // let ctx = test_scenario::ctx(&mut scenario);
             let idCap = xcall_state::create_id_cap(&storage, scenario.ctx());
 
             let data = b"data";
             let rollback_data = b"rollback";
-             // since we are registering 2 connections take_from_sender returns latest one.
+            // since we are registering 2 connections take_from_sender returns latest one.
             let sources = vector[string::utf8(b"centralized-2")];
             let destinations = vector[string::utf8(b"icon")];
             let fee = coin::mint_for_testing<SUI>(100, scenario.ctx());
@@ -234,18 +235,18 @@ scenario = setup_connection(scenario, string::utf8(b"icon"), admin);
             test_scenario::return_shared( storage);
 
         };
-         test_scenario::next_tx(&mut scenario, admin);
+        test_scenario::next_tx(&mut scenario, admin);
 
         {
             let mut storage = test_scenario::take_shared<Storage>(&scenario);
-         //   let ctx = test_scenario::ctx(&mut scenario);
+            //   let ctx = test_scenario::ctx(&mut scenario);
 
             let response = message_result::create(1, message_result::failure(),b"");
             let message = cs_message::encode(&cs_message::new(cs_message::result_code(), message_result::encode(&response)));
             let from_nid = string::utf8(b"icon");
-           let conn_cap = test_scenario::take_from_sender<ConnCap>(&scenario);
+            let conn_cap = test_scenario::take_from_sender<ConnCap>(&scenario);
             main::handle_message(&mut storage,&conn_cap,from_nid,message,scenario.ctx());
-             scenario.return_to_sender(conn_cap);
+            scenario.return_to_sender(conn_cap);
             test_scenario::return_shared( storage);
         };  
         {
@@ -270,7 +271,7 @@ scenario = setup_connection(scenario, string::utf8(b"icon"), admin);
             let mut storage = test_scenario::take_shared<Storage>(&scenario);
             //let ctx = test_scenario::ctx(&mut scenario);
             let idCap = xcall_state::create_id_cap(&storage, scenario.ctx());
-            let sources = vector[string::utf8(b"centralized")];
+            let sources = vector[string::utf8(b"centralized-2")];
             let data = b"data";
             let mut sui_dapp = b"".to_string();
             sui_dapp.append(utils::id_to_hex_string(&xcall_state::get_id_cap_id(&idCap)));
@@ -290,7 +291,7 @@ scenario = setup_connection(scenario, string::utf8(b"icon"), admin);
             main::execute_call_result(&mut storage,ticket, true,fee,scenario.ctx());
             xcall_state::delete_id_cap_for_testing(idCap, scenario.ctx());
             test_scenario::return_to_sender(&scenario, adminCap);
-             scenario.return_to_sender(conn_cap);
+            scenario.return_to_sender(conn_cap);
             test_scenario::return_shared( storage);
         };  
         {
@@ -314,7 +315,7 @@ scenario = setup_connection(scenario, string::utf8(b"icon"), admin);
         {
             let adminCap = test_scenario::take_from_sender<AdminCap>(&scenario);
             let mut storage = test_scenario::take_shared<Storage>(&scenario);
-           // let ctx = test_scenario::ctx(&mut scenario);
+            // let ctx = test_scenario::ctx(&mut scenario);
             let idCap = xcall_state::create_id_cap(&storage, scenario.ctx());
 
             let data = b"data";
@@ -331,8 +332,8 @@ scenario = setup_connection(scenario, string::utf8(b"icon"), admin);
             let response = message_result::create(1, message_result::failure(),b"");
             let message = cs_message::encode(&cs_message::new(cs_message::result_code(), message_result::encode(&response)));
             let from_nid = string::utf8(b"icon");
-             let conn_cap = test_scenario::take_from_sender<ConnCap>(&scenario);
-             std::debug::print(&conn_cap);
+            let conn_cap = test_scenario::take_from_sender<ConnCap>(&scenario);
+            std::debug::print(&conn_cap);
 
             main::handle_message(&mut storage,&conn_cap,from_nid,message,scenario.ctx());
 
@@ -349,10 +350,10 @@ scenario = setup_connection(scenario, string::utf8(b"icon"), admin);
         {
             let abc = test_scenario::next_tx(&mut scenario, admin);
             let events = test_scenario::num_user_events(&abc);
-            
+
             assert!(events == 5, 0);
         };
-       
+
         test_scenario::end(scenario);
     }
 
@@ -376,7 +377,7 @@ scenario = setup_connection(scenario, string::utf8(b"icon"), admin);
             let data = b"data";
             let rollback_data = b"data";
 
-            let sources = vector[string::utf8(b"centralized-1")];
+            let sources = vector[string::utf8(b"centralized-2")];
             let destinations = vector[string::utf8(b"icon")];
             let fee = coin::mint_for_testing<SUI>(100, ctx);
 
@@ -394,7 +395,6 @@ scenario = setup_connection(scenario, string::utf8(b"icon"), admin);
         test_scenario::next_tx(&mut scenario, admin);
         {
             let mut storage = test_scenario::take_shared<Storage>(&scenario);
-           // let ctx = test_scenario::ctx(&mut scenario);
 
             let sources = vector[string::utf8(b"centralized")];
             let data = b"data";
@@ -420,7 +420,7 @@ scenario = setup_connection(scenario, string::utf8(b"icon"), admin);
         test_scenario::end(scenario);
     }
 
-        #[test]
+    #[test]
     fun test_handle_message_multi_protocols() {
         let admin = @0xBABE;
 
@@ -431,7 +431,7 @@ scenario = setup_connection(scenario, string::utf8(b"icon"), admin);
         {
             let adminCap = test_scenario::take_from_sender<AdminCap>(&scenario);
             let mut storage = test_scenario::take_shared<Storage>(&scenario);
-           // let ctx = test_scenario::ctx(&mut scenario);
+            // let ctx = test_scenario::ctx(&mut scenario);
             let idCap = xcall_state::create_id_cap(&storage, scenario.ctx());
             let sources = vector[string::utf8(b"centralized-1"), string::utf8(b"centralized-2")];
             let data = b"data";
@@ -443,10 +443,10 @@ scenario = setup_connection(scenario, string::utf8(b"icon"), admin);
             let message = cs_message::encode(&cs_message::new(cs_message::request_code(), message_request::encode(&request)));
             let conn_cap = test_scenario::take_from_sender<ConnCap>(&scenario);
             main::handle_message(&mut storage,&conn_cap,from_nid,message,scenario.ctx());
-            
+
             xcall_state::delete_id_cap_for_testing(idCap, scenario.ctx());
             test_scenario::return_to_sender(&scenario, adminCap);
-             scenario.return_to_sender(conn_cap);
+            scenario.return_to_sender(conn_cap);
             test_scenario::return_shared( storage);
         };  
         {
@@ -455,6 +455,261 @@ scenario = setup_connection(scenario, string::utf8(b"icon"), admin);
             assert!(events == 0, 0);
         };
         test_scenario::end(scenario);
+    }
+
+    #[test]
+    #[expected_failure(abort_code = xcall::main::EInvalidNID)]
+    fun test_handle_message_invalid_nid() {
+        let admin = @0xBABE;
+
+        let mut scenario = setup_test(admin);
+        test_scenario::next_tx(&mut scenario, admin);
+        scenario = setup_nid(scenario, string::utf8(b"sui"), admin);
+        scenario = setup_connection(scenario, string::utf8(b"icon"), admin);
+
+        let mut storage = test_scenario::take_shared<Storage>(&scenario);
+        let conn_cap = test_scenario::take_from_sender<ConnCap>(&scenario);
+        let from = string::utf8(b"sui");
+        let sources = vector[string::utf8(b"centralized-1"), string::utf8(b"centralized-2")];
+        let data = b"data";
+        let sui_dapp = string::utf8(b"dsui/daddress");
+        let icon_dapp = network_address::create(string::utf8(b"icon"), string::utf8(b"address"));
+
+
+        let request = message_request::create(icon_dapp, sui_dapp, 1, 1, data, sources);
+        let msg = cs_message::encode(&cs_message::new(cs_message::request_code(), message_request::encode(&request)));
+
+        main::handle_message(&mut storage, &conn_cap, from, msg, test_scenario::ctx(&mut scenario));
+
+        test_scenario::return_shared(storage);
+        test_scenario::return_to_sender(&scenario, conn_cap);
+        test_scenario::end(scenario);
+    }
+
+    #[test]
+    #[expected_failure(abort_code = xcall::main::EInvalidSource)]
+    fun test_handle_message_invalid_source() {
+        let admin = @0xBABE;
+
+        let mut scenario = setup_test(admin);
+        test_scenario::next_tx(&mut scenario, admin);
+        scenario = setup_nid(scenario, string::utf8(b"sui"), admin);
+        scenario = setup_connection(scenario, string::utf8(b"icon"), admin);
+        test_scenario::next_tx(&mut scenario, admin);
+
+        let mut storage = test_scenario::take_shared<Storage>(&scenario);
+        let conn_cap = test_scenario::take_from_sender<ConnCap>(&scenario);
+
+        let from = string::utf8(b"icon");
+        let sources = vector[string::utf8(b"centralized-3"), string::utf8(b"centralized-4")];
+        let mut request = create_test_message_request(1);
+        request.set_protocols(sources);
+
+        let msg = cs_message::encode(&cs_message::new(cs_message::request_code(), message_request::encode(&request)));
+
+        main::handle_message(&mut storage, &conn_cap, from, msg, test_scenario::ctx(&mut scenario));
+
+        test_scenario::return_shared(storage);
+        test_scenario::return_to_sender(&scenario, conn_cap);
+        test_scenario::end(scenario);
+    }
+
+
+    #[test]
+    #[expected_failure(abort_code = xcall::main::EInvalidMsgCode)]
+    fun test_handle_message_invalid_msg_code() {
+        let admin = @0xBABE;
+
+        let mut scenario = setup_test(admin);
+        test_scenario::next_tx(&mut scenario, admin);
+        scenario = setup_nid(scenario, string::utf8(b"sui"), admin);
+        scenario = setup_connection(scenario, string::utf8(b"icon"), admin);
+        test_scenario::next_tx(&mut scenario, admin);
+        
+        let mut storage = test_scenario::take_shared<Storage>(&scenario);
+        let conn_cap = test_scenario::take_from_sender<ConnCap>(&scenario);
+        
+        let from = string::utf8(b"icon");
+
+
+        let request =create_test_message_request(1);
+        let invalid_msg = cs_message::encode(&cs_message::new(4, message_request::encode(&request)));
+        
+        main::handle_message(&mut storage, &conn_cap, from, invalid_msg, test_scenario::ctx(&mut scenario));
+        
+        test_scenario::return_shared(storage);
+        test_scenario::return_to_sender(&scenario, conn_cap);
+        test_scenario::end(scenario);
+    }
+
+    #[test]
+    #[expected_failure(abort_code = xcall::main::ENoRollback)]
+    fun test_handle_result_no_rollback() {
+        let admin = @0xBABE;
+
+        let mut scenario = setup_test(admin);
+        test_scenario::next_tx(&mut scenario, admin);
+        scenario = setup_nid(scenario, string::utf8(b"sui"), admin);
+        scenario = setup_connection(scenario, string::utf8(b"icon"), admin);
+        test_scenario::next_tx(&mut scenario, admin);
+
+        let mut storage = test_scenario::take_shared<Storage>(&mut scenario);
+        let conn_cap = test_scenario::take_from_sender<ConnCap>(&scenario);
+
+        let from = string::utf8(b"icon");
+
+        let response = message_result::create(99, message_result::failure(),vector::empty<u8>());
+        let message = cs_message::encode(&cs_message::new(cs_message::result_code(), response.encode()));
+
+        main::handle_message(&mut storage, &conn_cap, from, message, test_scenario::ctx(&mut scenario));
+
+        test_scenario::return_shared(storage);
+        test_scenario::return_to_sender(&scenario, conn_cap);
+        test_scenario::end(scenario);
+    }
+
+
+    #[test]
+    #[expected_failure(abort_code = xcall::main::EDataTooBig)]
+    fun test_send_call_data_too_big() {
+        let admin = @0xBABE;
+
+        let mut scenario = setup_test(admin);
+        test_scenario::next_tx(&mut scenario, admin);
+        scenario = setup_nid(scenario, string::utf8(b"sui"), admin);
+        scenario = setup_connection(scenario, string::utf8(b"icon"), admin);
+        test_scenario::next_tx(&mut scenario, admin);
+
+        let mut storage = test_scenario::take_shared<Storage>(&scenario);
+        let ctx = test_scenario::ctx(&mut scenario);
+        let idCap = xcall_state::create_id_cap(&storage, ctx);
+        let sources = vector[string::utf8(b"centralized-1")];
+        let destinations = vector[string::utf8(b"icon:hx234")];
+        let fee = coin::mint_for_testing<SUI>(100, ctx);
+        let data = create_large_data(3000);
+        let envelope=envelope::wrap_call_message(data,sources,destinations);
+        let envelope_bytes=envelope::encode(&envelope);
+        main::send_call(&mut storage,fee,&idCap,string::utf8(b"dnetId/daddress"),envelope_bytes,ctx);
+
+        test_scenario::return_shared(storage);
+        test_scenario::return_to_sender(&scenario, idCap);
+        test_scenario::end(scenario);
+    }
+
+    #[test]
+    #[expected_failure(abort_code = xcall::main::EDataMismatch)]
+    fun test_execute_call_data_mismatch() {
+        let admin = @0xBABE;
+
+        let mut scenario = setup_test(admin);
+        test_scenario::next_tx(&mut scenario, admin);
+        scenario = setup_nid(scenario, string::utf8(b"sui"), admin);
+        scenario = setup_connection(scenario, string::utf8(b"icon"), admin);
+        test_scenario::next_tx(&mut scenario, admin);
+
+        let mut storage = test_scenario::take_shared<Storage>(&mut scenario);
+        let idCap = xcall_state::create_id_cap(&storage, scenario.ctx());
+
+        // Set up a test environment (add a proxy request)
+        let request_id = 1;
+        xcall_state::add_proxy_request(&mut storage, request_id, create_test_message_request(1));
+
+        let mismatched_data = b"mismatched_data";
+        let ticket=main::execute_call(&mut storage, &idCap, request_id, mismatched_data, test_scenario::ctx(&mut scenario));
+        ticket.consume();
+        test_scenario::return_shared(storage);
+        test_scenario::return_to_sender(&scenario, idCap);
+        test_scenario::end(scenario);
+    }
+
+     #[test]
+    #[expected_failure(abort_code = xcall::main::EInvalidAccess)]
+    fun test_execute_call_invalid_access() {
+        let admin = @0xBABE;
+
+        let mut scenario = setup_test(admin);
+        test_scenario::next_tx(&mut scenario, admin);
+        scenario = setup_nid(scenario, string::utf8(b"sui"), admin);
+        scenario = setup_connection(scenario, string::utf8(b"icon"), admin);
+        test_scenario::next_tx(&mut scenario, admin);
+        
+        let mut storage = test_scenario::take_shared<Storage>(&mut scenario);
+        let idCap = xcall_state::create_id_cap(&storage, scenario.ctx());
+        
+        // Set up a test environment (add a proxy request with a different destination)
+        let request_id = 1;
+        let request= create_test_message_request(1);
+        xcall_state::add_proxy_request(&mut storage, request_id,request);
+        
+        let data = b"data";
+        let ticket=main::execute_call(&mut storage, &idCap, request_id, data, test_scenario::ctx(&mut scenario));
+        ticket.consume();
+        
+        test_scenario::return_shared(storage);
+        test_scenario::return_to_sender(&scenario, idCap);
+        test_scenario::end(scenario);
+    }
+
+    #[test]
+    #[expected_failure(abort_code = xcall::main::ERollbackNotEnabled)]
+    fun test_execute_rollback_not_enabled() {
+         let admin = @0xBABE;
+
+        let mut scenario = setup_test(admin);
+        test_scenario::next_tx(&mut scenario, admin);
+        scenario = setup_nid(scenario, string::utf8(b"sui"), admin);
+        scenario = setup_connection(scenario, string::utf8(b"icon"), admin);
+        test_scenario::next_tx(&mut scenario, admin);
+        
+        let mut storage = test_scenario::take_shared<Storage>(&mut scenario);
+        let idCap = xcall_state::create_id_cap(&storage, scenario.ctx());
+        
+        // Set up a test environment (add a rollback entry that's not enabled)
+        let sn = 1;
+        xcall_state::add_rollback(&mut storage, sn, create_test_rollback_data(idCap.get_id_cap_id()));
+        
+        main::execute_rollback(&mut storage, &idCap, sn, test_scenario::ctx(&mut scenario));
+        
+        test_scenario::return_shared(storage);
+        test_scenario::return_to_sender(&scenario, idCap);
+        test_scenario::end(scenario);
+    }
+
+   
+
+    fun create_large_data(size:u64):vector<u8>{
+        let mut v = vector[];
+        let mut i = 0;
+
+
+        while (i < size) {
+            v.push_back(8_u8);
+            i = i + 1;
+        };
+        v
+    }
+
+    fun create_test_message_request(sn:u128):CSMessageRequest{
+        let sources = vector[string::utf8(b"centralized-1"), string::utf8(b"centralized-2")];
+        let data = hash::keccak256(&b"data");
+        let sui_dapp = string::utf8(b"dsui/daddress");
+        let icon_dapp = network_address::create(string::utf8(b"icon"), string::utf8(b"address"));
+        let request = message_request::create(icon_dapp, sui_dapp, sn, 1, data, sources);
+        request
+
+    }
+
+    fun create_test_rollback_data(from:ID):RollbackData {
+        let icon_dapp = network_address::create(string::utf8(b"icon"), string::utf8(b"address"));
+        let sources = vector[string::utf8(b"centralized-1"), string::utf8(b"centralized-2")];
+        let data = hash::keccak256(&b"rollback");
+        let rollback= rollback_data::create(
+            from,
+            icon_dapp.net_id(),
+            sources,
+            data,
+            false);
+        rollback
     }
 
 }

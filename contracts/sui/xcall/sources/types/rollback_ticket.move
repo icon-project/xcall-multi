@@ -14,8 +14,8 @@ module xcall::rollback_ticket {
         }
     }
 
-     public fun rollback(self:&RollbackTicket):vector<u8>{
-         self.rollback
+    public fun rollback(self:&RollbackTicket):vector<u8>{
+        self.rollback
     }
 
     public fun sn(self:&RollbackTicket):u128 {
