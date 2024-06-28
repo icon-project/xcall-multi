@@ -50,7 +50,6 @@ module xcall::network_address {
         encoder::encode_string(&to_string(self))
     }
     public fun decode(bytes:&vector<u8>):NetworkAddress {
-       //debug::print(bytes);
         let network_address= decoder::decode_string(bytes);
         from_string(network_address)
     }
