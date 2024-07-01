@@ -124,12 +124,10 @@ impl RollbackAccount {
 
     pub const SIZE: usize = 8 + 1024 + 1;
 
-    pub fn new(rollback: Rollback, owner: Pubkey, bump: u8) -> Self {
-        Self {
-            rollback,
-            owner,
-            bump,
-        }
+    pub fn set(&mut self, rollback: Rollback, owner: Pubkey, bump: u8) {
+        self.rollback = rollback;
+        self.owner = owner;
+        self.bump = bump
     }
 }
 
@@ -139,15 +137,33 @@ pub struct PendingRequest {
     pub sources: Vec<Pubkey>,
 }
 
+impl PendingRequest {
+    pub const SEED_PREFIX: &'static str = "req";
+
+    pub const SIZE: usize = ACCOUNT_DISCRIMINATOR_SIZE + 640;
+}
+
 #[account]
 #[derive(Debug)]
 pub struct PendingResponse {
     pub sources: Vec<Pubkey>,
 }
 
+impl PendingResponse {
+    pub const SEED_PREFIX: &'static str = "res";
+
+    pub const SIZE: usize = ACCOUNT_DISCRIMINATOR_SIZE + 640;
+}
+
 #[account]
 pub struct SuccessfulResponse {
     pub success: bool,
+}
+
+impl SuccessfulResponse {
+    pub const SEED_PREFIX: &'static str = "success";
+
+    pub const SIZE: usize = ACCOUNT_DISCRIMINATOR_SIZE + 1;
 }
 
 #[account]
@@ -162,8 +178,10 @@ impl ProxyRequest {
 
     pub const SIZE: usize = ACCOUNT_DISCRIMINATOR_SIZE + 1024 + 32 + 1;
 
-    pub fn new(req: CSMessageRequest, owner: Pubkey, bump: u8) -> Self {
-        Self { req, owner, bump }
+    pub fn set(&mut self, req: CSMessageRequest, owner: Pubkey, bump: u8) {
+        self.req = req;
+        self.owner = owner;
+        self.bump = bump
     }
 }
 

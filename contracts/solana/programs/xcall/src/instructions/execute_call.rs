@@ -12,9 +12,9 @@ use xcall_lib::{message::msg_type::MessageType,
     state::CpiDappResponse};
 
 use crate::{
-    error::XcallError, event, state::ProxyRequest, 
+    error::XcallError, event, state::*, 
     types::{message::CSMessage, request:: CSMessageRequest, 
-        result::{ CSMessageResult, CSResponseType}}, DefaultConnection, Reply, SendMessageArgs 
+        result::{ CSMessageResult, CSResponseType}}
 };
 
 pub fn execute_call<'a, 'b, 'c, 'info>(

@@ -2,7 +2,7 @@
 use anchor_lang::prelude::*;
 
 use crate::{
-    error::XcallError, event, state::RollbackAccount, DefaultConnection 
+    error::XcallError, event, state::*
 };
 
 pub fn execute_rollback<'a, 'b, 'c, 'info>(

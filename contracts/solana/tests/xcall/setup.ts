@@ -10,15 +10,16 @@ const xcallProgram: anchor.Program<Xcall> = anchor.workspace.Xcall;
 export class TestContext {
   nid: String;
   admin: Keypair;
-  fee_handler: Keypair;
+  feeHandler: Keypair;
   connection: Connection;
   txnHelpers: TxnHelpers;
+  protocolFee: number;
 
   constructor(connection: Connection, txnHelpers: TxnHelpers, admin: Keypair) {
     this.connection = connection;
     this.txnHelpers = txnHelpers;
     this.admin = admin;
-    this.fee_handler = admin;
+    this.feeHandler = admin;
   }
 
   async initialize(netId: string) {
@@ -41,7 +42,7 @@ export class TestContext {
     let ix = await xcallProgram.methods
       .setDefaultConnection(netId, connection)
       .accountsStrict({
-        signer: this.admin.publicKey,
+        admin: this.admin.publicKey,
         systemProgram: SYSTEM_PROGRAM_ID,
         config: XcallPDA.config().pda,
         defaultConnection: XcallPDA.defaultConnection(netId).pda,
@@ -54,7 +55,7 @@ export class TestContext {
   }
 
   async setFeeHandler(fee_handler: Keypair) {
-    this.fee_handler = fee_handler;
+    this.feeHandler = fee_handler;
 
     let ix = await xcallProgram.methods
       .setProtocolFeeHandler(fee_handler.publicKey)
@@ -70,15 +71,17 @@ export class TestContext {
   }
 
   async setProtocolFee(fee: number) {
+    this.protocolFee = fee;
+
     let ix = await xcallProgram.methods
       .setProtocolFee(new anchor.BN(fee))
       .accountsStrict({
-        signer: this.fee_handler.publicKey,
+        signer: this.feeHandler.publicKey,
         config: XcallPDA.config().pda,
       })
       .instruction();
 
-    let tx = await this.txnHelpers.buildV0Txn([ix], [this.fee_handler]);
+    let tx = await this.txnHelpers.buildV0Txn([ix], [this.feeHandler]);
     await this.connection.sendTransaction(tx);
     await sleep(3);
   }

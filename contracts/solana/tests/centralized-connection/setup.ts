@@ -70,8 +70,15 @@ export class TestContext {
   }
 
   async getFee(nid: string) {
-    return await this.program.account.fee.fetch(
+    return await this.program.account.networkFee.fetch(
       ConnectionPDA.fee(nid).pda,
+      "confirmed"
+    );
+  }
+
+  async getReceipt(sequenceNo: number) {
+    return await this.program.account.receipt.fetch(
+      ConnectionPDA.receipt(sequenceNo).pda,
       "confirmed"
     );
   }
