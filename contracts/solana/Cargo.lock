@@ -630,6 +630,7 @@ name = "centralized-connection"
 version = "0.1.0"
 dependencies = [
  "anchor-lang",
+ "xcall-lib",
 ]
 
 [[package]]

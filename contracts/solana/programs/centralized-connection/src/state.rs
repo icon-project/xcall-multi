@@ -1,7 +1,6 @@
 use anchor_lang::prelude::*;
 
-use crate::constants;
-use crate::error::ConnectionError;
+use crate::{constants, error::*};
 
 /// The `Config` state of the centralized connection - the inner data of the
 /// program-derived address
@@ -54,13 +53,13 @@ impl Config {
 }
 
 #[account]
-pub struct Fee {
+pub struct NetworkFee {
     pub message_fee: u64,
     pub response_fee: u64,
     pub bump: u8,
 }
 
-impl Fee {
+impl NetworkFee {
     /// The Fee seed phrase to derive it's program-derived address
     pub const SEED_PREFIX: &'static str = "fee";
 
@@ -92,6 +91,8 @@ pub struct ClaimFee {
 }
 
 impl ClaimFee {
+    pub const SEED_PREFIX: &'static str = "claim_fees";
+
     pub const LEN: usize = constants::ACCOUNT_DISCRIMINATOR_SIZE + 1;
 
     pub fn get_claimable_fees(&self, fee_account: &AccountInfo) -> Result<u64> {
@@ -100,4 +101,13 @@ impl ClaimFee {
 
         Ok(fee_account.lamports() - rent_exempt_balance)
     }
+}
+
+#[account]
+pub struct Receipt {}
+
+impl Receipt {
+    pub const SEED_PREFIX: &'static str = "receipt";
+
+    pub const LEN: usize = constants::ACCOUNT_DISCRIMINATOR_SIZE;
 }

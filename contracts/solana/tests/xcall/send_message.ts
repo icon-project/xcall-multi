@@ -3,12 +3,13 @@ import { Keypair, PublicKey } from "@solana/web3.js";
 import { SYSTEM_PROGRAM_ID } from "@coral-xyz/anchor/dist/cjs/native/system";
 
 import { TestContext, XcallPDA } from "./setup";
-import { TxnHelpers } from "../utils";
+import { TxnHelpers, sleep } from "../utils";
 import { Xcall } from "../../target/types/xcall";
 import { Envelope, CallMessage, MessageType } from "./types";
 
 import { CentralizedConnection } from "../../target/types/centralized_connection";
 import { ConnectionPDA } from "../centralized-connection/setup";
+import { assert } from "chai";
 
 const connectionProgram: anchor.Program<CentralizedConnection> =
   anchor.workspace.CentralizedConnection;
@@ -29,6 +30,7 @@ describe("xcall - send message", () => {
     await txnHelpers.airdrop(fee_handler.publicKey, 1e9);
 
     await ctx.setProtocolFee(5000);
+    await ctx.setDefaultConnection("icx", Keypair.generate().publicKey);
   });
 
   it("should send message", async () => {
@@ -40,6 +42,10 @@ describe("xcall - send message", () => {
     ).encode();
     const to = { "0": "icx/abc" };
 
+    let config = await ctx.getConfig();
+    let feeHandler = await connection.getAccountInfo(ctx.feeHandler.publicKey);
+    let nextSequence = config.sequenceNo.toNumber() + 1;
+
     let sendCallIx = await xcallProgram.methods
       .sendCall(Buffer.from(envelope), to)
       .accountsStrict({
@@ -47,8 +53,8 @@ describe("xcall - send message", () => {
         config: XcallPDA.config().pda,
         signer: wallet.payer.publicKey,
         reply: XcallPDA.reply().pda,
-        rollbackAccount: XcallPDA.rollback(1).pda,
-        feeHandler: ctx.fee_handler.publicKey,
+        rollbackAccount: XcallPDA.rollback(nextSequence).pda,
+        feeHandler: ctx.feeHandler.publicKey,
         defaultConnection: XcallPDA.defaultConnection("icx").pda,
       })
       .remainingAccounts([
@@ -76,7 +82,16 @@ describe("xcall - send message", () => {
       .instruction();
 
     let sendCallTx = await txnHelpers.buildV0Txn([sendCallIx], [wallet.payer]);
-    let sendCallTxSignature = await connection.sendTransaction(sendCallTx);
-    await txnHelpers.logParsedTx(sendCallTxSignature);
+    await connection.sendTransaction(sendCallTx);
+    await sleep(2);
+
+    assert.equal(
+      nextSequence.toString(),
+      (await ctx.getConfig()).sequenceNo.toString()
+    );
+    assert.equal(
+      (await connection.getAccountInfo(ctx.feeHandler.publicKey)).lamports,
+      feeHandler.lamports + ctx.protocolFee
+    );
   });
 });

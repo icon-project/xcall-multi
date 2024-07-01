@@ -4,7 +4,7 @@ use anchor_lang::{
 };
 use xcall_lib::network_address::NetworkAddress;
 
-#[derive(Clone, AnchorSerialize, AnchorDeserialize)]
+#[derive(Clone, Debug, AnchorSerialize, AnchorDeserialize)]
 pub struct Rollback {
     from: Pubkey,
     to: NetworkAddress,
