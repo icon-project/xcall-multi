@@ -1,6 +1,5 @@
-use anchor_lang::{
-    prelude::borsh, solana_program::pubkey::Pubkey, AnchorDeserialize, AnchorSerialize
-};
+use super::*;
+
 use xcall_lib::network_address::NetworkAddress;
 
 #[derive(Clone, Debug, AnchorSerialize, AnchorDeserialize)]

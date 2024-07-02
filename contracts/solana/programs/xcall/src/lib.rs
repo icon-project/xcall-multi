@@ -10,6 +10,7 @@ pub mod types;
 
 use instructions::*;
 
+use types::{message::CSMessageType, request::CSMessageRequest, result::CSMessageResult};
 use xcall_lib::network_address::NetworkAddress;
 
 declare_id!("DL5ULXfYtnE5m8swfivfxtaPM4y3bcsDphseZkWFXgft");
@@ -81,15 +82,15 @@ pub mod xcall {
         ctx: Context<'a, 'b, 'c, 'info, ExecuteCallCtx<'info>>,
         req_id: u128,
         data: Vec<u8>,
-        nid: String
+        nid: String,
     ) -> Result<()> {
-        instructions::execute_call(ctx, req_id, data,nid)
+        instructions::execute_call(ctx, req_id, data, nid)
     }
 
     pub fn execute_rollback<'a, 'b, 'c, 'info>(
-        ctx : Context<'a, 'b, 'c, 'info, ExecuteRollbackCtx<'info>>,
-        sn : u128
+        ctx: Context<'a, 'b, 'c, 'info, ExecuteRollbackCtx<'info>>,
+        sn: u128,
     ) -> Result<()> {
-        instructions::execute_rollback(ctx,sn)
+        instructions::execute_rollback(ctx, sn)
     }
 }

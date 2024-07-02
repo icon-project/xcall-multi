@@ -1,9 +1,9 @@
-use crate::error::XcallError;
-use rlp::{Decodable, Encodable};
+use super::*;
 
-use super::request::CSMessageRequest;
+use crate::error::*;
+use request::CSMessageRequest;
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, AnchorSerialize, AnchorDeserialize)]
 pub enum CSResponseType {
     CSResponseFailure,
     CSResponseSuccess,
@@ -27,7 +27,7 @@ impl TryFrom<u8> for CSResponseType {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, AnchorSerialize, AnchorDeserialize)]
 pub struct CSMessageResult {
     sequence_no: u128,
     response_code: CSResponseType,
