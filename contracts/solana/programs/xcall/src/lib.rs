@@ -10,6 +10,7 @@ pub mod types;
 
 use instructions::*;
 
+use types::{message::CSMessageType, request::CSMessageRequest, result::CSMessageResult};
 use xcall_lib::network_address::NetworkAddress;
 
 declare_id!("DoSLJH36FLrQVjZ8wDD4tHHfLbisj4VwMzpvTV9yyyp2");
@@ -75,5 +76,16 @@ pub mod xcall {
 
     pub fn get_protocol_fee(ctx: Context<UpdateConfigCtx>) -> Result<u64> {
         Ok(ctx.accounts.config.protocol_fee)
+    }
+
+    pub fn decode_cs_message(
+        _ctx: Context<EmptyContext>,
+        message: Vec<u8>,
+    ) -> Result<(
+        CSMessageType,
+        Option<CSMessageRequest>,
+        Option<CSMessageResult>,
+    )> {
+        instructions::decode_cs_message(message)
     }
 }

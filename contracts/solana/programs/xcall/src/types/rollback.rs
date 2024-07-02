@@ -1,7 +1,5 @@
-use anchor_lang::{
-    prelude::{borsh, Pubkey},
-    AnchorDeserialize, AnchorSerialize,
-};
+use super::*;
+
 use xcall_lib::network_address::NetworkAddress;
 
 #[derive(Clone, Debug, AnchorSerialize, AnchorDeserialize)]
