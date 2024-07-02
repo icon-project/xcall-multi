@@ -1,0 +1,20 @@
+[toolchain]
+
+[features]
+resolution = false
+skip-lint = false
+
+[programs.localnet]
+centralized-connection = "9Ne7Fbo7hvKdLTDjpC2wghZbfcmKZqQ3fHcbvqR7ESza"
+mock-dapp = "8Q4FvsHCWK68EzYtsstdFYwUL1SHCiuLPRDJk1gaKiQ8"
+xcall = "DoSLJH36FLrQVjZ8wDD4tHHfLbisj4VwMzpvTV9yyyp2"
+
+[registry]
+url = "https://api.apr.dev"
+
+[provider]
+cluster = "Localnet"
+wallet = "~/.config/solana/id.json"
+
+[scripts]
+test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
