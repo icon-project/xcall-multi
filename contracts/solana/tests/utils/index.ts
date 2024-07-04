@@ -16,4 +16,20 @@ export const hash = (message: Uint8Array) => {
   return createHash("sha256").update(message).digest("hex");
 };
 
+export const uint128ToArray = (num: any) => {
+  if (typeof num === "string" || typeof num === "number") {
+    num = BigInt(num);
+  } else if (!(num instanceof BigInt)) {
+    throw new Error("Input must be a BigInt or convertible to a BigInt.");
+  }
+
+  let buffer = new ArrayBuffer(16);
+  let view = new DataView(buffer);
+
+  view.setBigUint64(0, num & BigInt("0xFFFFFFFFFFFFFFFF"), true);
+  view.setBigUint64(8, num >> BigInt(64), true);
+
+  return new Uint8Array(buffer);
+};
+
 export * from "./transaction";

@@ -82,7 +82,7 @@ pub struct RecvMessage<'info> {
     #[account(
         init,
         payer = admin,
-        seeds = [Receipt::SEED_PREFIX.as_bytes(), conn_sn.to_string().as_bytes()],
+        seeds = [Receipt::SEED_PREFIX.as_bytes(), &conn_sn.to_le_bytes()],
         space = Receipt::LEN,
         bump
     )]

@@ -269,7 +269,7 @@ pub struct HandleMessageCtx<'info> {
         init_if_needed,
         payer = signer,
         space = ProxyRequest::SIZE,
-        seeds = [ProxyRequest::SEED_PREFIX.as_bytes(), (config.last_req_id + 1).to_string().as_bytes()],
+        seeds = [ProxyRequest::SEED_PREFIX.as_bytes(), &(config.last_req_id + 1).to_le_bytes()],
         bump
     )]
     pub proxy_request: Account<'info, ProxyRequest>,
@@ -308,13 +308,13 @@ pub struct HandleMessageCtx<'info> {
         init_if_needed,
         payer = signer,
         space = SuccessfulResponse::SIZE,
-        seeds = [SuccessfulResponse::SEED_PREFIX.as_bytes(), sequence_no.to_string().as_bytes()],
+        seeds = [SuccessfulResponse::SEED_PREFIX.as_bytes(), &sequence_no.to_le_bytes()],
         bump
     )]
     pub successful_response: Option<Account<'info, SuccessfulResponse>>,
 
     #[account(
-        seeds = [RollbackAccount::SEED_PREFIX.as_bytes(), sequence_no.to_string().as_bytes()],
+        seeds = [RollbackAccount::SEED_PREFIX.as_bytes(), &sequence_no.to_le_bytes()],
         bump
     )]
     pub rollback_account: Option<Account<'info, RollbackAccount>>,
@@ -353,7 +353,7 @@ pub struct HandleErrorCtx<'info> {
 
     #[account(
         mut,
-        seeds = [RollbackAccount::SEED_PREFIX.as_bytes(), sequence_no.to_string().as_bytes()],
+        seeds = [RollbackAccount::SEED_PREFIX.as_bytes(), &sequence_no.to_le_bytes()],
         bump
     )]
     pub rollback_account: Account<'info, RollbackAccount>,

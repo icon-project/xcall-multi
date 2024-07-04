@@ -5,39 +5,15 @@ use crate::{error::XcallError, state::*};
 pub fn initialize(ctx: Context<ConfigCtx>, network_id: String) -> Result<()> {
     ctx.accounts
         .config
-        .set_inner(Config::new(ctx.accounts.signer.key(), network_id));
+        .set(ctx.accounts.signer.key(), network_id, ctx.bumps.config);
 
-    ctx.accounts.reply.new();
+    ctx.accounts.reply.set();
 
     Ok(())
 }
 
-pub fn set_admin(ctx: Context<UpdateConfigCtx>, account: Pubkey) -> Result<()> {
-    ctx.accounts
-        .config
-        .ensure_admin(ctx.accounts.signer.key())?;
-
+pub fn set_admin(ctx: Context<SetAdminCtx>, account: Pubkey) -> Result<()> {
     ctx.accounts.config.set_admin(account);
-
-    Ok(())
-}
-
-pub fn set_protocol_fee(ctx: Context<UpdateConfigCtx>, fee: u64) -> Result<()> {
-    ctx.accounts
-        .config
-        .ensure_fee_handler(ctx.accounts.signer.key())?;
-
-    ctx.accounts.config.set_protocol_fee(fee);
-
-    Ok(())
-}
-
-pub fn set_protocol_fee_handler(ctx: Context<UpdateConfigCtx>, fee_handler: Pubkey) -> Result<()> {
-    ctx.accounts
-        .config
-        .ensure_admin(ctx.accounts.signer.key())?;
-
-    ctx.accounts.config.set_fee_handler(fee_handler);
 
     Ok(())
 }
@@ -80,16 +56,27 @@ pub struct ConfigCtx<'info> {
 }
 
 #[derive(Accounts)]
-pub struct UpdateConfigCtx<'info> {
+pub struct GetConfigCtx<'info> {
     #[account(
         mut,
         seeds = [Config::SEED_PREFIX.as_bytes()],
-        bump,
+        bump = config.bump
+    )]
+    pub config: Account<'info, Config>,
+}
+
+#[derive(Accounts)]
+pub struct SetAdminCtx<'info> {
+    #[account(
+        mut,
+        seeds = [Config::SEED_PREFIX.as_bytes()],
+        bump = config.bump,
+        has_one = admin @ XcallError::OnlyAdmin
     )]
     pub config: Account<'info, Config>,
 
     #[account(mut)]
-    pub signer: Signer<'info>,
+    pub admin: Signer<'info>,
 }
 
 #[derive(Accounts)]
@@ -106,7 +93,7 @@ pub struct DefaultConnectionCtx<'info> {
 
     #[account(
         seeds = [Config::SEED_PREFIX.as_bytes()],
-        bump,
+        bump = config.bump,
         has_one = admin @ XcallError::OnlyAdmin
     )]
     pub config: Account<'info, Config>,

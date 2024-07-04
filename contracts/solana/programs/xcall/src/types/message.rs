@@ -10,6 +10,12 @@ pub enum CSMessageType {
     CSMessageResult,
 }
 
+#[derive(Clone, AnchorSerialize, AnchorDeserialize)]
+pub enum CSMessageDecodedType {
+    CSMessageRequest(CSMessageRequest),
+    CSMessageResult(CSMessageResult),
+}
+
 #[derive(Clone)]
 pub struct CSMessage {
     pub message_type: CSMessageType,

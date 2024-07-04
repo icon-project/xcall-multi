@@ -58,4 +58,7 @@ pub enum XcallError {
 
     #[msg("Invalid source")]
     InvalidSource,
+
+    #[msg("Invalid source address")]
+    ParsePubkeyError,
 }

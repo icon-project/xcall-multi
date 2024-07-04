@@ -10,7 +10,6 @@ pub mod types;
 
 use instructions::*;
 
-use types::{message::CSMessageType, request::CSMessageRequest, result::CSMessageResult};
 use xcall_lib::network_address::NetworkAddress;
 
 declare_id!("DoSLJH36FLrQVjZ8wDD4tHHfLbisj4VwMzpvTV9yyyp2");
@@ -23,16 +22,16 @@ pub mod xcall {
         instructions::initialize(ctx, network_id)
     }
 
-    pub fn set_admin(ctx: Context<UpdateConfigCtx>, account: Pubkey) -> Result<()> {
+    pub fn set_admin(ctx: Context<SetAdminCtx>, account: Pubkey) -> Result<()> {
         instructions::set_admin(ctx, account)
     }
 
-    pub fn set_protocol_fee(ctx: Context<UpdateConfigCtx>, fee: u64) -> Result<()> {
+    pub fn set_protocol_fee(ctx: Context<SetFeeCtx>, fee: u64) -> Result<()> {
         instructions::set_protocol_fee(ctx, fee)
     }
 
     pub fn set_protocol_fee_handler(
-        ctx: Context<UpdateConfigCtx>,
+        ctx: Context<SetFeeHandlerCtx>,
         fee_handler: Pubkey,
     ) -> Result<()> {
         instructions::set_protocol_fee_handler(ctx, fee_handler)
@@ -74,18 +73,40 @@ pub mod xcall {
         instructions::handle_error(ctx, sequence_no)
     }
 
-    pub fn get_protocol_fee(ctx: Context<UpdateConfigCtx>) -> Result<u64> {
+    pub fn get_fee(
+        ctx: Context<GetFeeCtx>,
+        nid: String,
+        rollback: bool,
+        sources: Option<Vec<String>>,
+    ) -> Result<u64> {
+        instructions::get_fee(ctx, nid, rollback, sources.unwrap_or(vec![]))
+    }
+
+    pub fn get_admin(ctx: Context<GetConfigCtx>) -> Result<Pubkey> {
+        Ok(ctx.accounts.config.admin)
+    }
+
+    pub fn get_protocol_fee(ctx: Context<GetConfigCtx>) -> Result<u64> {
         Ok(ctx.accounts.config.protocol_fee)
     }
 
-    pub fn decode_cs_message(
-        _ctx: Context<EmptyContext>,
-        message: Vec<u8>,
-    ) -> Result<(
-        CSMessageType,
-        Option<CSMessageRequest>,
-        Option<CSMessageResult>,
-    )> {
+    pub fn get_protocol_fee_handler(ctx: Context<GetConfigCtx>) -> Result<Pubkey> {
+        Ok(ctx.accounts.config.fee_handler)
+    }
+
+    pub fn get_network_address(ctx: Context<GetConfigCtx>) -> Result<NetworkAddress> {
+        Ok(NetworkAddress::new(
+            &ctx.accounts.config.network_id,
+            &id().to_string(),
+        ))
+    }
+
+    #[allow(unused_variables)]
+    pub fn get_default_connection(ctx: Context<GetConfigCtx>, nid: String) -> Result<Pubkey> {
+        Ok(ctx.accounts.config.fee_handler)
+    }
+
+    pub fn decode_cs_message(_ctx: Context<EmptyContext>, message: Vec<u8>) -> Result<()> {
         instructions::decode_cs_message(message)
     }
 }
