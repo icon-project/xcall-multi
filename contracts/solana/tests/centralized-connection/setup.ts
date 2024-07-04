@@ -3,7 +3,7 @@ import { PublicKey, Connection, Keypair } from "@solana/web3.js";
 
 import { CentralizedConnection } from "../../target/types/centralized_connection";
 import { SYSTEM_PROGRAM_ID } from "@coral-xyz/anchor/dist/cjs/native/system";
-import { TxnHelpers } from "../utils";
+import { TxnHelpers, uint128ToArray } from "../utils";
 
 import { Xcall } from "../../target/types/xcall";
 
@@ -116,7 +116,7 @@ export class ConnectionPDA {
 
   static receipt(sn: number) {
     const [pda, bump] = PublicKey.findProgramAddressSync(
-      [Buffer.from("receipt"), Buffer.from(sn.toString())],
+      [Buffer.from("receipt"), uint128ToArray(sn)],
       connectionProgram.programId
     );
 

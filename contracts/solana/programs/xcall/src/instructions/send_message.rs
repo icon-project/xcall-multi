@@ -11,12 +11,13 @@ use anchor_lang::{
 use xcall_lib::{
     message::{envelope::Envelope, msg_trait::IMessage, AnyMessage},
     network_address::NetworkAddress,
-    xcall_connection_msg::SendMessageArgs,
+    xcall_connection_msg,
 };
 
 use crate::{
     error::XcallError,
-    event, helper,
+    event,
+    helper::{self, get_instruction_data},
     state::*,
     types::{message::CSMessage, request::CSMessageRequest, rollback::Rollback},
 };
@@ -67,19 +68,15 @@ pub fn send_call<'info>(
             sources = vec![ctx.accounts.default_connection.key().to_string()]
         }
 
-        let ix_discriminator = helper::get_instruction_discriminator("send_message");
-
         let mut data = vec![];
-        let args = SendMessageArgs {
+        let args = xcall_connection_msg::SendMessage {
             to: to.nid(),
             sn,
             msg: encode_msg,
         };
         args.serialize(&mut data)?;
 
-        let mut ix_data = Vec::new();
-        ix_data.extend_from_slice(&ix_discriminator);
-        ix_data.extend_from_slice(&data);
+        let ix_data = get_instruction_data("send_message", data);
 
         for (i, source) in sources.iter().enumerate() {
             let connection = &ctx.remaining_accounts[4 * i];
@@ -120,7 +117,6 @@ pub fn send_call<'info>(
             )?;
         }
 
-        // claim protocol fee
         if config.protocol_fee > 0 {
             claim_protocol_fee(
                 &signer,
@@ -239,7 +235,7 @@ pub struct SendCallCtx<'info> {
       init,
       payer = signer,
       space = RollbackAccount::SIZE,
-      seeds = [RollbackAccount::SEED_PREFIX.as_bytes(), (config.sequence_no + 1).to_string().as_bytes()],
+      seeds = [RollbackAccount::SEED_PREFIX.as_bytes(), &(config.sequence_no + 1).to_le_bytes()],
       bump,
     )]
     pub rollback_account: Option<Account<'info, RollbackAccount>>,

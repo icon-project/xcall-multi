@@ -2,7 +2,7 @@ import * as anchor from "@coral-xyz/anchor";
 
 import { PublicKey, Connection, Keypair } from "@solana/web3.js";
 import { Xcall } from "../../target/types/xcall";
-import { TxnHelpers, sleep } from "../utils";
+import { TxnHelpers, sleep, uint128ToArray } from "../utils";
 import { SYSTEM_PROGRAM_ID } from "@coral-xyz/anchor/dist/cjs/native/system";
 
 const xcallProgram: anchor.Program<Xcall> = anchor.workspace.Xcall;
@@ -60,7 +60,7 @@ export class TestContext {
     let ix = await xcallProgram.methods
       .setProtocolFeeHandler(fee_handler.publicKey)
       .accountsStrict({
-        signer: this.admin.publicKey,
+        admin: this.admin.publicKey,
         config: XcallPDA.config().pda,
       })
       .instruction();
@@ -76,7 +76,7 @@ export class TestContext {
     let ix = await xcallProgram.methods
       .setProtocolFee(new anchor.BN(fee))
       .accountsStrict({
-        signer: this.feeHandler.publicKey,
+        feeHandler: this.feeHandler.publicKey,
         config: XcallPDA.config().pda,
       })
       .instruction();
@@ -154,7 +154,7 @@ export class XcallPDA {
 
   static proxyRequest(requestId: number) {
     const [pda, bump] = PublicKey.findProgramAddressSync(
-      [Buffer.from("proxy"), Buffer.from(requestId.toString())],
+      [Buffer.from("proxy"), uint128ToArray(requestId)],
       xcallProgram.programId
     );
 
@@ -163,7 +163,7 @@ export class XcallPDA {
 
   static successRes(sequenceNo: number) {
     const [pda, bump] = PublicKey.findProgramAddressSync(
-      [Buffer.from("success"), Buffer.from(sequenceNo.toString())],
+      [Buffer.from("success"), uint128ToArray(sequenceNo)],
       xcallProgram.programId
     );
 
@@ -199,7 +199,7 @@ export class XcallPDA {
 
   static rollback(sequenceNo: number) {
     const [pda, bump] = PublicKey.findProgramAddressSync(
-      [Buffer.from("rollback"), Buffer.from(sequenceNo.toString())],
+      [Buffer.from("rollback"), uint128ToArray(sequenceNo)],
       xcallProgram.programId
     );
 

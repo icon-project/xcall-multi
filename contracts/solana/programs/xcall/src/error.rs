@@ -13,7 +13,7 @@ pub enum XcallError {
 
     #[msg("Rollback not enabled")]
     RollbackNotEnabled,
-    
+
     #[msg("Maximum data size exceeded")]
     MaxDataSizeExceeded,
 
@@ -73,4 +73,7 @@ pub enum XcallError {
 
     #[msg("Invalid pubkey")]
     InvalidPubkey,
+
+    #[msg("Invalid source address")]
+    ParsePubkeyError,
 }

@@ -1,5 +1,6 @@
 import * as anchor from "@coral-xyz/anchor";
-import { Keypair, PublicKey } from "@solana/web3.js";
+import { Keypair } from "@solana/web3.js";
+import { assert } from "chai";
 import { SYSTEM_PROGRAM_ID } from "@coral-xyz/anchor/dist/cjs/native/system";
 
 import { TestContext, XcallPDA } from "./setup";
@@ -9,7 +10,6 @@ import { Envelope, CallMessage, MessageType } from "./types";
 
 import { CentralizedConnection } from "../../target/types/centralized_connection";
 import { ConnectionPDA } from "../centralized-connection/setup";
-import { assert } from "chai";
 
 const connectionProgram: anchor.Program<CentralizedConnection> =
   anchor.workspace.CentralizedConnection;
