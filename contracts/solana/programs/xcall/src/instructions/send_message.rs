@@ -235,7 +235,7 @@ pub struct SendCallCtx<'info> {
       init,
       payer = signer,
       space = RollbackAccount::SIZE,
-      seeds = [RollbackAccount::SEED_PREFIX.as_bytes(), &(config.sequence_no + 1).to_le_bytes()],
+      seeds = [RollbackAccount::SEED_PREFIX.as_bytes(), &(config.sequence_no + 1).to_be_bytes()],
       bump,
     )]
     pub rollback_account: Option<Account<'info, RollbackAccount>>,

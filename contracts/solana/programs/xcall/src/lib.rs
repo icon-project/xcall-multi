@@ -10,6 +10,7 @@ pub mod types;
 
 use instructions::*;
 
+use types::message::CSMessageDecoded;
 use xcall_lib::network_address::NetworkAddress;
 
 declare_id!("DoSLJH36FLrQVjZ8wDD4tHHfLbisj4VwMzpvTV9yyyp2");
@@ -106,7 +107,10 @@ pub mod xcall {
         Ok(ctx.accounts.config.fee_handler)
     }
 
-    pub fn decode_cs_message(_ctx: Context<EmptyContext>, message: Vec<u8>) -> Result<()> {
+    pub fn decode_cs_message(
+        _ctx: Context<EmptyContext>,
+        message: Vec<u8>,
+    ) -> Result<CSMessageDecoded> {
         instructions::decode_cs_message(message)
     }
 }

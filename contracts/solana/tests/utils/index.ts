@@ -26,8 +26,8 @@ export const uint128ToArray = (num: any) => {
   let buffer = new ArrayBuffer(16);
   let view = new DataView(buffer);
 
-  view.setBigUint64(0, num & BigInt("0xFFFFFFFFFFFFFFFF"), true);
-  view.setBigUint64(8, num >> BigInt(64), true);
+  view.setBigUint64(0, num >> BigInt(64), false);
+  view.setBigUint64(8, num & BigInt("0xFFFFFFFFFFFFFFFF"), false);
 
   return new Uint8Array(buffer);
 };

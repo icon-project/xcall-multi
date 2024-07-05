@@ -2,8 +2,6 @@
 
 use anchor_lang::prelude::*;
 
-use crate::types::message::*;
-
 #[event]
 pub struct CallMessageSent {
     pub from: Pubkey,
@@ -41,10 +39,4 @@ pub struct RollbackMessage {
 #[event]
 pub struct RollbackExecuted {
     pub sn: u128,
-}
-
-#[event]
-pub struct CSMessageDecoded {
-    pub msgType: CSMessageType,
-    pub msg: CSMessageDecodedType,
 }
