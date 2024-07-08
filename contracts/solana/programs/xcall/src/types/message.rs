@@ -4,22 +4,17 @@ use crate::error::XcallError;
 use request::CSMessageRequest;
 use result::CSMessageResult;
 
-#[derive(Clone, AnchorSerialize, AnchorDeserialize)]
+#[derive(Clone, Debug, AnchorSerialize, AnchorDeserialize)]
 pub enum CSMessageType {
     CSMessageRequest = 1,
     CSMessageResult,
 }
 
 #[derive(Clone, AnchorSerialize, AnchorDeserialize)]
-pub enum CSMessageDecodedType {
-    CSMessageRequest(CSMessageRequest),
-    CSMessageResult(CSMessageResult),
-}
-
-#[derive(Clone, AnchorSerialize, AnchorDeserialize)]
 pub struct CSMessageDecoded {
     pub message_type: CSMessageType,
-    pub msg: CSMessageDecodedType,
+    pub request: Option<CSMessageRequest>,
+    pub result: Option<CSMessageResult>,
 }
 
 #[derive(Clone)]
