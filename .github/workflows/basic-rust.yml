@@ -25,6 +25,9 @@ jobs:
 
       - name: Install Rust
         run: rustup update stable
+      
+      - name: Lock Rust Version
+        run: rustup override set nightly-2023-03-27
 
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
@@ -53,6 +56,9 @@ jobs:
 
       - name: Install Rust
         run: rustup update stable
+      
+      - name: Lock Rust Version
+        run: rustup override set nightly-2023-03-27
 
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
