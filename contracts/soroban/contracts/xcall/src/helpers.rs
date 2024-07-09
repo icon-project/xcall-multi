@@ -33,7 +33,10 @@ pub fn ensure_data_size(len: usize) -> Result<(), ContractError> {
 }
 
 pub fn ensure_rollback_size(msg: &Bytes) -> Result<(), ContractError> {
-    if !msg.is_empty() && msg.len() > MAX_ROLLBACK_SIZE as u32 {
+    if msg.is_empty() {
+        return Err(ContractError::NoRollbackData);
+    }
+    if msg.len() > MAX_ROLLBACK_SIZE as u32 {
         return Err(ContractError::MaxRollbackSizeExceeded);
     }
 

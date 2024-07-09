@@ -69,7 +69,7 @@ fn test_protocol_fee() {
     assert_eq!(
         ctx.env.auths(),
         std::vec![(
-            ctx.fee_handler.clone(),
+            ctx.admin.clone(),
             AuthorizedInvocation {
                 function: AuthorizedFunction::Contract((
                     client.address.clone(),

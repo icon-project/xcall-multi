@@ -9,13 +9,12 @@ use soroban_xcall_lib::messages::msg_type::MessageType;
 
 use crate::{
     contract::XcallClient,
-    event::CallMsgEvent,
+    event::{CallMsgEvent, ResponseMsgEvent, RollbackMsgEvent},
     storage,
     types::{
         message::CSMessage,
         request::CSMessageRequest,
         result::{CSMessageResult, CSResponseType},
-        rollback::Rollback,
     },
 };
 
@@ -208,13 +207,7 @@ fn test_handle_message_result_fail_for_invalid_sender() {
     ctx.init_context(&client);
 
     let sequence_no = 10;
-    let rollback = Rollback::new(
-        Address::generate(&ctx.env),
-        ctx.network_address,
-        get_dummy_sources(&ctx.env),
-        bytes!(&ctx.env, 0xabc),
-        false,
-    );
+    let rollback = get_dummy_rollback(&ctx.env);
     ctx.env.as_contract(&ctx.contract, || {
         storage::store_rollback(&ctx.env, sequence_no, &rollback);
     });
@@ -231,4 +224,147 @@ fn test_handle_message_result_fail_for_invalid_sender() {
         &String::from_str(&ctx.env, "cosmos"),
         &cs_message,
     );
+}
+
+#[test]
+fn test_handle_message_result_should_enable_rollback_when_response_is_failure_from_dst_chain() {
+    let ctx = TestContext::default();
+    let client = XcallClient::new(&ctx.env, &ctx.contract);
+    ctx.init_context(&client);
+
+    let sequence_no = 10;
+    let rollback = get_dummy_rollback(&ctx.env);
+    ctx.env.as_contract(&ctx.contract, || {
+        storage::store_rollback(&ctx.env, sequence_no, &rollback);
+    });
+
+    let result = CSMessageResult::new(
+        sequence_no,
+        CSResponseType::CSResponseFailure,
+        bytes!(&ctx.env, 0xabc),
+    );
+    let cs_message = CSMessage::from_result(&ctx.env, &result).encode(&ctx.env);
+
+    client.handle_message(
+        &ctx.centralized_connection,
+        &String::from_str(&ctx.env, "cosmos"),
+        &cs_message,
+    );
+
+    ctx.env.as_contract(&ctx.contract, || {
+        // should enable rollback
+        let rollback = storage::get_rollback(&ctx.env, sequence_no).unwrap();
+        assert_eq!(rollback.enabled, true);
+    });
+
+    let response_msg_event = ResponseMsgEvent {
+        sn: sequence_no,
+        code: 0,
+    };
+    let rollback_event = RollbackMsgEvent { sn: sequence_no };
+
+    let mut events = ctx.env.events().all();
+    events.pop_front();
+
+    assert_eq!(
+        events,
+        vec![
+            &ctx.env,
+            (
+                client.address.clone(),
+                ("ResponseMessage",).into_val(&ctx.env),
+                response_msg_event.into_val(&ctx.env)
+            ),
+            (
+                client.address.clone(),
+                ("RollbackMessage",).into_val(&ctx.env),
+                rollback_event.into_val(&ctx.env)
+            )
+        ]
+    )
+}
+
+#[test]
+fn test_handle_message_result_when_response_is_success_from_dst_chain() {
+    let ctx = TestContext::default();
+    let client = XcallClient::new(&ctx.env, &ctx.contract);
+    ctx.init_context(&client);
+
+    let req_id = 1;
+    let sequence_no = 1;
+    let rollback = get_dummy_rollback(&ctx.env);
+    ctx.env.as_contract(&ctx.contract, || {
+        storage::store_rollback(&ctx.env, sequence_no, &rollback);
+    });
+
+    let request = CSMessageRequest::new(
+        ctx.network_address,
+        Address::generate(&ctx.env).to_string(),
+        sequence_no,
+        get_dummy_protocols(&ctx.env),
+        MessageType::CallMessage,
+        bytes!(&ctx.env, 0xabc),
+    );
+    let result = CSMessageResult::new(
+        sequence_no,
+        CSResponseType::CSResponseSuccess,
+        request.encode(&ctx.env),
+    );
+    let cs_message = CSMessage::from_result(&ctx.env, &result).encode(&ctx.env);
+
+    client.handle_message(
+        &ctx.centralized_connection,
+        &String::from_str(&ctx.env, "cosmos"),
+        &cs_message,
+    );
+
+    ctx.env.as_contract(&ctx.contract, || {
+        // rollback should be removed
+        assert!(storage::get_rollback(&ctx.env, sequence_no).is_err());
+
+        // should save as successfull response
+        let success_res = storage::get_successful_response(&ctx.env, sequence_no);
+        assert_eq!(success_res, true);
+
+        // should set proxy request
+        let proxy_request = storage::get_proxy_request(&ctx.env, req_id).unwrap();
+        assert_eq!(proxy_request.protocols(), rollback.protocols());
+
+        // should set proxy request data as keccak256 hash value
+        let mut req = request.clone();
+        req.hash_data(&ctx.env);
+        assert_eq!(req.data(), proxy_request.data())
+    });
+
+    let response_msg_event = ResponseMsgEvent {
+        sn: sequence_no,
+        code: 1,
+    };
+    let call_msg_event = CallMsgEvent {
+        from: request.from().to_string(),
+        to: request.to().clone(),
+        sn: request.sequence_no(),
+        reqId: req_id,
+        data: request.data().clone(),
+    };
+
+    let mut events = ctx.env.events().all();
+    events.pop_front();
+
+    assert_eq!(
+        events,
+        vec![
+            &ctx.env,
+            (
+                client.address.clone(),
+                ("ResponseMessage",).into_val(&ctx.env),
+                response_msg_event.into_val(&ctx.env)
+            ),
+            (
+                client.address.clone(),
+                ("CallMessage",).into_val(&ctx.env),
+                call_msg_event.into_val(&ctx.env)
+            )
+        ]
+    )
 }

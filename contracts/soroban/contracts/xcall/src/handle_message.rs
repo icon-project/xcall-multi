@@ -121,9 +121,6 @@ pub fn handle_result(env: &Env, sender: &Address, data: Bytes) -> Result<(), Con
             }
         }
         _ => {
-            if rollback.rollback().len() < 1 {
-                return Err(ContractError::NoRollbackData);
-            }
             rollback.enable();
             storage::store_rollback(&env, sequence_no, &rollback);
 
@@ -154,6 +151,7 @@ pub fn handle_reply(
     );
 
     reply.hash_data(&env);
+    reply.set_protocols(rollback.protocols.clone());
     storage::store_proxy_request(&env, req_id, &reply);
 
     Ok(())
@@ -177,7 +175,9 @@ pub fn is_valid_source(
     if protocols.contains(sender) {
         return Ok(true);
     }
-
-    let default_connection = storage::default_connection(e, src_net)?;
-    Ok(sender.clone() == default_connection.to_string())
+    if protocols.len() == 0 {
+        let default_connection = storage::default_connection(e, src_net)?;
+        return Ok(sender.clone() == default_connection.to_string());
+    }
+    Ok(false)
 }

@@ -112,20 +112,17 @@ pub fn process_message(
             if !helpers::is_contract(&e, sender) {
                 return Err(ContractError::RollbackNotPossible);
             }
-            helpers::ensure_rollback_size(&msg.rollback)?;
+            helpers::ensure_rollback_size(&msg.rollback().unwrap())?;
 
-            if envelope.message.rollback().is_some() {
-                let rollback_data = envelope.message.rollback().unwrap();
-                let rollback = Rollback::new(
-                    sender.clone(),
-                    to.clone(),
-                    envelope.sources.clone(),
-                    rollback_data,
-                    false,
-                );
+            let rollback = Rollback::new(
+                sender.clone(),
+                to.clone(),
+                envelope.sources.clone(),
+                msg.rollback.clone(),
+                false,
+            );
+            storage::store_rollback(&e, sequence_no, &rollback);
 
-                storage::store_rollback(&e, sequence_no, &rollback);
-            }
             Ok(())
         }
     }

@@ -36,7 +36,7 @@ impl Xcall {
     }
 
     pub fn set_protocol_fee(env: &Env, fee: u128) -> Result<(), ContractError> {
-        helpers::ensure_fee_handler(&env)?;
+        helpers::ensure_admin(&env)?;
         storage::store_protocol_fee(&env, fee);
 
         Ok(())

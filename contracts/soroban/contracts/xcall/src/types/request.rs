@@ -75,6 +75,10 @@ impl CSMessageRequest {
         self.data = Bytes::from_array(&e, &hash.to_array())
     }
 
+    pub fn set_protocols(&mut self, protocols: Vec<String>) {
+        self.protocols = protocols
+    }
+
     pub fn encode(&self, e: &Env) -> Bytes {
         let mut list: Vec<Bytes> = Vec::new(&e);
 
