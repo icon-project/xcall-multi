@@ -18,8 +18,19 @@ mod connection {
 
 use crate::{
     contract::{Xcall, XcallClient},
-    types::{message::InitializeMsg, request::CSMessageRequest},
+    types::{message::InitializeMsg, request::CSMessageRequest, rollback::Rollback},
 };
+
+pub fn get_dummy_rollback(env: &Env) -> Rollback {
+    let rollback = Rollback::new(
+        Address::generate(&env),
+        get_dummy_network_address(&env),
+        Vec::new(&env),
+        bytes!(&env, 0xabc),
+        false,
+    );
+    rollback
+}
 
 pub fn get_dummy_message_request(env: &Env) -> CSMessageRequest {
     let from = get_dummy_network_address(&env);

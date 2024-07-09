@@ -194,6 +194,24 @@ fn test_process_rollback_message_with_greater_than_max_rollback_size() {
 }
 
 #[test]
+#[should_panic(expected = "NoRollbackData")]
+fn test_process_rollback_message_with_empty_rollback_data() {
+    let ctx = TestContext::default();
+    let client = XcallClient::new(&ctx.env, &ctx.contract);
+    ctx.init_context(&client);
+
+    let rollback_msg = CallMessageWithRollback {
+        data: bytes!(&ctx.env, 0xab),
+        rollback: Bytes::new(&ctx.env),
+    };
+    let message = AnyMessage::CallMessageWithRollback(rollback_msg);
+    let envelope = &get_dummy_envelope_msg(&ctx.env, message);
+
+    send_message::process_message(&ctx.env, &ctx.network_address, 1, &ctx.contract, envelope)
+        .unwrap();
+}
+
+#[test]
 fn test_process_rollback_message() {
     let ctx = TestContext::default();
     let client = XcallClient::new(&ctx.env, &ctx.contract);
