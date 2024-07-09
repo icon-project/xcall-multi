@@ -33,7 +33,7 @@ impl FromStr for NetId {
     }
 }
 
-#[derive(Clone, AnchorSerialize, AnchorDeserialize)]
+#[derive(Clone, AnchorSerialize, AnchorDeserialize,Debug)]
 pub struct NetworkAddress(String);
 
 impl NetworkAddress {

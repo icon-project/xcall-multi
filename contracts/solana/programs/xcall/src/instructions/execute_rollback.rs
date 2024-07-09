@@ -1,6 +1,4 @@
 
-use crate::execute_call::handle_call_message;
-
 use anchor_lang::prelude::*;
 
 use crate::{
@@ -25,20 +23,13 @@ pub fn execute_rollback<'a, 'b, 'c, 'info>(
     let data = &req.rollback.rollback().to_vec();
     let protocols = req.rollback.protocols().to_vec();
     
-
-    let signer =  &ctx.accounts.signer;
-    let program = &ctx.accounts.system_program;
-    let remaining_accounts = ctx.remaining_accounts;
-    let signer_seeds:&[&[&[u8]]]=&[&[DefaultConnection::SEED_PREFIX.as_bytes(), &[ctx.accounts.default_connection.as_mut().unwrap().bump]]];
-
-    handle_call_message(signer, 
-        program, 
-        remaining_accounts, 
-        signer_seeds, 
-        from, 
-        to,
-        data, 
-        protocols)?;
+    
+    // TODO: need to call on dapp here 
+        // handle_call_message(ctx, 
+        //     req, 
+        //     data, 
+        //     false, 
+        //     )?
 
    emit!(event::RollbackExecuted {
                 sn: _sn,
@@ -67,6 +58,7 @@ pub struct ExecuteRollbackCtx<'info> {
     pub default_connection : Option<Account<'info,DefaultConnection>>,
 
     #[account(mut)]
+    /// CHECK : need to be the owner of the pda
     pub owner: AccountInfo<'info>,
     #[account(mut)]
     pub signer: Signer<'info>,
