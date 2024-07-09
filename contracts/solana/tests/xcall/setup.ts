@@ -8,7 +8,8 @@ import { SYSTEM_PROGRAM_ID } from "@coral-xyz/anchor/dist/cjs/native/system";
 const xcallProgram: anchor.Program<Xcall> = anchor.workspace.Xcall;
 
 export class TestContext {
-  nid: String;
+  networkId: string;
+  dstNetworkId: string;
   admin: Keypair;
   feeHandler: Keypair;
   connection: Connection;
@@ -16,6 +17,8 @@ export class TestContext {
   protocolFee: number;
 
   constructor(connection: Connection, txnHelpers: TxnHelpers, admin: Keypair) {
+    this.networkId = "solana";
+    this.dstNetworkId = "icon";
     this.connection = connection;
     this.txnHelpers = txnHelpers;
     this.admin = admin;

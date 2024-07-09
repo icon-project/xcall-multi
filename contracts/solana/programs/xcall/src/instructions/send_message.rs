@@ -216,6 +216,11 @@ pub fn are_array_equal(protocols: Vec<String>, sources: &Vec<String>) -> bool {
 #[derive(Accounts)]
 #[instruction(envelope: Vec<u8>, to: NetworkAddress)]
 pub struct SendCallCtx<'info> {
+    #[account(mut)]
+    pub signer: Signer<'info>,
+
+    pub system_program: Program<'info, System>,
+
     #[account(
         has_one = fee_handler,
         mut,
@@ -232,15 +237,6 @@ pub struct SendCallCtx<'info> {
     pub reply: Account<'info, Reply>,
 
     #[account(
-      init,
-      payer = signer,
-      space = RollbackAccount::SIZE,
-      seeds = [RollbackAccount::SEED_PREFIX.as_bytes(), &(config.sequence_no + 1).to_be_bytes()],
-      bump,
-    )]
-    pub rollback_account: Option<Account<'info, RollbackAccount>>,
-
-    #[account(
         seeds = [DefaultConnection::SEED_PREFIX.as_bytes(), to.nid().as_bytes()],
         bump = default_connection.bump
     )]
@@ -250,8 +246,12 @@ pub struct SendCallCtx<'info> {
     #[account(mut)]
     pub fee_handler: AccountInfo<'info>,
 
-    #[account(mut)]
-    pub signer: Signer<'info>,
-
-    pub system_program: Program<'info, System>,
+    #[account(
+        init,
+        payer = signer,
+        space = RollbackAccount::SIZE,
+        seeds = [RollbackAccount::SEED_PREFIX.as_bytes(), &(config.sequence_no + 1).to_be_bytes()],
+        bump,
+      )]
+    pub rollback_account: Option<Account<'info, RollbackAccount>>,
 }

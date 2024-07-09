@@ -28,13 +28,17 @@ pub fn transfer_lamports<'info>(
     Ok(())
 }
 
-pub fn get_instruction_discriminator(name: &str) -> [u8; 8] {
-    let preimage = format!("{}:{}", "global", name);
+pub fn get_instruction_data(ix_name: &str, data: Vec<u8>) -> Vec<u8> {
+    let preimage = format!("{}:{}", "global", ix_name);
 
     let mut ix_discriminator = [0u8; 8];
     ix_discriminator.copy_from_slice(&hash::hash(preimage.as_bytes()).to_bytes()[..8]);
 
-    ix_discriminator
+    let mut ix_data = Vec::new();
+    ix_data.extend_from_slice(&ix_discriminator);
+    ix_data.extend_from_slice(&data);
+
+    ix_data
 }
 
 pub fn call_xcall_handle_message<'info>(
@@ -51,9 +55,10 @@ pub fn call_xcall_handle_message<'info>(
     };
     args.serialize(&mut data)?;
 
+    let ix_data = get_instruction_data("handle_message", data);
+
     invoke_instruction(
-        "handle_message",
-        data,
+        ix_data,
         &ctx.accounts.config,
         &ctx.accounts.admin,
         &ctx.accounts.system_program,
@@ -73,9 +78,10 @@ pub fn call_xcall_handle_error<'info>(
     };
     args.serialize(&mut data)?;
 
+    let ix_data = get_instruction_data("handle_error", data);
+
     invoke_instruction(
-        "handle_error",
-        data,
+        ix_data,
         &ctx.accounts.config,
         &ctx.accounts.admin,
         &ctx.accounts.system_program,
@@ -84,19 +90,12 @@ pub fn call_xcall_handle_error<'info>(
 }
 
 pub fn invoke_instruction<'info>(
-    ix_name: &str,
-    ix_args: Vec<u8>,
+    ix_data: Vec<u8>,
     config: &Account<'info, Config>,
     admin: &Signer<'info>,
     system_program: &Program<'info, System>,
     remaining_accounts: &[AccountInfo<'info>],
 ) -> Result<()> {
-    let ix_discriminator = get_instruction_discriminator(ix_name);
-
-    let mut ix_data = Vec::new();
-    ix_data.extend_from_slice(&ix_discriminator);
-    ix_data.extend_from_slice(&ix_args);
-
     let mut account_metas = vec![
         AccountMeta::new_readonly(config.key(), true),
         AccountMeta::new(admin.key(), true),

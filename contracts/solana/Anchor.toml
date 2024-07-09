@@ -5,9 +5,9 @@ resolution = false
 skip-lint = false
 
 [programs.localnet]
-centralized-connection = "9Ne7Fbo7hvKdLTDjpC2wghZbfcmKZqQ3fHcbvqR7ESza"
+centralized-connection = "CgXQcZ26YLCoqM1wUK4nCXBwtbNeVZoZgt8ueVJ8Bva1"
 mock-dapp = "8Q4FvsHCWK68EzYtsstdFYwUL1SHCiuLPRDJk1gaKiQ8"
-xcall = "DL5ULXfYtnE5m8swfivfxtaPM4y3bcsDphseZkWFXgft"
+xcall = "8yY46KjzwJX11awdLMpNacddhGS19sqgQtKARq5dEXXJ"
 
 [registry]
 url = "https://api.apr.dev"

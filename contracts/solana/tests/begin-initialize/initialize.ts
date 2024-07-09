@@ -28,6 +28,10 @@ describe("Initialize", () => {
   let xcallCtx = new XcallTestContext(connection, txnHelpers, wallet.payer);
 
   after(async () => {
+    await xcallCtx.setDefaultConnection(
+      "0x3.icon",
+      connectionProgram.programId
+    );
     await xcallCtx.setDefaultConnection("icon", connectionProgram.programId);
   });
 
