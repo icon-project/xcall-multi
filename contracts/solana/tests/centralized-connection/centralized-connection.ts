@@ -36,7 +36,10 @@ describe("CentralizedConnection", () => {
   let xcallCtx = new XcallTestContext(connection, txnHelpers, wallet.payer);
 
   before(async () => {
-    await xcallCtx.setDefaultConnection("icx", connectionProgram.programId);
+    await xcallCtx.setDefaultConnection(
+      ctx.dstNetworkId,
+      connectionProgram.programId
+    );
     await sleep(3);
   });
 
@@ -75,10 +78,10 @@ describe("CentralizedConnection", () => {
     await sleep(3);
 
     await ctx.program.methods
-      .setFee(ctx.networkId, new anchor.BN(msg_fee), new anchor.BN(res_fee))
+      .setFee(ctx.dstNetworkId, new anchor.BN(msg_fee), new anchor.BN(res_fee))
       .accountsStrict({
         config: ConnectionPDA.config().pda,
-        networkFee: ConnectionPDA.fee(ctx.networkId).pda,
+        networkFee: ConnectionPDA.network_fee(ctx.dstNetworkId).pda,
         admin: ctx.admin.publicKey,
         systemProgram: SYSTEM_PROGRAM_ID,
       })
@@ -87,7 +90,7 @@ describe("CentralizedConnection", () => {
 
     await sleep(3);
 
-    let fee = await ctx.getFee(ctx.networkId);
+    let fee = await ctx.getFee(ctx.dstNetworkId);
     assert.equal(fee.messageFee.toNumber(), msg_fee);
     assert.equal(fee.responseFee.toNumber(), res_fee);
   });
@@ -140,7 +143,7 @@ describe("CentralizedConnection", () => {
 
   it("[recv_message]: should fail if not called by an admin", async () => {
     const connSn = 1;
-    const fromNetwork = "icon";
+    const fromNetwork = ctx.dstNetworkId;
     let csMessage = new Uint8Array([1, 2, 3]);
 
     try {
@@ -168,13 +171,13 @@ describe("CentralizedConnection", () => {
     let xcallConfig = await xcallCtx.getConfig();
 
     const connSn = 1;
-    const fromNetwork = "icon";
+    const fromNetwork = ctx.dstNetworkId;
     let nextReqId = xcallConfig.lastReqId.toNumber() + 1;
     let nextSequenceNo = xcallConfig.sequenceNo.toNumber() + 1;
 
     let request = new CSMessageRequest(
       "icon/abc",
-      "icon",
+      ctx.dstNetworkId,
       nextSequenceNo,
       MessageType.CallMessagePersisted,
       new Uint8Array([0, 1, 2, 3]),
@@ -211,7 +214,7 @@ describe("CentralizedConnection", () => {
           isWritable: true,
         },
         {
-          pubkey: XcallPDA.defaultConnection("icon").pda,
+          pubkey: XcallPDA.defaultConnection(ctx.dstNetworkId).pda,
           isSigner: false,
           isWritable: true,
         },
@@ -286,9 +289,8 @@ describe("CentralizedConnection", () => {
       [connectionProgram.programId.toString()],
       [wallet.publicKey.toString()]
     ).encode();
-    const to = { "0": "icx/abc" };
+    const to = { "0": "icon/abc" };
 
-    let fromNetwork = "icx";
     let xcallConfig = await xcallCtx.getConfig();
     let nextSequenceNo = xcallConfig.sequenceNo.toNumber() + 1;
     let nextReqId = xcallConfig.lastReqId.toNumber() + 1;
@@ -302,7 +304,7 @@ describe("CentralizedConnection", () => {
         reply: XcallPDA.reply().pda,
         rollbackAccount: XcallPDA.rollback(1).pda,
         feeHandler: xcallCtx.feeHandler.publicKey,
-        defaultConnection: XcallPDA.defaultConnection("icx").pda,
+        defaultConnection: XcallPDA.defaultConnection(ctx.dstNetworkId).pda,
       })
       .remainingAccounts([
         {
@@ -316,7 +318,7 @@ describe("CentralizedConnection", () => {
           isWritable: true,
         },
         {
-          pubkey: ConnectionPDA.fee("icx").pda,
+          pubkey: ConnectionPDA.network_fee(ctx.dstNetworkId).pda,
           isSigner: false,
           isWritable: true,
         },
@@ -337,8 +339,8 @@ describe("CentralizedConnection", () => {
     let responseCode = CSResponseType.CSResponseSuccess;
 
     let request = new CSMessageRequest(
-      "icx/abc",
-      "icon",
+      "icon/abc",
+      ctx.dstNetworkId,
       nextSequenceNo,
       MessageType.CallMessagePersisted,
       new Uint8Array([0, 1, 2, 3]),
@@ -357,7 +359,7 @@ describe("CentralizedConnection", () => {
 
     await ctx.program.methods
       .recvMessage(
-        fromNetwork,
+        ctx.dstNetworkId,
         new anchor.BN(connSn),
         Buffer.from(csMessage),
         new anchor.BN(nextSequenceNo)
@@ -380,7 +382,7 @@ describe("CentralizedConnection", () => {
           isWritable: true,
         },
         {
-          pubkey: XcallPDA.defaultConnection("icx").pda,
+          pubkey: XcallPDA.defaultConnection(ctx.dstNetworkId).pda,
           isSigner: false,
           isWritable: true,
         },
@@ -434,7 +436,7 @@ describe("CentralizedConnection", () => {
   });
 
   it("[revert_message]: should fail if not called by an admin", async () => {
-    let fromNetwork = "icon";
+    let fromNetwork = ctx.dstNetworkId;
     let sequenceNo = 1;
 
     try {
@@ -454,7 +456,7 @@ describe("CentralizedConnection", () => {
   });
 
   it("[revert_message]: should revert message and call xcall handle error", async () => {
-    let fromNetwork = "icon";
+    let fromNetwork = ctx.dstNetworkId;
 
     let xcallConfig = await xcallCtx.getConfig();
     let nextSequenceNo = xcallConfig.sequenceNo.toNumber() + 1;
@@ -469,7 +471,7 @@ describe("CentralizedConnection", () => {
       [connectionProgram.programId.toString()],
       [wallet.publicKey.toString()]
     ).encode();
-    const to = { "0": "icx/abc" };
+    const to = { "0": "icon/abc" };
 
     let sendCallIx = await xcallProgram.methods
       .sendCall(Buffer.from(envelope), to)
@@ -480,7 +482,7 @@ describe("CentralizedConnection", () => {
         reply: XcallPDA.reply().pda,
         rollbackAccount: XcallPDA.rollback(nextSequenceNo).pda,
         feeHandler: xcallCtx.feeHandler.publicKey,
-        defaultConnection: XcallPDA.defaultConnection("icx").pda,
+        defaultConnection: XcallPDA.defaultConnection(ctx.dstNetworkId).pda,
       })
       .remainingAccounts([
         {
@@ -494,7 +496,7 @@ describe("CentralizedConnection", () => {
           isWritable: true,
         },
         {
-          pubkey: ConnectionPDA.fee("icx").pda,
+          pubkey: ConnectionPDA.network_fee(ctx.dstNetworkId).pda,
           isSigner: false,
           isWritable: true,
         },
@@ -526,7 +528,7 @@ describe("CentralizedConnection", () => {
       })
       .remainingAccounts([
         {
-          pubkey: XcallPDA.defaultConnection("icon").pda,
+          pubkey: XcallPDA.defaultConnection(ctx.dstNetworkId).pda,
           isSigner: false,
           isWritable: true,
         },

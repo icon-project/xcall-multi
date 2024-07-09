@@ -25,18 +25,19 @@ describe("Xcall", async () => {
 
   it("[get_fee]: should get fee", async () => {
     let isResponse = true;
-    let networkId = "icx";
 
     let fee = await xcallProgram.methods
-      .getFee(networkId, isResponse, [connectionProgram.programId.toString()])
+      .getFee(ctx.dstNetworkId, isResponse, [
+        connectionProgram.programId.toString(),
+      ])
       .accountsStrict({
         config: XcallPDA.config().pda,
         reply: XcallPDA.reply().pda,
-        defaultConnection: XcallPDA.defaultConnection("icx").pda,
+        defaultConnection: XcallPDA.defaultConnection(ctx.dstNetworkId).pda,
       })
       .remainingAccounts([
         {
-          pubkey: ConnectionPDA.fee("icx").pda,
+          pubkey: ConnectionPDA.network_fee(ctx.dstNetworkId).pda,
           isSigner: false,
           isWritable: true,
         },
@@ -50,9 +51,9 @@ describe("Xcall", async () => {
     await sleep(2);
 
     let connectionFee = await connectionProgram.methods
-      .getFee(networkId, isResponse)
+      .getFee(ctx.dstNetworkId, isResponse)
       .accountsStrict({
-        networkFee: ConnectionPDA.fee("icx").pda,
+        networkFee: ConnectionPDA.network_fee(ctx.dstNetworkId).pda,
       })
       .view();
 

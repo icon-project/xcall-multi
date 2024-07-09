@@ -26,7 +26,10 @@ describe("xcall - handle message", () => {
   const xcallProgram: anchor.Program<Xcall> = anchor.workspace.Xcall;
 
   before(async () => {
-    await ctx.setDefaultConnection("icon", Keypair.generate().publicKey);
+    await ctx.setDefaultConnection(
+      ctx.dstNetworkId,
+      Keypair.generate().publicKey
+    );
   });
 
   it("should create and extend the lookup table", async () => {
@@ -37,12 +40,11 @@ describe("xcall - handle message", () => {
   });
 
   it("should handle message request", async () => {
-    let netId = "icon";
     let newKeypair = Keypair.generate();
 
     let request = new CSMessageRequest(
       "icon/abc",
-      "icon",
+      ctx.dstNetworkId,
       1,
       MessageType.CallMessage,
       new Uint8Array([0, 1, 2, 3]),
@@ -58,6 +60,8 @@ describe("xcall - handle message", () => {
       request.encode()
     ).encode();
 
+    console.log("not coming here");
+
     let message_seed = Buffer.from(hash(cs_message), "hex");
 
     let xcallConfig = await ctx.getConfig();
@@ -70,7 +74,11 @@ describe("xcall - handle message", () => {
 
     for (let i = 0; i < sources.length; i++) {
       let handleMessageIx = await xcallProgram.methods
-        .handleMessage(netId, Buffer.from(cs_message), new anchor.BN(1))
+        .handleMessage(
+          ctx.dstNetworkId,
+          Buffer.from(cs_message),
+          new anchor.BN(1)
+        )
         .accountsStrict({
           connection: sources[i].publicKey,
           signer: sources[i].publicKey,
@@ -78,7 +86,7 @@ describe("xcall - handle message", () => {
           config: XcallPDA.config().pda,
           pendingRequest: XcallPDA.pendingRequest(message_seed).pda,
           pendingRequestCreator: sources[1].publicKey,
-          defaultConnection: XcallPDA.defaultConnection("icon").pda,
+          defaultConnection: XcallPDA.defaultConnection(ctx.dstNetworkId).pda,
           rollbackAccount: null,
           rollbackCreator: null,
           pendingResponse: null,
@@ -97,7 +105,6 @@ describe("xcall - handle message", () => {
   });
 
   it("should handle message result", async () => {
-    let nid = "icon";
     let newKeypair = Keypair.generate();
     let sequenceNo = 100;
 
@@ -120,7 +127,11 @@ describe("xcall - handle message", () => {
 
     for (let i = 0; i < sources.length; i++) {
       const handleMessageIx = await xcallProgram.methods
-        .handleMessage(nid, Buffer.from(cs_message), new anchor.BN(sequenceNo))
+        .handleMessage(
+          ctx.dstNetworkId,
+          Buffer.from(cs_message),
+          new anchor.BN(sequenceNo)
+        )
         .accountsStrict({
           connection: sources[i].publicKey,
           signer: sources[i].publicKey,
@@ -128,7 +139,7 @@ describe("xcall - handle message", () => {
           config: XcallPDA.config().pda,
           pendingRequest: null,
           pendingRequestCreator: null,
-          defaultConnection: XcallPDA.defaultConnection("icon").pda,
+          defaultConnection: XcallPDA.defaultConnection(ctx.dstNetworkId).pda,
           rollbackAccount: XcallPDA.rollback(sequenceNo).pda,
           rollbackCreator: sources[0].publicKey,
           pendingResponse: XcallPDA.pendingResponse(message_seed).pda,

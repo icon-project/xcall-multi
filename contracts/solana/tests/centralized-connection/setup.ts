@@ -18,6 +18,7 @@ export class TestContext {
   admin: Keypair;
   connection: Connection;
   networkId: string;
+  dstNetworkId: string;
   txnHelpers: TxnHelpers;
   isInitialized: boolean;
 
@@ -30,8 +31,8 @@ export class TestContext {
     this.admin = admin;
     this.connection = connection;
     this.txnHelpers = txnHelpers;
-    this.networkId = "icx";
-    this.isInitialized = false;
+    this.networkId = "solana";
+    this.dstNetworkId = "icon";
   }
 
   async initialize() {
@@ -45,8 +46,6 @@ export class TestContext {
         claimFee: ConnectionPDA.claimFees().pda,
       })
       .rpc();
-
-    this.isInitialized = true;
   }
 
   async setAdmin(keypair: Keypair) {
@@ -71,7 +70,7 @@ export class TestContext {
 
   async getFee(nid: string) {
     return await this.program.account.networkFee.fetch(
-      ConnectionPDA.fee(nid).pda,
+      ConnectionPDA.network_fee(nid).pda,
       "confirmed"
     );
   }
@@ -96,7 +95,7 @@ export class ConnectionPDA {
     return { bump, pda };
   }
 
-  static fee(networkId: string) {
+  static network_fee(networkId: string) {
     const [pda, bump] = PublicKey.findProgramAddressSync(
       [Buffer.from("fee"), Buffer.from(networkId)],
       connectionProgram.programId
