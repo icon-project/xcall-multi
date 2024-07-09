@@ -1,12 +1,11 @@
 use anchor_lang::{
-    prelude::borsh,
-    AnchorDeserialize, AnchorSerialize,
+    prelude::borsh, solana_program::pubkey::Pubkey, AnchorDeserialize, AnchorSerialize
 };
 use xcall_lib::network_address::NetworkAddress;
 
 #[derive(Clone, AnchorSerialize, AnchorDeserialize)]
 pub struct Rollback {
-    from: String,
+    from: Pubkey,
     to: NetworkAddress,
     enabled: bool,
     rollback: Vec<u8>,
@@ -15,7 +14,7 @@ pub struct Rollback {
 
 impl Rollback {
     pub fn new(
-        from: String,
+        from: Pubkey,
         to: NetworkAddress,
         protocols: Vec<String>,
         rollback: Vec<u8>,
@@ -30,7 +29,7 @@ impl Rollback {
         }
     }
 
-    pub fn from(&self) -> &String {
+    pub fn from(&self) -> &Pubkey {
         &self.from
     }
 
