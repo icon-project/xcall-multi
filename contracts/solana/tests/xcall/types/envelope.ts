@@ -36,6 +36,10 @@ export class CallMessageWithRollback {
 export class CallMessagePersisted {
   data: Uint8Array;
 
+  constructor(data: Uint8Array) {
+    this.data = data;
+  }
+
   encode() {
     let rlpInput: rlp.Input = [Buffer.from(this.data)];
     return rlp.encode(rlpInput);

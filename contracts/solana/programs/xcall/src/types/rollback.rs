@@ -1,9 +1,8 @@
-use anchor_lang::{
-    prelude::borsh, solana_program::pubkey::Pubkey, AnchorDeserialize, AnchorSerialize
-};
+use super::*;
+
 use xcall_lib::network_address::NetworkAddress;
 
-#[derive(Clone, AnchorSerialize, AnchorDeserialize)]
+#[derive(Clone, Debug, AnchorSerialize, AnchorDeserialize)]
 pub struct Rollback {
     from: Pubkey,
     to: NetworkAddress,

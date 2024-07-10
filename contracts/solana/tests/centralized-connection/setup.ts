@@ -3,7 +3,7 @@ import { PublicKey, Connection, Keypair } from "@solana/web3.js";
 
 import { CentralizedConnection } from "../../target/types/centralized_connection";
 import { SYSTEM_PROGRAM_ID } from "@coral-xyz/anchor/dist/cjs/native/system";
-import { TxnHelpers } from "../utils";
+import { TxnHelpers, uint128ToArray } from "../utils";
 
 import { Xcall } from "../../target/types/xcall";
 
@@ -18,6 +18,7 @@ export class TestContext {
   admin: Keypair;
   connection: Connection;
   networkId: string;
+  dstNetworkId: string;
   txnHelpers: TxnHelpers;
   isInitialized: boolean;
 
@@ -30,8 +31,8 @@ export class TestContext {
     this.admin = admin;
     this.connection = connection;
     this.txnHelpers = txnHelpers;
-    this.networkId = "icx";
-    this.isInitialized = false;
+    this.networkId = "solana";
+    this.dstNetworkId = "icon";
   }
 
   async initialize() {
@@ -45,8 +46,6 @@ export class TestContext {
         claimFee: ConnectionPDA.claimFees().pda,
       })
       .rpc();
-
-    this.isInitialized = true;
   }
 
   async setAdmin(keypair: Keypair) {
@@ -70,8 +69,15 @@ export class TestContext {
   }
 
   async getFee(nid: string) {
-    return await this.program.account.fee.fetch(
-      ConnectionPDA.fee(nid).pda,
+    return await this.program.account.networkFee.fetch(
+      ConnectionPDA.network_fee(nid).pda,
+      "confirmed"
+    );
+  }
+
+  async getReceipt(sequenceNo: number) {
+    return await this.program.account.receipt.fetch(
+      ConnectionPDA.receipt(sequenceNo).pda,
       "confirmed"
     );
   }
@@ -89,7 +95,7 @@ export class ConnectionPDA {
     return { bump, pda };
   }
 
-  static fee(networkId: string) {
+  static network_fee(networkId: string) {
     const [pda, bump] = PublicKey.findProgramAddressSync(
       [Buffer.from("fee"), Buffer.from(networkId)],
       connectionProgram.programId
@@ -109,7 +115,7 @@ export class ConnectionPDA {
 
   static receipt(sn: number) {
     const [pda, bump] = PublicKey.findProgramAddressSync(
-      [Buffer.from("receipt"), Buffer.from(sn.toString())],
+      [Buffer.from("receipt"), uint128ToArray(sn)],
       connectionProgram.programId
     );
 

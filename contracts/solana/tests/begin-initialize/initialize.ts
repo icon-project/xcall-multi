@@ -1,13 +1,17 @@
 import * as anchor from "@coral-xyz/anchor";
 import { assert, expect } from "chai";
+import { Keypair } from "@solana/web3.js";
 
 import { TestContext as ConnectionTestContext } from "../centralized-connection/setup";
 import { TxnHelpers, sleep } from "../utils";
 
 import { Xcall } from "../../target/types/xcall";
 import { TestContext as XcallTestContext, XcallPDA } from "../xcall/setup";
+import { CentralizedConnection } from "../../target/types/centralized_connection";
 
 const xcallProgram: anchor.Program<Xcall> = anchor.workspace.Xcall;
+const connectionProgram: anchor.Program<CentralizedConnection> =
+  anchor.workspace.CentralizedConnection;
 
 describe("Initialize", () => {
   const provider = anchor.AnchorProvider.env();
@@ -22,6 +26,14 @@ describe("Initialize", () => {
     wallet.payer
   );
   let xcallCtx = new XcallTestContext(connection, txnHelpers, wallet.payer);
+
+  after(async () => {
+    await xcallCtx.setDefaultConnection(
+      "0x3.icon",
+      connectionProgram.programId
+    );
+    await xcallCtx.setDefaultConnection("icon", connectionProgram.programId);
+  });
 
   it("should initialize xcall program", async () => {
     let ctx = new XcallTestContext(connection, txnHelpers, wallet.payer);

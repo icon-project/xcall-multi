@@ -3,7 +3,6 @@ use std::ops::DerefMut;
 use anchor_lang::{
     prelude::*,
     solana_program::{
-        hash,
         instruction::Instruction,
         program::{invoke, invoke_signed},
         system_instruction,
@@ -12,19 +11,19 @@ use anchor_lang::{
 use xcall_lib::{
     message::{envelope::Envelope, msg_trait::IMessage, AnyMessage},
     network_address::NetworkAddress,
+    xcall_connection_msg,
 };
 
 use crate::{
-    assertion,
     error::XcallError,
     event,
+    helper::{self, get_instruction_data},
     state::*,
     types::{message::CSMessage, request::CSMessageRequest, rollback::Rollback},
 };
 
-
-pub fn send_call<'a, 'b, 'c, 'info>(
-    ctx: Context<'a, 'b, 'c, 'info, SendCallCtx<'info>>,
+pub fn send_call<'info>(
+    ctx: Context<'_, '_, '_, 'info, SendCallCtx<'info>>,
     message: Vec<u8>,
     to: NetworkAddress,
 ) -> Result<u128> {
@@ -57,7 +56,7 @@ pub fn send_call<'a, 'b, 'c, 'info>(
 
     let cs_message = CSMessage::from(request.clone());
     let encode_msg = cs_message.as_bytes();
-    assertion::ensure_data_length(&encode_msg)?;
+    helper::ensure_data_length(&encode_msg)?;
 
     if is_reply(&ctx.accounts.reply, &to.nid(), &envelope.sources) && !need_response {
         ctx.accounts.reply.set_call_reply(Some(request));
@@ -69,20 +68,15 @@ pub fn send_call<'a, 'b, 'c, 'info>(
             sources = vec![ctx.accounts.default_connection.key().to_string()]
         }
 
-        let ix_name = format!("{}:{}", "global", "send_message");
-        let ix_discriminator = hash::hash(ix_name.as_bytes()).to_bytes()[..8].to_vec();
-
         let mut data = vec![];
-        let args = SendMessageArgs {
+        let args = xcall_connection_msg::SendMessage {
             to: to.nid(),
             sn,
             msg: encode_msg,
         };
         args.serialize(&mut data)?;
 
-        let mut ix_data = Vec::new();
-        ix_data.extend_from_slice(&ix_discriminator);
-        ix_data.extend_from_slice(&data);
+        let ix_data = get_instruction_data("send_message", data);
 
         for (i, source) in sources.iter().enumerate() {
             let connection = &ctx.remaining_accounts[4 * i];
@@ -116,10 +110,13 @@ pub fn send_call<'a, 'b, 'c, 'info>(
                 data: ix_data.clone(),
             };
 
-            invoke_signed(&ix, &account_infos, &[&[b"reply", &[ctx.bumps.reply]]])?;
+            invoke_signed(
+                &ix,
+                &account_infos,
+                &[&[Reply::SEED_PREFIX.as_bytes(), &[ctx.bumps.reply]]],
+            )?;
         }
 
-        // claim protocol fee
         if config.protocol_fee > 0 {
             claim_protocol_fee(
                 &signer,
@@ -150,8 +147,9 @@ pub fn process_message(
         AnyMessage::CallMessage(_) => Ok(()),
         AnyMessage::CallMessagePersisted(_) => Ok(()),
         AnyMessage::CallMessageWithRollback(msg) => {
-            assertion::ensure_program(from)?;
-            assertion::ensure_rollback_length(&msg.rollback)?;
+            // TODO: remove comment -> temporary comment until testing from mock dapp
+            // helper::ensure_program(from)?;
+            helper::ensure_rollback_length(&msg.rollback)?;
 
             if msg.rollback().is_some() {
                 let rollback_data = envelope.message.rollback().unwrap();
@@ -167,11 +165,7 @@ pub fn process_message(
                     .as_mut()
                     .ok_or(XcallError::RollbackAccountNotSpecified)?;
 
-                rollback_account.set_inner(RollbackAccount::new(
-                    rollback,
-                    from.key(),
-                    rollback_bump.unwrap(),
-                ));
+                rollback_account.set(rollback, from.key(), rollback_bump.unwrap());
             }
             Ok(())
         }
@@ -222,6 +216,11 @@ pub fn are_array_equal(protocols: Vec<String>, sources: &Vec<String>) -> bool {
 #[derive(Accounts)]
 #[instruction(envelope: Vec<u8>, to: NetworkAddress)]
 pub struct SendCallCtx<'info> {
+    #[account(mut)]
+    pub signer: Signer<'info>,
+
+    pub system_program: Program<'info, System>,
+
     #[account(
         has_one = fee_handler,
         mut,
@@ -238,15 +237,6 @@ pub struct SendCallCtx<'info> {
     pub reply: Account<'info, Reply>,
 
     #[account(
-      init,
-      payer = signer,
-      space = RollbackAccount::SIZE,
-      seeds = [RollbackAccount::SEED_PREFIX.as_bytes(), (config.sequence_no + 1).to_string().as_bytes()],
-      bump,
-    )]
-    pub rollback_account: Option<Account<'info, RollbackAccount>>,
-
-    #[account(
         seeds = [DefaultConnection::SEED_PREFIX.as_bytes(), to.nid().as_bytes()],
         bump = default_connection.bump
     )]
@@ -256,8 +246,12 @@ pub struct SendCallCtx<'info> {
     #[account(mut)]
     pub fee_handler: AccountInfo<'info>,
 
-    #[account(mut)]
-    pub signer: Signer<'info>,
-
-    pub system_program: Program<'info, System>,
+    #[account(
+        init,
+        payer = signer,
+        space = RollbackAccount::SIZE,
+        seeds = [RollbackAccount::SEED_PREFIX.as_bytes(), &(config.sequence_no + 1).to_be_bytes()],
+        bump,
+      )]
+    pub rollback_account: Option<Account<'info, RollbackAccount>>,
 }

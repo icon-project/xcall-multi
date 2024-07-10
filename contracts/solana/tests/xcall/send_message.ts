@@ -1,9 +1,10 @@
 import * as anchor from "@coral-xyz/anchor";
-import { Keypair, PublicKey } from "@solana/web3.js";
+import { Keypair } from "@solana/web3.js";
+import { assert } from "chai";
 import { SYSTEM_PROGRAM_ID } from "@coral-xyz/anchor/dist/cjs/native/system";
 
 import { TestContext, XcallPDA } from "./setup";
-import { TxnHelpers } from "../utils";
+import { TxnHelpers, sleep } from "../utils";
 import { Xcall } from "../../target/types/xcall";
 import { Envelope, CallMessage, MessageType } from "./types";
 
@@ -29,6 +30,10 @@ describe("xcall - send message", () => {
     await txnHelpers.airdrop(fee_handler.publicKey, 1e9);
 
     await ctx.setProtocolFee(5000);
+    await ctx.setDefaultConnection(
+      ctx.dstNetworkId,
+      Keypair.generate().publicKey
+    );
   });
 
   it("should send message", async () => {
@@ -38,7 +43,11 @@ describe("xcall - send message", () => {
       [connectionProgram.programId.toString()],
       [wallet.publicKey.toString()]
     ).encode();
-    const to = { "0": "icx/abc" };
+    const to = { "0": "icon/abc" };
+
+    let config = await ctx.getConfig();
+    let feeHandler = await connection.getAccountInfo(ctx.feeHandler.publicKey);
+    let nextSequence = config.sequenceNo.toNumber() + 1;
 
     let sendCallIx = await xcallProgram.methods
       .sendCall(Buffer.from(envelope), to)
@@ -47,9 +56,9 @@ describe("xcall - send message", () => {
         config: XcallPDA.config().pda,
         signer: wallet.payer.publicKey,
         reply: XcallPDA.reply().pda,
-        rollbackAccount: XcallPDA.rollback(1).pda,
-        feeHandler: ctx.fee_handler.publicKey,
-        defaultConnection: XcallPDA.defaultConnection("icx").pda,
+        rollbackAccount: XcallPDA.rollback(nextSequence).pda,
+        feeHandler: ctx.feeHandler.publicKey,
+        defaultConnection: XcallPDA.defaultConnection(ctx.dstNetworkId).pda,
       })
       .remainingAccounts([
         {
@@ -63,7 +72,7 @@ describe("xcall - send message", () => {
           isWritable: true,
         },
         {
-          pubkey: ConnectionPDA.fee("icx").pda,
+          pubkey: ConnectionPDA.network_fee(ctx.dstNetworkId).pda,
           isSigner: false,
           isWritable: true,
         },
@@ -76,7 +85,16 @@ describe("xcall - send message", () => {
       .instruction();
 
     let sendCallTx = await txnHelpers.buildV0Txn([sendCallIx], [wallet.payer]);
-    let sendCallTxSignature = await connection.sendTransaction(sendCallTx);
-    await txnHelpers.logParsedTx(sendCallTxSignature);
+    await connection.sendTransaction(sendCallTx);
+    await sleep(2);
+
+    assert.equal(
+      nextSequence.toString(),
+      (await ctx.getConfig()).sequenceNo.toString()
+    );
+    assert.equal(
+      (await connection.getAccountInfo(ctx.feeHandler.publicKey)).lamports,
+      feeHandler.lamports + ctx.protocolFee
+    );
   });
 });

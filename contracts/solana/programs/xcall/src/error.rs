@@ -13,21 +13,27 @@ pub enum XcallError {
 
     #[msg("Rollback not enabled")]
     RollbackNotEnabled,
-    
+
     #[msg("Maximum data size exceeded")]
     MaxDataSizeExceeded,
-
-    #[msg("Rollback account should not be created")]
-    RollbackAccountShouldNotBeCreated,
 
     #[msg("Rollback account is not specified")]
     RollbackAccountNotSpecified,
 
-    #[msg("Pending request account is not specified")]
-    PendingRequestsAccountNotSpecified,
+    #[msg("Rollback account creator not specified")]
+    RollbackCreatorNotSpecified,
 
     #[msg("Pending request account is not specified")]
-    PendingResponsesAccountNotSpecified,
+    PendingRequestAccountNotSpecified,
+
+    #[msg("Pending request account creator is not specified")]
+    PendingRequestCreatorNotSpecified,
+
+    #[msg("Pending response account is not specified")]
+    PendingResponseAccountNotSpecified,
+
+    #[msg("Pending response account creator is not specified")]
+    PendingResponseCreatorNotSpecified,
 
     #[msg("Invalid message seed")]
     InvalidMessageSeed,
@@ -67,4 +73,7 @@ pub enum XcallError {
 
     #[msg("Invalid pubkey")]
     InvalidPubkey,
+
+    #[msg("Invalid source address")]
+    ParsePubkeyError,
 }

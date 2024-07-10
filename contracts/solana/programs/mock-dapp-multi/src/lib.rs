@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-declare_id!("Gqh6NKE7tRNMpZLGotxrUZA1m2ndnUGbGsyU1KQFs9wa");
+declare_id!("9hrkJ12DRZrbdQBwAGwgdjnauRj7Wue5stq1UzUyCJA3");
 
 #[program]
 pub mod mock_dapp {

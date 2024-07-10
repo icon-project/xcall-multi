@@ -2,23 +2,27 @@ import * as anchor from "@coral-xyz/anchor";
 
 import { PublicKey, Connection, Keypair } from "@solana/web3.js";
 import { Xcall } from "../../target/types/xcall";
-import { TxnHelpers, sleep } from "../utils";
+import { TxnHelpers, sleep, uint128ToArray } from "../utils";
 import { SYSTEM_PROGRAM_ID } from "@coral-xyz/anchor/dist/cjs/native/system";
 
 const xcallProgram: anchor.Program<Xcall> = anchor.workspace.Xcall;
 
 export class TestContext {
-  nid: String;
+  networkId: string;
+  dstNetworkId: string;
   admin: Keypair;
-  fee_handler: Keypair;
+  feeHandler: Keypair;
   connection: Connection;
   txnHelpers: TxnHelpers;
+  protocolFee: number;
 
   constructor(connection: Connection, txnHelpers: TxnHelpers, admin: Keypair) {
+    this.networkId = "solana";
+    this.dstNetworkId = "icon";
     this.connection = connection;
     this.txnHelpers = txnHelpers;
     this.admin = admin;
-    this.fee_handler = admin;
+    this.feeHandler = admin;
   }
 
   async initialize(netId: string) {
@@ -41,7 +45,7 @@ export class TestContext {
     let ix = await xcallProgram.methods
       .setDefaultConnection(netId, connection)
       .accountsStrict({
-        signer: this.admin.publicKey,
+        admin: this.admin.publicKey,
         systemProgram: SYSTEM_PROGRAM_ID,
         config: XcallPDA.config().pda,
         defaultConnection: XcallPDA.defaultConnection(netId).pda,
@@ -54,12 +58,12 @@ export class TestContext {
   }
 
   async setFeeHandler(fee_handler: Keypair) {
-    this.fee_handler = fee_handler;
+    this.feeHandler = fee_handler;
 
     let ix = await xcallProgram.methods
       .setProtocolFeeHandler(fee_handler.publicKey)
       .accountsStrict({
-        signer: this.admin.publicKey,
+        admin: this.admin.publicKey,
         config: XcallPDA.config().pda,
       })
       .instruction();
@@ -70,15 +74,17 @@ export class TestContext {
   }
 
   async setProtocolFee(fee: number) {
+    this.protocolFee = fee;
+
     let ix = await xcallProgram.methods
       .setProtocolFee(new anchor.BN(fee))
       .accountsStrict({
-        signer: this.fee_handler.publicKey,
+        feeHandler: this.feeHandler.publicKey,
         config: XcallPDA.config().pda,
       })
       .instruction();
 
-    let tx = await this.txnHelpers.buildV0Txn([ix], [this.fee_handler]);
+    let tx = await this.txnHelpers.buildV0Txn([ix], [this.feeHandler]);
     await this.connection.sendTransaction(tx);
     await sleep(3);
   }
@@ -151,7 +157,7 @@ export class XcallPDA {
 
   static proxyRequest(requestId: number) {
     const [pda, bump] = PublicKey.findProgramAddressSync(
-      [Buffer.from("proxy"), Buffer.from(requestId.toString())],
+      [Buffer.from("proxy"), uint128ToArray(requestId)],
       xcallProgram.programId
     );
 
@@ -160,7 +166,7 @@ export class XcallPDA {
 
   static successRes(sequenceNo: number) {
     const [pda, bump] = PublicKey.findProgramAddressSync(
-      [Buffer.from("success"), Buffer.from(sequenceNo.toString())],
+      [Buffer.from("success"), uint128ToArray(sequenceNo)],
       xcallProgram.programId
     );
 
@@ -196,7 +202,7 @@ export class XcallPDA {
 
   static rollback(sequenceNo: number) {
     const [pda, bump] = PublicKey.findProgramAddressSync(
-      [Buffer.from("rollback"), Buffer.from(sequenceNo.toString())],
+      [Buffer.from("rollback"), uint128ToArray(sequenceNo)],
       xcallProgram.programId
     );
 

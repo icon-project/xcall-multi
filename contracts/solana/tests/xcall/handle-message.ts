@@ -26,7 +26,10 @@ describe("xcall - handle message", () => {
   const xcallProgram: anchor.Program<Xcall> = anchor.workspace.Xcall;
 
   before(async () => {
-    await ctx.setDefaultConnection("icx", Keypair.generate().publicKey);
+    await ctx.setDefaultConnection(
+      ctx.dstNetworkId,
+      Keypair.generate().publicKey
+    );
   });
 
   it("should create and extend the lookup table", async () => {
@@ -37,23 +40,30 @@ describe("xcall - handle message", () => {
   });
 
   it("should handle message request", async () => {
-    let netId = "icx";
     let newKeypair = Keypair.generate();
 
     let request = new CSMessageRequest(
-      "icx/abc",
-      "icon",
+      "icon/abc",
+      ctx.dstNetworkId,
       1,
       MessageType.CallMessage,
       new Uint8Array([0, 1, 2, 3]),
-      [wallet.publicKey.toString(), newKeypair.publicKey.toString()]
+      [
+        wallet.publicKey.toString(),
+        newKeypair.publicKey.toString(),
+        SYSTEM_PROGRAM_ID.toString(),
+      ]
     );
 
     let cs_message = new CSMessage(
       CSMessageType.CSMessageRequest,
       request.encode()
     ).encode();
+
     let message_seed = Buffer.from(hash(cs_message), "hex");
+
+    let xcallConfig = await ctx.getConfig();
+    let nextReqId = xcallConfig.lastReqId.toNumber() + 1;
 
     await txnHelpers.airdrop(newKeypair.publicKey, 1e9);
     await sleep(3);
@@ -62,17 +72,25 @@ describe("xcall - handle message", () => {
 
     for (let i = 0; i < sources.length; i++) {
       let handleMessageIx = await xcallProgram.methods
-        .handleMessage(netId, Buffer.from(cs_message), new anchor.BN(1))
+        .handleMessage(
+          ctx.dstNetworkId,
+          Buffer.from(cs_message),
+          new anchor.BN(1)
+        )
         .accountsStrict({
+          connection: sources[i].publicKey,
           signer: sources[i].publicKey,
           systemProgram: SYSTEM_PROGRAM_ID,
           config: XcallPDA.config().pda,
           pendingRequest: XcallPDA.pendingRequest(message_seed).pda,
-          defaultConnection: XcallPDA.defaultConnection("icx").pda,
+          pendingRequestCreator: sources[1].publicKey,
+          defaultConnection: XcallPDA.defaultConnection(ctx.dstNetworkId).pda,
           rollbackAccount: null,
+          rollbackCreator: null,
           pendingResponse: null,
+          pendingResponseCreator: null,
           successfulResponse: null,
-          proxyRequest: XcallPDA.proxyRequest(1).pda,
+          proxyRequest: XcallPDA.proxyRequest(nextReqId).pda,
         })
         .instruction();
 
@@ -80,12 +98,11 @@ describe("xcall - handle message", () => {
         [handleMessageIx],
         [sources[i]]
       );
-      // await connection.sendTransaction(handleMessageTx);
+      await connection.sendTransaction(handleMessageTx);
     }
   });
 
   it("should handle message result", async () => {
-    let nid = "icon";
     let newKeypair = Keypair.generate();
     let sequenceNo = 100;
 
@@ -101,29 +118,36 @@ describe("xcall - handle message", () => {
     ).encode();
     let message_seed = Buffer.from(hash(cs_message), "hex");
 
+    let xcallConfig = await ctx.getConfig();
+    let nextReqId = xcallConfig.lastReqId.toNumber() + 1;
+
     let sources = [wallet.payer, newKeypair];
 
     for (let i = 0; i < sources.length; i++) {
       const handleMessageIx = await xcallProgram.methods
-        .handleMessage(nid, Buffer.from(cs_message), new anchor.BN(sequenceNo))
+        .handleMessage(
+          ctx.dstNetworkId,
+          Buffer.from(cs_message),
+          new anchor.BN(sequenceNo)
+        )
         .accountsStrict({
+          connection: sources[i].publicKey,
           signer: sources[i].publicKey,
           systemProgram: SYSTEM_PROGRAM_ID,
           config: XcallPDA.config().pda,
           pendingRequest: null,
-          defaultConnection: XcallPDA.defaultConnection("icon").pda,
+          pendingRequestCreator: null,
+          defaultConnection: XcallPDA.defaultConnection(ctx.dstNetworkId).pda,
           rollbackAccount: XcallPDA.rollback(sequenceNo).pda,
+          rollbackCreator: sources[0].publicKey,
           pendingResponse: XcallPDA.pendingResponse(message_seed).pda,
+          pendingResponseCreator: sources[0].publicKey,
           successfulResponse: XcallPDA.successRes(sequenceNo).pda,
-          proxyRequest: XcallPDA.proxyRequest(1).pda,
+          proxyRequest: XcallPDA.proxyRequest(nextReqId).pda,
         })
         .instruction();
 
-      const handleMessageTx = await txnHelpers.buildTxnWithLookupTable(
-        [handleMessageIx],
-        [sources[i]]
-      );
-      // await connection.sendTransaction(handleMessageTx);
+      await txnHelpers.buildTxnWithLookupTable([handleMessageIx], [sources[i]]);
     }
   });
 });
