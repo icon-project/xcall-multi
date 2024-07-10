@@ -30,4 +30,6 @@ pub fn decode_cs_message(message: Vec<u8>) -> Result<CSMessageDecoded> {
 }
 
 #[derive(Accounts)]
-pub struct EmptyContext {}
+pub struct EmptyContext<'info> {
+    pub system_program: Program<'info, System>,
+}

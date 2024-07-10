@@ -107,8 +107,9 @@ pub mod xcall {
         Ok(ctx.accounts.config.fee_handler)
     }
 
-    pub fn decode_cs_message(
-        _ctx: Context<EmptyContext>,
+    #[allow(unused_variables)]
+    pub fn decode_cs_message<'info>(
+        ctx: Context<'_, '_, '_, 'info, EmptyContext<'info>>,
         message: Vec<u8>,
     ) -> Result<CSMessageDecoded> {
         instructions::decode_cs_message(message)
