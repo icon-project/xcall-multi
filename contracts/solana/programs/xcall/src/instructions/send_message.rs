@@ -33,6 +33,8 @@ pub fn send_call<'info>(
     let config = ctx.accounts.config.deref_mut();
     let sequence_no = config.get_next_sn();
 
+    msg!("nid : {}",  to.nid());
+
     let from = NetworkAddress::new(&config.network_id, &signer.key().to_string());
 
     process_message(
@@ -65,7 +67,9 @@ pub fn send_call<'info>(
 
         let mut sources = envelope.sources;
         if sources.is_empty() {
-            sources = vec![ctx.accounts.default_connection.key().to_string()]
+            msg!("sources is empty");
+            return Ok(1);
+            // sources = vec![ctx.accounts.default_connection.key().to_string()]
         }
 
         let mut data = vec![];
