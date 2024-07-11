@@ -5,9 +5,14 @@ import { Keypair } from "@solana/web3.js";
 import { TestContext as ConnectionTestContext } from "../centralized-connection/setup";
 import { TxnHelpers, sleep } from "../utils";
 
+import { TestContext as DappTestCtx, DappPDA } from "../mock-dapp-multi/setup";
+
 import { Xcall } from "../../target/types/xcall";
 import { TestContext as XcallTestContext, XcallPDA } from "../xcall/setup";
 import { CentralizedConnection } from "../../target/types/centralized_connection";
+
+import { DappMulti } from "../../target/types/dapp_multi";
+const dappProgram: anchor.Program<DappMulti> = anchor.workspace.DappMulti;
 
 const xcallProgram: anchor.Program<Xcall> = anchor.workspace.Xcall;
 const connectionProgram: anchor.Program<CentralizedConnection> =
@@ -26,13 +31,14 @@ describe("Initialize", () => {
     wallet.payer
   );
   let xcallCtx = new XcallTestContext(connection, txnHelpers, wallet.payer);
+  let dappCtx = new DappTestCtx(connection, txnHelpers, wallet.payer);
 
   after(async () => {
     await xcallCtx.setDefaultConnection(
       "0x3.icon",
-      connectionProgram.programId
+      xcallProgram.programId
     );
-    await xcallCtx.setDefaultConnection("icon", connectionProgram.programId);
+    await xcallCtx.setDefaultConnection("icon", xcallProgram.programId);
   });
 
   it("should initialize xcall program", async () => {
@@ -86,4 +92,26 @@ describe("Initialize", () => {
       );
     }
   });
+
+  it("should initialize dapp program", async () => {
+    let newAdmin = Keypair.generate();
+
+    await dappCtx.initialize();
+    await sleep(3);
+
+    let { xcallAddress } = await dappCtx.getConfig();
+
+    assert.equal(xcallProgram.programId.toString(), xcallAddress.toString());
+  });
+
+  it("should fail when initializing dapp program two times", async () => {
+    try {
+      await dappCtx.initialize();
+    } catch (err) {
+      expect(err.message).to.includes(
+        "Error processing Instruction 0: custom program error: 0x0"
+      );
+    }
+  });
+
 });

@@ -1,8 +1,8 @@
 import * as anchor from "@coral-xyz/anchor";
-import { assert, expect } from "chai";
+import { assert, config, expect } from "chai";
 import { Keypair } from "@solana/web3.js";
 
-import { TestContext, DappPDA } from "./setup";
+import { TestContext as DappTestCtx, DappPDA } from "./setup";
 import { TxnHelpers, sleep } from "../utils";
 import { SYSTEM_PROGRAM_ID } from "@coral-xyz/anchor/dist/cjs/native/system";
 import { TestContext as XcallTestCtx, XcallPDA } from "../xcall/setup";
@@ -29,7 +29,7 @@ describe("Mock Dapp", () => {
   const wallet = provider.wallet as anchor.Wallet;
 
   let txnHelpers = new TxnHelpers(connection, wallet.payer);
-  let ctx = new TestContext(connection, txnHelpers, wallet.payer);
+  let ctx = new DappTestCtx(connection, txnHelpers, wallet.payer);
 
   const airdrop = async (publicKey: anchor.web3.PublicKey) => {
     const airdropSignature = await provider.connection.requestAirdrop(
@@ -62,22 +62,11 @@ describe("Mock Dapp", () => {
     console.log("Account Balance is: ", balance);
   };
 
-  it("should initialize dapp", async () => {
-    let newAdmin = Keypair.generate();
-    // xcall address is passed in argument in setup.ts
-    await ctx.initialize();
-    await sleep(3);
 
-    let { xcallAddress } = await ctx.getConfig();
-    let config;
-
-    assert.equal(xcallProgram.programId.toString(), xcallAddress.toString());
-  });
 
   it("should add connection to dapp", async () => {
     let newAdmin = Keypair.generate();
-    // xcall address is passed in argument in setup.ts
-    // const src_endpoint= "src" ;
+
     const src_endpoint = connectionProgram.programId.toString();
     const dst_endpoint = "dst";
 
@@ -95,7 +84,6 @@ describe("Mock Dapp", () => {
       connectionsPDA
     );
 
-    console.log("connectioins : " , connections.connections[0]);
 
     assert.equal(connections.connections[0].dstEndpoint, dst_endpoint);
     assert.equal(connections.connections[0].srcEndpoint, src_endpoint);
@@ -103,12 +91,9 @@ describe("Mock Dapp", () => {
 
   it("should send message", async () => {
     let xcall_context = new XcallTestCtx(connection, txnHelpers, wallet.payer);
-    // await ctx.initialize();
 
-    // set default connection
-    let result = await xcall_context.setDefaultConnection(xcall_context.networkId , connectionProgram.programId);
+     await xcall_context.setDefaultConnection(xcall_context.networkId , xcallProgram.programId);
 
-    console.log("default_connection in xcall " , await xcall_context.getDefaultConnection(xcall_context.networkId))
     
     let envelope = new Envelope(
       MessageType.CallMessage,
@@ -116,11 +101,11 @@ describe("Mock Dapp", () => {
       [connectionProgram.programId.toString()],
       [wallet.publicKey.toString()]
     ).encode();
+
     const to = { "0": "icon/abc" };
     const msg_type = 0;
     const rollback = Buffer.from("rollback");
     const message = Buffer.from(envelope);
-
 
     let remaining_accounts = [
       {
@@ -134,14 +119,7 @@ describe("Mock Dapp", () => {
         isWritable: true,
       },
       {
-        pubkey: XcallPDA.rollback(
-          (await xcall_context.getConfig()).sequenceNo.toNumber() + 1
-        ).pda,
-        isSigner: false,
-        isWritable: true,
-      },
-      {
-        pubkey: XcallPDA.defaultConnection(ctx.networkId).pda,
+        pubkey: XcallPDA.defaultConnection(xcall_context.dstNetworkId).pda,
         isSigner: false,
         isWritable: true,
       },
@@ -150,7 +128,13 @@ describe("Mock Dapp", () => {
         isSigner: false,
         isWritable: true,
       },
-      //centralized connection accounts into remaining accounts that is slpited in contract
+      {
+        pubkey: XcallPDA.rollback(
+          (await xcall_context.getConfig()).sequenceNo.toNumber() + 1
+        ).pda,
+        isSigner: false,
+        isWritable: true,
+      },
       {
         pubkey: connectionProgram.programId,
         isSigner: false,
@@ -184,7 +168,6 @@ describe("Mock Dapp", () => {
     ];
 
 
-   
     let sendCallIx = await dappProgram.methods
       .sendCallMessage( to, message, msg_type, rollback)
       .accountsStrict({
