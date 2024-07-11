@@ -13,7 +13,7 @@ use instructions::*;
 use types::message::CSMessageDecoded;
 use xcall_lib::network_address::NetworkAddress;
 
-declare_id!("3489r9oW63a8MRk5CXD2Lv8YTFQ9iGjaXxgGnaoccPhc");
+declare_id!("GzoCoosp8fJg7Qci1HbywnSCVr3RVcngBtB5MTUD8vuf");
 
 #[program]
 pub mod xcall {

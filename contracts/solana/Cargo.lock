@@ -1076,6 +1076,9 @@ name = "mock-dapp-multi"
 version = "0.1.0"
 dependencies = [
  "anchor-lang",
+ "hex",
+ "rlp",
+ "xcall-lib",
 ]
 
 [[package]]
