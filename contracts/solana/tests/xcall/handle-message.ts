@@ -68,7 +68,7 @@ describe("xcall - handle message", () => {
     let nextReqId = xcallConfig.lastReqId.toNumber() + 1;
 
     await txnHelpers.airdrop(newKeypair.publicKey, 1e9);
-    await sleep(3);
+    await sleep(2);
 
     let sources = [wallet.payer, newKeypair];
 

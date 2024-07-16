@@ -1,6 +1,8 @@
 use anchor_lang::prelude::*;
 
+pub mod connection;
 pub mod constants;
+pub mod dapp;
 pub mod error;
 pub mod event;
 pub mod helper;
@@ -13,7 +15,7 @@ use instructions::*;
 use types::message::CSMessageDecoded;
 use xcall_lib::network_address::NetworkAddress;
 
-declare_id!("8yY46KjzwJX11awdLMpNacddhGS19sqgQtKARq5dEXXJ");
+declare_id!("3489r9oW63a8MRk5CXD2Lv8YTFQ9iGjaXxgGnaoccPhc");
 
 #[program]
 pub mod xcall {
@@ -91,22 +93,6 @@ pub mod xcall {
         Ok(ctx.accounts.config.protocol_fee)
     }
 
-    pub fn execute_call<'a, 'b, 'c, 'info>(
-        ctx: Context<'a, 'b, 'c, 'info, ExecuteCallCtx<'info>>,
-        req_id: u128,
-        data: Vec<u8>,
-        nid: String,
-    ) -> Result<()> {
-        instructions::execute_call(ctx, req_id, data, nid)
-    }
-
-    pub fn execute_rollback<'a, 'b, 'c, 'info>(
-        ctx: Context<'a, 'b, 'c, 'info, ExecuteRollbackCtx<'info>>,
-        sn: u128,
-    ) -> Result<()> {
-        instructions::execute_rollback(ctx, sn)
-    }
-
     pub fn get_protocol_fee_handler(ctx: Context<GetConfigCtx>) -> Result<Pubkey> {
         Ok(ctx.accounts.config.fee_handler)
     }
@@ -129,5 +115,22 @@ pub mod xcall {
         message: Vec<u8>,
     ) -> Result<CSMessageDecoded> {
         instructions::decode_cs_message(message)
+    }
+
+    #[allow(unused_variables)]
+    pub fn execute_call<'info>(
+        ctx: Context<'_, '_, '_, 'info, ExecuteCallCtx<'info>>,
+        req_id: u128,
+        data: Vec<u8>,
+        nid: String,
+    ) -> Result<()> {
+        instructions::execute_call(ctx, req_id, data)
+    }
+
+    pub fn execute_rollback<'info>(
+        ctx: Context<'_, '_, '_, 'info, ExecuteRollbackCtx<'info>>,
+        sn: u128,
+    ) -> Result<()> {
+        instructions::execute_rollback(ctx, sn)
     }
 }

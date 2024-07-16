@@ -8,7 +8,6 @@ use crate::{
         message::{CSMessage, CSMessageType},
         request::CSMessageRequest,
         result::{CSMessageResult, CSResponseType},
-        rollback::Rollback,
     },
 };
 
@@ -99,11 +98,9 @@ pub fn handle_result(ctx: Context<HandleMessageCtx>, payload: &[u8]) -> Result<(
         .as_mut()
         .ok_or(XcallError::CallRequestNotFound)?;
 
-    let rollback = &mut rollback_account.rollback;
-
     validate_source_and_pending_response(
         sender,
-        rollback.protocols(),
+        rollback_account.rollback.protocols(),
         ctx.accounts.default_connection.key(),
         &mut ctx.accounts.pending_response,
         &ctx.accounts.pending_response_creator,
@@ -119,7 +116,7 @@ pub fn handle_result(ctx: Context<HandleMessageCtx>, payload: &[u8]) -> Result<(
     match response_code {
         CSResponseType::CSResponseSuccess => {
             if let Some(creator) = ctx.accounts.rollback_creator.to_owned() {
-                require_eq!(creator.key(), rollback_account.owner);
+                require_eq!(creator.key(), rollback_account.creator_key);
                 rollback_account.close(creator)?;
             } else {
                 return Err(XcallError::RollbackCreatorNotSpecified.into());
@@ -138,7 +135,7 @@ pub fn handle_result(ctx: Context<HandleMessageCtx>, payload: &[u8]) -> Result<(
                 handle_reply(ctx, reply)?;
             }
         }
-        _ => handle_rollback(rollback, result.sequence_no())?,
+        _ => handle_rollback(rollback_account, result.sequence_no())?,
     }
 
     Ok(())
@@ -146,11 +143,11 @@ pub fn handle_result(ctx: Context<HandleMessageCtx>, payload: &[u8]) -> Result<(
 
 pub fn handle_error(ctx: Context<HandleErrorCtx>, sequence_no: u128) -> Result<()> {
     let sender = ctx.accounts.connection.owner.key();
-    let rollback = &mut ctx.accounts.rollback_account.rollback;
+    let rollback_account = &mut ctx.accounts.rollback_account;
 
     validate_source_and_pending_response(
         sender,
-        rollback.protocols(),
+        rollback_account.rollback.protocols(),
         ctx.accounts.default_connection.key(),
         &mut ctx.accounts.pending_response,
         &ctx.accounts.pending_response_creator.clone(),
@@ -161,7 +158,7 @@ pub fn handle_error(ctx: Context<HandleErrorCtx>, sequence_no: u128) -> Result<(
         sn: sequence_no
     });
 
-    handle_rollback(rollback, sequence_no)
+    handle_rollback(rollback_account, sequence_no)
 }
 
 pub fn handle_reply(ctx: Context<HandleMessageCtx>, reply: &mut CSMessageRequest) -> Result<()> {
@@ -225,11 +222,14 @@ pub fn validate_source_and_pending_response<'info>(
     Ok(())
 }
 
-pub fn handle_rollback(rollback: &mut Rollback, sequence_no: u128) -> Result<()> {
-    if rollback.rollback().len() < 1 {
+pub fn handle_rollback(
+    rollback_account: &mut Account<RollbackAccount>,
+    sequence_no: u128,
+) -> Result<()> {
+    if rollback_account.rollback.rollback().len() < 1 {
         return Err(XcallError::NoRollbackData.into());
     }
-    rollback.enable_rollback();
+    rollback_account.rollback.enable_rollback();
 
     emit!(event::RollbackMessage { sn: sequence_no });
 
@@ -285,7 +285,7 @@ pub struct HandleMessageCtx<'info> {
         payer = signer,
         space = PendingRequest::SIZE,
         seeds = [PendingRequest::SEED_PREFIX.as_bytes(), &hash::hash(&msg).to_bytes()],
-        bump
+        bump,
     )]
     pub pending_request: Option<Account<'info, PendingRequest>>,
 
@@ -314,6 +314,7 @@ pub struct HandleMessageCtx<'info> {
     pub successful_response: Option<Account<'info, SuccessfulResponse>>,
 
     #[account(
+        mut,
         seeds = [RollbackAccount::SEED_PREFIX.as_bytes(), &sequence_no.to_be_bytes()],
         bump
     )]

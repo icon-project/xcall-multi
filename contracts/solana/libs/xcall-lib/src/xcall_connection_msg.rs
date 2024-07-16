@@ -1,5 +1,8 @@
 use anchor_lang::prelude::*;
 
+pub const GET_FEE_IX: &str = "get_fee";
+pub const SEND_MESSAGE_IX: &str = "send_message";
+
 #[derive(Debug, Clone, AnchorSerialize, AnchorDeserialize)]
 pub struct SendMessage {
     pub to: String,
