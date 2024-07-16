@@ -206,7 +206,7 @@ module xcall::xcall_state {
         *vec_map::get(&self.connections,&nid)
     }
 
-    public fun get_connection_states_mut(self:&mut Storage):&mut Bag{
+    public(package) fun get_connection_states_mut(self:&mut Storage):&mut Bag{
         &mut self.connection_states
     }
 
@@ -232,7 +232,7 @@ module xcall::xcall_state {
         *table::borrow(&self.rollbacks, sequence_no)
     }
 
-    public fun get_mut_rollback(self: &mut Storage, sequence_no: u128): &mut RollbackData {
+    public(package) fun get_mut_rollback(self: &mut Storage, sequence_no: u128): &mut RollbackData {
         table::borrow_mut(&mut self.rollbacks, sequence_no)
     }
 
