@@ -1,15 +1,7 @@
-use std::str::FromStr;
+use anchor_lang::prelude::*;
+use xcall_lib::xcall_connection_msg::{self, GET_FEE_IX};
 
-use anchor_lang::{
-    prelude::*,
-    solana_program::{
-        instruction::Instruction,
-        program::{get_return_data, invoke},
-    },
-};
-use xcall_lib::xcall_connection_msg;
-
-use crate::{error::*, helper, send_message::is_reply, state::*};
+use crate::{connection, error::*, helper, send_message::is_reply, state::*};
 
 pub fn set_protocol_fee(ctx: Context<SetFeeCtx>, fee: u64) -> Result<()> {
     ctx.accounts.config.set_protocol_fee(fee);
@@ -45,43 +37,17 @@ pub fn get_fee(
     };
     args.serialize(&mut data)?;
 
-    let ix_data = helper::get_instruction_data("get_fee", data);
+    let ix_data = helper::get_instruction_data(GET_FEE_IX, data);
 
     let mut connection_fee = ctx.accounts.config.protocol_fee;
     for (i, source) in sources.iter().enumerate() {
-        let fee = query_connection_fee(source, &ix_data, &ctx.remaining_accounts[i])?;
+        let fee = connection::query_connection_fee(source, &ix_data, &ctx.remaining_accounts[i])?;
         if fee > 0 {
             connection_fee = connection_fee.checked_add(fee).expect("no overflow")
         }
     }
 
     Ok(connection_fee)
-}
-
-pub fn query_connection_fee<'info>(
-    source: &String,
-    ix_data: &Vec<u8>,
-    network_fee_account: &AccountInfo,
-) -> Result<u64> {
-    let connection = Pubkey::from_str(&source)
-        .ok()
-        .ok_or(XcallError::InvalidSource)?;
-
-    let account_metas = vec![AccountMeta::new(network_fee_account.key(), false)];
-    let account_infos = vec![network_fee_account.to_account_info()];
-
-    let ix = Instruction {
-        program_id: connection,
-        accounts: account_metas,
-        data: ix_data.clone(),
-    };
-
-    invoke(&ix, &account_infos)?;
-
-    let (_, fee) = get_return_data().unwrap();
-    let fee = u64::deserialize(&mut fee.as_ref())?;
-
-    Ok(fee)
 }
 
 #[derive(Accounts)]

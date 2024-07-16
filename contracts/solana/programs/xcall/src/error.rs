@@ -74,6 +74,9 @@ pub enum XcallError {
     #[msg("Invalid pubkey")]
     InvalidPubkey,
 
-    #[msg("Invalid source address")]
-    ParsePubkeyError,
+    #[msg("Invalid proxy request creator address")]
+    InvalidProxyCreator,
+
+    #[msg("Invalid response from dapp")]
+    InvalidResponse,
 }

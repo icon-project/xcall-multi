@@ -28,6 +28,10 @@ pub fn ensure_program(account: &AccountInfo) -> Result<()> {
     Ok(())
 }
 
+pub fn hash_data(data: &Vec<u8>) -> Vec<u8> {
+    return hash::hash(data).to_bytes().to_vec();
+}
+
 pub fn get_instruction_data(ix_name: &str, data: Vec<u8>) -> Vec<u8> {
     let preimage = format!("{}:{}", "global", ix_name);
 

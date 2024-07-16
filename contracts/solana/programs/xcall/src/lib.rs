@@ -1,6 +1,8 @@
 use anchor_lang::prelude::*;
 
+pub mod connection;
 pub mod constants;
+pub mod dapp;
 pub mod error;
 pub mod event;
 pub mod helper;
@@ -13,7 +15,7 @@ use instructions::*;
 use types::message::CSMessageDecoded;
 use xcall_lib::network_address::NetworkAddress;
 
-declare_id!("GzoCoosp8fJg7Qci1HbywnSCVr3RVcngBtB5MTUD8vuf");
+declare_id!("3489r9oW63a8MRk5CXD2Lv8YTFQ9iGjaXxgGnaoccPhc");
 
 #[program]
 pub mod xcall {
@@ -115,17 +117,18 @@ pub mod xcall {
         instructions::decode_cs_message(message)
     }
 
-    pub fn execute_call<'a, 'b, 'c, 'info>(
-        ctx: Context<'a, 'b, 'c, 'info, ExecuteCallCtx<'info>>,
+    #[allow(unused_variables)]
+    pub fn execute_call<'info>(
+        ctx: Context<'_, '_, '_, 'info, ExecuteCallCtx<'info>>,
         req_id: u128,
         data: Vec<u8>,
         nid: String,
     ) -> Result<()> {
-        instructions::execute_call(ctx, req_id, data, nid)
+        instructions::execute_call(ctx, req_id, data)
     }
 
-    pub fn execute_rollback<'a, 'b, 'c, 'info>(
-        ctx: Context<'a, 'b, 'c, 'info, ExecuteRollbackCtx<'info>>,
+    pub fn execute_rollback<'info>(
+        ctx: Context<'_, '_, '_, 'info, ExecuteRollbackCtx<'info>>,
         sn: u128,
     ) -> Result<()> {
         instructions::execute_rollback(ctx, sn)

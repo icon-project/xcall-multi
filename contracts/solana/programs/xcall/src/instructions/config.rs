@@ -7,7 +7,7 @@ pub fn initialize(ctx: Context<ConfigCtx>, network_id: String) -> Result<()> {
         .config
         .set(ctx.accounts.signer.key(), network_id, ctx.bumps.config);
 
-    ctx.accounts.reply.set();
+    ctx.accounts.reply.new(ctx.bumps.reply);
 
     Ok(())
 }

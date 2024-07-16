@@ -34,10 +34,7 @@ describe("Initialize", () => {
   let dappCtx = new DappTestCtx(connection, txnHelpers, wallet.payer);
 
   after(async () => {
-    await xcallCtx.setDefaultConnection(
-      "0x3.icon",
-      xcallProgram.programId
-    );
+    await xcallCtx.setDefaultConnection("0x3.icon", xcallProgram.programId);
     await xcallCtx.setDefaultConnection("icon", xcallProgram.programId);
   });
 
@@ -47,7 +44,7 @@ describe("Initialize", () => {
     let networkId = "solana";
 
     await xcallCtx.initialize(networkId);
-    await sleep(3);
+    await sleep(2);
 
     let data = await ctx.getConfig();
 
@@ -71,7 +68,7 @@ describe("Initialize", () => {
 
   it("should initialize centralized connection program", async () => {
     await connectionCtx.initialize();
-    await sleep(3);
+    await sleep(2);
 
     let data = await connectionCtx.getConfig();
 
@@ -97,7 +94,7 @@ describe("Initialize", () => {
     let newAdmin = Keypair.generate();
 
     await dappCtx.initialize();
-    await sleep(3);
+    await sleep(2);
 
     let { xcallAddress } = await dappCtx.getConfig();
 
@@ -113,5 +110,4 @@ describe("Initialize", () => {
       );
     }
   });
-
 });

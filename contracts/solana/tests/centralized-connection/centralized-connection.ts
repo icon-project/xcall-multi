@@ -40,14 +40,14 @@ describe("CentralizedConnection", () => {
       ctx.dstNetworkId,
       connectionProgram.programId
     );
-    await sleep(3);
+    await sleep(2);
   });
 
   it("[set_admin]: should set the new admin", async () => {
     let newAdmin = Keypair.generate();
     await ctx.setAdmin(newAdmin);
 
-    await sleep(3);
+    await sleep(2);
 
     let { admin } = await ctx.getConfig();
     assert.equal(ctx.admin.publicKey.toString(), admin.toString());
@@ -75,7 +75,7 @@ describe("CentralizedConnection", () => {
     let res_fee = 100;
 
     await txnHelpers.airdrop(ctx.admin.publicKey, 1e9);
-    await sleep(3);
+    await sleep(2);
 
     await ctx.program.methods
       .setFee(ctx.dstNetworkId, new anchor.BN(msg_fee), new anchor.BN(res_fee))
@@ -88,7 +88,7 @@ describe("CentralizedConnection", () => {
       .signers([ctx.admin])
       .rpc();
 
-    await sleep(3);
+    await sleep(2);
 
     let fee = await ctx.getFee(ctx.dstNetworkId);
     assert.equal(fee.messageFee.toNumber(), msg_fee);
@@ -100,7 +100,7 @@ describe("CentralizedConnection", () => {
 
     let transfer_amount = 500_000;
     await txnHelpers.airdrop(claimFee, transfer_amount);
-    await sleep(3);
+    await sleep(2);
 
     const min_rent_exempt_balance =
       await ctx.connection.getMinimumBalanceForRentExemption(9);
@@ -257,7 +257,7 @@ describe("CentralizedConnection", () => {
       .signers([ctx.admin])
       .rpc();
 
-    await sleep(3);
+    await sleep(2);
 
     // expect receipt account to be initialized
     expect(await ctx.getReceipt(nextSequenceNo)).to.be.empty;
@@ -435,6 +435,155 @@ describe("CentralizedConnection", () => {
     }
   });
 
+  it("[recv_message]: should receive message and call xcall handle message resultt", async () => {
+    // send rollback message
+    let envelope = new Envelope(
+      MessageType.CallMessageWithRollback,
+      new CallMessageWithRollback(
+        new Uint8Array([1, 2, 3]),
+        new Uint8Array([1, 2, 3])
+      ).encode(),
+      [connectionProgram.programId.toString()],
+      [wallet.publicKey.toString()]
+    ).encode();
+    const to = { "0": "icon/abc" };
+
+    let xcallConfig = await xcallCtx.getConfig();
+    let nextSequenceNo = xcallConfig.sequenceNo.toNumber() + 1;
+    let nextReqId = xcallConfig.lastReqId.toNumber() + 1;
+
+    let sendCallIx = await xcallProgram.methods
+      .sendCall(Buffer.from(envelope), to)
+      .accountsStrict({
+        systemProgram: SYSTEM_PROGRAM_ID,
+        config: XcallPDA.config().pda,
+        signer: wallet.payer.publicKey,
+        reply: XcallPDA.reply().pda,
+        rollbackAccount: XcallPDA.rollback(nextSequenceNo).pda,
+        feeHandler: xcallCtx.feeHandler.publicKey,
+        defaultConnection: XcallPDA.defaultConnection(ctx.dstNetworkId).pda,
+      })
+      .remainingAccounts([
+        {
+          pubkey: connectionProgram.programId,
+          isSigner: false,
+          isWritable: true,
+        },
+        {
+          pubkey: ConnectionPDA.config().pda,
+          isSigner: false,
+          isWritable: true,
+        },
+        {
+          pubkey: ConnectionPDA.network_fee(ctx.dstNetworkId).pda,
+          isSigner: false,
+          isWritable: true,
+        },
+        {
+          pubkey: ConnectionPDA.claimFees().pda,
+          isSigner: false,
+          isWritable: true,
+        },
+      ])
+      .instruction();
+
+    let sendCallTx = await txnHelpers.buildV0Txn([sendCallIx], [wallet.payer]);
+    await connection.sendTransaction(sendCallTx);
+    await sleep(2);
+
+    // receive message of rollback message
+    let connSn = 3;
+
+    let result = new CSMessageResult(
+      nextSequenceNo,
+      CSResponseType.CSMessageFailure,
+      new Uint8Array([])
+    );
+    let csMessage = new CSMessage(
+      CSMessageType.CSMessageResult,
+      result.encode()
+    ).encode();
+
+    let recvMessageIx = await ctx.program.methods
+      .recvMessage(
+        ctx.dstNetworkId,
+        new anchor.BN(connSn),
+        Buffer.from(csMessage),
+        new anchor.BN(nextSequenceNo)
+      )
+      .accountsStrict({
+        config: ConnectionPDA.config().pda,
+        admin: ctx.admin.publicKey,
+        receipt: ConnectionPDA.receipt(connSn).pda,
+        systemProgram: SYSTEM_PROGRAM_ID,
+      })
+      .remainingAccounts([
+        {
+          pubkey: XcallPDA.config().pda,
+          isSigner: false,
+          isWritable: true,
+        },
+        {
+          pubkey: XcallPDA.proxyRequest(nextReqId).pda,
+          isSigner: false,
+          isWritable: true,
+        },
+        {
+          pubkey: XcallPDA.defaultConnection(ctx.dstNetworkId).pda,
+          isSigner: false,
+          isWritable: true,
+        },
+        {
+          pubkey: xcallProgram.programId,
+          isSigner: false,
+          isWritable: true,
+        },
+        {
+          pubkey: xcallProgram.programId,
+          isSigner: false,
+          isWritable: true,
+        },
+        {
+          pubkey: xcallProgram.programId,
+          isSigner: false,
+          isWritable: true,
+        },
+        {
+          pubkey: xcallProgram.programId,
+          isSigner: false,
+          isWritable: true,
+        },
+        {
+          pubkey: XcallPDA.successRes(nextSequenceNo).pda,
+          isSigner: false,
+          isWritable: true,
+        },
+        {
+          pubkey: XcallPDA.rollback(nextSequenceNo).pda,
+          isSigner: false,
+          isWritable: true,
+        },
+        {
+          pubkey: wallet.payer.publicKey,
+          isSigner: false,
+          isWritable: true,
+        },
+      ])
+      .instruction();
+
+    let recvMessageTx = await txnHelpers.buildV0Txn(
+      [recvMessageIx],
+      [ctx.admin]
+    );
+    await connection.sendTransaction(recvMessageTx);
+    await sleep(2);
+
+    let rollback = await xcallCtx.getRollback(nextSequenceNo);
+    assert.equal(rollback.rollback.enabled, true);
+
+    // let executeRollbackIx = await xcallProgram.methods.executeRollback()
+  });
+
   it("[revert_message]: should fail if not called by an admin", async () => {
     let fromNetwork = ctx.dstNetworkId;
     let sequenceNo = 1;
@@ -560,7 +709,7 @@ describe("CentralizedConnection", () => {
       [ctx.admin]
     );
     await connection.sendTransaction(revertMessageTx);
-    await sleep(3);
+    await sleep(2);
 
     let rollback = await xcallCtx.getRollback(nextSequenceNo);
     assert.equal(rollback.rollback.enabled, true);

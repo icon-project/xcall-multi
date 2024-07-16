@@ -1,48 +1,64 @@
 use anchor_lang::prelude::*;
 
-use crate::{error::XcallError, event, state::*};
+use crate::{dapp, error::XcallError, event, state::*};
 
-pub fn execute_rollback<'a, 'b, 'c, 'info>(
-    ctx: Context<'a, 'b, 'c, 'info, ExecuteRollbackCtx<'info>>,
-    _sn: u128,
+pub fn execute_rollback<'info>(
+    ctx: Context<'_, '_, '_, 'info, ExecuteRollbackCtx<'info>>,
+    sn: u128,
 ) -> Result<()> {
-    let req = ctx
-        .accounts
-        .rollback
-        .as_mut()
-        .ok_or(XcallError::InvalidSn)?;
+    let rollback = &ctx.accounts.rollback_account.rollback;
 
-    if !req.rollback.enabled() {
+    if !rollback.enabled() {
         return Err(XcallError::RollbackNotEnabled.into());
     }
 
-    let to = &req.rollback.to();
-    let from = &req.rollback.from().to_string();
-    let data = &req.rollback.rollback().to_vec();
-    let protocols = req.rollback.protocols().to_vec();
+    let protocols = if rollback.protocols().len() > 0 {
+        Some(rollback.protocols().to_owned())
+    } else {
+        None
+    };
 
-    // TODO: need to call on dapp here
-    // handle_call_message(ctx,
-    //     req,
-    //     data,
-    //     false,
-    //     )?
+    let ix_data = dapp::get_handle_call_message_ix_data(
+        rollback.from().to_string(),
+        rollback.rollback().to_owned(),
+        protocols,
+    )?;
 
-    emit!(event::RollbackExecuted { sn: _sn });
+    dapp::invoke_handle_call_message_ix(
+        rollback.from().to_owned(),
+        ix_data,
+        &ctx.accounts.reply,
+        &ctx.accounts.signer,
+        &ctx.accounts.system_program,
+        &ctx.remaining_accounts,
+    )?;
+
+    emit!(event::RollbackExecuted { sn });
 
     Ok(())
 }
 
 #[derive(Accounts)]
-#[instruction(_sn : u128,)]
+#[instruction(sn : u128,)]
 pub struct ExecuteRollbackCtx<'info> {
     #[account(
         mut,
-        seeds = [RollbackAccount::SEED_PREFIX.as_bytes(), &_sn.to_string().as_bytes()],
-        bump = rollback.bump,
-        close = owner
+        seeds = [RollbackAccount::SEED_PREFIX.as_bytes(), &sn.to_be_bytes()],
+        bump = rollback_account.bump,
+        close = rollback_account_creator,
+        constraint = rollback_account.creator_key == rollback_account_creator.key()
     )]
-    pub rollback: Option<Account<'info, RollbackAccount>>,
+    pub rollback_account: Account<'info, RollbackAccount>,
+
+    /// CHECK : need to be the owner of the pda
+    #[account(mut)]
+    pub rollback_account_creator: AccountInfo<'info>,
+
+    #[account(
+        seeds = [Config::SEED_PREFIX.as_bytes()],
+        bump
+    )]
+    pub config: Account<'info, Config>,
 
     #[account(
         mut,
@@ -51,9 +67,13 @@ pub struct ExecuteRollbackCtx<'info> {
     )]
     pub default_connection: Option<Account<'info, DefaultConnection>>,
 
-    #[account(mut)]
-    /// CHECK : need to be the owner of the pda
-    pub owner: AccountInfo<'info>,
+    #[account(
+        mut,
+        seeds = [Reply::SEED_PREFIX.as_bytes()],
+        bump
+    )]
+    pub reply: Account<'info, Reply>,
+
     #[account(mut)]
     pub signer: Signer<'info>,
 

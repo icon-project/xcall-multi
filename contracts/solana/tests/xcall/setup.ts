@@ -38,7 +38,7 @@ export class TestContext {
 
     let tx = await this.txnHelpers.buildV0Txn([initializeIx], [this.admin]);
     await this.connection.sendTransaction(tx);
-    await sleep(3);
+    await sleep(2);
   }
 
   async setDefaultConnection(netId: string, connection: PublicKey) {
@@ -54,7 +54,7 @@ export class TestContext {
 
     let tx = await this.txnHelpers.buildV0Txn([ix], [this.admin]);
     await this.connection.sendTransaction(tx);
-    await sleep(3);
+    await sleep(2);
   }
 
   async setFeeHandler(fee_handler: Keypair) {
@@ -70,7 +70,7 @@ export class TestContext {
 
     let tx = await this.txnHelpers.buildV0Txn([ix], [this.admin]);
     await this.connection.sendTransaction(tx);
-    await sleep(3);
+    await sleep(2);
   }
 
   async setProtocolFee(fee: number) {
@@ -86,7 +86,7 @@ export class TestContext {
 
     let tx = await this.txnHelpers.buildV0Txn([ix], [this.feeHandler]);
     await this.connection.sendTransaction(tx);
-    await sleep(3);
+    await sleep(2);
   }
 
   async getConfig() {

@@ -117,7 +117,7 @@ export class TxnHelpers {
   }
 
   async logParsedTx(txSignature: string) {
-    await sleep(3);
+    await sleep(2);
     console.log(
       await this.connection.getParsedTransaction(txSignature, {
         commitment: "confirmed",
