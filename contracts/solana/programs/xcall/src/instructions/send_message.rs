@@ -1,5 +1,3 @@
-use std::ops::DerefMut;
-
 use anchor_lang::{
     prelude::*,
     solana_program::{program::invoke, system_instruction},
@@ -25,8 +23,8 @@ pub fn send_call<'info>(
     let envelope: Envelope = rlp::decode(&message).unwrap();
 
     let signer = &ctx.accounts.signer;
-    let config = ctx.accounts.config.deref_mut();
-    let sequence_no = config.get_next_sn();
+    let sequence_no = ctx.accounts.config.get_next_sn();
+    let config = &ctx.accounts.config;
 
     let from = NetworkAddress::new(&config.network_id, &signer.key().to_string());
 
@@ -52,8 +50,8 @@ pub fn send_call<'info>(
     let cs_message = CSMessage::from(request.clone()).as_bytes();
     helper::ensure_data_length(&cs_message)?;
 
-    if is_reply(&ctx.accounts.reply, &to.nid(), &envelope.sources) && !need_response {
-        ctx.accounts.reply.set_call_reply(Some(request));
+    if is_reply(&config, &to.nid(), &envelope.sources) && !need_response {
+        ctx.accounts.config.set_call_reply(Some(request));
     } else {
         let sn: i64 = if need_response { sequence_no as i64 } else { 0 };
         let ix_data = connection::get_send_message_ix_data(&to.nid(), sn, cs_message)?;
@@ -67,7 +65,7 @@ pub fn send_call<'info>(
             connection::call_connection_send_message(
                 i,
                 &ix_data,
-                &ctx.accounts.reply,
+                &ctx.accounts.config,
                 &ctx.accounts.signer,
                 &ctx.accounts.system_program,
                 &ctx.remaining_accounts,
@@ -122,7 +120,7 @@ pub fn process_message(
                     .as_mut()
                     .ok_or(XcallError::RollbackAccountNotSpecified)?;
 
-                rollback_account.set(rollback, from.key(), rollback_bump.unwrap());
+                rollback_account.set(rollback, rollback_bump.unwrap());
             }
             Ok(())
         }
@@ -148,8 +146,8 @@ pub fn claim_protocol_fee<'info>(
     Ok(())
 }
 
-pub fn is_reply(reply: &Account<Reply>, nid: &String, sources: &Vec<String>) -> bool {
-    if let Some(req) = &reply.reply_state {
+pub fn is_reply(config: &Account<Config>, nid: &String, sources: &Vec<String>) -> bool {
+    if let Some(req) = &config.reply_state {
         if req.from().nid() != *nid {
             return false;
         }
@@ -185,13 +183,6 @@ pub struct SendCallCtx<'info> {
         bump
     )]
     pub config: Account<'info, Config>,
-
-    #[account(
-      mut,
-      seeds = [Reply::SEED_PREFIX.as_bytes()],
-      bump
-    )]
-    pub reply: Account<'info, Reply>,
 
     #[account(
         seeds = [DefaultConnection::SEED_PREFIX.as_bytes(), to.nid().as_bytes()],

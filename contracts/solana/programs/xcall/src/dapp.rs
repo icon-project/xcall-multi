@@ -32,18 +32,18 @@ pub fn handle_response(
 pub fn invoke_handle_call_message_ix<'info>(
     dapp_key: Pubkey,
     ix_data: Vec<u8>,
-    reply: &Account<'info, Reply>,
+    config: &Account<'info, Config>,
     signer: &Signer<'info>,
     system_program: &Program<'info, System>,
     remaining_accounts: &[AccountInfo<'info>],
 ) -> Result<xcall_dapp_msg::HandleCallMessageResponse> {
     let mut account_metas: Vec<AccountMeta> = vec![
-        AccountMeta::new_readonly(reply.key(), true),
+        AccountMeta::new_readonly(config.key(), true),
         AccountMeta::new(signer.key(), true),
         AccountMeta::new(system_program.key(), false),
     ];
     let mut account_infos: Vec<AccountInfo<'info>> = vec![
-        reply.to_account_info(),
+        config.to_account_info(),
         signer.to_account_info(),
         system_program.to_account_info(),
     ];
@@ -60,7 +60,7 @@ pub fn invoke_handle_call_message_ix<'info>(
     invoke_signed(
         &ix,
         &account_infos,
-        &[&[Reply::SEED_PREFIX.as_bytes(), &[reply.bump]]],
+        &[&[Config::SEED_PREFIX.as_bytes(), &[config.bump]]],
     )?;
 
     let (_, data) = get_return_data().ok_or(XcallError::InvalidResponse)?;

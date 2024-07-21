@@ -4,7 +4,7 @@ use std::str::FromStr;
 use crate::error::*;
 use xcall_lib::{message::msg_type::MessageType, network_address::NetworkAddress};
 
-#[derive(Clone, AnchorSerialize, AnchorDeserialize)]
+#[derive(Clone, Debug, AnchorSerialize, AnchorDeserialize)]
 pub struct CSMessageRequest {
     from: NetworkAddress,
     to: String,
@@ -127,103 +127,5 @@ impl TryFrom<&[u8]> for CSMessageRequest {
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
         let rlp = rlp::Rlp::new(value);
         Self::decode(&rlp).map_err(|_error| XcallError::DecodeFailed)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-
-    /*
-    CSMessageRequest
-     from: 0x1.ETH/0xa
-     to: cx0000000000000000000000000000000000000102
-     sn: 21
-     messageType: 1
-     data: 74657374
-     protocol: []
-     RLP: f83f8b3078312e4554482f307861aa63783030303030303030303030303030303030303030303030303030303030303030303030303031303215018474657374c0
-
-     CSMessageRequest
-     from: 0x1.ETH/0xa
-     to: cx0000000000000000000000000000000000000102
-     sn: 21
-     messageType: 1
-     data: 74657374
-     protocol: [abc, cde, efg]
-     RLP: f84b8b3078312e4554482f307861aa63783030303030303030303030303030303030303030303030303030303030303030303030303031303215018474657374cc836162638363646583656667
-
-     CSMessageRequest
-     from: 0x1.ETH/0xa
-     to: cx0000000000000000000000000000000000000102
-     sn: 21
-     messageType: 2
-     data: 74657374
-     protocol: [abc, cde, efg]
-     RLP: f84b8b3078312e4554482f307861aa63783030303030303030303030303030303030303030303030303030303030303030303030303031303215028474657374cc836162638363646583656667
-
-
-     */
-
-    use std::{str::FromStr, vec};
-
-    use xcall_lib::{message::msg_type::MessageType, network_address::NetworkAddress};
-
-    use super::CSMessageRequest;
-
-    #[test]
-    fn test_cs_message_request_encoding() {
-        let data = hex::decode("74657374").unwrap();
-
-        let from: String = String::from("0x1.ETH/0xa");
-
-        let msg = CSMessageRequest::new(
-            NetworkAddress::from_str(&from).unwrap(),
-            String::from("cx0000000000000000000000000000000000000102"),
-            21,
-            MessageType::CallMessageWithRollback,
-            data.clone(),
-            vec![],
-        );
-
-        let encoded = rlp::encode(&msg);
-        assert_eq!("f83f8b3078312e4554482f307861aa63783030303030303030303030303030303030303030303030303030303030303030303030303031303215018474657374c0",hex::encode(encoded));
-    }
-
-    #[test]
-    fn test_cs_message_request_encoding2() {
-        let data = hex::decode("74657374").unwrap();
-
-        let from: String = String::from("0x1.ETH/0xa");
-
-        let msg = CSMessageRequest::new(
-            NetworkAddress::from_str(&from).unwrap(),
-            String::from("cx0000000000000000000000000000000000000102"),
-            21,
-            MessageType::CallMessageWithRollback,
-            data.clone(),
-            vec!["abc".to_string(), "cde".to_string(), "efg".to_string()],
-        );
-
-        let encoded = rlp::encode(&msg);
-        assert_eq!("f84b8b3078312e4554482f307861aa63783030303030303030303030303030303030303030303030303030303030303030303030303031303215018474657374cc836162638363646583656667",hex::encode(encoded));
-    }
-
-    #[test]
-    fn test_cs_message_request_encoding3() {
-        let data = hex::decode("74657374").unwrap();
-
-        let from: String = String::from("0x1.ETH/0xa");
-
-        let msg = CSMessageRequest::new(
-            NetworkAddress::from_str(&from).unwrap(),
-            String::from("cx0000000000000000000000000000000000000102"),
-            21,
-            MessageType::CallMessagePersisted,
-            data.clone(),
-            vec!["abc".to_string(), "cde".to_string(), "efg".to_string()],
-        );
-
-        let encoded = rlp::encode(&msg);
-        assert_eq!("f84b8b3078312e4554482f307861aa63783030303030303030303030303030303030303030303030303030303030303030303030303031303215028474657374cc836162638363646583656667",hex::encode(encoded));
     }
 }

@@ -5,6 +5,9 @@ pub enum XcallError {
     #[msg("Only Admin")]
     OnlyAdmin,
 
+    #[msg("Invalid admin key")]
+    InvalidAdminKey,
+
     #[msg("Maximum rollback data size exceeded")]
     MaxRollbackSizeExceeded,
 
@@ -16,6 +19,9 @@ pub enum XcallError {
 
     #[msg("Maximum data size exceeded")]
     MaxDataSizeExceeded,
+
+    #[msg("Proxy request account is not specified")]
+    ProxyRequestAccountNotSpecified,
 
     #[msg("Rollback account is not specified")]
     RollbackAccountNotSpecified,

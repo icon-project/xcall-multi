@@ -32,7 +32,6 @@ describe("Xcall", async () => {
       ])
       .accountsStrict({
         config: XcallPDA.config().pda,
-        reply: XcallPDA.reply().pda,
         defaultConnection: XcallPDA.defaultConnection(ctx.dstNetworkId).pda,
       })
       .remainingAccounts([

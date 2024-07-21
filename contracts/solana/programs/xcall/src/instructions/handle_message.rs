@@ -62,12 +62,7 @@ pub fn handle_request(
         if pending_request.sources.len() != req.protocols().len() {
             return Ok(());
         }
-        if let Some(creator) = ctx.accounts.pending_request_creator.to_owned() {
-            require_eq!(creator.key(), *pending_request.sources.get(0).unwrap());
-            pending_request.close(creator)?;
-        } else {
-            return Err(XcallError::PendingRequestCreatorNotSpecified.into());
-        }
+        pending_request.close(ctx.accounts.admin.clone())?;
     }
 
     let req_id = ctx.accounts.config.get_next_req_id();
@@ -80,10 +75,14 @@ pub fn handle_request(
         data: req.data()
     });
 
-    req.hash_data();
-    ctx.accounts
+    let proxy_request = ctx
+        .accounts
         .proxy_request
-        .set(req, ctx.accounts.signer.key(), ctx.bumps.proxy_request);
+        .as_deref_mut()
+        .ok_or(XcallError::ProxyRequestAccountNotSpecified)?;
+
+    req.hash_data();
+    proxy_request.set(req, ctx.bumps.proxy_request.unwrap());
 
     Ok(())
 }
@@ -103,7 +102,7 @@ pub fn handle_result(ctx: Context<HandleMessageCtx>, payload: &[u8]) -> Result<(
         rollback_account.rollback.protocols(),
         ctx.accounts.default_connection.key(),
         &mut ctx.accounts.pending_response,
-        &ctx.accounts.pending_response_creator,
+        &ctx.accounts.admin,
     )?;
 
     let response_code = result.response_code();
@@ -115,12 +114,7 @@ pub fn handle_result(ctx: Context<HandleMessageCtx>, payload: &[u8]) -> Result<(
 
     match response_code {
         CSResponseType::CSResponseSuccess => {
-            if let Some(creator) = ctx.accounts.rollback_creator.to_owned() {
-                require_eq!(creator.key(), rollback_account.creator_key);
-                rollback_account.close(creator)?;
-            } else {
-                return Err(XcallError::RollbackCreatorNotSpecified.into());
-            }
+            rollback_account.close(ctx.accounts.admin.clone())?;
 
             let success_res = ctx
                 .accounts
@@ -150,7 +144,7 @@ pub fn handle_error(ctx: Context<HandleErrorCtx>, sequence_no: u128) -> Result<(
         rollback_account.rollback.protocols(),
         ctx.accounts.default_connection.key(),
         &mut ctx.accounts.pending_response,
-        &ctx.accounts.pending_response_creator.clone(),
+        &ctx.accounts.admin,
     )?;
 
     emit!(event::ResponseMessage {
@@ -178,12 +172,14 @@ pub fn handle_reply(ctx: Context<HandleMessageCtx>, reply: &mut CSMessageRequest
         data: reply.data()
     });
 
+    let proxy_request = ctx
+        .accounts
+        .proxy_request
+        .as_deref_mut()
+        .ok_or(XcallError::ProxyRequestAccountNotSpecified)?;
+
     reply.hash_data();
-    ctx.accounts.proxy_request.set(
-        reply.to_owned(),
-        ctx.accounts.signer.key(),
-        ctx.bumps.proxy_request,
-    );
+    proxy_request.set(reply.to_owned(), ctx.bumps.proxy_request.unwrap());
 
     Ok(())
 }
@@ -193,7 +189,7 @@ pub fn validate_source_and_pending_response<'info>(
     protocols: &Vec<String>,
     default_connection: Pubkey,
     pending_response: &mut Option<Account<'info, PendingResponse>>,
-    pending_response_creator: &Option<AccountInfo<'info>>,
+    admin: &AccountInfo<'info>,
 ) -> Result<()> {
     let source_valid = is_valid_source(&default_connection.key(), &sender.to_string(), protocols)?;
     if !source_valid {
@@ -211,12 +207,7 @@ pub fn validate_source_and_pending_response<'info>(
         if pending_response.sources.len() != protocols.len() {
             return Ok(());
         }
-        if let Some(creator) = pending_response_creator {
-            require_eq!(creator.key(), *pending_response.sources.get(0).unwrap());
-            pending_response.close(creator.to_owned())?;
-        } else {
-            return Err(XcallError::PendingResponseCreatorNotSpecified.into());
-        }
+        pending_response.close(admin.to_owned())?;
     }
 
     Ok(())
@@ -261,18 +252,14 @@ pub struct HandleMessageCtx<'info> {
     #[account(
         mut,
         seeds = [Config::SEED_PREFIX.as_bytes()],
-        bump
+        bump = config.bump,
+        has_one = admin @ XcallError::InvalidAdminKey
     )]
     pub config: Account<'info, Config>,
 
-    #[account(
-        init_if_needed,
-        payer = signer,
-        space = ProxyRequest::SIZE,
-        seeds = [ProxyRequest::SEED_PREFIX.as_bytes(), &(config.last_req_id + 1).to_be_bytes()],
-        bump
-    )]
-    pub proxy_request: Account<'info, ProxyRequest>,
+    /// CHECK: this is safe because we are verifying if the passed account is admin or not
+    #[account(mut)]
+    pub admin: AccountInfo<'info>,
 
     #[account(
         seeds = [DefaultConnection::SEED_PREFIX.as_bytes(), from_nid.as_bytes()],
@@ -283,14 +270,20 @@ pub struct HandleMessageCtx<'info> {
     #[account(
         init_if_needed,
         payer = signer,
+        space = ProxyRequest::SIZE,
+        seeds = [ProxyRequest::SEED_PREFIX.as_bytes(), &(config.last_req_id + 1).to_be_bytes()],
+        bump
+    )]
+    pub proxy_request: Option<Account<'info, ProxyRequest>>,
+
+    #[account(
+        init_if_needed,
+        payer = signer,
         space = PendingRequest::SIZE,
         seeds = [PendingRequest::SEED_PREFIX.as_bytes(), &hash::hash(&msg).to_bytes()],
         bump,
     )]
     pub pending_request: Option<Account<'info, PendingRequest>>,
-
-    #[account(mut)]
-    pub pending_request_creator: Option<AccountInfo<'info>>,
 
     #[account(
         init_if_needed,
@@ -300,9 +293,6 @@ pub struct HandleMessageCtx<'info> {
         bump
     )]
     pub pending_response: Option<Account<'info, PendingResponse>>,
-
-    #[account(mut)]
-    pub pending_response_creator: Option<AccountInfo<'info>>,
 
     #[account(
         init_if_needed,
@@ -319,9 +309,6 @@ pub struct HandleMessageCtx<'info> {
         bump
     )]
     pub rollback_account: Option<Account<'info, RollbackAccount>>,
-
-    #[account(mut)]
-    pub rollback_creator: Option<AccountInfo<'info>>,
 }
 
 #[derive(Accounts)]
@@ -333,6 +320,18 @@ pub struct HandleErrorCtx<'info> {
     pub signer: Signer<'info>,
 
     pub system_program: Program<'info, System>,
+
+    #[account(
+        mut,
+        seeds = [Config::SEED_PREFIX.as_bytes()],
+        bump,
+        has_one = admin @ XcallError::InvalidAdminKey
+    )]
+    pub config: Account<'info, Config>,
+
+    /// CHECK: this is safe because we are verifying if the passed account is admin or not
+    #[account(mut)]
+    pub admin: AccountInfo<'info>,
 
     #[account(
         seeds = [DefaultConnection::SEED_PREFIX.as_bytes(), from_nid.as_bytes()],
@@ -348,9 +347,6 @@ pub struct HandleErrorCtx<'info> {
         bump
     )]
     pub pending_response: Option<Account<'info, PendingResponse>>,
-
-    #[account(mut)]
-    pub pending_response_creator: Option<AccountInfo<'info>>,
 
     #[account(
         mut,
