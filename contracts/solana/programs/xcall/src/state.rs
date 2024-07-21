@@ -15,6 +15,8 @@ pub struct Config {
     pub protocol_fee: u64,
     pub sequence_no: u128,
     pub last_req_id: u128,
+    pub reply_state: Option<CSMessageRequest>,
+    pub call_reply: Option<CSMessageRequest>,
     pub bump: u8,
 }
 
@@ -23,7 +25,7 @@ impl Config {
 
     pub const SIZE: usize = 8 + 1048 + 1;
 
-    pub fn set(&mut self, admin: Pubkey, network_id: String, bump: u8) {
+    pub fn new(&mut self, admin: Pubkey, network_id: String, bump: u8) {
         self.admin = admin;
         self.bump = bump;
         self.fee_handler = admin;
@@ -31,6 +33,8 @@ impl Config {
         self.protocol_fee = 0;
         self.sequence_no = 0;
         self.last_req_id = 0;
+        self.call_reply = None;
+        self.reply_state = None;
     }
 
     pub fn ensure_admin(&self, signer: Pubkey) -> Result<()> {
@@ -68,6 +72,14 @@ impl Config {
         self.last_req_id += 1;
         self.last_req_id
     }
+
+    pub fn set_reply_state(&mut self, req: Option<CSMessageRequest>) {
+        self.reply_state = req;
+    }
+
+    pub fn set_call_reply(&mut self, req: Option<CSMessageRequest>) {
+        self.call_reply = req
+    }
 }
 
 #[account]
@@ -87,38 +99,10 @@ impl DefaultConnection {
     }
 }
 
-#[account]
-pub struct Reply {
-    pub reply_state: Option<CSMessageRequest>,
-    pub call_reply: Option<CSMessageRequest>,
-    pub bump: u8,
-}
-
-impl Reply {
-    pub const SEED_PREFIX: &'static str = "reply";
-
-    pub const SIZE: usize = 8 + 1024 + 1024 + 1;
-
-    pub fn new(&mut self, bump: u8) {
-        self.reply_state = None;
-        self.call_reply = None;
-        self.bump = bump
-    }
-
-    pub fn set_reply_state(&mut self, req: Option<CSMessageRequest>) {
-        self.reply_state = req;
-    }
-
-    pub fn set_call_reply(&mut self, req: Option<CSMessageRequest>) {
-        self.call_reply = req
-    }
-}
-
 #[derive(Debug)]
 #[account]
 pub struct RollbackAccount {
     pub rollback: Rollback,
-    pub creator_key: Pubkey,
     pub bump: u8,
 }
 
@@ -127,9 +111,8 @@ impl RollbackAccount {
 
     pub const SIZE: usize = 8 + 1024 + 1;
 
-    pub fn set(&mut self, rollback: Rollback, creator_key: Pubkey, bump: u8) {
+    pub fn set(&mut self, rollback: Rollback, bump: u8) {
         self.rollback = rollback;
-        self.creator_key = creator_key;
         self.bump = bump
     }
 }
@@ -172,7 +155,6 @@ impl SuccessfulResponse {
 #[account]
 pub struct ProxyRequest {
     pub req: CSMessageRequest,
-    pub creator_key: Pubkey,
     pub bump: u8,
 }
 
@@ -181,9 +163,8 @@ impl ProxyRequest {
 
     pub const SIZE: usize = ACCOUNT_DISCRIMINATOR_SIZE + 1024 + 32 + 1;
 
-    pub fn set(&mut self, req: CSMessageRequest, creator_key: Pubkey, bump: u8) {
+    pub fn set(&mut self, req: CSMessageRequest, bump: u8) {
         self.req = req;
-        self.creator_key = creator_key;
         self.bump = bump
     }
 }

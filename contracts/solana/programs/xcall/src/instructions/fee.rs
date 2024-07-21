@@ -21,13 +21,13 @@ pub fn get_fee(
     rollback: bool,
     sources: Vec<String>,
 ) -> Result<u64> {
-    if !rollback && is_reply(&ctx.accounts.reply, &nid, &sources) {
+    if !rollback && is_reply(&ctx.accounts.config, &nid, &sources) {
         return Ok(0_u64);
     };
 
     let mut sources = sources;
     if sources.is_empty() {
-        sources = vec![ctx.accounts.reply.key().to_string()]
+        sources = vec![ctx.accounts.default_connection.key().to_string()]
     }
 
     let mut data = vec![];
@@ -92,10 +92,4 @@ pub struct GetFeeCtx<'info> {
         bump = default_connection.bump
     )]
     pub default_connection: Account<'info, DefaultConnection>,
-
-    #[account(
-        seeds = [Reply::SEED_PREFIX.as_bytes()],
-        bump
-    )]
-    pub reply: Account<'info, Reply>,
 }

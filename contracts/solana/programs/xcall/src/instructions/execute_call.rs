@@ -38,7 +38,7 @@ pub fn execute_call<'info>(
     let dapp_res = dapp::invoke_handle_call_message_ix(
         dapp_key,
         dapp_ix_data,
-        &ctx.accounts.reply,
+        &ctx.accounts.config,
         &ctx.accounts.signer,
         &ctx.accounts.system_program,
         &ctx.remaining_accounts,
@@ -50,17 +50,18 @@ pub fn execute_call<'info>(
         }
         MessageType::CallMessagePersisted => {}
         MessageType::CallMessageWithRollback => {
-            ctx.accounts.reply.set_reply_state(Some(req.clone()));
+            ctx.accounts.config.set_reply_state(Some(req.clone()));
 
             let res_code = dapp::handle_response(req_id, dapp_res)?;
-            let reply_state = &mut ctx.accounts.reply;
+            let config = &mut ctx.accounts.config;
+
+            config.set_call_reply(None);
+            config.set_reply_state(None);
 
             let mut msg = Vec::new();
-            if reply_state.call_reply.is_some() && res_code == CSResponseType::CSResponseSuccess {
-                msg = rlp::encode(reply_state.call_reply.as_mut().unwrap()).to_vec();
+            if config.call_reply.is_some() && res_code == CSResponseType::CSResponseSuccess {
+                msg = rlp::encode(config.call_reply.as_mut().unwrap()).to_vec();
             }
-
-            reply_state.new(ctx.bumps.reply);
 
             let result = CSMessageResult::new(req.sequence_no(), res_code, Some(msg));
             let cs_message = rlp::encode(&CSMessage::from(result)).to_vec();
@@ -80,7 +81,7 @@ pub fn execute_call<'info>(
                 connection::call_connection_send_message(
                     i,
                     &ix_data,
-                    &ctx.accounts.reply,
+                    &ctx.accounts.config,
                     &ctx.accounts.signer,
                     &ctx.accounts.system_program,
                     &ctx.remaining_accounts,
@@ -91,6 +92,7 @@ pub fn execute_call<'info>(
 
     Ok(())
 }
+
 #[derive(Accounts)]
 #[instruction(req_id : u128, data:Vec<u8>, from_nid: String)]
 pub struct ExecuteCallCtx<'info> {
@@ -99,28 +101,25 @@ pub struct ExecuteCallCtx<'info> {
 
     pub system_program: Program<'info, System>,
 
-    /// TODO: throw custom error when proxy request account doesn't exist
+    #[account(
+        mut,
+        seeds = [Config::SEED_PREFIX.as_bytes()],
+        bump = config.bump,
+        has_one = admin
+    )]
+    pub config: Account<'info, Config>,
+
+    /// CHECK: this is safe because we are verifying if the passed account is admin or not
+    #[account(mut)]
+    pub admin: AccountInfo<'info>,
+
     #[account(
         mut,
         seeds = [ProxyRequest::SEED_PREFIX.as_bytes(), &req_id.to_be_bytes()],
         bump = proxy_request.bump,
-        close = proxy_request_creator
+        close = admin
     )]
     pub proxy_request: Account<'info, ProxyRequest>,
-
-    /// CHECK:
-    #[account(
-        mut,
-        constraint = (proxy_request.creator_key == proxy_request_creator.key()) @ XcallError::InvalidProxyCreator
-    )]
-    pub proxy_request_creator: AccountInfo<'info>,
-
-    #[account(
-        mut,
-        seeds = [Reply::SEED_PREFIX.as_bytes()],
-        bump
-    )]
-    pub reply: Account<'info, Reply>,
 
     #[account(
         seeds = [DefaultConnection::SEED_PREFIX.as_bytes(), from_nid.as_bytes()],

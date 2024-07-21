@@ -209,7 +209,7 @@ describe("CentralizedConnection", () => {
           isWritable: true,
         },
         {
-          pubkey: XcallPDA.proxyRequest(nextReqId).pda,
+          pubkey: xcallCtx.admin.publicKey,
           isSigner: false,
           isWritable: true,
         },
@@ -219,17 +219,7 @@ describe("CentralizedConnection", () => {
           isWritable: true,
         },
         {
-          pubkey: xcallProgram.programId,
-          isSigner: false,
-          isWritable: true,
-        },
-        {
-          pubkey: xcallProgram.programId,
-          isSigner: false,
-          isWritable: true,
-        },
-        {
-          pubkey: xcallProgram.programId,
+          pubkey: XcallPDA.proxyRequest(nextReqId).pda,
           isSigner: false,
           isWritable: true,
         },
@@ -301,7 +291,6 @@ describe("CentralizedConnection", () => {
         systemProgram: SYSTEM_PROGRAM_ID,
         config: XcallPDA.config().pda,
         signer: wallet.payer.publicKey,
-        reply: XcallPDA.reply().pda,
         rollbackAccount: XcallPDA.rollback(1).pda,
         feeHandler: xcallCtx.feeHandler.publicKey,
         defaultConnection: XcallPDA.defaultConnection(ctx.dstNetworkId).pda,
@@ -377,7 +366,7 @@ describe("CentralizedConnection", () => {
           isWritable: true,
         },
         {
-          pubkey: XcallPDA.proxyRequest(nextReqId).pda,
+          pubkey: xcallCtx.admin.publicKey,
           isSigner: false,
           isWritable: true,
         },
@@ -387,12 +376,7 @@ describe("CentralizedConnection", () => {
           isWritable: true,
         },
         {
-          pubkey: xcallProgram.programId,
-          isSigner: false,
-          isWritable: true,
-        },
-        {
-          pubkey: xcallProgram.programId,
+          pubkey: XcallPDA.proxyRequest(nextReqId).pda,
           isSigner: false,
           isWritable: true,
         },
@@ -413,11 +397,6 @@ describe("CentralizedConnection", () => {
         },
         {
           pubkey: XcallPDA.rollback(nextSequenceNo).pda,
-          isSigner: false,
-          isWritable: true,
-        },
-        {
-          pubkey: wallet.payer.publicKey,
           isSigner: false,
           isWritable: true,
         },
@@ -458,7 +437,6 @@ describe("CentralizedConnection", () => {
         systemProgram: SYSTEM_PROGRAM_ID,
         config: XcallPDA.config().pda,
         signer: wallet.payer.publicKey,
-        reply: XcallPDA.reply().pda,
         rollbackAccount: XcallPDA.rollback(nextSequenceNo).pda,
         feeHandler: xcallCtx.feeHandler.publicKey,
         defaultConnection: XcallPDA.defaultConnection(ctx.dstNetworkId).pda,
@@ -524,7 +502,7 @@ describe("CentralizedConnection", () => {
           isWritable: true,
         },
         {
-          pubkey: XcallPDA.proxyRequest(nextReqId).pda,
+          pubkey: xcallCtx.admin.publicKey,
           isSigner: false,
           isWritable: true,
         },
@@ -534,12 +512,7 @@ describe("CentralizedConnection", () => {
           isWritable: true,
         },
         {
-          pubkey: xcallProgram.programId,
-          isSigner: false,
-          isWritable: true,
-        },
-        {
-          pubkey: xcallProgram.programId,
+          pubkey: XcallPDA.proxyRequest(nextReqId).pda,
           isSigner: false,
           isWritable: true,
         },
@@ -560,11 +533,6 @@ describe("CentralizedConnection", () => {
         },
         {
           pubkey: XcallPDA.rollback(nextSequenceNo).pda,
-          isSigner: false,
-          isWritable: true,
-        },
-        {
-          pubkey: wallet.payer.publicKey,
           isSigner: false,
           isWritable: true,
         },
@@ -628,7 +596,6 @@ describe("CentralizedConnection", () => {
         systemProgram: SYSTEM_PROGRAM_ID,
         config: XcallPDA.config().pda,
         signer: wallet.payer.publicKey,
-        reply: XcallPDA.reply().pda,
         rollbackAccount: XcallPDA.rollback(nextSequenceNo).pda,
         feeHandler: xcallCtx.feeHandler.publicKey,
         defaultConnection: XcallPDA.defaultConnection(ctx.dstNetworkId).pda,
@@ -677,17 +644,22 @@ describe("CentralizedConnection", () => {
       })
       .remainingAccounts([
         {
+          pubkey: XcallPDA.config().pda,
+          isSigner: false,
+          isWritable: true,
+        },
+        {
+          pubkey: xcallCtx.admin.publicKey,
+          isSigner: false,
+          isWritable: true,
+        },
+        {
           pubkey: XcallPDA.defaultConnection(ctx.dstNetworkId).pda,
           isSigner: false,
           isWritable: true,
         },
         {
           pubkey: XcallPDA.pendingResponse(messageSeed).pda,
-          isSigner: false,
-          isWritable: true,
-        },
-        {
-          pubkey: xcallProgram.programId,
           isSigner: false,
           isWritable: true,
         },

@@ -32,7 +32,6 @@ export class TestContext {
         signer: this.admin.publicKey,
         systemProgram: SYSTEM_PROGRAM_ID,
         config: XcallPDA.config().pda,
-        reply: XcallPDA.reply().pda,
       })
       .instruction();
 
@@ -135,13 +134,6 @@ export class TestContext {
       "confirmed"
     );
   }
-
-  async getReply() {
-    return await xcallProgram.account.reply.fetch(
-      XcallPDA.reply().pda,
-      "confirmed"
-    );
-  }
 }
 export class XcallPDA {
   constructor() {}
@@ -203,15 +195,6 @@ export class XcallPDA {
   static rollback(sequenceNo: number) {
     const [pda, bump] = PublicKey.findProgramAddressSync(
       [Buffer.from("rollback"), uint128ToArray(sequenceNo)],
-      xcallProgram.programId
-    );
-
-    return { pda, bump };
-  }
-
-  static reply() {
-    const [pda, bump] = PublicKey.findProgramAddressSync(
-      [Buffer.from("reply")],
       xcallProgram.programId
     );
 

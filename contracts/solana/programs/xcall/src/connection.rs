@@ -38,26 +38,26 @@ pub fn query_connection_fee<'info>(
 pub fn call_connection_send_message<'info>(
     index: usize,
     ix_data: &Vec<u8>,
-    reply: &Account<'info, Reply>,
+    config: &Account<'info, Config>,
     signer: &Signer<'info>,
     system_program: &Program<'info, System>,
     remaining_accounts: &[AccountInfo<'info>],
 ) -> Result<()> {
     let connection = &remaining_accounts[4 * index];
-    let config = &remaining_accounts[4 * index + 1];
+    let conn_config = &remaining_accounts[4 * index + 1];
     let network_fee = &remaining_accounts[4 * index + 2];
     let claim_fee = &remaining_accounts[4 * index + 3];
 
     let account_metas: Vec<AccountMeta> = vec![
-        AccountMeta::new_readonly(reply.key(), true),
+        AccountMeta::new_readonly(config.key(), true),
         AccountMeta::new(signer.key(), true),
         AccountMeta::new_readonly(system_program.key(), false),
-        AccountMeta::new(config.key(), false),
+        AccountMeta::new(conn_config.key(), false),
         AccountMeta::new_readonly(network_fee.key(), false),
         AccountMeta::new(claim_fee.key(), false),
     ];
     let account_infos: Vec<AccountInfo<'info>> = vec![
-        reply.to_account_info(),
+        conn_config.to_account_info(),
         signer.to_account_info(),
         system_program.to_account_info(),
         config.to_account_info(),
@@ -73,7 +73,7 @@ pub fn call_connection_send_message<'info>(
     invoke_signed(
         &ix,
         &account_infos,
-        &[&[Reply::SEED_PREFIX.as_bytes(), &[reply.bump]]],
+        &[&[Config::SEED_PREFIX.as_bytes(), &[config.bump]]],
     )?;
 
     Ok(())
