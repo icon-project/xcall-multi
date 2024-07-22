@@ -33,7 +33,11 @@ pub fn execute_call<'info>(
     };
 
     let dapp_ix_data =
-        dapp::get_handle_call_message_ix_data(req.from().nid(), data.clone(), protocols)?;
+        dapp::get_handle_call_message_ix_data(req.from().to_owned(), data.clone(), protocols)?;
+
+    if req.msg_type() == MessageType::CallMessageWithRollback {
+        ctx.accounts.config.set_reply_state(Some(req.clone()));
+    }
 
     let dapp_res = dapp::invoke_handle_call_message_ix(
         dapp_key,
@@ -50,13 +54,12 @@ pub fn execute_call<'info>(
         }
         MessageType::CallMessagePersisted => {}
         MessageType::CallMessageWithRollback => {
-            ctx.accounts.config.set_reply_state(Some(req.clone()));
-
-            let res_code = dapp::handle_response(req_id, dapp_res)?;
             let config = &mut ctx.accounts.config;
 
             config.set_call_reply(None);
             config.set_reply_state(None);
+
+            let res_code = dapp::handle_response(req_id, dapp_res)?;
 
             let mut msg = Vec::new();
             if config.call_reply.is_some() && res_code == CSResponseType::CSResponseSuccess {
@@ -72,7 +75,7 @@ pub fn execute_call<'info>(
             }
 
             let ix_data = connection::get_send_message_ix_data(
-                req.to(),
+                &req.from().nid(),
                 -(req.sequence_no() as i64),
                 cs_message,
             )?;
@@ -84,7 +87,7 @@ pub fn execute_call<'info>(
                     &ctx.accounts.config,
                     &ctx.accounts.signer,
                     &ctx.accounts.system_program,
-                    &ctx.remaining_accounts,
+                    &ctx.remaining_accounts[1..],
                 )?;
             }
         }

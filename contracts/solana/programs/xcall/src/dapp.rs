@@ -7,7 +7,10 @@ use anchor_lang::{
         program::{get_return_data, invoke_signed},
     },
 };
-use xcall_lib::xcall_dapp_msg::{self, HandleCallMessageResponse, HANDLE_CALL_MESSAGE_IX};
+use xcall_lib::{
+    network_address::NetworkAddress,
+    xcall_dapp_msg::{self, HandleCallMessageResponse, HANDLE_CALL_MESSAGE_IX},
+};
 
 use crate::{error::XcallError, event, helper, state::*, types::result::CSResponseType};
 
@@ -38,17 +41,17 @@ pub fn invoke_handle_call_message_ix<'info>(
     remaining_accounts: &[AccountInfo<'info>],
 ) -> Result<xcall_dapp_msg::HandleCallMessageResponse> {
     let mut account_metas: Vec<AccountMeta> = vec![
-        AccountMeta::new_readonly(config.key(), true),
         AccountMeta::new(signer.key(), true),
-        AccountMeta::new(system_program.key(), false),
+        AccountMeta::new_readonly(system_program.key(), false),
     ];
-    let mut account_infos: Vec<AccountInfo<'info>> = vec![
-        config.to_account_info(),
-        signer.to_account_info(),
-        system_program.to_account_info(),
-    ];
+    let mut account_infos: Vec<AccountInfo<'info>> =
+        vec![signer.to_account_info(), system_program.to_account_info()];
     for account in remaining_accounts {
-        account_metas.push(AccountMeta::new(account.key(), account.is_signer));
+        if account.is_writable {
+            account_metas.push(AccountMeta::new(account.key(), account.is_signer))
+        } else {
+            account_metas.push(AccountMeta::new_readonly(account.key(), account.is_signer))
+        }
         account_infos.push(account.to_account_info());
     }
     let ix = Instruction {
@@ -71,7 +74,7 @@ pub fn invoke_handle_call_message_ix<'info>(
 }
 
 pub fn get_handle_call_message_ix_data(
-    from: String,
+    from: NetworkAddress,
     data: Vec<u8>,
     protocols: Option<Vec<String>>,
 ) -> Result<Vec<u8>> {

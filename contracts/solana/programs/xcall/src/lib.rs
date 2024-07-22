@@ -122,7 +122,7 @@ pub mod xcall {
         ctx: Context<'_, '_, '_, 'info, ExecuteCallCtx<'info>>,
         req_id: u128,
         data: Vec<u8>,
-        nid: String,
+        from_nid: String,
     ) -> Result<()> {
         instructions::execute_call(ctx, req_id, data)
     }

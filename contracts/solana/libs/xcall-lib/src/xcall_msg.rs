@@ -1,5 +1,13 @@
 use anchor_lang::prelude::*;
 
+use crate::network_address::NetworkAddress;
+
+#[derive(Debug, Clone, AnchorSerialize, AnchorDeserialize)]
+pub struct SendMessage {
+    pub msg: Vec<u8>,
+    pub to: NetworkAddress,
+}
+
 #[derive(Debug, Clone, AnchorSerialize, AnchorDeserialize)]
 pub struct HandleMessage {
     pub from_nid: String,

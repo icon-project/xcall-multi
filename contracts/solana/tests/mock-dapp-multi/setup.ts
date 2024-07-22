@@ -65,23 +65,6 @@ export class TestContext {
     return result;
   }
 
-  // async handle_call_message(
-  //   from: string,
-  //   data: Buffer,
-  //   _temp_network_id: string
-  // ) {
-  //   await this.program.methods
-  //     .handleCallMessage(from, data, _temp_network_id)
-  //     .accountsStrict({
-  //       sender: this.signer.publicKey,
-  //       systemProgram: SYSTEM_PROGRAM_ID,
-  //       connections: DappPDA.connections(this.networkId).pda,
-  //       config: DappPDA.config().pda,
-  //     })
-  //     .signers([this.admin])
-  //     .rpc();
-  // }
-
   async getConfig() {
     return await this.program.account.config.fetch(
       DappPDA.config().pda,

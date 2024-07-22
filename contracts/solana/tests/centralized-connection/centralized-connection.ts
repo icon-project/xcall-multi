@@ -1,3 +1,4 @@
+import * as rlp from "rlp";
 import * as anchor from "@coral-xyz/anchor";
 import { assert, expect } from "chai";
 import { Keypair } from "@solana/web3.js";
@@ -21,9 +22,13 @@ import {
 } from "../xcall/types";
 import { TestContext as XcallTestContext } from "../xcall/setup";
 
+import { DappPDA } from "../mock-dapp-multi/setup";
+import { MockDapp } from "../../target/types/mock_dapp";
+
 const xcallProgram: anchor.Program<Xcall> = anchor.workspace.Xcall;
 const connectionProgram: anchor.Program<CentralizedConnection> =
   anchor.workspace.CentralizedConnection;
+const mockDappProgram: anchor.Program<MockDapp> = anchor.workspace.MockDapp;
 
 describe("CentralizedConnection", () => {
   const provider = anchor.AnchorProvider.env();
@@ -175,12 +180,13 @@ describe("CentralizedConnection", () => {
     let nextReqId = xcallConfig.lastReqId.toNumber() + 1;
     let nextSequenceNo = xcallConfig.sequenceNo.toNumber() + 1;
 
+    let data = rlp.encode("rollback");
     let request = new CSMessageRequest(
       "icon/abc",
-      ctx.dstNetworkId,
+      mockDappProgram.programId.toString(),
       nextSequenceNo,
-      MessageType.CallMessagePersisted,
-      new Uint8Array([0, 1, 2, 3]),
+      MessageType.CallMessageWithRollback,
+      data,
       [connectionProgram.programId.toString()]
     );
 
@@ -259,13 +265,91 @@ describe("CentralizedConnection", () => {
     );
     expect(proxyRequest.req.from[0]).to.equal(request.from);
     expect(proxyRequest.req.data.toString()).to.equal(
-      Buffer.from(hash(new Uint8Array([0, 1, 2, 3])), "hex").toString()
+      Buffer.from(hash(data), "hex").toString()
     );
 
     // expect request to be increased in xcall config PDA's
     expect((await xcallCtx.getConfig()).lastReqId.toString()).to.equal(
       nextReqId.toString()
     );
+
+    // call xcall execute_call
+    let sig = await xcallProgram.methods
+      .executeCall(
+        new anchor.BN(nextReqId),
+        Buffer.from(data),
+        ctx.dstNetworkId
+      )
+      .accountsStrict({
+        signer: ctx.admin.publicKey,
+        systemProgram: SYSTEM_PROGRAM_ID,
+        config: XcallPDA.config().pda,
+        admin: xcallConfig.admin,
+        proxyRequest: XcallPDA.proxyRequest(nextReqId).pda,
+        defaultConnection: XcallPDA.defaultConnection(ctx.dstNetworkId).pda,
+      })
+      .remainingAccounts([
+        {
+          pubkey: DappPDA.config().pda,
+          isWritable: true,
+          isSigner: false,
+        },
+        // ACCOUNTS TO CALL SEND_CALL FROM DAPP
+        // {
+        //   pubkey: XcallPDA.config().pda,
+        //   isWritable: true,
+        //   isSigner: false,
+        // },
+        // {
+        //   pubkey: XcallPDA.defaultConnection(ctx.dstNetworkId).pda,
+        //   isWritable: true,
+        //   isSigner: false,
+        // },
+        // {
+        //   pubkey: xcallConfig.feeHandler,
+        //   isWritable: true,
+        //   isSigner: false,
+        // },
+        // {
+        //   pubkey: xcallProgram.programId,
+        //   isWritable: false,
+        //   isSigner: false,
+        // },
+
+        // ACCOUNTS TO CALL CONNECTION SEND_MESSAGE
+        {
+          pubkey: connectionProgram.programId,
+          isWritable: true,
+          isSigner: false,
+        },
+        {
+          pubkey: ConnectionPDA.config().pda,
+          isSigner: false,
+          isWritable: true,
+        },
+        {
+          pubkey: ConnectionPDA.network_fee(ctx.dstNetworkId).pda,
+          isSigner: false,
+          isWritable: true,
+        },
+        {
+          pubkey: ConnectionPDA.claimFees().pda,
+          isSigner: false,
+          isWritable: true,
+        },
+        {
+          pubkey: mockDappProgram.programId,
+          isWritable: false,
+          isSigner: false,
+        },
+        {
+          pubkey: connectionProgram.programId,
+          isWritable: false,
+          isSigner: false,
+        },
+      ])
+      .signers([ctx.admin])
+      .rpc();
   });
 
   it("[recv_message]: should receive message and call xcall handle message result", async () => {
