@@ -223,8 +223,12 @@ impl<'a> CwCallService<'a> {
         if protocols.contains(source) {
             return Ok(true);
         }
-        let default_conn = self.get_default_connection(store, src_net)?;
-        Ok(source.clone() == default_conn)
+        if protocols.len() == 0 {
+            let default_conn = self.get_default_connection(store, src_net)?;
+            Ok(source.clone() == default_conn)
+        } else {
+            Ok(false)
+        }
     }
 
     pub fn handle_error(
