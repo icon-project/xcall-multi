@@ -1,6 +1,7 @@
 use anchor_lang::prelude::*;
+use xcall_lib::network_address::NetworkAddress;
 
-use crate::{dapp, error::XcallError, event, state::*};
+use crate::{dapp, error::XcallError, event, id, state::*};
 
 pub fn execute_rollback<'info>(
     ctx: Context<'_, '_, '_, 'info, ExecuteRollbackCtx<'info>>,
@@ -19,7 +20,7 @@ pub fn execute_rollback<'info>(
     };
 
     let ix_data = dapp::get_handle_call_message_ix_data(
-        rollback.from().to_string(),
+        NetworkAddress::new(&ctx.accounts.config.network_id, &id().to_string()),
         rollback.rollback().to_owned(),
         protocols,
     )?;
