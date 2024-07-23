@@ -12,11 +12,10 @@ use error::*;
 use instructions::*;
 use state::*;
 
-declare_id!("9hrkJ12DRZrbdQBwAGwgdjnauRj7Wue5stq1UzUyCJA3");
+declare_id!("CSnaetZykUf1FBQsyRtZBaYpJR4Q1rdT181aRY6zjnSe");
 
 #[program]
-
-pub mod dapp_multi {
+pub mod mock_dapp_multi {
     use super::*;
 
     pub fn initialize(ctx: Context<InitializeCtx>, _xcall_address: Pubkey) -> Result<()> {

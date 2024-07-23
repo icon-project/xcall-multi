@@ -29,18 +29,10 @@ pub fn query_execute_call_accounts(
     ctx: Context<QueryExecuteCallAccountsCtx>,
     req_id: u128,
     data: Vec<u8>,
-    from_nid: String,
 ) -> Result<QueryAccountsResponse> {
     let config = &ctx.accounts.config;
     let (proxy_request, _) = Pubkey::find_program_address(
         &[ProxyRequest::SEED_PREFIX.as_bytes(), &req_id.to_be_bytes()],
-        &id(),
-    );
-    let (default_connection, _) = Pubkey::find_program_address(
-        &[
-            DefaultConnection::SEED_PREFIX.as_bytes(),
-            &from_nid.as_bytes(),
-        ],
         &id(),
     );
 
@@ -49,13 +41,9 @@ pub fn query_execute_call_accounts(
         AccountMetadata::new(config.key(), false),
         AccountMetadata::new(config.admin, false),
         AccountMetadata::new(proxy_request, false),
-        AccountMetadata::new(default_connection, false),
     ];
 
-    let mut protocols = ctx.accounts.proxy_request.req.protocols();
-    if protocols.is_empty() {
-        protocols = vec![ctx.accounts.default_connection.key().to_string()]
-    }
+    let protocols = ctx.accounts.proxy_request.req.protocols();
 
     let conn_ix_data =
         get_query_send_message_accounts_ix_data(ctx.accounts.proxy_request.req.from().nid())?;
@@ -157,19 +145,11 @@ pub fn get_query_handle_call_message_ix_data(
 
 pub fn query_handle_message_accounts(
     ctx: Context<QueryAccountsCtx>,
-    from_nid: String,
     msg: Vec<u8>,
 ) -> Result<QueryAccountsResponse> {
     let config = &ctx.accounts.config;
     let admin = config.admin;
 
-    let (default_connection, _) = Pubkey::find_program_address(
-        &[
-            DefaultConnection::SEED_PREFIX.as_bytes(),
-            from_nid.as_bytes(),
-        ],
-        &id(),
-    );
     let (proxy_request, _) = Pubkey::find_program_address(
         &[
             ProxyRequest::SEED_PREFIX.as_bytes(),
@@ -181,7 +161,6 @@ pub fn query_handle_message_accounts(
     let mut account_metas = vec![
         AccountMetadata::new(config.key(), false),
         AccountMetadata::new(admin, false),
-        AccountMetadata::new_readonly(default_connection, false),
     ];
 
     let cs_message: CSMessage = msg.clone().try_into()?;
@@ -268,7 +247,7 @@ pub fn query_handle_message_accounts(
 }
 
 #[derive(Accounts)]
-#[instruction(req_id: u128, data: Vec<u8>, from_nid: String)]
+#[instruction(req_id: u128, data: Vec<u8>)]
 pub struct QueryExecuteCallAccountsCtx<'info> {
     #[account(
         seeds = [Config::SEED_PREFIX.as_bytes()],
@@ -281,12 +260,6 @@ pub struct QueryExecuteCallAccountsCtx<'info> {
         bump = proxy_request.bump
     )]
     pub proxy_request: Account<'info, ProxyRequest>,
-
-    #[account(
-        seeds = [DefaultConnection::SEED_PREFIX.as_bytes(), from_nid.as_bytes()],
-        bump = default_connection.bump
-    )]
-    pub default_connection: Account<'info, DefaultConnection>,
 }
 
 #[derive(Accounts)]

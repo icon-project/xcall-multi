@@ -5,7 +5,7 @@ import { expect } from "chai";
 
 import { TxnHelpers, hash, sleep } from "../utils";
 import { Xcall } from "../../target/types/xcall";
-import { MockDapp } from "../../target/types/mock_dapp";
+import { MockDappMulti } from "../../target/types/mock_dapp_multi";
 import { TestContext, XcallPDA } from "./setup";
 import {
   CSMessage,

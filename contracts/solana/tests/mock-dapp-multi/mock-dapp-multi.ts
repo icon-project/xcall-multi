@@ -12,13 +12,14 @@ import { Envelope, CallMessage, MessageType } from "../xcall/types";
 import { CentralizedConnection } from "../../target/types/centralized_connection";
 
 import { ConnectionPDA } from "../centralized-connection/setup";
-import { DappMulti } from "../../target/types/dapp_multi";
+import { MockDappMulti } from "../../target/types/mock_dapp_multi";
 
 const connectionProgram: anchor.Program<CentralizedConnection> =
   anchor.workspace.CentralizedConnection;
 
 const xcallProgram: anchor.Program<Xcall> = anchor.workspace.Xcall;
-const dappProgram: anchor.Program<DappMulti> = anchor.workspace.DappMulti;
+const dappProgram: anchor.Program<MockDappMulti> =
+  anchor.workspace.MockDappMulti;
 
 describe("Mock Dapp", () => {
   const provider = anchor.AnchorProvider.env();
@@ -48,11 +49,6 @@ describe("Mock Dapp", () => {
   it("should send message", async () => {
     let xcall_context = new XcallTestCtx(connection, txnHelpers, wallet.payer);
 
-    await xcall_context.setDefaultConnection(
-      xcall_context.networkId,
-      xcallProgram.programId
-    );
-
     let envelope = new Envelope(
       MessageType.CallMessage,
       new CallMessage(new Uint8Array([])).encode(),
@@ -68,11 +64,6 @@ describe("Mock Dapp", () => {
     let remaining_accounts = [
       {
         pubkey: XcallPDA.config().pda,
-        isSigner: false,
-        isWritable: true,
-      },
-      {
-        pubkey: XcallPDA.defaultConnection(xcall_context.dstNetworkId).pda,
         isSigner: false,
         isWritable: true,
       },

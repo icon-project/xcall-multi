@@ -50,16 +50,16 @@ pub fn send_call<'info>(
     let cs_message = CSMessage::from(request.clone()).as_bytes();
     helper::ensure_data_length(&cs_message)?;
 
-    if is_reply(&config, &to.nid(), &envelope.sources) && !need_response {
+    let sources = envelope.sources;
+    if sources.is_empty() {
+        return Err(XcallError::ProtocolNotSpecified.into());
+    }
+
+    if is_reply(&config, &to.nid(), &sources) && !need_response {
         ctx.accounts.config.set_call_reply(Some(request));
     } else {
         let sn: i64 = if need_response { sequence_no as i64 } else { 0 };
         let ix_data = connection::get_send_message_ix_data(&to.nid(), sn, cs_message)?;
-
-        let mut sources = envelope.sources;
-        if sources.is_empty() {
-            sources = vec![ctx.accounts.default_connection.key().to_string()]
-        }
 
         for (i, _) in sources.iter().enumerate() {
             connection::call_connection_send_message(
@@ -183,12 +183,6 @@ pub struct SendCallCtx<'info> {
         bump
     )]
     pub config: Account<'info, Config>,
-
-    #[account(
-        seeds = [DefaultConnection::SEED_PREFIX.as_bytes(), to.nid().as_bytes()],
-        bump = default_connection.bump
-    )]
-    pub default_connection: Account<'info, DefaultConnection>,
 
     /// CHECK: this is safe because we will verify if the protocol fee handler is valid or not
     #[account(mut)]

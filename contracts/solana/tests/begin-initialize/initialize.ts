@@ -1,6 +1,5 @@
 import * as anchor from "@coral-xyz/anchor";
 import { assert, expect } from "chai";
-import { Keypair } from "@solana/web3.js";
 
 import { TestContext as ConnectionTestContext } from "../centralized-connection/setup";
 import { TxnHelpers, sleep } from "../utils";
@@ -11,8 +10,9 @@ import { Xcall } from "../../target/types/xcall";
 import { TestContext as XcallTestContext, XcallPDA } from "../xcall/setup";
 import { CentralizedConnection } from "../../target/types/centralized_connection";
 
-import { DappMulti } from "../../target/types/dapp_multi";
-const dappProgram: anchor.Program<DappMulti> = anchor.workspace.DappMulti;
+import { MockDappMulti } from "../../target/types/mock_dapp_multi";
+const dappProgram: anchor.Program<MockDappMulti> =
+  anchor.workspace.MockDappMulti;
 
 const xcallProgram: anchor.Program<Xcall> = anchor.workspace.Xcall;
 const connectionProgram: anchor.Program<CentralizedConnection> =
@@ -32,11 +32,6 @@ describe("Initialize", () => {
   );
   let xcallCtx = new XcallTestContext(connection, txnHelpers, wallet.payer);
   let dappCtx = new DappTestCtx(connection, txnHelpers, wallet.payer);
-
-  after(async () => {
-    await xcallCtx.setDefaultConnection("0x3.icon", xcallProgram.programId);
-    await xcallCtx.setDefaultConnection("icon", xcallProgram.programId);
-  });
 
   it("should initialize xcall program", async () => {
     let ctx = new XcallTestContext(connection, txnHelpers, wallet.payer);
@@ -91,8 +86,6 @@ describe("Initialize", () => {
   });
 
   it("should initialize dapp program", async () => {
-    let newAdmin = Keypair.generate();
-
     await dappCtx.initialize();
     await sleep(2);
 

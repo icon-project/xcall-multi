@@ -16,7 +16,7 @@ use state::*;
 
 use xcall_lib::xcall_msg::QueryAccountsResponse;
 
-declare_id!("Dfx4tMiqHAPzRrcdxR25n1Dyrjwsozc8D5PQukiiV9H8");
+declare_id!("8TqfntpWu13CLTYjpaXbm2KmrCPhcXaeSbJ7s6TtfBdP");
 
 #[program]
 pub mod centralized_connection {

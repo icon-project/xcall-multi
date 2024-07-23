@@ -3,8 +3,8 @@ use anchor_lang::prelude::*;
 #[derive(Debug, Default, PartialEq, Eq, Clone, AnchorSerialize, AnchorDeserialize)]
 pub struct AccountMetadata {
     pub pubkey: Pubkey,
-    pub is_signer: bool,
     pub is_writable: bool,
+    pub is_signer: bool,
 }
 
 impl AccountMetadata {
