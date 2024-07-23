@@ -13,7 +13,7 @@ pub mod types;
 use instructions::*;
 
 use types::message::CSMessageDecoded;
-use xcall_lib::network_address::NetworkAddress;
+use xcall_lib::{network_address::NetworkAddress, xcall_msg::QueryAccountsResponse};
 
 declare_id!("3489r9oW63a8MRk5CXD2Lv8YTFQ9iGjaXxgGnaoccPhc");
 
@@ -132,5 +132,24 @@ pub mod xcall {
         sn: u128,
     ) -> Result<()> {
         instructions::execute_rollback(ctx, sn)
+    }
+
+    pub fn query_execute_call_accounts<'info>(
+        ctx: Context<'_, '_, '_, 'info, QueryExecuteCallAccountsCtx<'info>>,
+        req_id: u128,
+        data: Vec<u8>,
+        from_nid: String,
+    ) -> Result<QueryAccountsResponse> {
+        instructions::query_execute_call_accounts(ctx, req_id, data, from_nid)
+    }
+
+    #[allow(unused_variables)]
+    pub fn query_handle_message_accounts(
+        ctx: Context<QueryAccountsCtx>,
+        from_nid: String,
+        msg: Vec<u8>,
+        sequence_no: u128,
+    ) -> Result<QueryAccountsResponse> {
+        instructions::query_handle_message_accounts(ctx, from_nid, msg)
     }
 }

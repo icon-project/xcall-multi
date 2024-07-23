@@ -1,6 +1,11 @@
 use anchor_lang::prelude::*;
 
-use crate::network_address::NetworkAddress;
+use crate::{account_metadata::AccountMetadata, network_address::NetworkAddress};
+
+#[derive(Debug, Default, PartialEq, Eq, Clone, AnchorSerialize, AnchorDeserialize)]
+pub struct QueryAccountsResponse {
+    pub accounts: Vec<AccountMetadata>,
+}
 
 #[derive(Debug, Clone, AnchorSerialize, AnchorDeserialize)]
 pub struct SendMessage {

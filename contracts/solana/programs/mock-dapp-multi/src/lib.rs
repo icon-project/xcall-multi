@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use xcall_lib::{network_address::*, xcall_dapp_msg};
+use xcall_lib::{network_address::*, xcall_dapp_msg, xcall_msg::QueryAccountsResponse};
 
 pub mod error;
 pub mod event;
@@ -55,6 +55,16 @@ pub mod dapp_multi {
     ) -> Result<()> {
         instructions::send_message::add_connection(ctx, network_id, src_endpoint, dst_endpoint)?;
         Ok(())
+    }
+
+    #[allow(unused_variables)]
+    pub fn query_handle_call_message_accounts(
+        ctx: Context<QueryAccountsCtx>,
+        from: NetworkAddress,
+        data: Vec<u8>,
+        protocols: Option<Vec<String>>,
+    ) -> Result<QueryAccountsResponse> {
+        instructions::query_handle_call_message_accounts(ctx)
     }
 }
 
