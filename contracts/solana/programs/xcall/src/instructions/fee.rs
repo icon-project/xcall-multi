@@ -25,9 +25,8 @@ pub fn get_fee(
         return Ok(0_u64);
     };
 
-    let mut sources = sources;
     if sources.is_empty() {
-        sources = vec![ctx.accounts.default_connection.key().to_string()]
+        return Err(XcallError::ProtocolNotSpecified.into());
     }
 
     let mut data = vec![];
@@ -86,10 +85,4 @@ pub struct GetFeeCtx<'info> {
         bump,
     )]
     pub config: Account<'info, Config>,
-
-    #[account(
-        seeds = [DefaultConnection::SEED_PREFIX.as_bytes(), nid.as_bytes()],
-        bump = default_connection.bump
-    )]
-    pub default_connection: Account<'info, DefaultConnection>,
 }

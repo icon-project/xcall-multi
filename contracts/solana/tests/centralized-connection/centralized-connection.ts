@@ -23,12 +23,13 @@ import {
 import { TestContext as XcallTestContext } from "../xcall/setup";
 
 import { DappPDA } from "../mock-dapp-multi/setup";
-import { MockDapp } from "../../target/types/mock_dapp";
+import { MockDappMulti } from "../../target/types/mock_dapp_multi";
 
 const xcallProgram: anchor.Program<Xcall> = anchor.workspace.Xcall;
 const connectionProgram: anchor.Program<CentralizedConnection> =
   anchor.workspace.CentralizedConnection;
-const mockDappProgram: anchor.Program<MockDapp> = anchor.workspace.MockDapp;
+const mockDappProgram: anchor.Program<MockDappMulti> =
+  anchor.workspace.MockDappMulti;
 
 describe("CentralizedConnection", () => {
   const provider = anchor.AnchorProvider.env();
@@ -39,14 +40,6 @@ describe("CentralizedConnection", () => {
   let ctx = new TestContext(connection, txnHelpers, wallet.payer);
 
   let xcallCtx = new XcallTestContext(connection, txnHelpers, wallet.payer);
-
-  before(async () => {
-    await xcallCtx.setDefaultConnection(
-      ctx.dstNetworkId,
-      connectionProgram.programId
-    );
-    await sleep(2);
-  });
 
   it("[set_admin]: should set the new admin", async () => {
     let newAdmin = Keypair.generate();
@@ -218,11 +211,6 @@ describe("CentralizedConnection", () => {
           isWritable: true,
         },
         {
-          pubkey: XcallPDA.defaultConnection(ctx.dstNetworkId).pda,
-          isSigner: false,
-          isWritable: true,
-        },
-        {
           pubkey: XcallPDA.proxyRequest(nextReqId).pda,
           isSigner: false,
           isWritable: true,
@@ -271,8 +259,44 @@ describe("CentralizedConnection", () => {
       nextReqId.toString()
     );
 
+    try {
+      let ix = await xcallProgram.methods
+        .queryExecuteCallAccounts(new anchor.BN(nextReqId), Buffer.from(data))
+        .accountsStrict({
+          config: XcallPDA.config().pda,
+          proxyRequest: XcallPDA.proxyRequest(nextReqId).pda,
+        })
+        .remainingAccounts([
+          {
+            pubkey: ConnectionPDA.config().pda,
+            isWritable: true,
+            isSigner: false,
+          },
+          {
+            pubkey: DappPDA.config().pda,
+            isWritable: true,
+            isSigner: false,
+          },
+          {
+            pubkey: connectionProgram.programId,
+            isWritable: true,
+            isSigner: false,
+          },
+          {
+            pubkey: mockDappProgram.programId,
+            isWritable: true,
+            isSigner: false,
+          },
+        ])
+        .view({ commitment: "confirmed" });
+
+      console.log("execute call accounts with connection: ", ix);
+    } catch (err) {
+      console.log(err);
+    }
+
     // call xcall execute_call
-    let sig = await xcallProgram.methods
+    await xcallProgram.methods
       .executeCall(
         new anchor.BN(nextReqId),
         Buffer.from(data),
@@ -284,17 +308,11 @@ describe("CentralizedConnection", () => {
         config: XcallPDA.config().pda,
         admin: xcallConfig.admin,
         proxyRequest: XcallPDA.proxyRequest(nextReqId).pda,
-        defaultConnection: XcallPDA.defaultConnection(ctx.dstNetworkId).pda,
       })
       .remainingAccounts([
         // ACCOUNTS TO CALL SEND_CALL FROM DAPP
         // {
         //   pubkey: XcallPDA.config().pda,
-        //   isWritable: true,
-        //   isSigner: false,
-        // },
-        // {
-        //   pubkey: XcallPDA.defaultConnection(ctx.dstNetworkId).pda,
         //   isWritable: true,
         //   isSigner: false,
         // },
@@ -368,9 +386,8 @@ describe("CentralizedConnection", () => {
         systemProgram: SYSTEM_PROGRAM_ID,
         config: XcallPDA.config().pda,
         signer: wallet.payer.publicKey,
-        rollbackAccount: XcallPDA.rollback(1).pda,
+        rollbackAccount: XcallPDA.rollback(nextSequenceNo).pda,
         feeHandler: xcallCtx.feeHandler.publicKey,
-        defaultConnection: XcallPDA.defaultConnection(ctx.dstNetworkId).pda,
       })
       .remainingAccounts([
         {
@@ -443,11 +460,6 @@ describe("CentralizedConnection", () => {
           isWritable: true,
         },
         {
-          pubkey: XcallPDA.defaultConnection(ctx.dstNetworkId).pda,
-          isSigner: false,
-          isWritable: true,
-        },
-        {
           pubkey: XcallPDA.proxyRequest(nextReqId).pda,
           isSigner: false,
           isWritable: true,
@@ -511,7 +523,6 @@ describe("CentralizedConnection", () => {
         signer: wallet.payer.publicKey,
         rollbackAccount: XcallPDA.rollback(nextSequenceNo).pda,
         feeHandler: xcallCtx.feeHandler.publicKey,
-        defaultConnection: XcallPDA.defaultConnection(ctx.dstNetworkId).pda,
       })
       .remainingAccounts([
         {
@@ -570,11 +581,6 @@ describe("CentralizedConnection", () => {
         },
         {
           pubkey: xcallCtx.admin.publicKey,
-          isSigner: false,
-          isWritable: true,
-        },
-        {
-          pubkey: XcallPDA.defaultConnection(ctx.dstNetworkId).pda,
           isSigner: false,
           isWritable: true,
         },
@@ -663,7 +669,6 @@ describe("CentralizedConnection", () => {
         signer: wallet.payer.publicKey,
         rollbackAccount: XcallPDA.rollback(nextSequenceNo).pda,
         feeHandler: xcallCtx.feeHandler.publicKey,
-        defaultConnection: XcallPDA.defaultConnection(ctx.dstNetworkId).pda,
       })
       .remainingAccounts([
         {
@@ -714,17 +719,12 @@ describe("CentralizedConnection", () => {
           isWritable: true,
         },
         {
-          pubkey: XcallPDA.defaultConnection(ctx.dstNetworkId).pda,
+          pubkey: XcallPDA.rollback(nextSequenceNo).pda,
           isSigner: false,
           isWritable: true,
         },
         {
           pubkey: XcallPDA.pendingResponse(messageSeed).pda,
-          isSigner: false,
-          isWritable: true,
-        },
-        {
-          pubkey: XcallPDA.rollback(nextSequenceNo).pda,
           isSigner: false,
           isWritable: true,
         },
@@ -745,5 +745,106 @@ describe("CentralizedConnection", () => {
 
     let rollback = await xcallCtx.getRollback(nextSequenceNo);
     assert.equal(rollback.rollback.enabled, true);
+  });
+
+  it("should query recv message accounts with request", async () => {
+    let xcallConfig = await xcallCtx.getConfig();
+
+    let request = new CSMessageRequest(
+      "icon/abc",
+      ctx.dstNetworkId,
+      xcallConfig.sequenceNo.toNumber(),
+      MessageType.CallMessagePersisted,
+      new Uint8Array([0, 1, 2, 3]),
+      [connectionProgram.programId.toString()]
+    );
+
+    let cs_message = new CSMessage(
+      CSMessageType.CSMessageRequest,
+      request.encode()
+    ).encode();
+    try {
+      let ix = await connectionProgram.methods
+        .queryRecvMessageAccounts(
+          ctx.dstNetworkId,
+          new anchor.BN(10),
+          Buffer.from(cs_message),
+          new anchor.BN(xcallConfig.sequenceNo.toNumber())
+        )
+        .accountsStrict({
+          config: ConnectionPDA.config().pda,
+        })
+        .remainingAccounts([
+          {
+            pubkey: XcallPDA.config().pda,
+            isWritable: true,
+            isSigner: false,
+          },
+          {
+            pubkey: XcallPDA.rollback(xcallConfig.sequenceNo.toNumber()).pda,
+            isWritable: true,
+            isSigner: false,
+          },
+          {
+            pubkey: xcallProgram.programId,
+            isWritable: false,
+            isSigner: false,
+          },
+        ])
+        .view({ commitment: "confirmed" });
+
+      console.log(ix);
+    } catch (err) {
+      console.log(err);
+    }
+  });
+
+  it("should query recv message accounts with result", async () => {
+    let xcallConfig = await xcallCtx.getConfig();
+
+    let result = new CSMessageResult(
+      xcallConfig.sequenceNo.toNumber(),
+      CSResponseType.CSMessageFailure,
+      new Uint8Array([])
+    );
+
+    let cs_message = new CSMessage(
+      CSMessageType.CSMessageResult,
+      result.encode()
+    ).encode();
+    try {
+      let ix = await connectionProgram.methods
+        .queryRecvMessageAccounts(
+          ctx.dstNetworkId,
+          new anchor.BN(10),
+          Buffer.from(cs_message),
+          new anchor.BN(xcallConfig.sequenceNo.toNumber())
+        )
+        .accountsStrict({
+          config: ConnectionPDA.config().pda,
+        })
+        .remainingAccounts([
+          {
+            pubkey: XcallPDA.config().pda,
+            isWritable: true,
+            isSigner: false,
+          },
+          {
+            pubkey: XcallPDA.rollback(xcallConfig.sequenceNo.toNumber()).pda,
+            isWritable: true,
+            isSigner: false,
+          },
+          {
+            pubkey: xcallProgram.programId,
+            isWritable: false,
+            isSigner: false,
+          },
+        ])
+        .view({ commitment: "confirmed" });
+
+      console.log(ix);
+    } catch (err) {
+      console.log(err);
+    }
   });
 });

@@ -40,22 +40,6 @@ export class TestContext {
     await sleep(2);
   }
 
-  async setDefaultConnection(netId: string, connection: PublicKey) {
-    let ix = await xcallProgram.methods
-      .setDefaultConnection(netId, connection)
-      .accountsStrict({
-        admin: this.admin.publicKey,
-        systemProgram: SYSTEM_PROGRAM_ID,
-        config: XcallPDA.config().pda,
-        defaultConnection: XcallPDA.defaultConnection(netId).pda,
-      })
-      .instruction();
-
-    let tx = await this.txnHelpers.buildV0Txn([ix], [this.admin]);
-    await this.connection.sendTransaction(tx);
-    await sleep(2);
-  }
-
   async setFeeHandler(fee_handler: Keypair) {
     this.feeHandler = fee_handler;
 
@@ -103,13 +87,6 @@ export class TestContext {
   async getSuccessRes(sequenceNo: number) {
     return await xcallProgram.account.successfulResponse.fetch(
       XcallPDA.successRes(sequenceNo).pda,
-      "confirmed"
-    );
-  }
-
-  async getDefaultConnection(netId: String) {
-    return await xcallProgram.account.defaultConnection.fetch(
-      XcallPDA.defaultConnection(netId).pda,
       "confirmed"
     );
   }

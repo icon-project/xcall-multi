@@ -15,7 +15,7 @@ use instructions::*;
 use types::message::CSMessageDecoded;
 use xcall_lib::{network_address::NetworkAddress, xcall_msg::QueryAccountsResponse};
 
-declare_id!("3489r9oW63a8MRk5CXD2Lv8YTFQ9iGjaXxgGnaoccPhc");
+declare_id!("FY4mGku2kdzSp1LmqjS7B55yejteBW8fPmTQqAudayCg");
 
 #[program]
 pub mod xcall {
@@ -38,15 +38,6 @@ pub mod xcall {
         fee_handler: Pubkey,
     ) -> Result<()> {
         instructions::set_protocol_fee_handler(ctx, fee_handler)
-    }
-
-    #[allow(unused_variables)]
-    pub fn set_default_connection(
-        ctx: Context<DefaultConnectionCtx>,
-        network_id: String,
-        connection: Pubkey,
-    ) -> Result<()> {
-        instructions::set_default_connection(ctx, connection)
     }
 
     pub fn send_call<'info>(
@@ -138,9 +129,8 @@ pub mod xcall {
         ctx: Context<'_, '_, '_, 'info, QueryExecuteCallAccountsCtx<'info>>,
         req_id: u128,
         data: Vec<u8>,
-        from_nid: String,
     ) -> Result<QueryAccountsResponse> {
-        instructions::query_execute_call_accounts(ctx, req_id, data, from_nid)
+        instructions::query_execute_call_accounts(ctx, req_id, data)
     }
 
     #[allow(unused_variables)]
@@ -150,6 +140,6 @@ pub mod xcall {
         msg: Vec<u8>,
         sequence_no: u128,
     ) -> Result<QueryAccountsResponse> {
-        instructions::query_handle_message_accounts(ctx, from_nid, msg)
+        instructions::query_handle_message_accounts(ctx, msg)
     }
 }

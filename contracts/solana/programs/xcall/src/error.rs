@@ -50,6 +50,9 @@ pub enum XcallError {
     #[msg("Protocol mismatch")]
     ProtocolMismatch,
 
+    #[msg("Connection protocol not specified")]
+    ProtocolNotSpecified,
+
     #[msg("Rollback not possible")]
     RollbackNotPossible,
 

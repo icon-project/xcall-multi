@@ -39,10 +39,7 @@ pub fn execute_call<'info>(
         ctx.accounts.config.set_reply_state(Some(req.clone()));
     }
 
-    let mut protocols = req.protocols();
-    if protocols.is_empty() {
-        protocols = vec![ctx.accounts.default_connection.key().to_string()]
-    }
+    let protocols = req.protocols();
 
     let dapp_res = dapp::invoke_handle_call_message_ix(
         dapp_key,
@@ -123,10 +120,4 @@ pub struct ExecuteCallCtx<'info> {
         close = admin
     )]
     pub proxy_request: Account<'info, ProxyRequest>,
-
-    #[account(
-        seeds = [DefaultConnection::SEED_PREFIX.as_bytes(), from_nid.as_bytes()],
-        bump = default_connection.bump
-    )]
-    pub default_connection: Account<'info, DefaultConnection>,
 }

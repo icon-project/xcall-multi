@@ -82,23 +82,6 @@ impl Config {
     }
 }
 
-#[account]
-pub struct DefaultConnection {
-    pub address: Pubkey,
-    pub bump: u8,
-}
-
-impl DefaultConnection {
-    pub const SEED_PREFIX: &'static str = "conn";
-
-    pub const SIZE: usize = 8 + 32 + 1;
-
-    pub fn set(&mut self, address: Pubkey, bump: u8) {
-        self.address = address;
-        self.bump = bump
-    }
-}
-
 #[derive(Debug)]
 #[account]
 pub struct RollbackAccount {

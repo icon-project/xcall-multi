@@ -30,10 +30,6 @@ describe("xcall - send message", () => {
     await txnHelpers.airdrop(fee_handler.publicKey, 1e9);
 
     await ctx.setProtocolFee(5000);
-    await ctx.setDefaultConnection(
-      ctx.dstNetworkId,
-      Keypair.generate().publicKey
-    );
   });
 
   it("should send message", async () => {
@@ -57,7 +53,6 @@ describe("xcall - send message", () => {
         signer: wallet.payer.publicKey,
         rollbackAccount: XcallPDA.rollback(nextSequence).pda,
         feeHandler: ctx.feeHandler.publicKey,
-        defaultConnection: XcallPDA.defaultConnection(ctx.dstNetworkId).pda,
       })
       .remainingAccounts([
         {

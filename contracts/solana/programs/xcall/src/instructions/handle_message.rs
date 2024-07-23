@@ -40,11 +40,7 @@ pub fn handle_request(
         return Err(XcallError::ProtocolMismatch.into());
     }
     let source = ctx.accounts.connection.owner.to_owned();
-    let source_valid = is_valid_source(
-        &ctx.accounts.default_connection.key(),
-        &source.to_string(),
-        &req.protocols(),
-    )?;
+    let source_valid = is_valid_source(&source.to_string(), &req.protocols())?;
     if !source_valid {
         return Err(XcallError::ProtocolMismatch.into());
     }
@@ -100,7 +96,6 @@ pub fn handle_result(ctx: Context<HandleMessageCtx>, payload: &[u8]) -> Result<(
     validate_source_and_pending_response(
         sender,
         rollback_account.rollback.protocols(),
-        ctx.accounts.default_connection.key(),
         &mut ctx.accounts.pending_response,
         &ctx.accounts.admin,
     )?;
@@ -142,7 +137,6 @@ pub fn handle_error(ctx: Context<HandleErrorCtx>, sequence_no: u128) -> Result<(
     validate_source_and_pending_response(
         sender,
         rollback_account.rollback.protocols(),
-        ctx.accounts.default_connection.key(),
         &mut ctx.accounts.pending_response,
         &ctx.accounts.admin,
     )?;
@@ -187,11 +181,10 @@ pub fn handle_reply(ctx: Context<HandleMessageCtx>, reply: &mut CSMessageRequest
 pub fn validate_source_and_pending_response<'info>(
     sender: Pubkey,
     protocols: &Vec<String>,
-    default_connection: Pubkey,
     pending_response: &mut Option<Account<'info, PendingResponse>>,
     admin: &AccountInfo<'info>,
 ) -> Result<()> {
-    let source_valid = is_valid_source(&default_connection.key(), &sender.to_string(), protocols)?;
+    let source_valid = is_valid_source(&sender.to_string(), protocols)?;
     if !source_valid {
         return Err(XcallError::ProtocolMismatch.into());
     };
@@ -227,16 +220,13 @@ pub fn handle_rollback(
     Ok(())
 }
 
-pub fn is_valid_source(
-    default_connection: &Pubkey,
-    sender: &String,
-    protocols: &Vec<String>,
-) -> Result<bool> {
+#[inline(never)]
+pub fn is_valid_source(sender: &String, protocols: &Vec<String>) -> Result<bool> {
     if protocols.contains(sender) {
         return Ok(true);
     }
 
-    Ok(sender == &default_connection.to_string())
+    Ok(false)
 }
 
 #[derive(Accounts)]
@@ -255,17 +245,11 @@ pub struct HandleMessageCtx<'info> {
         bump = config.bump,
         has_one = admin @ XcallError::InvalidAdminKey
     )]
-    pub config: Account<'info, Config>,
+    pub config: Box<Account<'info, Config>>,
 
     /// CHECK: this is safe because we are verifying if the passed account is admin or not
     #[account(mut)]
     pub admin: AccountInfo<'info>,
-
-    #[account(
-        seeds = [DefaultConnection::SEED_PREFIX.as_bytes(), from_nid.as_bytes()],
-        bump = default_connection.bump
-    )]
-    pub default_connection: Account<'info, DefaultConnection>,
 
     #[account(
         init_if_needed,
@@ -274,7 +258,7 @@ pub struct HandleMessageCtx<'info> {
         seeds = [ProxyRequest::SEED_PREFIX.as_bytes(), &(config.last_req_id + 1).to_be_bytes()],
         bump
     )]
-    pub proxy_request: Option<Account<'info, ProxyRequest>>,
+    pub proxy_request: Option<Box<Account<'info, ProxyRequest>>>,
 
     #[account(
         init_if_needed,
@@ -283,7 +267,7 @@ pub struct HandleMessageCtx<'info> {
         seeds = [PendingRequest::SEED_PREFIX.as_bytes(), &hash::hash(&msg).to_bytes()],
         bump,
     )]
-    pub pending_request: Option<Account<'info, PendingRequest>>,
+    pub pending_request: Option<Box<Account<'info, PendingRequest>>>,
 
     #[account(
         init_if_needed,
@@ -301,14 +285,14 @@ pub struct HandleMessageCtx<'info> {
         seeds = [SuccessfulResponse::SEED_PREFIX.as_bytes(), &sequence_no.to_be_bytes()],
         bump
     )]
-    pub successful_response: Option<Account<'info, SuccessfulResponse>>,
+    pub successful_response: Option<Box<Account<'info, SuccessfulResponse>>>,
 
     #[account(
         mut,
         seeds = [RollbackAccount::SEED_PREFIX.as_bytes(), &sequence_no.to_be_bytes()],
         bump
     )]
-    pub rollback_account: Option<Account<'info, RollbackAccount>>,
+    pub rollback_account: Option<Box<Account<'info, RollbackAccount>>>,
 }
 
 #[derive(Accounts)]
@@ -334,10 +318,11 @@ pub struct HandleErrorCtx<'info> {
     pub admin: AccountInfo<'info>,
 
     #[account(
-        seeds = [DefaultConnection::SEED_PREFIX.as_bytes(), from_nid.as_bytes()],
-        bump = default_connection.bump
+        mut,
+        seeds = [RollbackAccount::SEED_PREFIX.as_bytes(), &sequence_no.to_be_bytes()],
+        bump
     )]
-    pub default_connection: Account<'info, DefaultConnection>,
+    pub rollback_account: Account<'info, RollbackAccount>,
 
     #[account(
         init_if_needed,
@@ -347,11 +332,4 @@ pub struct HandleErrorCtx<'info> {
         bump
     )]
     pub pending_response: Option<Account<'info, PendingResponse>>,
-
-    #[account(
-        mut,
-        seeds = [RollbackAccount::SEED_PREFIX.as_bytes(), &sequence_no.to_be_bytes()],
-        bump
-    )]
-    pub rollback_account: Account<'info, RollbackAccount>,
 }

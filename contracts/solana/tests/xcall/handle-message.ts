@@ -25,13 +25,6 @@ describe("xcall - handle message", () => {
 
   const xcallProgram: anchor.Program<Xcall> = anchor.workspace.Xcall;
 
-  before(async () => {
-    await ctx.setDefaultConnection(
-      ctx.dstNetworkId,
-      Keypair.generate().publicKey
-    );
-  });
-
   it("should create and extend the lookup table", async () => {
     let lookupTable = await txnHelpers.createAddressLookupTable();
     await sleep(5);
@@ -86,7 +79,6 @@ describe("xcall - handle message", () => {
           config: XcallPDA.config().pda,
           admin: ctx.admin.publicKey,
           pendingRequest: XcallPDA.pendingRequest(message_seed).pda,
-          defaultConnection: XcallPDA.defaultConnection(ctx.dstNetworkId).pda,
           rollbackAccount: null,
           pendingResponse: null,
           successfulResponse: null,
@@ -137,7 +129,6 @@ describe("xcall - handle message", () => {
           config: XcallPDA.config().pda,
           admin: ctx.admin.publicKey,
           pendingRequest: null,
-          defaultConnection: XcallPDA.defaultConnection(ctx.dstNetworkId).pda,
           rollbackAccount: XcallPDA.rollback(sequenceNo).pda,
           pendingResponse: XcallPDA.pendingResponse(message_seed).pda,
           successfulResponse: XcallPDA.successRes(sequenceNo).pda,

@@ -1,7 +1,7 @@
 import * as anchor from "@coral-xyz/anchor";
 import { PublicKey, Connection, Keypair } from "@solana/web3.js";
 
-import { DappMulti } from "../../target/types/dapp_multi";
+import { MockDappMulti } from "../../target/types/mock_dapp_multi";
 import { SYSTEM_PROGRAM_ID } from "@coral-xyz/anchor/dist/cjs/native/system";
 import { TxnHelpers } from "../utils";
 
@@ -9,10 +9,11 @@ import { Xcall } from "../../target/types/xcall";
 
 const xcallProgram: anchor.Program<Xcall> = anchor.workspace.Xcall;
 
-const dappProgram: anchor.Program<DappMulti> = anchor.workspace.DappMulti;
+const dappProgram: anchor.Program<MockDappMulti> =
+  anchor.workspace.MockDappMulti;
 
 export class TestContext {
-  program: anchor.Program<DappMulti>;
+  program: anchor.Program<MockDappMulti>;
   signer: Keypair;
   admin: Keypair;
   connection: Connection;
@@ -24,7 +25,7 @@ export class TestContext {
     let provider = anchor.AnchorProvider.env();
     anchor.setProvider(provider);
 
-    this.program = anchor.workspace.DappMulti;
+    this.program = anchor.workspace.MockDappMulti;
     this.signer = admin;
     this.admin = admin;
     this.connection = connection;

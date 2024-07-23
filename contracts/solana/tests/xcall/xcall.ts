@@ -5,7 +5,6 @@ import { TxnHelpers } from "../utils/transaction";
 import { Xcall } from "../../target/types/xcall";
 
 import { CentralizedConnection } from "../../target/types/centralized_connection";
-import { TestContext as ConnectionTestContext } from "../centralized-connection/setup";
 import { ConnectionPDA } from "../centralized-connection/setup";
 import { TestContext, XcallPDA } from "./setup";
 import { sleep } from "../utils";
@@ -32,7 +31,6 @@ describe("Xcall", async () => {
       ])
       .accountsStrict({
         config: XcallPDA.config().pda,
-        defaultConnection: XcallPDA.defaultConnection(ctx.dstNetworkId).pda,
       })
       .remainingAccounts([
         {
