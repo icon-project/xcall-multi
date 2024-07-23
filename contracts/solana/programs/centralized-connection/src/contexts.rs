@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-use crate::{constants, error::ConnectionError, state::*};
+use crate::{error::ConnectionError, state::*};
 
 #[derive(Accounts)]
 pub struct Initialize<'info> {
@@ -13,15 +13,6 @@ pub struct Initialize<'info> {
         space = Config::LEN
     )]
     pub config: Account<'info, Config>,
-
-    #[account(
-        init,
-        payer = signer,
-        seeds = [ClaimFee::SEED_PREFIX.as_bytes()],
-        space = constants::ACCOUNT_DISCRIMINATOR_SIZE + 1,
-        bump
-    )]
-    pub claim_fee: Account<'info, ClaimFee>,
 
     /// Rent payer
     #[account(mut)]
@@ -45,6 +36,7 @@ pub struct SendMessage<'info> {
     pub system_program: Program<'info, System>,
 
     #[account(
+        mut,
         seeds = [Config::SEED_PREFIX.as_bytes()],
         bump = config.bump,
     )]
@@ -55,13 +47,6 @@ pub struct SendMessage<'info> {
         bump = network_fee.bump
     )]
     pub network_fee: Account<'info, NetworkFee>,
-
-    #[account(
-        mut,
-        seeds = [ClaimFee::SEED_PREFIX.as_bytes()],
-        bump = claim_fee.bump
-    )]
-    pub claim_fee: Account<'info, ClaimFee>,
 }
 
 #[derive(Accounts)]
@@ -170,18 +155,12 @@ pub struct GetFee<'info> {
 pub struct ClaimFees<'info> {
     /// Config
     #[account(
+        mut,
         seeds = [Config::SEED_PREFIX.as_bytes()],
         bump = config.bump,
         has_one = admin @ ConnectionError::OnlyAdmin,
     )]
     pub config: Account<'info, Config>,
-
-    #[account(
-        mut,
-        seeds = [ClaimFee::SEED_PREFIX.as_bytes()],
-        bump = claim_fee.bump
-    )]
-    pub claim_fee: Account<'info, ClaimFee>,
 
     /// Rent payer
     #[account(mut)]

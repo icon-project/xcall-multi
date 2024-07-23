@@ -43,7 +43,6 @@ export class TestContext {
         signer: this.signer.publicKey,
         systemProgram: SYSTEM_PROGRAM_ID,
         config: ConnectionPDA.config().pda,
-        claimFee: ConnectionPDA.claimFees().pda,
       })
       .rpc();
   }
@@ -98,15 +97,6 @@ export class ConnectionPDA {
   static network_fee(networkId: string) {
     const [pda, bump] = PublicKey.findProgramAddressSync(
       [Buffer.from("fee"), Buffer.from(networkId)],
-      connectionProgram.programId
-    );
-
-    return { pda, bump };
-  }
-
-  static claimFees() {
-    const [pda, bump] = PublicKey.findProgramAddressSync(
-      [Buffer.from("claim_fees")],
       connectionProgram.programId
     );
 

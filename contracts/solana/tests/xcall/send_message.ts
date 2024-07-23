@@ -75,11 +75,6 @@ describe("xcall - send message", () => {
           isSigner: false,
           isWritable: true,
         },
-        {
-          pubkey: ConnectionPDA.claimFees().pda,
-          isSigner: false,
-          isWritable: true,
-        },
       ])
       .instruction();
 
