@@ -43,10 +43,9 @@ pub fn call_connection_send_message<'info>(
     system_program: &Program<'info, System>,
     remaining_accounts: &[AccountInfo<'info>],
 ) -> Result<()> {
-    let connection = &remaining_accounts[4 * index];
-    let conn_config = &remaining_accounts[4 * index + 1];
-    let network_fee = &remaining_accounts[4 * index + 2];
-    let claim_fee = &remaining_accounts[4 * index + 3];
+    let connection = &remaining_accounts[3 * index];
+    let conn_config = &remaining_accounts[3 * index + 1];
+    let network_fee = &remaining_accounts[3 * index + 2];
 
     let account_metas: Vec<AccountMeta> = vec![
         AccountMeta::new_readonly(config.key(), true),
@@ -54,7 +53,6 @@ pub fn call_connection_send_message<'info>(
         AccountMeta::new_readonly(system_program.key(), false),
         AccountMeta::new(conn_config.key(), false),
         AccountMeta::new_readonly(network_fee.key(), false),
-        AccountMeta::new(claim_fee.key(), false),
     ];
     let account_infos: Vec<AccountInfo<'info>> = vec![
         conn_config.to_account_info(),
@@ -62,7 +60,6 @@ pub fn call_connection_send_message<'info>(
         system_program.to_account_info(),
         config.to_account_info(),
         network_fee.to_account_info(),
-        claim_fee.to_account_info(),
     ];
     let ix = Instruction {
         program_id: connection.key(),

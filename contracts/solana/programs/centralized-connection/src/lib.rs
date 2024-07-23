@@ -23,10 +23,6 @@ pub mod centralized_connection {
             .config
             .set_inner(Config::new(xcall, admin, ctx.bumps.config));
 
-        ctx.accounts.claim_fee.set_inner(ClaimFee {
-            bump: ctx.bumps.claim_fee,
-        });
-
         Ok(())
     }
 
@@ -46,7 +42,7 @@ pub mod centralized_connection {
         if fee > 0 {
             helper::transfer_lamports(
                 &ctx.accounts.signer,
-                &ctx.accounts.claim_fee.to_account_info(),
+                &ctx.accounts.config.to_account_info(),
                 &ctx.accounts.system_program,
                 fee,
             )?
@@ -109,10 +105,10 @@ pub mod centralized_connection {
     }
 
     pub fn claim_fees(ctx: Context<ClaimFees>) -> Result<()> {
-        let claim_fees = ctx.accounts.claim_fee.to_account_info();
-        let fee = ctx.accounts.claim_fee.get_claimable_fees(&claim_fees)?;
+        let config = ctx.accounts.config.to_account_info();
+        let fee = ctx.accounts.config.get_claimable_fees(&config)?;
 
-        **claim_fees.try_borrow_mut_lamports()? -= fee;
+        **config.try_borrow_mut_lamports()? -= fee;
         **ctx.accounts.admin.try_borrow_mut_lamports()? += fee;
 
         Ok(())

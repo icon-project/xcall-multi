@@ -101,15 +101,15 @@ describe("CentralizedConnection", () => {
   });
 
   it("[claim_fees]: should claim fee stored in PDA account", async () => {
-    let claimFee = ConnectionPDA.claimFees().pda;
+    let config = ConnectionPDA.config().pda;
 
     let transfer_amount = 500_000;
-    await txnHelpers.airdrop(claimFee, transfer_amount);
+    await txnHelpers.airdrop(config, transfer_amount);
     await sleep(2);
 
     const min_rent_exempt_balance =
-      await ctx.connection.getMinimumBalanceForRentExemption(9);
-    const before_pda_balance = (await ctx.connection.getAccountInfo(claimFee))
+      await ctx.connection.getMinimumBalanceForRentExemption(90);
+    const before_pda_balance = (await ctx.connection.getAccountInfo(config))
       .lamports;
     assert.equal(min_rent_exempt_balance + transfer_amount, before_pda_balance);
 
@@ -118,12 +118,11 @@ describe("CentralizedConnection", () => {
       .accountsStrict({
         admin: ctx.admin.publicKey,
         config: ConnectionPDA.config().pda,
-        claimFee,
       })
       .signers([ctx.admin])
       .rpc();
 
-    const after_pda_balance = (await ctx.connection.getAccountInfo(claimFee))
+    const after_pda_balance = (await ctx.connection.getAccountInfo(config))
       .lamports;
     assert.equal(min_rent_exempt_balance, after_pda_balance);
   });
@@ -137,7 +136,6 @@ describe("CentralizedConnection", () => {
         .accountsStrict({
           admin: new_admin.publicKey,
           config: ConnectionPDA.config().pda,
-          claimFee: ConnectionPDA.claimFees().pda,
         })
         .signers([new_admin])
         .rpc();
@@ -280,7 +278,7 @@ describe("CentralizedConnection", () => {
         Buffer.from(data),
         ctx.dstNetworkId
       )
-      .accountsStrict({
+      .accounts({
         signer: ctx.admin.publicKey,
         systemProgram: SYSTEM_PROGRAM_ID,
         config: XcallPDA.config().pda,
@@ -329,11 +327,6 @@ describe("CentralizedConnection", () => {
         },
         {
           pubkey: ConnectionPDA.network_fee(ctx.dstNetworkId).pda,
-          isSigner: false,
-          isWritable: true,
-        },
-        {
-          pubkey: ConnectionPDA.claimFees().pda,
           isSigner: false,
           isWritable: true,
         },
@@ -392,11 +385,6 @@ describe("CentralizedConnection", () => {
         },
         {
           pubkey: ConnectionPDA.network_fee(ctx.dstNetworkId).pda,
-          isSigner: false,
-          isWritable: true,
-        },
-        {
-          pubkey: ConnectionPDA.claimFees().pda,
           isSigner: false,
           isWritable: true,
         },
@@ -538,11 +526,6 @@ describe("CentralizedConnection", () => {
         },
         {
           pubkey: ConnectionPDA.network_fee(ctx.dstNetworkId).pda,
-          isSigner: false,
-          isWritable: true,
-        },
-        {
-          pubkey: ConnectionPDA.claimFees().pda,
           isSigner: false,
           isWritable: true,
         },
@@ -697,11 +680,6 @@ describe("CentralizedConnection", () => {
         },
         {
           pubkey: ConnectionPDA.network_fee(ctx.dstNetworkId).pda,
-          isSigner: false,
-          isWritable: true,
-        },
-        {
-          pubkey: ConnectionPDA.claimFees().pda,
           isSigner: false,
           isWritable: true,
         },

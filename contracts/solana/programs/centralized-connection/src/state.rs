@@ -50,6 +50,13 @@ impl Config {
         self.sn += 1;
         Ok(self.sn)
     }
+
+    pub fn get_claimable_fees(&self, account: &AccountInfo) -> Result<u64> {
+        let rent = Rent::default();
+        let rent_exempt_balance = rent.minimum_balance(Config::LEN);
+
+        Ok(account.lamports() - rent_exempt_balance)
+    }
 }
 
 #[account]
@@ -82,24 +89,6 @@ impl NetworkFee {
         }
 
         Ok(fee)
-    }
-}
-
-#[account]
-pub struct ClaimFee {
-    pub bump: u8,
-}
-
-impl ClaimFee {
-    pub const SEED_PREFIX: &'static str = "claim_fees";
-
-    pub const LEN: usize = constants::ACCOUNT_DISCRIMINATOR_SIZE + 1;
-
-    pub fn get_claimable_fees(&self, fee_account: &AccountInfo) -> Result<u64> {
-        let rent = Rent::default();
-        let rent_exempt_balance = rent.minimum_balance(ClaimFee::LEN);
-
-        Ok(fee_account.lamports() - rent_exempt_balance)
     }
 }
 
