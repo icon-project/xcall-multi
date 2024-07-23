@@ -287,11 +287,6 @@ describe("CentralizedConnection", () => {
         defaultConnection: XcallPDA.defaultConnection(ctx.dstNetworkId).pda,
       })
       .remainingAccounts([
-        {
-          pubkey: DappPDA.config().pda,
-          isWritable: true,
-          isSigner: false,
-        },
         // ACCOUNTS TO CALL SEND_CALL FROM DAPP
         // {
         //   pubkey: XcallPDA.config().pda,
@@ -329,6 +324,11 @@ describe("CentralizedConnection", () => {
           pubkey: ConnectionPDA.network_fee(ctx.dstNetworkId).pda,
           isSigner: false,
           isWritable: true,
+        },
+        {
+          pubkey: DappPDA.config().pda,
+          isWritable: true,
+          isSigner: false,
         },
         {
           pubkey: mockDappProgram.programId,
@@ -579,11 +579,6 @@ describe("CentralizedConnection", () => {
           isWritable: true,
         },
         {
-          pubkey: XcallPDA.proxyRequest(nextReqId).pda,
-          isSigner: false,
-          isWritable: true,
-        },
-        {
           pubkey: xcallProgram.programId,
           isSigner: false,
           isWritable: true,
@@ -594,7 +589,12 @@ describe("CentralizedConnection", () => {
           isWritable: true,
         },
         {
-          pubkey: XcallPDA.successRes(nextSequenceNo).pda,
+          pubkey: xcallProgram.programId,
+          isSigner: false,
+          isWritable: true,
+        },
+        {
+          pubkey: xcallProgram.programId,
           isSigner: false,
           isWritable: true,
         },
@@ -615,8 +615,6 @@ describe("CentralizedConnection", () => {
 
     let rollback = await xcallCtx.getRollback(nextSequenceNo);
     assert.equal(rollback.rollback.enabled, true);
-
-    // let executeRollbackIx = await xcallProgram.methods.executeRollback()
   });
 
   it("[revert_message]: should fail if not called by an admin", async () => {

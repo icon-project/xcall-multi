@@ -7,10 +7,14 @@ pub mod contexts;
 pub mod error;
 pub mod event;
 pub mod helper;
+pub mod instructions;
 pub mod state;
 
 use contexts::*;
+use instructions::*;
 use state::*;
+
+use xcall_lib::xcall_msg::QueryAccountsResponse;
 
 declare_id!("Dfx4tMiqHAPzRrcdxR25n1Dyrjwsozc8D5PQukiiV9H8");
 
@@ -112,5 +116,22 @@ pub mod centralized_connection {
         **ctx.accounts.admin.try_borrow_mut_lamports()? += fee;
 
         Ok(())
+    }
+
+    pub fn query_send_message_accounts<'info>(
+        ctx: Context<'_, '_, '_, 'info, QueryAccountsCtx<'info>>,
+        dst_network: String,
+    ) -> Result<QueryAccountsResponse> {
+        instructions::query_send_message_accounts(ctx, dst_network)
+    }
+
+    pub fn query_recv_message_accounts<'info>(
+        ctx: Context<'_, '_, '_, 'info, QueryAccountsCtx<'info>>,
+        src_network: String,
+        conn_sn: u128,
+        msg: Vec<u8>,
+        sequence_no: u128,
+    ) -> Result<QueryAccountsResponse> {
+        instructions::query_recv_message_accounts(ctx, src_network, conn_sn, msg, sequence_no)
     }
 }

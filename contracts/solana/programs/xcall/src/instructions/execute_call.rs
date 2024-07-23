@@ -39,13 +39,18 @@ pub fn execute_call<'info>(
         ctx.accounts.config.set_reply_state(Some(req.clone()));
     }
 
+    let mut protocols = req.protocols();
+    if protocols.is_empty() {
+        protocols = vec![ctx.accounts.default_connection.key().to_string()]
+    }
+
     let dapp_res = dapp::invoke_handle_call_message_ix(
         dapp_key,
         dapp_ix_data,
         &ctx.accounts.config,
         &ctx.accounts.signer,
         &ctx.accounts.system_program,
-        &ctx.remaining_accounts,
+        &ctx.remaining_accounts[(protocols.len() * 3)..],
     )?;
 
     match req.msg_type() {
@@ -69,11 +74,6 @@ pub fn execute_call<'info>(
             let result = CSMessageResult::new(req.sequence_no(), res_code, Some(msg));
             let cs_message = rlp::encode(&CSMessage::from(result)).to_vec();
 
-            let mut protocols = req.protocols();
-            if protocols.is_empty() {
-                protocols = vec![ctx.accounts.default_connection.key().to_string()]
-            }
-
             let ix_data = connection::get_send_message_ix_data(
                 &req.from().nid(),
                 -(req.sequence_no() as i64),
@@ -87,7 +87,7 @@ pub fn execute_call<'info>(
                     &ctx.accounts.config,
                     &ctx.accounts.signer,
                     &ctx.accounts.system_program,
-                    &ctx.remaining_accounts[1..],
+                    &ctx.remaining_accounts,
                 )?;
             }
         }
