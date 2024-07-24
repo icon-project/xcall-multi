@@ -7,6 +7,8 @@ use xcall_lib::{
 
 use crate::{state::*, xcall};
 
+use std::str;
+
 pub fn handle_call_message<'info>(
     ctx: Context<'_, '_, '_, 'info, HandleCallMessageCtx<'info>>,
     from: NetworkAddress,
@@ -21,14 +23,14 @@ pub fn handle_call_message<'info>(
         });
     };
 
-    let msg_data: String = rlp::decode(&data).unwrap();
-    if &msg_data == "rollback" {
+    let msg_data = str::from_utf8(&data).unwrap();
+    if msg_data == "rollback" {
         return Ok(HandleCallMessageResponse {
             success: false,
             message: "Revert from dapp".to_owned(),
         });
     } else {
-        if &msg_data == "reply-response" {
+        if msg_data == "reply-response" {
             let message = AnyMessage::CallMessage(CallMessage {
                 data: vec![1, 2, 3],
             });

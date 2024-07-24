@@ -92,21 +92,7 @@ pub fn query_recv_message_accounts(
 
     account_metas.append(&mut res_accounts);
 
-    let offset = ((page - 1) * limit) as usize;
-    let total = account_metas.len();
-    let max: usize = if offset + limit as usize > total {
-        total
-    } else {
-        offset + limit as usize
-    };
-
-    Ok(QueryAccountsPaginateResponse {
-        accounts: account_metas[offset..max].to_vec(),
-        total_accounts: total as u8,
-        limit,
-        page,
-        has_next_page: total > max,
-    })
+    Ok(QueryAccountsPaginateResponse::new(account_metas, page, limit))
 }
 
 #[derive(Accounts)]
