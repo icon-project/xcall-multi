@@ -4,6 +4,13 @@ use crate::{error::ConnectionError, state::*};
 
 #[derive(Accounts)]
 pub struct Initialize<'info> {
+    /// Rent payer
+    #[account(mut)]
+    pub signer: Signer<'info>,
+
+    /// System Program: Required for creating the centralized-connection config
+    pub system_program: Program<'info, System>,
+
     /// Config
     #[account(
         init,
@@ -13,27 +20,20 @@ pub struct Initialize<'info> {
         space = Config::LEN
     )]
     pub config: Account<'info, Config>,
-
-    /// Rent payer
-    #[account(mut)]
-    pub signer: Signer<'info>,
-
-    /// System Program: Required for creating the centralized-connection config
-    pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]
 #[instruction(to: String)]
 pub struct SendMessage<'info> {
-    #[account(
-        owner = config.xcall @ ConnectionError::OnlyXcall
-    )]
-    pub xcall: Signer<'info>,
-
     #[account(mut)]
     pub signer: Signer<'info>,
 
     pub system_program: Program<'info, System>,
+
+    #[account(
+        owner = config.xcall @ ConnectionError::OnlyXcall
+    )]
+    pub xcall: Signer<'info>,
 
     #[account(
         mut,
@@ -55,6 +55,8 @@ pub struct RecvMessage<'info> {
     #[account(mut)]
     pub admin: Signer<'info>,
 
+    pub system_program: Program<'info, System>,
+
     /// Config
     #[account(
         mut,
@@ -72,8 +74,6 @@ pub struct RecvMessage<'info> {
         bump
     )]
     pub receipt: Account<'info, Receipt>,
-
-    pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]
@@ -82,6 +82,8 @@ pub struct RevertMessage<'info> {
     #[account(mut)]
     pub admin: Signer<'info>,
 
+    pub system_program: Program<'info, System>,
+
     /// Config
     #[account(
         mut,
@@ -90,12 +92,14 @@ pub struct RevertMessage<'info> {
         has_one = admin @ ConnectionError::OnlyAdmin,
     )]
     pub config: Account<'info, Config>,
-
-    pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]
 pub struct SetAdmin<'info> {
+    /// Transaction signer
+    #[account(mut)]
+    pub admin: Signer<'info>,
+
     /// Config
     #[account(
         mut,
@@ -104,15 +108,18 @@ pub struct SetAdmin<'info> {
         has_one = admin @ ConnectionError::OnlyAdmin,
     )]
     pub config: Account<'info, Config>,
-
-    /// Transaction signer
-    #[account(mut)]
-    pub admin: Signer<'info>,
 }
 
 #[derive(Accounts)]
 #[instruction(network_id: String)]
 pub struct SetFee<'info> {
+    /// Rent payer
+    #[account(mut)]
+    pub admin: Signer<'info>,
+
+    /// System Program: Required to create program-derived address
+    pub system_program: Program<'info, System>,
+
     /// Fee
     #[account(
         init_if_needed,
@@ -131,13 +138,6 @@ pub struct SetFee<'info> {
         has_one = admin @ ConnectionError::OnlyAdmin,
     )]
     pub config: Account<'info, Config>,
-
-    /// Rent payer
-    #[account(mut)]
-    pub admin: Signer<'info>,
-
-    /// System Program: Required to create program-derived address
-    pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]
@@ -153,6 +153,10 @@ pub struct GetFee<'info> {
 
 #[derive(Accounts)]
 pub struct ClaimFees<'info> {
+    /// Rent payer
+    #[account(mut)]
+    pub admin: Signer<'info>,
+
     /// Config
     #[account(
         mut,
@@ -161,8 +165,4 @@ pub struct ClaimFees<'info> {
         has_one = admin @ ConnectionError::OnlyAdmin,
     )]
     pub config: Account<'info, Config>,
-
-    /// Rent payer
-    #[account(mut)]
-    pub admin: Signer<'info>,
 }

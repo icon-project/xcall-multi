@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use xcall_lib::{network_address::*, xcall_dapp_msg, xcall_msg::QueryAccountsResponse};
+use xcall_lib::{network_address::*, query_account_types::QueryAccountsResponse, xcall_dapp_msg};
 
 pub mod error;
 pub mod event;

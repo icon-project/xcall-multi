@@ -7,6 +7,16 @@ import { SYSTEM_PROGRAM_ID } from "@coral-xyz/anchor/dist/cjs/native/system";
 
 const xcallProgram: anchor.Program<Xcall> = anchor.workspace.Xcall;
 
+import { DappPDA } from "../mock-dapp-multi/setup";
+import { MockDappMulti } from "../../target/types/mock_dapp_multi";
+const mockDappProgram: anchor.Program<MockDappMulti> =
+  anchor.workspace.MockDappMulti;
+
+import { ConnectionPDA } from "../centralized-connection/setup";
+import { CentralizedConnection } from "../../target/types/centralized_connection";
+const connectionProgram: anchor.Program<CentralizedConnection> =
+  anchor.workspace.CentralizedConnection;
+
 export class TestContext {
   networkId: string;
   dstNetworkId: string;
@@ -70,6 +80,40 @@ export class TestContext {
     let tx = await this.txnHelpers.buildV0Txn([ix], [this.feeHandler]);
     await this.connection.sendTransaction(tx);
     await sleep(2);
+  }
+
+  async getExecuteCallAccounts(reqId: number, data: Uint8Array) {
+    const res = await xcallProgram.methods
+      .queryExecuteCallAccounts(new anchor.BN(reqId), Buffer.from(data), 1, 30)
+      .accountsStrict({
+        config: XcallPDA.config().pda,
+        proxyRequest: XcallPDA.proxyRequest(reqId).pda,
+      })
+      .remainingAccounts([
+        {
+          pubkey: ConnectionPDA.config().pda,
+          isWritable: true,
+          isSigner: false,
+        },
+        {
+          pubkey: DappPDA.config().pda,
+          isWritable: true,
+          isSigner: false,
+        },
+        {
+          pubkey: connectionProgram.programId,
+          isWritable: true,
+          isSigner: false,
+        },
+        {
+          pubkey: mockDappProgram.programId,
+          isWritable: true,
+          isSigner: false,
+        },
+      ])
+      .view({ commitment: "confirmed" });
+
+    return res.accounts;
   }
 
   async getConfig() {
