@@ -44,15 +44,15 @@ impl QueryAccountsPaginateResponse {
         let offset = ((page - 1) * limit) as usize;
         let total = accounts.len();
 
-        let page_size = if offset + limit as usize > total {
+        let to_index = if offset + limit as usize > total {
             total
         } else {
             offset + limit as usize
         };
 
-        let accounts = accounts[offset..page_size].to_vec();
+        let accounts = accounts[offset..to_index].to_vec();
         let total_accounts = total as u8;
-        let has_next_page = total > page_size;
+        let has_next_page = total > to_index;
 
         QueryAccountsPaginateResponse {
             accounts,
