@@ -10,8 +10,8 @@ use anchor_lang::{
     },
 };
 use xcall_lib::{
-    account_metadata::AccountMetadata, network_address::NetworkAddress,
-    xcall_msg::QueryAccountsResponse,
+    network_address::NetworkAddress,
+    query_account_types::{AccountMetadata, QueryAccountsPaginateResponse, QueryAccountsResponse},
 };
 
 use crate::{
@@ -29,7 +29,9 @@ pub fn query_execute_call_accounts(
     ctx: Context<QueryExecuteCallAccountsCtx>,
     req_id: u128,
     data: Vec<u8>,
-) -> Result<QueryAccountsResponse> {
+    page: u8,
+    limit: u8,
+) -> Result<QueryAccountsPaginateResponse> {
     let config = &ctx.accounts.config;
     let (proxy_request, _) = Pubkey::find_program_address(
         &[ProxyRequest::SEED_PREFIX.as_bytes(), &req_id.to_be_bytes()],
@@ -111,10 +113,13 @@ pub fn query_execute_call_accounts(
 
     let mut res_accounts = res.accounts;
     account_metadata.append(&mut res_accounts);
+    account_metadata.push(AccountMetadata::new_readonly(dapp_key, false));
 
-    Ok(QueryAccountsResponse {
-        accounts: account_metadata,
-    })
+    Ok(QueryAccountsPaginateResponse::new(
+        account_metadata,
+        page,
+        limit,
+    ))
 }
 
 pub fn get_query_send_message_accounts_ix_data(dst_network: String) -> Result<Vec<u8>> {
@@ -207,13 +212,6 @@ pub fn query_handle_message_accounts(
                 ],
                 &id(),
             );
-            let (rollback_account, _) = Pubkey::find_program_address(
-                &[
-                    RollbackAccount::SEED_PREFIX.as_bytes(),
-                    &sequence_no.to_be_bytes(),
-                ],
-                &id(),
-            );
 
             if result.response_code() == &CSResponseType::CSResponseSuccess
                 && result.message().is_some()
@@ -225,7 +223,13 @@ pub fn query_handle_message_accounts(
 
             account_metas.push(AccountMetadata::new(id(), false));
 
-            if ctx.accounts.rollback_account.rollback.protocols().len() > 1 {
+            let rollback_account = ctx
+                .accounts
+                .rollback_account
+                .as_ref()
+                .ok_or(XcallError::RollbackAccountNotSpecified)?;
+
+            if rollback_account.rollback.protocols().len() > 1 {
                 account_metas.push(AccountMetadata::new(pending_response, false));
             } else {
                 account_metas.push(AccountMetadata::new(id(), false))
@@ -237,6 +241,13 @@ pub fn query_handle_message_accounts(
                 account_metas.push(AccountMetadata::new(id(), false));
             }
 
+            let (rollback_account, _) = Pubkey::find_program_address(
+                &[
+                    RollbackAccount::SEED_PREFIX.as_bytes(),
+                    &sequence_no.to_be_bytes(),
+                ],
+                &id(),
+            );
             account_metas.push(AccountMetadata::new(rollback_account, false));
         }
     }
@@ -275,7 +286,7 @@ pub struct QueryAccountsCtx<'info> {
         seeds = [RollbackAccount::SEED_PREFIX.as_bytes(), &sequence_no.to_be_bytes()],
         bump = rollback_account.bump
     )]
-    pub rollback_account: Account<'info, RollbackAccount>,
+    pub rollback_account: Option<Account<'info, RollbackAccount>>,
 }
 
 #[derive(Debug, Default, PartialEq, Eq, Clone, AnchorSerialize, AnchorDeserialize)]

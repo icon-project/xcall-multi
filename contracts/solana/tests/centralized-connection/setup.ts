@@ -4,8 +4,10 @@ import { PublicKey, Connection, Keypair } from "@solana/web3.js";
 import { CentralizedConnection } from "../../target/types/centralized_connection";
 import { SYSTEM_PROGRAM_ID } from "@coral-xyz/anchor/dist/cjs/native/system";
 import { TxnHelpers, uint128ToArray } from "../utils";
+import { CSMessageType } from "../xcall/types";
 
 import { Xcall } from "../../target/types/xcall";
+import { XcallPDA } from "../xcall/setup";
 
 const xcallProgram: anchor.Program<Xcall> = anchor.workspace.Xcall;
 
@@ -58,6 +60,52 @@ export class TestContext {
       .rpc();
 
     this.admin = keypair;
+  }
+
+  async getRecvMessageAccounts(
+    connSn: number,
+    sequenceNo: number,
+    csMessage: Uint8Array,
+    csMessageType: CSMessageType
+  ) {
+    const remainingAccounts = [
+      {
+        pubkey: XcallPDA.config().pda,
+        isWritable: true,
+        isSigner: false,
+      },
+    ];
+
+    if (csMessageType == CSMessageType.CSMessageResult) {
+      remainingAccounts.push({
+        pubkey: XcallPDA.rollback(sequenceNo).pda,
+        isWritable: false,
+        isSigner: false,
+      });
+    }
+
+    remainingAccounts.push({
+      pubkey: xcallProgram.programId,
+      isWritable: false,
+      isSigner: false,
+    });
+
+    const res = await connectionProgram.methods
+      .queryRecvMessageAccounts(
+        this.dstNetworkId,
+        new anchor.BN(connSn),
+        Buffer.from(csMessage),
+        new anchor.BN(sequenceNo),
+        1,
+        30
+      )
+      .accountsStrict({
+        config: ConnectionPDA.config().pda,
+      })
+      .remainingAccounts(remainingAccounts)
+      .view({ commitment: "confirmed" });
+
+    return res.accounts;
   }
 
   async getConfig() {

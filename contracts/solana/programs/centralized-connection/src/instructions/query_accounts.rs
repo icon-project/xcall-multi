@@ -6,7 +6,9 @@ use anchor_lang::{
         system_program,
     },
 };
-use xcall_lib::{account_metadata::AccountMetadata, xcall_msg::QueryAccountsResponse};
+use xcall_lib::query_account_types::{
+    AccountMetadata, QueryAccountsPaginateResponse, QueryAccountsResponse,
+};
 
 use crate::{helper, id, state::*};
 
@@ -37,7 +39,9 @@ pub fn query_recv_message_accounts(
     conn_sn: u128,
     msg: Vec<u8>,
     sequence_no: u128,
-) -> Result<QueryAccountsResponse> {
+    page: u8,
+    limit: u8,
+) -> Result<QueryAccountsPaginateResponse> {
     let config = &ctx.accounts.config;
     let (receipt, _) = Pubkey::find_program_address(
         &[Receipt::SEED_PREFIX.as_bytes(), &conn_sn.to_be_bytes()],
@@ -45,9 +49,9 @@ pub fn query_recv_message_accounts(
     );
 
     let mut account_metas = vec![
+        AccountMetadata::new(system_program::id(), false),
         AccountMetadata::new(config.key(), false),
         AccountMetadata::new(receipt, false),
-        AccountMetadata::new(system_program::id(), false),
     ];
 
     let mut xcall_account_metas = vec![];
@@ -88,8 +92,20 @@ pub fn query_recv_message_accounts(
 
     account_metas.append(&mut res_accounts);
 
-    Ok(QueryAccountsResponse {
-        accounts: account_metas,
+    let offset = ((page - 1) * limit) as usize;
+    let total = account_metas.len();
+    let max: usize = if offset + limit as usize > total {
+        total
+    } else {
+        offset + limit as usize
+    };
+
+    Ok(QueryAccountsPaginateResponse {
+        accounts: account_metas[offset..max].to_vec(),
+        total_accounts: total as u8,
+        limit,
+        page,
+        has_next_page: total > max,
     })
 }
 

@@ -48,9 +48,9 @@ pub fn call_connection_send_message<'info>(
     let network_fee = &remaining_accounts[3 * index + 2];
 
     let account_metas: Vec<AccountMeta> = vec![
-        AccountMeta::new_readonly(config.key(), true),
         AccountMeta::new(signer.key(), true),
         AccountMeta::new_readonly(system_program.key(), false),
+        AccountMeta::new_readonly(config.key(), true),
         AccountMeta::new(conn_config.key(), false),
         AccountMeta::new_readonly(network_fee.key(), false),
     ];

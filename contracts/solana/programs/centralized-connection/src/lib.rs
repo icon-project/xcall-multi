@@ -14,7 +14,7 @@ use contexts::*;
 use instructions::*;
 use state::*;
 
-use xcall_lib::xcall_msg::QueryAccountsResponse;
+use xcall_lib::query_account_types::{QueryAccountsPaginateResponse, QueryAccountsResponse};
 
 declare_id!("8TqfntpWu13CLTYjpaXbm2KmrCPhcXaeSbJ7s6TtfBdP");
 
@@ -131,7 +131,17 @@ pub mod centralized_connection {
         conn_sn: u128,
         msg: Vec<u8>,
         sequence_no: u128,
-    ) -> Result<QueryAccountsResponse> {
-        instructions::query_recv_message_accounts(ctx, src_network, conn_sn, msg, sequence_no)
+        page: u8,
+        limit: u8,
+    ) -> Result<QueryAccountsPaginateResponse> {
+        instructions::query_recv_message_accounts(
+            ctx,
+            src_network,
+            conn_sn,
+            msg,
+            sequence_no,
+            page,
+            limit,
+        )
     }
 }
