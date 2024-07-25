@@ -90,7 +90,7 @@ export class TestContext {
       isSigner: false,
     });
 
-    const res = await connectionProgram.methods
+    let res = await connectionProgram.methods
       .queryRecvMessageAccounts(
         this.dstNetworkId,
         new anchor.BN(connSn),

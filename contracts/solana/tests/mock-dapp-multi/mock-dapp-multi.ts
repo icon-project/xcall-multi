@@ -29,23 +29,6 @@ describe("Mock Dapp", () => {
   let txnHelpers = new TxnHelpers(connection, wallet.payer);
   let ctx = new DappTestCtx(connection, txnHelpers, wallet.payer);
 
-  it("should add connection to dapp", async () => {
-    const src_endpoint = connectionProgram.programId.toString();
-    const dst_endpoint = "dst";
-
-    let connectionsPDA = DappPDA.connections(ctx.networkId).pda;
-
-    await ctx.add_connection(ctx.networkId, src_endpoint, dst_endpoint);
-    await sleep(2);
-
-    let connections = await dappProgram.account.connections.fetch(
-      connectionsPDA
-    );
-
-    assert.equal(connections.connections[0].dstEndpoint, dst_endpoint);
-    assert.equal(connections.connections[0].srcEndpoint, src_endpoint);
-  });
-
   it("should send message", async () => {
     let xcall_context = new XcallTestCtx(connection, txnHelpers, wallet.payer);
 

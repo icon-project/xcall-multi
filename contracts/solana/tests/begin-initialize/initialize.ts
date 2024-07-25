@@ -33,6 +33,15 @@ describe("Initialize", () => {
   let xcallCtx = new XcallTestContext(connection, txnHelpers, wallet.payer);
   let dappCtx = new DappTestCtx(connection, txnHelpers, wallet.payer);
 
+  before(async () => {
+    await dappCtx.add_connection(
+      "icon",
+      connectionProgram.programId.toString(),
+      connectionProgram.programId.toString()
+    );
+    await sleep(2);
+  });
+
   it("should initialize xcall program", async () => {
     let ctx = new XcallTestContext(connection, txnHelpers, wallet.payer);
 

@@ -53,6 +53,7 @@ describe("xcall - send message", () => {
         signer: wallet.payer.publicKey,
         rollbackAccount: XcallPDA.rollback(nextSequence).pda,
         feeHandler: ctx.feeHandler.publicKey,
+        dapp: xcallProgram.programId,
       })
       .remainingAccounts([
         {

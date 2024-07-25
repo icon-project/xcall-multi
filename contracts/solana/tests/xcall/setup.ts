@@ -116,6 +116,30 @@ export class TestContext {
     return res.accounts;
   }
 
+  async getExecuteRollbackAccounts(sequenceNo: number) {
+    let res = await xcallProgram.methods
+      .queryExecuteRollbackAccounts(new anchor.BN(sequenceNo), 1, 30)
+      .accountsStrict({
+        config: XcallPDA.config().pda,
+        rollbackAccount: XcallPDA.rollback(sequenceNo).pda,
+      })
+      .remainingAccounts([
+        {
+          pubkey: DappPDA.config().pda,
+          isWritable: false,
+          isSigner: false,
+        },
+        {
+          pubkey: mockDappProgram.programId,
+          isWritable: false,
+          isSigner: false,
+        },
+      ])
+      .view({ commitment: "confirmed" });
+
+    return res.accounts;
+  }
+
   async getConfig() {
     let { pda } = XcallPDA.config();
     return await xcallProgram.account.config.fetch(pda);

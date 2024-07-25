@@ -18,7 +18,7 @@ use xcall_lib::{
     query_account_types::{QueryAccountsPaginateResponse, QueryAccountsResponse},
 };
 
-declare_id!("7Ya5FjxuYScJhkjRs4WK9cxFXnvfw6Eby89W3xNkUQyF");
+declare_id!("47QmEHEPSQqhpEjok5PmooeqdqBXRVpU11aRMhJGe6LW");
 
 #[program]
 pub mod xcall {
@@ -136,6 +136,16 @@ pub mod xcall {
         limit: u8,
     ) -> Result<QueryAccountsPaginateResponse> {
         instructions::query_execute_call_accounts(ctx, req_id, data, page, limit)
+    }
+
+    #[allow(unused_variables)]
+    pub fn query_execute_rollback_accounts<'info>(
+        ctx: Context<'_, '_, '_, 'info, QueryExecuteRollbackAccountsCtx<'info>>,
+        sn: u128,
+        page: u8,
+        limit: u8,
+    ) -> Result<QueryAccountsPaginateResponse> {
+        instructions::query_execute_rollback_accounts(ctx, page, limit)
     }
 
     #[allow(unused_variables)]
