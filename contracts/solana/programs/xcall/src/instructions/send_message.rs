@@ -26,12 +26,12 @@ pub fn send_call<'info>(
     let sequence_no = ctx.accounts.config.get_next_sn();
     let config = &ctx.accounts.config;
 
-    let from = NetworkAddress::new(&config.network_id, &signer.key().to_string());
+    let from = NetworkAddress::new(&config.network_id, &signer.owner.to_string());
 
     process_message(
         &mut ctx.accounts.rollback_account,
         ctx.bumps.rollback_account,
-        &signer,
+        &ctx.accounts.dapp,
         &to,
         &envelope,
     )?;
@@ -94,7 +94,7 @@ pub fn send_call<'info>(
 pub fn process_message(
     rollback_account: &mut Option<Account<RollbackAccount>>,
     rollback_bump: Option<u8>,
-    from: &AccountInfo,
+    from: &Option<Signer>,
     to: &NetworkAddress,
     envelope: &Envelope,
 ) -> Result<()> {
@@ -105,11 +105,14 @@ pub fn process_message(
             // TODO: remove comment -> temporary comment until testing from mock dapp
             // helper::ensure_program(from)?;
             helper::ensure_rollback_length(&msg.rollback)?;
+            if from.is_none() {
+                return Err(XcallError::RollbackNotPossible.into());
+            }
 
             if msg.rollback().is_some() {
                 let rollback_data = envelope.message.rollback().unwrap();
                 let rollback = Rollback::new(
-                    from.key(),
+                    from.as_ref().unwrap().owner.to_owned(),
                     to.clone(),
                     envelope.sources.clone(),
                     rollback_data,
@@ -175,6 +178,8 @@ pub struct SendCallCtx<'info> {
     pub signer: Signer<'info>,
 
     pub system_program: Program<'info, System>,
+
+    pub dapp: Option<Signer<'info>>,
 
     #[account(
         has_one = fee_handler,

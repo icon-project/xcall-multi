@@ -92,7 +92,11 @@ pub fn query_recv_message_accounts(
 
     account_metas.append(&mut res_accounts);
 
-    Ok(QueryAccountsPaginateResponse::new(account_metas, page, limit))
+    Ok(QueryAccountsPaginateResponse::new(
+        account_metas,
+        page,
+        limit,
+    ))
 }
 
 #[derive(Accounts)]
