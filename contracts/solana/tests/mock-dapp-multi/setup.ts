@@ -18,6 +18,7 @@ export class TestContext {
   admin: Keypair;
   connection: Connection;
   networkId: string;
+  dstNetworkId: string;
   txnHelpers: TxnHelpers;
   isInitialized: boolean;
 
@@ -30,7 +31,8 @@ export class TestContext {
     this.admin = admin;
     this.connection = connection;
     this.txnHelpers = txnHelpers;
-    this.networkId = "icon";
+    this.networkId = "0x3.icon";
+    this.dstNetworkId = "0x3.icon";
     this.isInitialized = false;
   }
 
@@ -56,7 +58,7 @@ export class TestContext {
     const result = await this.program.methods
       .addConnection(_networkId, src_endpoint, dst_endpoint)
       .accounts({
-        connectionAccount: DappPDA.connections(this.networkId).pda,
+        connectionAccount: DappPDA.connections(this.dstNetworkId).pda,
         sender: this.signer.publicKey,
         systemProgram: SYSTEM_PROGRAM_ID,
       })

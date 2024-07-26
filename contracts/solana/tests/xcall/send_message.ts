@@ -39,7 +39,7 @@ describe("xcall - send message", () => {
       [connectionProgram.programId.toString()],
       [wallet.publicKey.toString()]
     ).encode();
-    const to = { "0": "icon/abc" };
+    const to = { "0": "0x3.icon/abc" };
 
     let config = await ctx.getConfig();
     let feeHandler = await connection.getAccountInfo(ctx.feeHandler.publicKey);

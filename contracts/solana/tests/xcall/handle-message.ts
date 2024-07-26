@@ -37,7 +37,7 @@ describe("xcall - handle message", () => {
 
     let request = new CSMessageRequest(
       "icon/abc",
-      ctx.dstNetworkId,
+      "icon",
       1,
       MessageType.CallMessage,
       new Uint8Array([0, 1, 2, 3]),
@@ -67,11 +67,7 @@ describe("xcall - handle message", () => {
 
     for (let i = 0; i < sources.length; i++) {
       let handleMessageIx = await xcallProgram.methods
-        .handleMessage(
-          ctx.dstNetworkId,
-          Buffer.from(cs_message),
-          new anchor.BN(1)
-        )
+        .handleMessage("icon", Buffer.from(cs_message), new anchor.BN(1))
         .accountsStrict({
           connection: sources[i].publicKey,
           signer: sources[i].publicKey,
@@ -118,7 +114,7 @@ describe("xcall - handle message", () => {
     for (let i = 0; i < sources.length; i++) {
       const handleMessageIx = await xcallProgram.methods
         .handleMessage(
-          ctx.dstNetworkId,
+          "icon",
           Buffer.from(cs_message),
           new anchor.BN(sequenceNo)
         )

@@ -39,7 +39,7 @@ describe("Mock Dapp", () => {
       [wallet.publicKey.toString()]
     ).encode();
 
-    const to = { "0": "icon/abc" };
+    const to = { "0": "0x3.icon/abc" };
     const msg_type = 0;
     const rollback = Buffer.from("rollback");
     const message = Buffer.from(envelope);

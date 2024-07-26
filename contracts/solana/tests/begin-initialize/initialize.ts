@@ -35,7 +35,7 @@ describe("Initialize", () => {
 
   before(async () => {
     await dappCtx.add_connection(
-      "icon",
+      connectionCtx.dstNetworkId,
       connectionProgram.programId.toString(),
       connectionProgram.programId.toString()
     );
