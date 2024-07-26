@@ -34,7 +34,7 @@ export class TestContext {
     this.connection = connection;
     this.txnHelpers = txnHelpers;
     this.networkId = "solana";
-    this.dstNetworkId = "icon";
+    this.dstNetworkId = "0x3.icon";
   }
 
   async initialize() {
@@ -60,6 +60,19 @@ export class TestContext {
       .rpc();
 
     this.admin = keypair;
+  }
+
+  async setNetworkFee(networkId: string, msgFee: number, resFee) {
+    await connectionProgram.methods
+      .setFee(networkId, new anchor.BN(msgFee), new anchor.BN(resFee))
+      .accountsStrict({
+        config: ConnectionPDA.config().pda,
+        networkFee: ConnectionPDA.network_fee(networkId).pda,
+        admin: this.admin.publicKey,
+        systemProgram: SYSTEM_PROGRAM_ID,
+      })
+      .signers([this.admin])
+      .rpc();
   }
 
   async getRecvMessageAccounts(

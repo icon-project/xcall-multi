@@ -42,6 +42,11 @@ describe("CentralizedConnection", () => {
 
   let mockDappCtx = new MockDappCtx(connection, txnHelpers, ctx.admin);
 
+  before(async () => {
+    await ctx.setNetworkFee("icon", 50, 50);
+    sleep(2);
+  });
+
   it("[set_admin]: should set the new admin", async () => {
     let newAdmin = Keypair.generate();
     await ctx.setAdmin(newAdmin);
@@ -76,17 +81,7 @@ describe("CentralizedConnection", () => {
     await txnHelpers.airdrop(ctx.admin.publicKey, 1e9);
     await sleep(2);
 
-    await ctx.program.methods
-      .setFee(ctx.dstNetworkId, new anchor.BN(msg_fee), new anchor.BN(res_fee))
-      .accountsStrict({
-        config: ConnectionPDA.config().pda,
-        networkFee: ConnectionPDA.network_fee(ctx.dstNetworkId).pda,
-        admin: ctx.admin.publicKey,
-        systemProgram: SYSTEM_PROGRAM_ID,
-      })
-      .signers([ctx.admin])
-      .rpc();
-
+    await ctx.setNetworkFee(ctx.dstNetworkId, msg_fee, res_fee);
     await sleep(2);
 
     let fee = await ctx.getFee(ctx.dstNetworkId);
@@ -168,7 +163,7 @@ describe("CentralizedConnection", () => {
     let xcallConfig = await xcallCtx.getConfig();
 
     const connSn = 1;
-    const fromNetwork = ctx.dstNetworkId;
+    const fromNetwork = "icon";
     let nextReqId = xcallConfig.lastReqId.toNumber() + 1;
     let nextSequenceNo = xcallConfig.sequenceNo.toNumber() + 1;
 
@@ -313,7 +308,7 @@ describe("CentralizedConnection", () => {
           isWritable: true,
         },
         {
-          pubkey: ConnectionPDA.network_fee(ctx.dstNetworkId).pda,
+          pubkey: ConnectionPDA.network_fee("icon").pda,
           isSigner: false,
           isWritable: true,
         },
@@ -330,7 +325,7 @@ describe("CentralizedConnection", () => {
 
     let request = new CSMessageRequest(
       "icon/abc",
-      ctx.dstNetworkId,
+      "icon",
       nextSequenceNo,
       MessageType.CallMessagePersisted,
       new Uint8Array([0, 1, 2, 3]),
@@ -394,7 +389,7 @@ describe("CentralizedConnection", () => {
       [connectionProgram.programId.toString()]
     ).encode();
 
-    const to = { "0": "icon/" + mockDappProgram.programId.toString() };
+    const to = { "0": "0x3.icon/" + mockDappProgram.programId.toString() };
     const msg_type = 1;
     const rollback = Buffer.from("rollback");
     const message = Buffer.from(envelope);
@@ -404,7 +399,7 @@ describe("CentralizedConnection", () => {
       .accountsStrict({
         config: DappPDA.config().pda,
         systemProgram: SYSTEM_PROGRAM_ID,
-        connectionsAccount: DappPDA.connections("icon").pda,
+        connectionsAccount: DappPDA.connections(ctx.dstNetworkId).pda,
         sender: ctx.admin.publicKey,
       })
       .remainingAccounts([
@@ -434,7 +429,7 @@ describe("CentralizedConnection", () => {
           isWritable: true,
         },
         {
-          pubkey: ConnectionPDA.network_fee("icon").pda,
+          pubkey: ConnectionPDA.network_fee(ctx.dstNetworkId).pda,
           isSigner: false,
           isWritable: true,
         },
@@ -561,7 +556,7 @@ describe("CentralizedConnection", () => {
       [connectionProgram.programId.toString()],
       [wallet.publicKey.toString()]
     ).encode();
-    const to = { "0": "icon/abc" };
+    const to = { "0": "0x3.icon/abc" };
 
     let sendCallIx = await xcallProgram.methods
       .sendCall(Buffer.from(envelope), to)

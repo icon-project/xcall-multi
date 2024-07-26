@@ -28,7 +28,7 @@ export class TestContext {
 
   constructor(connection: Connection, txnHelpers: TxnHelpers, admin: Keypair) {
     this.networkId = "solana";
-    this.dstNetworkId = "icon";
+    this.dstNetworkId = "0x3.icon";
     this.connection = connection;
     this.txnHelpers = txnHelpers;
     this.admin = admin;
