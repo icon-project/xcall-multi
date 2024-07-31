@@ -62,7 +62,7 @@ pub struct InitializeCtx<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(network_address: NetworkAddress )]
+#[instruction(to: NetworkAddress )]
 pub struct CallMessageCtx<'info> {
     #[account(
         mut,
@@ -73,7 +73,7 @@ pub struct CallMessageCtx<'info> {
 
     #[account(
         mut,
-        seeds = [Connections::SEED_PREFIX.as_bytes(), network_address.nid().as_bytes()],
+        seeds = [Connections::SEED_PREFIX.as_bytes(), to.nid().as_bytes()],
         bump
     )]
     pub connections_account: Account<'info, Connections>,

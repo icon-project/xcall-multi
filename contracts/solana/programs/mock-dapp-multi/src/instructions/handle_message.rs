@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 use xcall_lib::{
     message::{call_message::CallMessage, envelope::Envelope, AnyMessage},
     network_address::NetworkAddress,
-    xcall_dapp_msg::HandleCallMessageResponse,
+    xcall_dapp_type::HandleCallMessageResponse,
 };
 
 use crate::{state::*, xcall};

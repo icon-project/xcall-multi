@@ -11,7 +11,9 @@ use anchor_lang::{
 };
 use xcall_lib::{
     network_address::NetworkAddress,
-    query_account_types::{AccountMetadata, QueryAccountsPaginateResponse, QueryAccountsResponse},
+    query_account_type::{AccountMetadata, QueryAccountsPaginateResponse, QueryAccountsResponse},
+    xcall_connection_type::QUERY_SEND_MESSAGE_ACCOUNTS_IX,
+    xcall_dapp_type::QUERY_HANDLE_CALL_MESSAGE_IX,
 };
 
 use crate::{
@@ -26,7 +28,7 @@ use crate::{
 };
 
 pub fn query_handle_message_accounts(
-    ctx: Context<QueryAccountsCtx>,
+    ctx: Context<QueryHandleMessageAccountsCtx>,
     msg: Vec<u8>,
 ) -> Result<QueryAccountsResponse> {
     let config = &ctx.accounts.config;
@@ -246,6 +248,38 @@ pub fn query_execute_rollback_accounts(
     ))
 }
 
+pub fn query_handle_error_accounts(
+    ctx: Context<QueryHandleErrorAccountsCtx>,
+    sequence_no: u128,
+) -> Result<QueryAccountsResponse> {
+    let config = &ctx.accounts.config;
+    let rollback_account = &ctx.accounts.rollback_account;
+
+    let mut account_metas = vec![
+        AccountMetadata::new(config.key(), false),
+        AccountMetadata::new(config.admin, false),
+        AccountMetadata::new(rollback_account.key(), false),
+    ];
+
+    if rollback_account.rollback.protocols().len() > 1 {
+        let msg = CSMessageResult::new(sequence_no, CSResponseType::CSResponseFailure, None);
+        let (pending_response, _) = Pubkey::find_program_address(
+            &[
+                PendingResponse::SEED_PREFIX.as_bytes(),
+                &hash::hash(&msg.as_bytes()).to_bytes(),
+            ],
+            &id(),
+        );
+        account_metas.push(AccountMetadata::new(pending_response, false));
+    } else {
+        account_metas.push(AccountMetadata::new(id(), false))
+    }
+
+    Ok(QueryAccountsResponse {
+        accounts: account_metas,
+    })
+}
+
 pub fn query_dapp_handle_call_message_accounts<'info>(
     dapp_key: Pubkey,
     ix_data: Vec<u8>,
@@ -309,7 +343,7 @@ pub fn get_query_send_message_accounts_ix_data(dst_network: String) -> Result<Ve
     let ix_args = QuerySendMessage { to: dst_network };
     ix_args.serialize(&mut ix_args_data)?;
 
-    let ix_data = helper::get_instruction_data("query_send_message_accounts", ix_args_data);
+    let ix_data = helper::get_instruction_data(QUERY_SEND_MESSAGE_ACCOUNTS_IX, ix_args_data);
     Ok(ix_data)
 }
 
@@ -326,7 +360,7 @@ pub fn get_query_handle_call_message_ix_data(
     };
     ix_args.serialize(&mut ix_args_data)?;
 
-    let ix_data = helper::get_instruction_data("query_handle_call_message_accounts", ix_args_data);
+    let ix_data = helper::get_instruction_data(QUERY_HANDLE_CALL_MESSAGE_IX, ix_args_data);
     Ok(ix_data)
 }
 
@@ -348,7 +382,7 @@ pub struct QueryExecuteCallAccountsCtx<'info> {
 
 #[derive(Accounts)]
 #[instruction(from_nid: String, msg: Vec<u8>, sequence_no: u128)]
-pub struct QueryAccountsCtx<'info> {
+pub struct QueryHandleMessageAccountsCtx<'info> {
     #[account(
         seeds = [Config::SEED_PREFIX.as_bytes()],
         bump = config.bump,
@@ -374,6 +408,22 @@ pub struct QueryExecuteRollbackAccountsCtx<'info> {
     #[account(
         seeds = [RollbackAccount::SEED_PREFIX.as_bytes(), &sn.to_be_bytes()],
         bump = rollback_account.bump
+    )]
+    pub rollback_account: Account<'info, RollbackAccount>,
+}
+
+#[derive(Accounts)]
+#[instruction(sequence_no: u128)]
+pub struct QueryHandleErrorAccountsCtx<'info> {
+    #[account(
+        seeds = [Config::SEED_PREFIX.as_bytes()],
+        bump = config.bump,
+    )]
+    pub config: Account<'info, Config>,
+
+    #[account(
+        seeds = [RollbackAccount::SEED_PREFIX.as_bytes(), &sequence_no.to_be_bytes()],
+        bump
     )]
     pub rollback_account: Account<'info, RollbackAccount>,
 }

@@ -2,7 +2,10 @@ use anchor_lang::{
     prelude::*,
     solana_program::{instruction::Instruction, program::invoke_signed},
 };
-use xcall_lib::{network_address::NetworkAddress, xcall_msg};
+use xcall_lib::{
+    network_address::NetworkAddress,
+    xcall_type::{self, SEND_CALL_IX},
+};
 
 use crate::{helpers, Config};
 
@@ -48,9 +51,9 @@ pub fn call_xcall_send_call<'info>(
 
 pub fn get_send_call_ix_data(msg: Vec<u8>, to: NetworkAddress) -> Result<Vec<u8>> {
     let mut ix_args_data = vec![];
-    let ix_args = xcall_msg::SendMessage { msg, to };
+    let ix_args = xcall_type::SendCallArgs { msg, to };
     ix_args.serialize(&mut ix_args_data)?;
 
-    let ix_data = helpers::get_instruction_data("send_call", ix_args_data);
+    let ix_data = helpers::get_instruction_data(SEND_CALL_IX, ix_args_data);
     Ok(ix_data)
 }

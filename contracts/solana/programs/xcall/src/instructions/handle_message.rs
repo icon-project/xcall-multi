@@ -296,7 +296,7 @@ pub struct HandleMessageCtx<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(from_nid: String, sequence_no: u128)]
+#[instruction(sequence_no: u128)]
 pub struct HandleErrorCtx<'info> {
     pub connection: Signer<'info>,
 

@@ -7,7 +7,7 @@ use anchor_lang::{
         program::{get_return_data, invoke, invoke_signed},
     },
 };
-use xcall_lib::xcall_connection_msg::{self, SEND_MESSAGE_IX};
+use xcall_lib::xcall_connection_type::{self, SEND_MESSAGE_IX};
 
 use crate::{error::*, helper::get_instruction_data, state::*};
 
@@ -78,7 +78,7 @@ pub fn call_connection_send_message<'info>(
 
 pub fn get_send_message_ix_data(to: &String, sn: i64, message: Vec<u8>) -> Result<Vec<u8>> {
     let mut data = vec![];
-    let args = xcall_connection_msg::SendMessage {
+    let args = xcall_connection_type::SendMessageArgs {
         to: to.to_owned(),
         sn,
         msg: message,

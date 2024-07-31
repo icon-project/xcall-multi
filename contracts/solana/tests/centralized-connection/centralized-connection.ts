@@ -15,8 +15,6 @@ import {
   CSMessageResult,
   CSMessageType,
   CSResponseType,
-  CallMessageWithRollback,
-  Envelope,
   MessageType,
 } from "../xcall/types";
 import { TestContext as XcallTestContext } from "../xcall/setup";
@@ -271,32 +269,45 @@ describe("CentralizedConnection", () => {
   });
 
   it("[recv_message]: should receive message and call xcall handle message result", async () => {
-    // send rollback message
-    let envelope = new Envelope(
-      MessageType.CallMessageWithRollback,
-      new CallMessageWithRollback(
-        new Uint8Array([1, 2, 3]),
-        new Uint8Array([1, 2, 3])
-      ).encode(),
-      [connectionProgram.programId.toString()],
-      [wallet.publicKey.toString()]
-    ).encode();
+    // send rollback message using mock dapp
+    await mockDappCtx.add_connection(
+      "icon",
+      connectionProgram.programId.toString(),
+      connectionProgram.programId.toString()
+    );
+    await sleep(2);
+
     const to = { "0": "icon/abc" };
+    let data = Buffer.from("rollback", "utf-8");
+    let msgType = MessageType.CallMessageWithRollback;
 
     let xcallConfig = await xcallCtx.getConfig();
     let nextSequenceNo = xcallConfig.sequenceNo.toNumber() + 1;
 
-    let sendCallIx = await xcallProgram.methods
-      .sendCall(Buffer.from(envelope), to)
+    let sendCallIx = await mockDappProgram.methods
+      .sendCallMessage(to, data, msgType, data)
       .accountsStrict({
+        config: DappPDA.config().pda,
         systemProgram: SYSTEM_PROGRAM_ID,
-        config: XcallPDA.config().pda,
-        signer: wallet.payer.publicKey,
-        rollbackAccount: XcallPDA.rollback(nextSequenceNo).pda,
-        feeHandler: xcallCtx.feeHandler.publicKey,
-        dapp: xcallProgram.programId,
+        connectionsAccount: DappPDA.connections("icon").pda,
+        sender: ctx.admin.publicKey,
       })
       .remainingAccounts([
+        {
+          pubkey: XcallPDA.config().pda,
+          isSigner: false,
+          isWritable: true,
+        },
+        {
+          pubkey: xcallConfig.feeHandler,
+          isSigner: false,
+          isWritable: true,
+        },
+        {
+          pubkey: XcallPDA.rollback(nextSequenceNo).pda,
+          isSigner: false,
+          isWritable: true,
+        },
         {
           pubkey: connectionProgram.programId,
           isSigner: false,
@@ -312,12 +323,22 @@ describe("CentralizedConnection", () => {
           isSigner: false,
           isWritable: true,
         },
+        {
+          pubkey: xcallProgram.programId,
+          isSigner: false,
+          isWritable: true,
+        },
+        {
+          pubkey: connectionProgram.programId,
+          isSigner: false,
+          isWritable: true,
+        },
       ])
       .instruction();
 
-    // let sendCallTx = await txnHelpers.buildV0Txn([sendCallIx], [wallet.payer]);
-    // await connection.sendTransaction(sendCallTx);
-    // await sleep(2);
+    let sendCallTx = await txnHelpers.buildV0Txn([sendCallIx], [ctx.admin]);
+    await connection.sendTransaction(sendCallTx);
+    await sleep(2);
 
     // receive message of rollback message
     let connSn = 2;
@@ -342,12 +363,12 @@ describe("CentralizedConnection", () => {
       result.encode()
     ).encode();
 
-    // let recvMessageAccounts = await ctx.getRecvMessageAccounts(
-    //   connSn,
-    //   nextSequenceNo,
-    //   csMessage,
-    //   CSMessageType.CSMessageResult
-    // );
+    let recvMessageAccounts = await ctx.getRecvMessageAccounts(
+      connSn,
+      nextSequenceNo,
+      csMessage,
+      CSMessageType.CSMessageResult
+    );
 
     await ctx.program.methods
       .recvMessage(
@@ -361,41 +382,32 @@ describe("CentralizedConnection", () => {
         admin: ctx.admin.publicKey,
         receipt: ConnectionPDA.receipt(connSn).pda,
         systemProgram: SYSTEM_PROGRAM_ID,
-      });
-    // .remainingAccounts([...recvMessageAccounts.slice(3)])
-    // .signers([ctx.admin]);
-    // .rpc();
-    // await sleep(2);
+      })
+      .remainingAccounts([...recvMessageAccounts.slice(3)])
+      .signers([ctx.admin])
+      .rpc();
+    await sleep(2);
 
-    // assert.equal((await xcallCtx.getSuccessRes(nextSequenceNo)).success, true);
+    assert.equal((await xcallCtx.getSuccessRes(nextSequenceNo)).success, true);
 
-    // try {
-    //   await xcallCtx.getRollback(nextSequenceNo);
-    // } catch (err) {
-    //   expect(err.message).to.includes("Account does not exist");
-    // }
+    try {
+      await xcallCtx.getRollback(nextSequenceNo);
+    } catch (err) {
+      expect(err.message).to.includes("Account does not exist");
+    }
   });
 
-  it("[recv_message]: should receive message and call xcall handle message resultt", async () => {
+  it("[recv_message]: should receive message and execute rollback", async () => {
     let data = Buffer.from("rollback", "utf-8");
 
     let xcallConfig = await xcallCtx.getConfig();
     let nextSequenceNo = xcallConfig.sequenceNo.toNumber() + 1;
 
-    let envelope = new Envelope(
-      MessageType.CallMessageWithRollback,
-      new CallMessageWithRollback(data, data).encode(),
-      [connectionProgram.programId.toString()],
-      [connectionProgram.programId.toString()]
-    ).encode();
-
     const to = { "0": "0x3.icon/" + mockDappProgram.programId.toString() };
-    const msg_type = 1;
-    const rollback = Buffer.from("rollback");
-    const message = Buffer.from(envelope);
+    const msg_type = MessageType.CallMessageWithRollback;
 
     let sendCallIx = await mockDappProgram.methods
-      .sendCallMessage(to, message, msg_type, rollback)
+      .sendCallMessage(to, data, msg_type, data)
       .accountsStrict({
         config: DappPDA.config().pda,
         systemProgram: SYSTEM_PROGRAM_ID,
@@ -526,7 +538,7 @@ describe("CentralizedConnection", () => {
 
     try {
       await connectionProgram.methods
-        .revertMessage(fromNetwork, new anchor.BN(sequenceNo))
+        .revertMessage(new anchor.BN(sequenceNo))
         .accountsStrict({
           config: ConnectionPDA.config().pda,
           admin: ctx.signer.publicKey,
@@ -541,34 +553,39 @@ describe("CentralizedConnection", () => {
   });
 
   it("[revert_message]: should revert message and call xcall handle error", async () => {
-    let fromNetwork = ctx.dstNetworkId;
-
     let xcallConfig = await xcallCtx.getConfig();
     let nextSequenceNo = xcallConfig.sequenceNo.toNumber() + 1;
 
-    // send rollback message
-    let envelope = new Envelope(
-      MessageType.CallMessageWithRollback,
-      new CallMessageWithRollback(
-        new Uint8Array([1, 2, 3]),
-        new Uint8Array([1, 2, 3, 4, 5])
-      ).encode(),
-      [connectionProgram.programId.toString()],
-      [wallet.publicKey.toString()]
-    ).encode();
-    const to = { "0": "0x3.icon/abc" };
+    let data = Buffer.from("rollback", "utf-8");
+    const to = { "0": "0x3.icon/" + mockDappProgram.programId.toString() };
 
-    let sendCallIx = await xcallProgram.methods
-      .sendCall(Buffer.from(envelope), to)
+    const msg_type = MessageType.CallMessageWithRollback;
+
+    // send rollback message using mock dapp
+    let sendCallIx = await mockDappProgram.methods
+      .sendCallMessage(to, data, msg_type, data)
       .accountsStrict({
+        config: DappPDA.config().pda,
         systemProgram: SYSTEM_PROGRAM_ID,
-        config: XcallPDA.config().pda,
-        signer: wallet.payer.publicKey,
-        rollbackAccount: XcallPDA.rollback(nextSequenceNo).pda,
-        feeHandler: xcallCtx.feeHandler.publicKey,
-        dapp: xcallProgram.programId,
+        connectionsAccount: DappPDA.connections(ctx.dstNetworkId).pda,
+        sender: ctx.admin.publicKey,
       })
       .remainingAccounts([
+        {
+          pubkey: XcallPDA.config().pda,
+          isSigner: false,
+          isWritable: true,
+        },
+        {
+          pubkey: xcallConfig.feeHandler,
+          isSigner: false,
+          isWritable: true,
+        },
+        {
+          pubkey: XcallPDA.rollback(nextSequenceNo).pda,
+          isSigner: false,
+          isWritable: true,
+        },
         {
           pubkey: connectionProgram.programId,
           isSigner: false,
@@ -584,48 +601,6 @@ describe("CentralizedConnection", () => {
           isSigner: false,
           isWritable: true,
         },
-      ])
-      .instruction();
-
-    let sendCallTx = await txnHelpers.buildV0Txn([sendCallIx], [wallet.payer]);
-    // await connection.sendTransaction(sendCallTx);
-    // await sleep(2);
-
-    // expect(await xcallCtx.getRollback(nextSequenceNo)).to.not.be.empty;
-
-    let messageSeed = Buffer.from(
-      hash(new Uint8Array([195, nextSequenceNo, 0, 128])),
-      "hex"
-    );
-
-    let revertMessageIx = await connectionProgram.methods
-      .revertMessage(fromNetwork, new anchor.BN(nextSequenceNo))
-      .accountsStrict({
-        config: ConnectionPDA.config().pda,
-        admin: ctx.admin.publicKey,
-        systemProgram: SYSTEM_PROGRAM_ID,
-      })
-      .remainingAccounts([
-        {
-          pubkey: XcallPDA.config().pda,
-          isSigner: false,
-          isWritable: true,
-        },
-        {
-          pubkey: xcallCtx.admin.publicKey,
-          isSigner: false,
-          isWritable: true,
-        },
-        {
-          pubkey: XcallPDA.rollback(nextSequenceNo).pda,
-          isSigner: false,
-          isWritable: true,
-        },
-        {
-          pubkey: XcallPDA.pendingResponse(messageSeed).pda,
-          isSigner: false,
-          isWritable: true,
-        },
         {
           pubkey: xcallProgram.programId,
           isSigner: false,
@@ -634,14 +609,34 @@ describe("CentralizedConnection", () => {
       ])
       .instruction();
 
+    let sendCallTx = await txnHelpers.buildV0Txn([sendCallIx], [ctx.admin]);
+    await connection.sendTransaction(sendCallTx);
+    await sleep(2);
+
+    expect(await xcallCtx.getRollback(nextSequenceNo)).to.not.be.empty;
+
+    let revertMessageAccounts = await ctx.getRevertMessageAccounts(
+      nextSequenceNo
+    );
+
+    let revertMessageIx = await connectionProgram.methods
+      .revertMessage(new anchor.BN(nextSequenceNo))
+      .accountsStrict({
+        config: ConnectionPDA.config().pda,
+        admin: ctx.admin.publicKey,
+        systemProgram: SYSTEM_PROGRAM_ID,
+      })
+      .remainingAccounts([...revertMessageAccounts.slice(2)])
+      .instruction();
+
     let revertMessageTx = await txnHelpers.buildV0Txn(
       [revertMessageIx],
       [ctx.admin]
     );
-    // await connection.sendTransaction(revertMessageTx);
-    // await sleep(2);
+    await connection.sendTransaction(revertMessageTx);
+    await sleep(2);
 
-    // let rollback = await xcallCtx.getRollback(nextSequenceNo);
-    // assert.equal(rollback.rollback.enabled, true);
+    let rollback = await xcallCtx.getRollback(nextSequenceNo);
+    assert.equal(rollback.rollback.enabled, true);
   });
 });
