@@ -11,7 +11,7 @@ use anchor_lang::{
 use crate::contexts::*;
 use crate::state::*;
 
-use xcall_lib::xcall_msg::{HandleError, HandleMessage};
+use xcall_lib::xcall_type;
 
 pub fn transfer_lamports<'info>(
     from: &AccountInfo<'info>,
@@ -48,7 +48,7 @@ pub fn call_xcall_handle_message<'info>(
     sequence_no: u128,
 ) -> Result<()> {
     let mut data = vec![];
-    let args = HandleMessage {
+    let args = xcall_type::HandleMessageArgs {
         from_nid,
         message,
         sequence_no,
@@ -68,14 +68,10 @@ pub fn call_xcall_handle_message<'info>(
 
 pub fn call_xcall_handle_error<'info>(
     ctx: Context<'_, '_, '_, 'info, RevertMessage<'info>>,
-    from_nid: String,
     sequence_no: u128,
 ) -> Result<()> {
     let mut data = vec![];
-    let args = HandleError {
-        from_nid,
-        sequence_no,
-    };
+    let args = xcall_type::HandleErrorArgs { sequence_no };
     args.serialize(&mut data)?;
 
     let ix_data = get_instruction_data("handle_error", data);

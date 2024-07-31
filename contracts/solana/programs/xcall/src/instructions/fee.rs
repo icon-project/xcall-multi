@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use xcall_lib::xcall_connection_msg::{self, GET_FEE_IX};
+use xcall_lib::xcall_connection_type::{self, GET_FEE_IX};
 
 use crate::{connection, error::*, helper, send_message::is_reply, state::*};
 
@@ -30,7 +30,7 @@ pub fn get_fee(
     }
 
     let mut data = vec![];
-    let args = xcall_connection_msg::GetFee {
+    let args = xcall_connection_type::GetFeeArgs {
         network_id: nid,
         response: rollback,
     };

@@ -14,7 +14,7 @@ use contexts::*;
 use instructions::*;
 use state::*;
 
-use xcall_lib::query_account_types::{QueryAccountsPaginateResponse, QueryAccountsResponse};
+use xcall_lib::query_account_type::{QueryAccountsPaginateResponse, QueryAccountsResponse};
 
 declare_id!("4vfkXyxMxptmREF3RaFKUwnPRuqsXJJeUFzpCjPSSVMb");
 
@@ -74,10 +74,9 @@ pub mod centralized_connection {
 
     pub fn revert_message<'info>(
         ctx: Context<'_, '_, '_, 'info, RevertMessage<'info>>,
-        src_network: String,
         sequence_no: u128,
     ) -> Result<()> {
-        helper::call_xcall_handle_error(ctx, src_network, sequence_no)
+        helper::call_xcall_handle_error(ctx, sequence_no)
     }
 
     pub fn set_admin(ctx: Context<SetAdmin>, account: Pubkey) -> Result<()> {
@@ -143,5 +142,14 @@ pub mod centralized_connection {
             page,
             limit,
         )
+    }
+
+    pub fn query_revert_message_accounts<'info>(
+        ctx: Context<'_, '_, '_, 'info, QueryAccountsCtx<'info>>,
+        sequence_no: u128,
+        page: u8,
+        limit: u8,
+    ) -> Result<QueryAccountsPaginateResponse> {
+        instructions::query_revert_message_accounts(ctx, sequence_no, page, limit)
     }
 }

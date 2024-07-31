@@ -121,6 +121,34 @@ export class TestContext {
     return res.accounts;
   }
 
+  async getRevertMessageAccounts(sequenceNo: number) {
+    let res = await connectionProgram.methods
+      .queryRevertMessageAccounts(new anchor.BN(sequenceNo), 1, 30)
+      .accountsStrict({
+        config: ConnectionPDA.config().pda,
+      })
+      .remainingAccounts([
+        {
+          pubkey: XcallPDA.config().pda,
+          isWritable: false,
+          isSigner: false,
+        },
+        {
+          pubkey: XcallPDA.rollback(sequenceNo).pda,
+          isWritable: true,
+          isSigner: false,
+        },
+        {
+          pubkey: xcallProgram.programId,
+          isWritable: false,
+          isSigner: false,
+        },
+      ])
+      .view({ commitment: "confirmed" });
+
+    return res.accounts;
+  }
+
   async getConfig() {
     return await this.program.account.config.fetch(
       ConnectionPDA.config().pda,

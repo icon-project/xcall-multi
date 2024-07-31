@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use xcall_lib::query_account_types::{AccountMetadata, QueryAccountsResponse};
+use xcall_lib::query_account_type::{AccountMetadata, QueryAccountsResponse};
 
 use crate::state::*;
 

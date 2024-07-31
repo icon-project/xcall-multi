@@ -58,7 +58,7 @@ export class TestContext {
     const result = await this.program.methods
       .addConnection(_networkId, src_endpoint, dst_endpoint)
       .accounts({
-        connectionAccount: DappPDA.connections(this.dstNetworkId).pda,
+        connectionAccount: DappPDA.connections(_networkId).pda,
         sender: this.signer.publicKey,
         systemProgram: SYSTEM_PROGRAM_ID,
       })

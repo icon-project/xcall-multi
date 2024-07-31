@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use xcall_lib::{network_address::*, query_account_types::QueryAccountsResponse, xcall_dapp_msg};
+use xcall_lib::{network_address::*, query_account_type::QueryAccountsResponse, xcall_dapp_type};
 
 pub mod error;
 pub mod event;
@@ -42,7 +42,7 @@ pub mod mock_dapp_multi {
         from: NetworkAddress,
         data: Vec<u8>,
         protocols: Option<Vec<String>>,
-    ) -> Result<xcall_dapp_msg::HandleCallMessageResponse> {
+    ) -> Result<xcall_dapp_type::HandleCallMessageResponse> {
         instructions::handle_message::handle_call_message(ctx, from, data, protocols)
     }
 

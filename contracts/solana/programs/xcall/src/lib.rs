@@ -15,7 +15,7 @@ use instructions::*;
 use types::message::CSMessageDecoded;
 use xcall_lib::{
     network_address::NetworkAddress,
-    query_account_types::{QueryAccountsPaginateResponse, QueryAccountsResponse},
+    query_account_type::{QueryAccountsPaginateResponse, QueryAccountsResponse},
 };
 
 declare_id!("47QmEHEPSQqhpEjok5PmooeqdqBXRVpU11aRMhJGe6LW");
@@ -61,10 +61,8 @@ pub mod xcall {
         instructions::handle_message(ctx, from_nid, msg)
     }
 
-    #[allow(unused_variables)]
     pub fn handle_error<'info>(
         ctx: Context<'_, '_, '_, 'info, HandleErrorCtx<'info>>,
-        from_nid: String,
         sequence_no: u128,
     ) -> Result<()> {
         instructions::handle_error(ctx, sequence_no)
@@ -150,11 +148,18 @@ pub mod xcall {
 
     #[allow(unused_variables)]
     pub fn query_handle_message_accounts(
-        ctx: Context<QueryAccountsCtx>,
+        ctx: Context<QueryHandleMessageAccountsCtx>,
         from_nid: String,
         msg: Vec<u8>,
         sequence_no: u128,
     ) -> Result<QueryAccountsResponse> {
         instructions::query_handle_message_accounts(ctx, msg)
+    }
+
+    pub fn query_handle_error_accounts(
+        ctx: Context<QueryHandleErrorAccountsCtx>,
+        sequence_no: u128,
+    ) -> Result<QueryAccountsResponse> {
+        instructions::query_handle_error_accounts(ctx, sequence_no)
     }
 }

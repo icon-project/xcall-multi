@@ -77,7 +77,6 @@ pub struct RecvMessage<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(src_network: String, conn_sn: u128)]
 pub struct RevertMessage<'info> {
     #[account(mut)]
     pub admin: Signer<'info>,
