@@ -358,7 +358,7 @@ fn test_execute_call_reply() {
         Addr::unchecked("xcall"),
         u128::default(),
         MessageType::CallMessageWithRollback,
-        keccak256(&vec![1, 2, 3]).to_vec(),
+        keccak256(&[1, 2, 3]).to_vec(),
         vec![],
     );
     contract

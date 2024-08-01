@@ -11,11 +11,9 @@ use cosmwasm_std::{
     StdError, StdResult, Storage, WasmMsg,
 };
 
-pub use contract::*;
 use cw2::set_contract_version;
 use cw_storage_plus::{Item, Map};
 pub use errors::*;
-pub use helper::*;
 use msg::{ExecuteMsg, QueryMsg};
 use state::{Connection, CwMockService};
 use thiserror::Error;

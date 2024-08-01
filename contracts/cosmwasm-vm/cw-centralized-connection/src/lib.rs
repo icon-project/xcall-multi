@@ -11,7 +11,6 @@ use cosmwasm_std::{
     Response, StdError, StdResult, Storage, SubMsg, WasmMsg,
 };
 
-pub use contract::*;
 use cw2::set_contract_version;
 use cw_storage_plus::{Item, Map};
 pub use errors::*;

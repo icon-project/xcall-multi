@@ -360,7 +360,7 @@ fn test_rollback_reply() {
 }
 
 fn test_call_message(
-    mut ctx: &mut TestContext,
+    ctx: &mut TestContext,
     data: Vec<u8>,
     msg_type: MessageType,
 ) -> Result<AppResponse, AppError> {
