@@ -43,15 +43,9 @@ mod tests {
 
     #[test]
     fn test_message_type_for_u8() {
-        assert_eq!(MessageType::from(MessageType::CallMessage), 0.into());
-        assert_eq!(
-            MessageType::from(MessageType::CallMessagePersisted),
-            2.into()
-        );
-        assert_eq!(
-            MessageType::from(MessageType::CallMessageWithRollback),
-            1.into()
-        )
+        assert_eq!(MessageType::CallMessage, 0.into());
+        assert_eq!(MessageType::CallMessagePersisted, 2.into());
+        assert_eq!(MessageType::CallMessageWithRollback, 1.into())
     }
 
     #[test]

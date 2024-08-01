@@ -46,7 +46,7 @@ pub fn get_dummy_req_msg() -> CSMessageRequest {
         Addr::unchecked("dapp"),
         1,
         MessageType::CallMessage,
-        keccak256(&vec![1, 2, 3]).to_vec(),
+        keccak256(&[1, 2, 3]).to_vec(),
         vec![],
     )
 }
@@ -216,23 +216,23 @@ impl TestContext {
     }
 
     pub fn init_context(&self, storage: &mut dyn Storage, contract: &CwCallService) {
-        self.store_config(storage, &contract);
-        self.set_admin(storage, &contract);
-        self.init_last_request_id(storage, &contract);
-        self.init_last_sequence_no(storage, &contract);
-        self.store_default_connection(storage, &contract);
-        self.store_protocol_fee_handler(storage, &contract)
+        self.store_config(storage, contract);
+        self.set_admin(storage, contract);
+        self.init_last_request_id(storage, contract);
+        self.init_last_sequence_no(storage, contract);
+        self.store_default_connection(storage, contract);
+        self.store_protocol_fee_handler(storage, contract)
     }
 
     pub fn init_execute_call(&self, storage: &mut dyn Storage, contract: &CwCallService) {
-        self.init_context(storage, &contract);
-        self.store_proxy_request(storage, &contract);
+        self.init_context(storage, contract);
+        self.store_proxy_request(storage, contract);
     }
 
     pub fn init_reply_state(&self, storage: &mut dyn Storage, contract: &CwCallService) {
-        self.init_context(storage, &contract);
-        self.store_proxy_request(storage, &contract);
-        self.store_execute_request_id(storage, &contract);
+        self.init_context(storage, contract);
+        self.store_proxy_request(storage, contract);
+        self.store_execute_request_id(storage, contract);
     }
 
     pub fn set_admin(&self, storage: &mut dyn Storage, contract: &CwCallService) {

@@ -40,7 +40,7 @@ impl CSMessageResult {
         Self {
             sequence_no,
             response_code,
-            message: reply.unwrap_or(vec![]),
+            message: reply.unwrap_or_default(),
         }
     }
 
@@ -88,7 +88,7 @@ impl Decodable for CSMessageResult {
         Ok(Self {
             sequence_no: rlp.val_at(0)?,
             response_code: CallServiceResponseType::try_from(code)?,
-            message: rlp.val_at(2).unwrap_or(vec![]),
+            message: rlp.val_at(2).unwrap_or_default(),
         })
     }
 }

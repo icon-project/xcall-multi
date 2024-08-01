@@ -388,7 +388,7 @@ fn test_is_reply_returns_false_on_mismatch_network_id() {
     ctx.init_reply_state(deps.as_mut().storage, &contract);
 
     let res = contract.is_reply(deps.as_ref(), ctx.nid, &vec![]);
-    assert_eq!(res, false)
+    assert!(!res)
 }
 
 #[test]
@@ -399,7 +399,7 @@ fn test_is_reply_returns_false_on_proxy_request_not_found() {
     let ctx = TestContext::default();
 
     let res = contract.is_reply(deps.as_ref(), ctx.nid, &vec![]);
-    assert_eq!(res, false)
+    assert!(!res)
 }
 
 #[test]
@@ -415,7 +415,7 @@ fn test_is_reply_returns_false_on_mismatch_array_len() {
         NetId::from_str("archway").unwrap(),
         &vec!["src_1".to_string()],
     );
-    assert_eq!(res, false)
+    assert!(!res)
 }
 
 #[test]
@@ -443,5 +443,5 @@ fn test_is_reply_returns_false_on_mismatch_protocols() {
         NetId::from_str("archway").unwrap(),
         &vec!["src_1".to_string()],
     );
-    assert_eq!(res, false)
+    assert!(!res)
 }

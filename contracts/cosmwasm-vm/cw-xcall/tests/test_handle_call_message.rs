@@ -392,7 +392,7 @@ fn test_handle_reply_fail() {
         Addr::unchecked("dapp"),
         1,
         MessageType::CallMessage,
-        keccak256(&vec![1, 2, 3]).to_vec(),
+        keccak256(&[1, 2, 3]).to_vec(),
         vec![],
     );
     let rollback = get_dummy_rollback_data();
@@ -447,13 +447,13 @@ fn test_handle_request_from_multiple_protocols() {
         Addr::unchecked("dapp"),
         1,
         MessageType::CallMessage,
-        keccak256(&vec![1, 2, 3]).to_vec(),
+        keccak256(&[1, 2, 3]).to_vec(),
         vec!["centralized".to_string(), "ibc".to_string()],
     );
 
     let nid = NetId::from_str("archway").unwrap();
     for protocol in request.protocols() {
-        let info = create_mock_info(&protocol, "icx", 100);
+        let info = create_mock_info(protocol, "icx", 100);
         let res = contract
             .handle_request(deps.as_mut(), info, nid.clone(), &request.as_bytes())
             .unwrap();
@@ -525,7 +525,7 @@ fn test_handle_result_from_multiple_protocols() {
     let msg = get_dummy_result_message().as_bytes();
 
     for protocol in rollback.protocols() {
-        let info = create_mock_info(&protocol, "arch", 100);
+        let info = create_mock_info(protocol, "arch", 100);
         let res = contract.handle_result(deps.as_mut(), info, &msg).unwrap();
         if protocol == "centralized" {
             assert_eq!(res.attributes.len(), 0);
