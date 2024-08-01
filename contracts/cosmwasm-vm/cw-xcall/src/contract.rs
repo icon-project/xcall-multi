@@ -135,28 +135,28 @@ impl<'a> CwCallService<'a> {
     pub fn query(&self, deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
         match msg {
             QueryMsg::GetAdmin {} => match self.query_admin(deps.storage) {
-                Ok(admin) => Ok(to_binary(&admin)?),
+                Ok(admin) => Ok(to_json_binary(&admin)?),
                 Err(error) => Err(StdError::NotFound {
                     kind: error.to_string(),
                 }),
             },
 
-            QueryMsg::GetProtocolFee {} => to_binary(&self.get_protocol_fee(deps.storage)),
-            QueryMsg::GetProtocolFeeHandler {} => to_binary(&self.get_protocol_feehandler(deps)),
+            QueryMsg::GetProtocolFee {} => to_json_binary(&self.get_protocol_fee(deps.storage)),
+            QueryMsg::GetProtocolFeeHandler {} => to_json_binary(&self.get_protocol_feehandler(deps)),
             QueryMsg::GetNetworkAddress {} => {
-                to_binary(&self.get_own_network_address(deps.storage, &env).unwrap())
+                to_json_binary(&self.get_own_network_address(deps.storage, &env).unwrap())
             }
             QueryMsg::VerifySuccess { sn } => {
-                to_binary(&self.get_successful_response(deps.storage, sn))
+                to_json_binary(&self.get_successful_response(deps.storage, sn))
             }
             QueryMsg::GetDefaultConnection { nid } => {
-                to_binary(&self.get_default_connection(deps.storage, nid).unwrap())
+                to_json_binary(&self.get_default_connection(deps.storage, nid).unwrap())
             }
             QueryMsg::GetFee {
                 nid,
                 rollback,
                 sources,
-            } => to_binary(
+            } => to_json_binary(
                 &self
                     .get_fee(deps, nid, rollback, sources.unwrap_or(vec![]))
                     .unwrap(),

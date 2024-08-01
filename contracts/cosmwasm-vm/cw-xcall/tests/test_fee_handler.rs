@@ -1,9 +1,9 @@
 use std::str::FromStr;
 
 use cosmwasm_std::{
-    from_binary,
+    from_json,
     testing::{mock_dependencies, mock_env, mock_info},
-    to_binary, Addr, Coin, ContractResult, SystemResult, WasmQuery,
+    to_json_binary, Addr, Coin, ContractResult, SystemResult, WasmQuery,
 };
 use cw_xcall::{msg::QueryMsg, state::CwCallService};
 pub mod account;
@@ -91,7 +91,7 @@ fn get_protocol_fee_handler() {
     let result = contract
         .query(deps.as_ref(), env, QueryMsg::GetProtocolFeeHandler {})
         .unwrap();
-    let result: String = from_binary(&result).unwrap();
+    let result: String = from_json(&result).unwrap();
     assert_eq!("xyz".to_string(), result);
 }
 
@@ -146,7 +146,7 @@ fn get_protocol_fee() {
     let result = contract
         .query(deps.as_ref(), env, QueryMsg::GetProtocolFee {})
         .unwrap();
-    let result: u128 = from_binary(&result).unwrap();
+    let result: u128 = from_json(&result).unwrap();
     assert_eq!("123", result.to_string());
 }
 
@@ -179,7 +179,7 @@ fn get_fee() {
         WasmQuery::Smart {
             contract_addr: _,
             msg: _,
-        } => SystemResult::Ok(ContractResult::Ok(to_binary(&100_u128).unwrap())),
+        } => SystemResult::Ok(ContractResult::Ok(to_json_binary(&100_u128).unwrap())),
         _ => todo!(),
     });
     let result = contract
@@ -202,6 +202,6 @@ fn get_fee() {
             },
         )
         .unwrap();
-    let result: u128 = from_binary(&result).unwrap();
+    let result: u128 = from_json(&result).unwrap();
     assert_eq!("223", result.to_string());
 }

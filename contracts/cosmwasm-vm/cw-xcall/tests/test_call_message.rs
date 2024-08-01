@@ -7,7 +7,7 @@ use std::{collections::HashMap, str::FromStr, vec};
 
 use cosmwasm_std::{
     testing::{mock_env, MOCK_CONTRACT_ADDR},
-    to_binary, Addr, Binary, ContractInfoResponse, ContractResult, SystemError, SystemResult,
+    to_json_binary, Addr, Binary, ContractInfoResponse, ContractResult, SystemError, SystemResult,
     WasmQuery,
 };
 use cw_xcall::{
@@ -94,7 +94,7 @@ fn send_packet_failure_due_data_len() {
             WasmQuery::ContractInfo { contract_addr } => {
                 if *contract_addr == constract1 {
                     let response = ContractInfoResponse::new(0, "test");
-                    SystemResult::Ok(ContractResult::Ok(to_binary(&response).unwrap()))
+                    SystemResult::Ok(ContractResult::Ok(to_json_binary(&response).unwrap()))
                 } else {
                     SystemResult::Err(SystemError::NoSuchContract {
                         addr: contract_addr.clone(),
@@ -105,7 +105,7 @@ fn send_packet_failure_due_data_len() {
             WasmQuery::Smart {
                 contract_addr: _,
                 msg: _,
-            } => SystemResult::Ok(ContractResult::Ok(to_binary(&0_u128).unwrap())),
+            } => SystemResult::Ok(ContractResult::Ok(to_json_binary(&0_u128).unwrap())),
             _ => todo!(),
         }
     });
@@ -161,7 +161,7 @@ fn send_packet_failure_due_rollback_len() {
             WasmQuery::ContractInfo { contract_addr } => {
                 if *contract_addr == constract1 {
                     let response = ContractInfoResponse::new(0, "test");
-                    SystemResult::Ok(ContractResult::Ok(to_binary(&response).unwrap()))
+                    SystemResult::Ok(ContractResult::Ok(to_json_binary(&response).unwrap()))
                 } else {
                     SystemResult::Err(SystemError::NoSuchContract {
                         addr: contract_addr.clone(),
@@ -171,7 +171,7 @@ fn send_packet_failure_due_rollback_len() {
             WasmQuery::Smart {
                 contract_addr: _,
                 msg: _,
-            } => SystemResult::Ok(ContractResult::Ok(to_binary(&0_u128).unwrap())),
+            } => SystemResult::Ok(ContractResult::Ok(to_json_binary(&0_u128).unwrap())),
             _ => todo!(),
         }
     });
@@ -237,7 +237,7 @@ fn send_packet_success_needresponse() {
             WasmQuery::ContractInfo { contract_addr } => {
                 if *contract_addr == constract1 {
                     let response = ContractInfoResponse::default();
-                    SystemResult::Ok(ContractResult::Ok(to_binary(&response).unwrap()))
+                    SystemResult::Ok(ContractResult::Ok(to_json_binary(&response).unwrap()))
                 } else {
                     SystemResult::Err(SystemError::NoSuchContract {
                         addr: contract_addr.clone(),
@@ -247,7 +247,7 @@ fn send_packet_success_needresponse() {
             WasmQuery::Smart {
                 contract_addr: _,
                 msg: _,
-            } => SystemResult::Ok(ContractResult::Ok(to_binary(&10_u128).unwrap())),
+            } => SystemResult::Ok(ContractResult::Ok(to_json_binary(&10_u128).unwrap())),
             _ => todo!(),
         }
     });
@@ -312,7 +312,7 @@ fn send_packet_fail_insufficient_funds() {
             WasmQuery::ContractInfo { contract_addr } => {
                 if *contract_addr == constract1 {
                     let response = ContractInfoResponse::new(0, "test");
-                    SystemResult::Ok(ContractResult::Ok(to_binary(&response).unwrap()))
+                    SystemResult::Ok(ContractResult::Ok(to_json_binary(&response).unwrap()))
                 } else {
                     SystemResult::Err(SystemError::NoSuchContract {
                         addr: contract_addr.clone(),
@@ -322,7 +322,7 @@ fn send_packet_fail_insufficient_funds() {
             WasmQuery::Smart {
                 contract_addr: _,
                 msg: _,
-            } => SystemResult::Ok(ContractResult::Ok(to_binary(&10_u128).unwrap())),
+            } => SystemResult::Ok(ContractResult::Ok(to_json_binary(&10_u128).unwrap())),
             _ => todo!(),
         }
     });

@@ -8,7 +8,7 @@ use cosmwasm_std::{
         mock_dependencies, mock_env, mock_info, MockApi, MockQuerier, MockStorage,
         MOCK_CONTRACT_ADDR,
     },
-    to_binary, Addr, BlockInfo, ContractInfo, ContractResult, Empty, Env, MessageInfo, OwnedDeps,
+    to_json_binary, Addr, BlockInfo, ContractInfo, ContractResult, Empty, Env, MessageInfo, OwnedDeps,
     Storage, SystemResult, Timestamp, TransactionInfo, WasmQuery,
 };
 use cw_xcall::{
@@ -98,7 +98,7 @@ pub fn mock_connection_fee_query(deps: &mut OwnedDeps<MockStorage, MockApi, Mock
         WasmQuery::Smart {
             contract_addr: _,
             msg: _,
-        } => SystemResult::Ok(ContractResult::Ok(to_binary(&10_u128).unwrap())),
+        } => SystemResult::Ok(ContractResult::Ok(to_json_binary(&10_u128).unwrap())),
         _ => todo!(),
     });
 }

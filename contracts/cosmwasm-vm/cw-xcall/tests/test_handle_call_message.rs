@@ -9,9 +9,7 @@ use setup::*;
 use std::str::FromStr;
 
 use cosmwasm_std::{
-    from_binary,
-    testing::{mock_dependencies, mock_env, mock_info},
-    to_binary, Addr, Coin, CosmosMsg, Reply, SubMsgResponse, SubMsgResult, WasmMsg,
+     from_json, testing::{mock_dependencies, mock_env, mock_info}, to_json_binary, Addr, Coin, CosmosMsg, Reply, SubMsgResponse, SubMsgResult, WasmMsg
 };
 use cw_xcall::{
     state::{CwCallService, EXECUTE_CALL_ID},
@@ -279,7 +277,7 @@ fn execute_rollback_failure() {
             msg,
             funds: _,
         }) => {
-            let r: Vec<u64> = from_binary(&msg).unwrap();
+            let r: Vec<u64> = from_json(&msg).unwrap();
 
             assert_eq!(vec![1, 2, 3], r)
         }
@@ -332,7 +330,7 @@ fn test_persisted_message_removed_on_success() {
         id: EXECUTE_CALL_ID,
         result: SubMsgResult::Ok(SubMsgResponse {
             events: vec![],
-            data: to_binary(&1).ok(),
+            data: to_json_binary(&1).ok(),
         }),
     };
 

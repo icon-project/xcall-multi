@@ -1,4 +1,4 @@
-use cosmwasm_std::{to_binary, Addr, Binary, CosmosMsg, MessageInfo, StdError, SubMsg, WasmMsg};
+use cosmwasm_std::{to_json_binary, Addr, Binary, CosmosMsg, MessageInfo, StdError, SubMsg, WasmMsg};
 use cw_xcall_lib::{dapp_msg, dapp_multi_msg, network_address::NetworkAddress};
 
 use crate::{error::ContractError, state::CwCallService};
@@ -38,7 +38,7 @@ impl<'a> CwCallService<'a> {
     ) -> Result<Binary, StdError> {
         if protocols.is_empty() {
             let message = dapp_msg::ExecuteMsg::HandleCallMessage { from, data };
-            let msg = to_binary(&message);
+            let msg = to_json_binary(&message);
             return msg;
         }
         let message = dapp_multi_msg::ExecuteMsg::HandleCallMessage {
@@ -47,6 +47,6 @@ impl<'a> CwCallService<'a> {
             protocols,
         };
 
-        to_binary(&message)
+        to_json_binary(&message)
     }
 }

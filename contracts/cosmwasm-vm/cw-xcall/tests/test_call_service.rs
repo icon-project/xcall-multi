@@ -9,7 +9,7 @@ use std::str::FromStr;
 
 use cosmwasm_std::{
     testing::{mock_env, MOCK_CONTRACT_ADDR},
-    to_binary, Addr, Event, Reply, SubMsgResponse, SubMsgResult,
+    to_json_binary, Addr, Event, Reply, SubMsgResponse, SubMsgResult,
 };
 use cw_xcall::{
     execute, instantiate, migrate,
@@ -96,7 +96,7 @@ fn test_reply_fail_for_unknown_reply_id() {
         id: 5,
         result: SubMsgResult::Ok(SubMsgResponse {
             events: vec![Event::new("empty")],
-            data: Some(to_binary(&vec![1]).unwrap()),
+            data: Some(to_json_binary(&vec![1]).unwrap()),
         }),
     };
     reply(deps.as_mut(), ctx.env, msg).unwrap();
@@ -284,7 +284,7 @@ fn test_query_get_admin() {
 
     let msg = QueryMsg::GetAdmin {};
     let res = query(deps.as_ref(), ctx.env, msg).unwrap();
-    assert_eq!(res, to_binary("admin").unwrap())
+    assert_eq!(res, to_json_binary("admin").unwrap())
 }
 
 #[test]
@@ -300,7 +300,7 @@ fn test_query_get_network_address() {
 
     let expected_network_address =
         NetworkAddress::new("icon", ctx.env.contract.address.clone().as_str());
-    assert_eq!(res, to_binary(&expected_network_address).unwrap())
+    assert_eq!(res, to_json_binary(&expected_network_address).unwrap())
 }
 
 #[test]
@@ -330,7 +330,7 @@ fn test_query_get_default_connection() {
         nid: NetId::from_str("archway").unwrap(),
     };
     let res = query(deps.as_ref(), ctx.env, msg).unwrap();
-    assert_eq!(res, to_binary(&Addr::unchecked("centralized")).unwrap());
+    assert_eq!(res, to_json_binary(&Addr::unchecked("centralized")).unwrap());
 }
 
 #[test]
@@ -375,7 +375,7 @@ fn test_execute_call_reply() {
         id: 1,
         result: SubMsgResult::Ok(SubMsgResponse {
             events: vec![Event::new("empty")],
-            data: Some(to_binary(&vec![1]).unwrap()),
+            data: Some(to_json_binary(&vec![1]).unwrap()),
         }),
     };
 

@@ -58,7 +58,7 @@ impl<'a> CwCentralizedConnection<'a> {
         };
         let call_message: CosmosMsg<Empty> = CosmosMsg::Wasm(WasmMsg::Execute {
             contract_addr: xcall_host.to_string(),
-            msg: to_binary(&xcall_msg).unwrap(),
+            msg: to_json_binary(&xcall_msg).unwrap(),
             funds: vec![],
         });
         let sub_msg: SubMsg = SubMsg::reply_always(call_message, XCALL_HANDLE_MESSAGE_REPLY_ID);
@@ -76,7 +76,7 @@ impl<'a> CwCentralizedConnection<'a> {
         };
         let call_message: CosmosMsg<Empty> = CosmosMsg::Wasm(WasmMsg::Execute {
             contract_addr: xcall_host.to_string(),
-            msg: to_binary(&xcall_msg).unwrap(),
+            msg: to_json_binary(&xcall_msg).unwrap(),
             funds: vec![],
         });
         let sub_msg: SubMsg = SubMsg::reply_always(call_message, XCALL_HANDLE_ERROR_REPLY_ID);

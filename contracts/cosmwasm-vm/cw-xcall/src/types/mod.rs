@@ -11,6 +11,6 @@ use crate::error::ContractError;
 pub use common::rlp;
 use common::rlp::{Decodable, Encodable};
 use cosmwasm_schema::cw_serde;
-use cosmwasm_std::{to_binary, Binary};
+use cosmwasm_std::{to_json_binary, Binary};
 use request::CSMessageRequest;
 use result::CSMessageResult;

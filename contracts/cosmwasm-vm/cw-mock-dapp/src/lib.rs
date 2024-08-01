@@ -7,7 +7,7 @@ pub mod types;
 
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{
-    entry_point, to_binary, Binary, CosmosMsg, Deps, DepsMut, Empty, Env, MessageInfo, Response,
+    entry_point, to_json_binary, Binary, CosmosMsg, Deps, DepsMut, Empty, Env, MessageInfo, Response,
     StdError, StdResult, Storage, SubMsg, WasmMsg,
 };
 
@@ -17,7 +17,6 @@ pub use errors::*;
 use msg::{ExecuteMsg, QueryMsg};
 use state::CwMockService;
 use thiserror::Error;
-use types::InstantiateMsg;
 pub use types::*;
 
 #[entry_point]
@@ -69,12 +68,12 @@ pub fn execute(
             let fail = ExecuteMsg::FailureCall {};
             let success_wasm = CosmosMsg::Wasm(WasmMsg::Execute {
                 contract_addr: success_addr,
-                msg: to_binary(&success).map_err(ContractError::Std)?,
+                msg: to_json_binary(&success).map_err(ContractError::Std)?,
                 funds: info.funds.clone(),
             });
             let fail_wasm = CosmosMsg::Wasm(WasmMsg::Execute {
                 contract_addr: fail_addr,
-                msg: to_binary(&fail).map_err(ContractError::Std)?,
+                msg: to_json_binary(&fail).map_err(ContractError::Std)?,
                 funds: info.funds,
             });
             let submessages = vec![
@@ -107,6 +106,6 @@ pub fn execute(
 pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
     let call_service = CwMockService::default();
     match msg {
-        QueryMsg::GetSequence {} => to_binary(&call_service.get_sequence(deps.storage).unwrap()),
+        QueryMsg::GetSequence {} => to_json_binary(&call_service.get_sequence(deps.storage).unwrap()),
     }
 }
