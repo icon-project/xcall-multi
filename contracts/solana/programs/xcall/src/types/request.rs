@@ -58,6 +58,10 @@ impl CSMessageRequest {
         self.data = hash.to_bytes().to_vec();
     }
 
+    pub fn set_protocols(&mut self, protocols: Vec<String>) {
+        self.protocols = protocols
+    }
+
     pub fn need_response(&self) -> bool {
         self.msg_type == MessageType::CallMessageWithRollback
     }

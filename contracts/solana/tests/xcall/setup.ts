@@ -72,12 +72,12 @@ export class TestContext {
     let ix = await xcallProgram.methods
       .setProtocolFee(new anchor.BN(fee))
       .accountsStrict({
-        feeHandler: this.feeHandler.publicKey,
+        admin: this.admin.publicKey,
         config: XcallPDA.config().pda,
       })
       .instruction();
 
-    let tx = await this.txnHelpers.buildV0Txn([ix], [this.feeHandler]);
+    let tx = await this.txnHelpers.buildV0Txn([ix], [this.admin]);
     await this.connection.sendTransaction(tx);
     await sleep(2);
   }

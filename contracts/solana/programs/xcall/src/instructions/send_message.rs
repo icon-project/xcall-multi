@@ -22,16 +22,22 @@ pub fn send_call<'info>(
 ) -> Result<u128> {
     let envelope: Envelope = rlp::decode(&message).unwrap();
 
-    let signer = &ctx.accounts.signer;
     let sequence_no = ctx.accounts.config.get_next_sn();
-    let config = &ctx.accounts.config;
 
-    let from = NetworkAddress::new(&config.network_id, &signer.owner.to_string());
+    let signer = &ctx.accounts.signer;
+    let config = &ctx.accounts.config;
+    let dapp = &ctx.accounts.dapp;
+
+    let from = if dapp.is_some() {
+        NetworkAddress::new(&config.network_id, &dapp.clone().unwrap().key().to_string())
+    } else {
+        NetworkAddress::new(&config.network_id, &signer.key().to_string())
+    };
 
     process_message(
         &mut ctx.accounts.rollback_account,
         ctx.bumps.rollback_account,
-        &ctx.accounts.dapp,
+        &dapp,
         &to,
         &envelope,
     )?;
@@ -102,29 +108,27 @@ pub fn process_message(
         AnyMessage::CallMessage(_) => Ok(()),
         AnyMessage::CallMessagePersisted(_) => Ok(()),
         AnyMessage::CallMessageWithRollback(msg) => {
-            // TODO: remove comment -> temporary comment until testing from mock dapp
-            // helper::ensure_program(from)?;
-            helper::ensure_rollback_length(&msg.rollback)?;
-            if from.is_none() {
+            helper::ensure_rollback_size(&msg.rollback)?;
+            if let Some(signer) = from {
+                helper::ensure_program(signer.key)?;
+            } else {
                 return Err(XcallError::RollbackNotPossible.into());
             }
 
-            if msg.rollback().is_some() {
-                let rollback_data = envelope.message.rollback().unwrap();
-                let rollback = Rollback::new(
-                    from.as_ref().unwrap().owner.to_owned(),
-                    to.clone(),
-                    envelope.sources.clone(),
-                    rollback_data,
-                    false,
-                );
+            let rollback = Rollback::new(
+                from.as_ref().unwrap().owner.to_owned(),
+                to.clone(),
+                envelope.sources.clone(),
+                msg.rollback().unwrap(),
+                false,
+            );
 
-                let rollback_account = rollback_account
-                    .as_mut()
-                    .ok_or(XcallError::RollbackAccountNotSpecified)?;
+            let rollback_account = rollback_account
+                .as_mut()
+                .ok_or(XcallError::RollbackAccountNotSpecified)?;
 
-                rollback_account.set(rollback, rollback_bump.unwrap());
-            }
+            rollback_account.set(rollback, rollback_bump.unwrap());
+
             Ok(())
         }
     }
