@@ -69,12 +69,12 @@ pub struct SetFeeCtx<'info> {
         mut,
         seeds = [Config::SEED_PREFIX.as_bytes()],
         bump = config.bump,
-        has_one = fee_handler @ XcallError::OnlyAdmin
+        has_one = admin @ XcallError::OnlyAdmin
     )]
     pub config: Account<'info, Config>,
 
     #[account(mut)]
-    pub fee_handler: Signer<'info>,
+    pub admin: Signer<'info>,
 }
 
 #[derive(Accounts)]

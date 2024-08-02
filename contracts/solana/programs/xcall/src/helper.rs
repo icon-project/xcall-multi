@@ -12,19 +12,19 @@ pub fn ensure_data_length(data: &[u8]) -> Result<()> {
     Ok(())
 }
 
-pub fn ensure_rollback_length(rollback: &[u8]) -> Result<()> {
-    require_gte!(
-        MAX_ROLLBACK_SIZE,
-        rollback.len() as usize,
-        XcallError::MaxRollbackSizeExceeded
-    );
+pub fn ensure_rollback_size(rollback: &[u8]) -> Result<()> {
+    if rollback.is_empty() {
+        return Err(XcallError::NoRollbackData.into());
+    }
+    if rollback.len() > MAX_ROLLBACK_SIZE {
+        return Err(XcallError::MaxRollbackSizeExceeded.into());
+    }
 
     Ok(())
 }
 
-pub fn ensure_program(account: &AccountInfo) -> Result<()> {
-    require_eq!(account.executable, true, XcallError::RollbackNotPossible);
-
+// TODO: ensure signer is pda
+pub fn ensure_program(_pubkey: &Pubkey) -> Result<()> {
     Ok(())
 }
 

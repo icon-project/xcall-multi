@@ -86,7 +86,6 @@ pub fn handle_request(
 pub fn handle_result(ctx: Context<HandleMessageCtx>, payload: &[u8]) -> Result<()> {
     let result: CSMessageResult = payload.try_into()?;
 
-    let sender = ctx.accounts.connection.owner.key();
     let rollback_account = ctx
         .accounts
         .rollback_account
@@ -94,7 +93,7 @@ pub fn handle_result(ctx: Context<HandleMessageCtx>, payload: &[u8]) -> Result<(
         .ok_or(XcallError::CallRequestNotFound)?;
 
     validate_source_and_pending_response(
-        sender,
+        ctx.accounts.connection.owner.key(),
         rollback_account.rollback.protocols(),
         &mut ctx.accounts.pending_response,
         &ctx.accounts.admin,
@@ -121,21 +120,27 @@ pub fn handle_result(ctx: Context<HandleMessageCtx>, payload: &[u8]) -> Result<(
 
             if result.message().is_some() {
                 let reply = &mut result.message().unwrap();
+
                 handle_reply(ctx, reply)?;
             }
         }
-        _ => handle_rollback(rollback_account, result.sequence_no())?,
+        _ => {
+            rollback_account.rollback.enable_rollback();
+
+            emit!(event::RollbackMessage {
+                sn: result.sequence_no()
+            });
+        }
     }
 
     Ok(())
 }
 
 pub fn handle_error(ctx: Context<HandleErrorCtx>, sequence_no: u128) -> Result<()> {
-    let sender = ctx.accounts.connection.owner.key();
     let rollback_account = &mut ctx.accounts.rollback_account;
 
     validate_source_and_pending_response(
-        sender,
+        ctx.accounts.connection.owner.key(),
         rollback_account.rollback.protocols(),
         &mut ctx.accounts.pending_response,
         &ctx.accounts.admin,
@@ -145,15 +150,17 @@ pub fn handle_error(ctx: Context<HandleErrorCtx>, sequence_no: u128) -> Result<(
         code: CSResponseType::CSResponseFailure.into(),
         sn: sequence_no
     });
+    emit!(event::RollbackMessage { sn: sequence_no });
 
-    handle_rollback(rollback_account, sequence_no)
+    rollback_account.rollback.enable_rollback();
+
+    Ok(())
 }
 
 pub fn handle_reply(ctx: Context<HandleMessageCtx>, reply: &mut CSMessageRequest) -> Result<()> {
-    if let Some(rollback_account) = &ctx.accounts.rollback_account {
-        if rollback_account.rollback.to().nid() != reply.from().nid() {
-            return Err(XcallError::InvalidReplyReceived.into());
-        }
+    let rollback = &ctx.accounts.rollback_account.as_deref().unwrap().rollback;
+    if rollback.to().nid() != reply.from().nid() {
+        return Err(XcallError::InvalidReplyReceived.into());
     }
 
     let req_id = ctx.accounts.config.get_next_req_id();
@@ -173,6 +180,7 @@ pub fn handle_reply(ctx: Context<HandleMessageCtx>, reply: &mut CSMessageRequest
         .ok_or(XcallError::ProxyRequestAccountNotSpecified)?;
 
     reply.hash_data();
+    reply.set_protocols(rollback.protocols().clone());
     proxy_request.set(reply.to_owned(), ctx.bumps.proxy_request.unwrap());
 
     Ok(())
@@ -206,21 +214,6 @@ pub fn validate_source_and_pending_response<'info>(
     Ok(())
 }
 
-pub fn handle_rollback(
-    rollback_account: &mut Account<RollbackAccount>,
-    sequence_no: u128,
-) -> Result<()> {
-    if rollback_account.rollback.rollback().len() < 1 {
-        return Err(XcallError::NoRollbackData.into());
-    }
-    rollback_account.rollback.enable_rollback();
-
-    emit!(event::RollbackMessage { sn: sequence_no });
-
-    Ok(())
-}
-
-#[inline(never)]
 pub fn is_valid_source(sender: &String, protocols: &Vec<String>) -> Result<bool> {
     if protocols.contains(sender) {
         return Ok(true);
