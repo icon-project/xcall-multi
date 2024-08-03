@@ -1,6 +1,6 @@
 use anchor_lang::{
     prelude::*,
-    solana_program::{instruction::Instruction, program::invoke_signed},
+    solana_program::{instruction::Instruction, program::invoke},
 };
 use xcall_lib::{
     network_address::NetworkAddress,
@@ -19,13 +19,9 @@ pub fn call_xcall_send_call<'info>(
     let mut account_metas: Vec<AccountMeta> = vec![
         AccountMeta::new(signer.key(), true),
         AccountMeta::new_readonly(system_program.key(), false),
-        AccountMeta::new(config.key(), true),
     ];
-    let mut account_infos: Vec<AccountInfo<'info>> = vec![
-        signer.to_account_info(),
-        system_program.to_account_info(),
-        config.to_account_info(),
-    ];
+    let mut account_infos: Vec<AccountInfo<'info>> =
+        vec![signer.to_account_info(), system_program.to_account_info()];
     for (_, account) in remaining_accounts.iter().enumerate() {
         if account.is_writable {
             account_metas.push(AccountMeta::new(account.key(), account.is_signer))
@@ -40,11 +36,7 @@ pub fn call_xcall_send_call<'info>(
         data: ix_data.clone(),
     };
 
-    invoke_signed(
-        &ix,
-        &account_infos,
-        &[&[Config::SEED_PREFIX.as_bytes(), &[config.bump]]],
-    )?;
+    invoke(&ix, &account_infos)?;
 
     Ok(())
 }

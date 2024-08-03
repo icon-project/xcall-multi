@@ -1,4 +1,7 @@
-use anchor_lang::{prelude::*, solana_program::hash};
+use anchor_lang::{
+    prelude::*,
+    solana_program::{hash, sysvar::instructions::get_instruction_relative},
+};
 
 use crate::{constants::*, error::*};
 
@@ -23,8 +26,12 @@ pub fn ensure_rollback_size(rollback: &[u8]) -> Result<()> {
     Ok(())
 }
 
-// TODO: ensure signer is pda
-pub fn ensure_program(_pubkey: &Pubkey) -> Result<()> {
+pub fn ensure_program(sysvar_account_info: &AccountInfo) -> Result<()> {
+    let current_ix = get_instruction_relative(0, sysvar_account_info)?;
+    if current_ix.program_id == crate::id() {
+        return Err(XcallError::RollbackNotPossible.into());
+    }
+
     Ok(())
 }
 

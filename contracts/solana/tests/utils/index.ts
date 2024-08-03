@@ -32,4 +32,8 @@ export const uint128ToArray = (num: any) => {
   return new Uint8Array(buffer);
 };
 
+export const SYSVAR_INSTRUCTIONS_ID = new PublicKey(
+  "Sysvar1nstructions1111111111111111111111111"
+);
+
 export * from "./transaction";
