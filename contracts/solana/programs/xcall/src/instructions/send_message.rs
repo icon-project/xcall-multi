@@ -1,6 +1,10 @@
 use anchor_lang::{
     prelude::*,
-    solana_program::{program::invoke, system_instruction},
+    solana_program::{
+        program::invoke,
+        system_instruction,
+        sysvar::{self, instructions::get_instruction_relative},
+    },
 };
 use xcall_lib::{
     message::{envelope::Envelope, msg_trait::IMessage, AnyMessage},
@@ -26,18 +30,23 @@ pub fn send_call<'info>(
 
     let signer = &ctx.accounts.signer;
     let config = &ctx.accounts.config;
-    let dapp = &ctx.accounts.dapp;
 
-    let from = if dapp.is_some() {
-        NetworkAddress::new(&config.network_id, &dapp.clone().unwrap().key().to_string())
+    let sysvar_account = &ctx.accounts.instruction_sysvar.to_account_info();
+    let current_ix = get_instruction_relative(0, sysvar_account)?;
+
+    let from_key = if current_ix.program_id != crate::id() {
+        current_ix.program_id
     } else {
-        NetworkAddress::new(&config.network_id, &signer.key().to_string())
+        signer.key()
     };
+
+    let from = NetworkAddress::new(&config.network_id, &from_key.to_string());
 
     process_message(
         &mut ctx.accounts.rollback_account,
+        &ctx.accounts.instruction_sysvar,
         ctx.bumps.rollback_account,
-        &dapp,
+        from_key,
         &to,
         &envelope,
     )?;
@@ -80,7 +89,7 @@ pub fn send_call<'info>(
 
         if config.protocol_fee > 0 {
             claim_protocol_fee(
-                &signer,
+                &ctx.accounts.signer,
                 &ctx.accounts.fee_handler,
                 &ctx.accounts.system_program,
                 config.protocol_fee,
@@ -99,8 +108,9 @@ pub fn send_call<'info>(
 
 pub fn process_message(
     rollback_account: &mut Option<Account<RollbackAccount>>,
+    sysvar_account_info: &AccountInfo,
     rollback_bump: Option<u8>,
-    from: &Option<Signer>,
+    from: Pubkey,
     to: &NetworkAddress,
     envelope: &Envelope,
 ) -> Result<()> {
@@ -109,14 +119,10 @@ pub fn process_message(
         AnyMessage::CallMessagePersisted(_) => Ok(()),
         AnyMessage::CallMessageWithRollback(msg) => {
             helper::ensure_rollback_size(&msg.rollback)?;
-            if let Some(signer) = from {
-                helper::ensure_program(signer.key)?;
-            } else {
-                return Err(XcallError::RollbackNotPossible.into());
-            }
+            helper::ensure_program(sysvar_account_info)?;
 
             let rollback = Rollback::new(
-                from.as_ref().unwrap().owner.to_owned(),
+                from,
                 to.clone(),
                 envelope.sources.clone(),
                 msg.rollback().unwrap(),
@@ -183,8 +189,6 @@ pub struct SendCallCtx<'info> {
 
     pub system_program: Program<'info, System>,
 
-    pub dapp: Option<Signer<'info>>,
-
     #[account(
         has_one = fee_handler,
         mut,
@@ -205,4 +209,8 @@ pub struct SendCallCtx<'info> {
         bump,
       )]
     pub rollback_account: Option<Account<'info, RollbackAccount>>,
+
+    /// CHECK: account constraints checked in account trait
+    #[account(address = sysvar::instructions::id())]
+    pub instruction_sysvar: UncheckedAccount<'info>,
 }

@@ -1,7 +1,7 @@
 import * as anchor from "@coral-xyz/anchor";
 
 import { TestContext, DappPDA } from "./setup";
-import { TxnHelpers, sleep } from "../utils";
+import { SYSVAR_INSTRUCTIONS_ID, TxnHelpers, sleep } from "../utils";
 import { SYSTEM_PROGRAM_ID } from "@coral-xyz/anchor/dist/cjs/native/system";
 import { CentralizedConnection } from "../../target/types/centralized_connection";
 
@@ -76,6 +76,11 @@ describe("CentralizedConnection", () => {
           pubkey: XcallPDA.rollback(nextSequenceNo).pda,
           isSigner: false,
           isWritable: true,
+        },
+        {
+          pubkey: SYSVAR_INSTRUCTIONS_ID,
+          isSigner: false,
+          isWritable: false,
         },
         {
           pubkey: connectionProgram.programId,

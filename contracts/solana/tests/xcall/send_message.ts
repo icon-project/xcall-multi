@@ -4,9 +4,14 @@ import { assert } from "chai";
 import { SYSTEM_PROGRAM_ID } from "@coral-xyz/anchor/dist/cjs/native/system";
 
 import { TestContext, XcallPDA } from "./setup";
-import { TxnHelpers, sleep } from "../utils";
+import { SYSVAR_INSTRUCTIONS_ID, TxnHelpers, sleep } from "../utils";
 import { Xcall } from "../../target/types/xcall";
-import { Envelope, CallMessage, MessageType } from "./types";
+import {
+  Envelope,
+  CallMessage,
+  MessageType,
+  CallMessageWithRollback,
+} from "./types";
 
 import { CentralizedConnection } from "../../target/types/centralized_connection";
 import { ConnectionPDA } from "../centralized-connection/setup";
@@ -35,7 +40,7 @@ describe("xcall - send message", () => {
   it("should send message", async () => {
     let envelope = new Envelope(
       MessageType.CallMessage,
-      new CallMessage(new Uint8Array([])).encode(),
+      new CallMessage(new Uint8Array([1, 2])).encode(),
       [connectionProgram.programId.toString()],
       [wallet.publicKey.toString()]
     ).encode();
@@ -52,8 +57,8 @@ describe("xcall - send message", () => {
         config: XcallPDA.config().pda,
         signer: wallet.payer.publicKey,
         rollbackAccount: XcallPDA.rollback(nextSequence).pda,
+        instructionSysvar: SYSVAR_INSTRUCTIONS_ID,
         feeHandler: ctx.feeHandler.publicKey,
-        dapp: xcallProgram.programId,
       })
       .remainingAccounts([
         {
