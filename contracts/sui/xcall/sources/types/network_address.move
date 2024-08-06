@@ -60,6 +60,7 @@ module xcall::network_address {
     }
 }
 
+#[test_only]
 module xcall::network_address_tests {
 
     use xcall::network_address::{Self};

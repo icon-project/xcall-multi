@@ -80,6 +80,7 @@ module xcall::cs_message {
     }
 }
 
+#[test_only]
 module xcall::cs_message_tests {
     use xcall::cs_message::{Self};
 
