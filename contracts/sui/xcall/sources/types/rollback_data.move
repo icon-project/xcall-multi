@@ -40,7 +40,7 @@ module xcall::rollback_data {
         self.rollback
     }
 
-    public fun enable_rollback(self:&mut RollbackData){
+    public(package) fun enable_rollback(self:&mut RollbackData){
 
         self.enabled = true
     }
