@@ -42,7 +42,7 @@ for WASM in ./target/wasm32-unknown-unknown/release/*.wasm; do
   echo "Creating intermediate hash for $NAME ..."
   sha256sum -- "$WASM" | tee -a artifacts/archway/checksums_intermediate.txt
   echo "Optimizing $NAME ..."
-  wasm-opt -Oz "$WASM" -o "artifacts/archway/$NAME"
+  wasm-opt -Os --signext-lowering "$WASM" -o "artifacts/archway/$NAME"
 done
 
 # check all generated wasm files
