@@ -177,14 +177,12 @@ pub fn query_execute_call_accounts(
     }
 
     let proxy_req = &ctx.accounts.proxy_request.req;
-    let sources = if proxy_req.protocols().is_empty() {
-        None
-    } else {
-        Some(proxy_req.protocols())
-    };
 
-    let dapp_ix_data =
-        get_query_handle_call_message_ix_data(proxy_req.from().to_owned(), data, sources)?;
+    let dapp_ix_data = get_query_handle_call_message_ix_data(
+        proxy_req.from().to_owned(),
+        data,
+        protocols.clone(),
+    )?;
 
     let dapp_key = Pubkey::from_str(proxy_req.to()).map_err(|_| XcallError::InvalidPubkey)?;
 
@@ -221,16 +219,10 @@ pub fn query_execute_rollback_accounts(
         AccountMetadata::new(rollback_account.key(), false),
     ];
 
-    let protocols = if rollback.protocols().len() > 0 {
-        Some(rollback.protocols().to_owned())
-    } else {
-        None
-    };
-
     let ix_data = get_query_handle_call_message_ix_data(
         NetworkAddress::new(&config.network_id, &id().to_string()),
         rollback.rollback().to_owned(),
-        protocols,
+        rollback.protocols().clone(),
     )?;
 
     let dapp_key = rollback.from().to_owned();
@@ -350,10 +342,10 @@ pub fn get_query_send_message_accounts_ix_data(dst_network: String) -> Result<Ve
 pub fn get_query_handle_call_message_ix_data(
     from: NetworkAddress,
     data: Vec<u8>,
-    protocols: Option<Vec<String>>,
+    protocols: Vec<String>,
 ) -> Result<Vec<u8>> {
     let mut ix_args_data = vec![];
-    let ix_args = QueryHandleCallMessage {
+    let ix_args = xcall_lib::xcall_dapp_type::HandleCallMessageArgs {
         from,
         data,
         protocols,
@@ -431,11 +423,4 @@ pub struct QueryHandleErrorAccountsCtx<'info> {
 #[derive(Debug, Default, PartialEq, Eq, Clone, AnchorSerialize, AnchorDeserialize)]
 pub struct QuerySendMessage {
     to: String,
-}
-
-#[derive(Debug, Clone, AnchorSerialize, AnchorDeserialize)]
-pub struct QueryHandleCallMessage {
-    from: NetworkAddress,
-    data: Vec<u8>,
-    protocols: Option<Vec<String>>,
 }

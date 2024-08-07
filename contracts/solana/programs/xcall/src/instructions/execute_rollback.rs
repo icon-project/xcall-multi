@@ -8,21 +8,14 @@ pub fn execute_rollback<'info>(
     sn: u128,
 ) -> Result<()> {
     let rollback = &ctx.accounts.rollback_account.rollback;
-
     if !rollback.enabled() {
         return Err(XcallError::RollbackNotEnabled.into());
     }
 
-    let protocols = if rollback.protocols().len() > 0 {
-        Some(rollback.protocols().to_owned())
-    } else {
-        None
-    };
-
     let ix_data = dapp::get_handle_call_message_ix_data(
         NetworkAddress::new(&ctx.accounts.config.network_id, &id().to_string()),
         rollback.rollback().to_owned(),
-        protocols,
+        rollback.protocols().clone(),
     )?;
 
     dapp::invoke_handle_call_message_ix(
@@ -30,7 +23,6 @@ pub fn execute_rollback<'info>(
         ix_data,
         &ctx.accounts.config,
         &ctx.accounts.signer,
-        &ctx.accounts.system_program,
         &ctx.remaining_accounts,
     )?;
 

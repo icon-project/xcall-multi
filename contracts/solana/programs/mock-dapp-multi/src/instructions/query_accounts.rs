@@ -1,4 +1,4 @@
-use anchor_lang::prelude::*;
+use anchor_lang::{prelude::*, solana_program::system_program};
 use xcall_lib::query_account_type::{AccountMetadata, QueryAccountsResponse};
 
 use crate::state::*;
@@ -8,7 +8,10 @@ pub fn query_handle_call_message_accounts(
 ) -> Result<QueryAccountsResponse> {
     let config = &ctx.accounts.config;
 
-    let account_metas = vec![AccountMetadata::new(config.key(), false)];
+    let account_metas = vec![
+        AccountMetadata::new_readonly(system_program::id(), false),
+        AccountMetadata::new(config.key(), false),
+    ];
 
     Ok(QueryAccountsResponse {
         accounts: account_metas,

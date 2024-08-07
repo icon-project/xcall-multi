@@ -8,10 +8,7 @@ use crate::{
     error::XcallError,
     helper,
     state::*,
-    types::{
-        message::CSMessage,
-        result::{CSMessageResult, CSResponseType},
-    },
+    types::{message::CSMessage, result::CSMessageResult},
 };
 
 pub fn execute_call<'info>(
@@ -26,28 +23,19 @@ pub fn execute_call<'info>(
     }
 
     let dapp_key = Pubkey::from_str(&req.to()).map_err(|_| XcallError::InvalidPubkey)?;
-    let protocols = if req.protocols().len() > 0 {
-        Some(req.protocols())
-    } else {
-        None
-    };
 
-    let dapp_ix_data =
-        dapp::get_handle_call_message_ix_data(req.from().to_owned(), data.clone(), protocols)?;
-
-    if req.msg_type() == MessageType::CallMessageWithRollback {
-        ctx.accounts.config.set_reply_state(Some(req.clone()));
-    }
-
-    let protocols = req.protocols();
+    let dapp_ix_data = dapp::get_handle_call_message_ix_data(
+        req.from().to_owned(),
+        data.clone(),
+        req.protocols(),
+    )?;
 
     let dapp_res = dapp::invoke_handle_call_message_ix(
         dapp_key,
         dapp_ix_data,
         &ctx.accounts.config,
         &ctx.accounts.signer,
-        &ctx.accounts.system_program,
-        &ctx.remaining_accounts[(protocols.len() * 3)..],
+        &ctx.remaining_accounts[(req.protocols().len() * 3)..],
     )?;
 
     match req.msg_type() {
@@ -56,19 +44,9 @@ pub fn execute_call<'info>(
         }
         MessageType::CallMessagePersisted => {}
         MessageType::CallMessageWithRollback => {
-            let config = &mut ctx.accounts.config;
-
-            config.set_call_reply(None);
-            config.set_reply_state(None);
-
             let res_code = dapp::handle_response(req_id, dapp_res)?;
 
-            let mut msg = Vec::new();
-            if config.call_reply.is_some() && res_code == CSResponseType::CSResponseSuccess {
-                msg = rlp::encode(config.call_reply.as_mut().unwrap()).to_vec();
-            }
-
-            let result = CSMessageResult::new(req.sequence_no(), res_code, Some(msg));
+            let result = CSMessageResult::new(req.sequence_no(), res_code, None);
             let cs_message = rlp::encode(&CSMessage::from(result)).to_vec();
 
             let ix_data = connection::get_send_message_ix_data(
@@ -77,7 +55,7 @@ pub fn execute_call<'info>(
                 cs_message,
             )?;
 
-            for (i, _) in protocols.iter().enumerate() {
+            for (i, _) in req.protocols().iter().enumerate() {
                 connection::call_connection_send_message(
                     i,
                     &ix_data,

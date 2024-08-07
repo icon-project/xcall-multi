@@ -13,7 +13,7 @@ pub fn handle_call_message<'info>(
     ctx: Context<'_, '_, '_, 'info, HandleCallMessageCtx<'info>>,
     from: NetworkAddress,
     data: Vec<u8>,
-    _protocols: Option<Vec<String>>,
+    _protocols: Vec<String>,
 ) -> Result<HandleCallMessageResponse> {
     let (_, account) = from.parse_network_address();
     if ctx.accounts.signer.key().to_string() == account {

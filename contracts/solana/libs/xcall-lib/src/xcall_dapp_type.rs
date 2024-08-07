@@ -10,7 +10,7 @@ pub const QUERY_HANDLE_CALL_MESSAGE_IX: &str = "query_handle_call_message_accoun
 pub struct HandleCallMessageArgs {
     pub from: NetworkAddress,
     pub data: Vec<u8>,
-    pub protocols: Option<Vec<String>>,
+    pub protocols: Vec<String>,
 }
 
 #[derive(Debug, Clone, AnchorSerialize, AnchorDeserialize)]

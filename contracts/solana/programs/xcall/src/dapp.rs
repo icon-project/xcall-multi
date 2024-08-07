@@ -37,15 +37,10 @@ pub fn invoke_handle_call_message_ix<'info>(
     ix_data: Vec<u8>,
     config: &Account<'info, Config>,
     signer: &Signer<'info>,
-    system_program: &Program<'info, System>,
     remaining_accounts: &[AccountInfo<'info>],
 ) -> Result<xcall_dapp_type::HandleCallMessageResponse> {
-    let mut account_metas: Vec<AccountMeta> = vec![
-        AccountMeta::new(signer.key(), true),
-        AccountMeta::new_readonly(system_program.key(), false),
-    ];
-    let mut account_infos: Vec<AccountInfo<'info>> =
-        vec![signer.to_account_info(), system_program.to_account_info()];
+    let mut account_metas: Vec<AccountMeta> = vec![AccountMeta::new(signer.key(), true)];
+    let mut account_infos: Vec<AccountInfo<'info>> = vec![signer.to_account_info()];
     for account in remaining_accounts {
         if account.is_writable {
             account_metas.push(AccountMeta::new(account.key(), account.is_signer))
@@ -76,7 +71,7 @@ pub fn invoke_handle_call_message_ix<'info>(
 pub fn get_handle_call_message_ix_data(
     from: NetworkAddress,
     data: Vec<u8>,
-    protocols: Option<Vec<String>>,
+    protocols: Vec<String>,
 ) -> Result<Vec<u8>> {
     let mut ix_args_data = vec![];
     let ix_args = xcall_dapp_type::HandleCallMessageArgs {
