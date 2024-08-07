@@ -33,8 +33,6 @@ impl Config {
         self.protocol_fee = 0;
         self.sequence_no = 0;
         self.last_req_id = 0;
-        self.call_reply = None;
-        self.reply_state = None;
     }
 
     pub fn ensure_admin(&self, signer: Pubkey) -> Result<()> {
@@ -71,14 +69,6 @@ impl Config {
     pub fn get_next_req_id(&mut self) -> u128 {
         self.last_req_id += 1;
         self.last_req_id
-    }
-
-    pub fn set_reply_state(&mut self, req: Option<CSMessageRequest>) {
-        self.reply_state = req;
-    }
-
-    pub fn set_call_reply(&mut self, req: Option<CSMessageRequest>) {
-        self.call_reply = req
     }
 }
 

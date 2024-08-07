@@ -70,31 +70,27 @@ pub fn send_call<'info>(
         return Err(XcallError::ProtocolNotSpecified.into());
     }
 
-    if is_reply(&config, &to.nid(), &sources) && !need_response {
-        ctx.accounts.config.set_call_reply(Some(request));
-    } else {
-        let sn: i64 = if need_response { sequence_no as i64 } else { 0 };
-        let ix_data = connection::get_send_message_ix_data(&to.nid(), sn, cs_message)?;
+    let sn: i64 = if need_response { sequence_no as i64 } else { 0 };
+    let ix_data = connection::get_send_message_ix_data(&to.nid(), sn, cs_message)?;
 
-        for (i, _) in sources.iter().enumerate() {
-            connection::call_connection_send_message(
-                i,
-                &ix_data,
-                &ctx.accounts.config,
-                &ctx.accounts.signer,
-                &ctx.accounts.system_program,
-                &ctx.remaining_accounts,
-            )?;
-        }
+    for (i, _) in sources.iter().enumerate() {
+        connection::call_connection_send_message(
+            i,
+            &ix_data,
+            &ctx.accounts.config,
+            &ctx.accounts.signer,
+            &ctx.accounts.system_program,
+            &ctx.remaining_accounts,
+        )?;
+    }
 
-        if config.protocol_fee > 0 {
-            claim_protocol_fee(
-                &ctx.accounts.signer,
-                &ctx.accounts.fee_handler,
-                &ctx.accounts.system_program,
-                config.protocol_fee,
-            )?;
-        }
+    if config.protocol_fee > 0 {
+        claim_protocol_fee(
+            &ctx.accounts.signer,
+            &ctx.accounts.fee_handler,
+            &ctx.accounts.system_program,
+            config.protocol_fee,
+        )?;
     }
 
     emit!(event::CallMessageSent {
@@ -157,16 +153,6 @@ pub fn claim_protocol_fee<'info>(
     )?;
 
     Ok(())
-}
-
-pub fn is_reply(config: &Account<Config>, nid: &String, sources: &Vec<String>) -> bool {
-    if let Some(req) = &config.reply_state {
-        if req.from().nid() != *nid {
-            return false;
-        }
-        return are_array_equal(req.protocols(), &sources);
-    }
-    false
 }
 
 pub fn are_array_equal(protocols: Vec<String>, sources: &Vec<String>) -> bool {

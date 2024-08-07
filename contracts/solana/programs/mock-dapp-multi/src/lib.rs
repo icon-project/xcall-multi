@@ -41,7 +41,7 @@ pub mod mock_dapp_multi {
         ctx: Context<'_, '_, '_, 'info, HandleCallMessageCtx<'info>>,
         from: NetworkAddress,
         data: Vec<u8>,
-        protocols: Option<Vec<String>>,
+        protocols: Vec<String>,
     ) -> Result<xcall_dapp_type::HandleCallMessageResponse> {
         instructions::handle_message::handle_call_message(ctx, from, data, protocols)
     }
@@ -70,7 +70,7 @@ pub mod mock_dapp_multi {
         ctx: Context<QueryAccountsCtx>,
         from: NetworkAddress,
         data: Vec<u8>,
-        protocols: Option<Vec<String>>,
+        protocols: Vec<String>,
     ) -> Result<QueryAccountsResponse> {
         instructions::query_handle_call_message_accounts(ctx)
     }

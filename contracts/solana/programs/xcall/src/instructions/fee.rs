@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use xcall_lib::xcall_connection_type::{self, GET_FEE_IX};
 
-use crate::{connection, error::*, helper, send_message::is_reply, state::*};
+use crate::{connection, error::*, helper, state::*};
 
 pub fn set_protocol_fee(ctx: Context<SetFeeCtx>, fee: u64) -> Result<()> {
     ctx.accounts.config.set_protocol_fee(fee);
@@ -21,10 +21,6 @@ pub fn get_fee(
     rollback: bool,
     sources: Vec<String>,
 ) -> Result<u64> {
-    if !rollback && is_reply(&ctx.accounts.config, &nid, &sources) {
-        return Ok(0_u64);
-    };
-
     if sources.is_empty() {
         return Err(XcallError::ProtocolNotSpecified.into());
     }
