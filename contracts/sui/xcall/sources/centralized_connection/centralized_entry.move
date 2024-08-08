@@ -27,7 +27,7 @@ module xcall::centralized_entry{
       centralized_state::get_receipt(state,net_id,sn)
   }
 
-entry fun get_fee(states: &XCallState,connection_id:String,net_id:String,response:bool,_ctx: &TxContext):u64{
+  entry fun get_fee(states: &XCallState,connection_id:String,net_id:String,response:bool,_ctx: &TxContext):u64{
       let state = get_state(states.get_connection_states(),connection_id);
       centralized_state::get_fee(state,&net_id,response)
   }
