@@ -1,15 +1,23 @@
 import * as anchor from "@coral-xyz/anchor";
-import { assert } from "chai";
-import { sleep } from "../tests/utils"; // Adjust the path based on your project structure
-import { Xcall } from "../target/types/xcall"; // Adjust the path based on your project structure
+import { Xcall } from "../target/types/xcall"; 
 import fs from 'fs';
 import { homedir } from 'os';
 import { join } from 'path';
 
+const args = process.argv.slice(2);
+
+const network_id = args[0];
+const environment = args[1]
+
+
+ const sleep = (seconds: number) => {
+  return new Promise((resolve) => setTimeout(resolve, seconds * 1000));
+};
+
 const xcallProgram: anchor.Program<Xcall> = anchor.workspace.Xcall;
 
 (async () => {
-  const testnetRpcUrl = "http://127.0.0.1:8899"; // Add your testnet RPC URL here
+  const testnetRpcUrl = environment;
   const connection = new anchor.web3.Connection(testnetRpcUrl);
 
   // Load the default Solana CLI wallet
@@ -27,8 +35,7 @@ const xcallProgram: anchor.Program<Xcall> = anchor.workspace.Xcall;
   });
   anchor.setProvider(provider);
 
-  // Initialize the XcallTestContext (simplified for this script)
-  class XcallTestContext {
+  class XcallContext {
     connection: anchor.web3.Connection;
     wallet: anchor.Wallet;
     program: anchor.Program<Xcall>;
@@ -62,10 +69,8 @@ const xcallProgram: anchor.Program<Xcall> = anchor.workspace.Xcall;
     }
   }
 
-  const xcallCtx = new XcallTestContext(connection, wallet, xcallProgram);
-  const networkId = "solana";
-
-  // Initialize the xcall program
+  const xcallCtx = new XcallContext(connection, wallet, xcallProgram);
+  const networkId = network_id;
   await xcallCtx.initialize(networkId);
   await sleep(2000);
 

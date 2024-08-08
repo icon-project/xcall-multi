@@ -5,7 +5,8 @@
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.30.1",
-    "rlp": "^3.0.0"
+    "rlp": "^3.0.0",
+    "ts-node": "^10.9.2"
   },
   "devDependencies": {
     "@types/bn.js": "^5.1.0",

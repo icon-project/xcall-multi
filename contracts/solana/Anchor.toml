@@ -7,7 +7,7 @@ skip-lint = false
 [programs.localnet]
 centralized-connection = "CgXQcZ26YLCoqM1wUK4nCXBwtbNeVZoZgt8ueVJ8Bva1"
 mock-dapp-multi = "4iFMixqd6PyDBQqLchp5nhdGYtFyqHSHLvJX8Bcyixz7"
-xcall = "6AEiwFKdRP1MG9KEnN8QsoBMZo7V55pVoxsoXMLVuAfb"
+xcall = "47QmEHEPSQqhpEjok5PmooeqdqBXRVpU11aRMhJGe6LW"
 
 [registry]
 url = "https://api.apr.dev"
@@ -17,6 +17,6 @@ cluster = "Localnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
-initialize-xcall = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 scripts/initialize_xcall.ts"
+initialize-xcall = "yarn ts-node --project ./tsconfig.json ./scripts/initialize_xcall.ts"
 init-contract = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/begin-initialize/*.ts"
 test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
