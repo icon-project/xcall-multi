@@ -446,7 +446,7 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
         string memory fromNID = req.from.nid();
         require(netFrom.compareTo(fromNID), "Invalid NID");
 
-        bytes32 dataHash = keccak256(req.data);
+        bytes32 dataHash = keccak256(msgPayload);
         if (req.protocols.length > 1) {
             pendingReqs[dataHash][msg.sender.toString()] = true;
             for (uint i = 0; i < req.protocols.length; i++) {
@@ -472,7 +472,7 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
             req.to,
             req.sn,
             req.messageType,
-            dataHash,
+            keccak256(req.data),
             req.protocols
         );
 
