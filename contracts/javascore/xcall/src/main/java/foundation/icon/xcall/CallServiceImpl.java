@@ -270,7 +270,7 @@ public class CallServiceImpl implements CallService, FeeManage {
         defaultConnection.set(_nid, _connection);
     }
 
-    @External
+    @External(readonly = true)
     public void getDefaultConnection(String _nid) {
         defaultConnection.get(_nid);
     }
