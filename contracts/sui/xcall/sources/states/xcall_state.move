@@ -240,7 +240,7 @@ module xcall::xcall_state {
         sn
     }
 
-   public fun get_rollback(self: &mut Storage, sequence_no: u128): RollbackData {
+   public fun get_rollback(self: &Storage, sequence_no: u128): RollbackData {
         *table::borrow(&self.rollbacks, sequence_no)
     }
 
@@ -248,7 +248,7 @@ module xcall::xcall_state {
         table::borrow_mut(&mut self.rollbacks, sequence_no)
     }
 
-    public fun has_rollback(self: &mut Storage , sequence_no: u128): bool {
+    public fun has_rollback(self: &Storage , sequence_no: u128): bool {
         table::contains(&self.rollbacks, sequence_no)
     }
 

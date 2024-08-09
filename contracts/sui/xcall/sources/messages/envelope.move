@@ -16,7 +16,7 @@ use sui_rlp::decoder;
         destinations:vector<String>,
     }
 
-      public fun encode(req:&XCallEnvelope):vector<u8>{
+    public fun encode(req:&XCallEnvelope):vector<u8>{
           let mut list=vector::empty<vector<u8>>();
            vector::push_back(&mut list,encoder::encode_u8(req.message_type));
           vector::push_back(&mut list,encoder::encode(&req.message));
@@ -43,7 +43,7 @@ use sui_rlp::decoder;
 
     }
 
-     public fun wrap_call_message(data:vector<u8>,sources:vector<String>,destinations:vector<String>): XCallEnvelope {
+    public fun wrap_call_message(data:vector<u8>,sources:vector<String>,destinations:vector<String>): XCallEnvelope {
         let envelope= XCallEnvelope {
             message_type:call_message::msg_type(),
             message:data,

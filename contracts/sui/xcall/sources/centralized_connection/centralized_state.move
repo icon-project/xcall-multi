@@ -10,12 +10,12 @@ module xcall::centralized_state {
 
    
 
-     public fun get_state_mut(states:&mut Bag,connection_id:String):&mut State {
+    public(package) fun get_state_mut(states:&mut Bag,connection_id:String):&mut State {
       let state:&mut State=bag::borrow_mut(states,connection_id);
       state
     }
 
-     public fun get_state(states:&Bag,connection_id:String):&State {
+    public fun get_state(states:&Bag,connection_id:String):&State {
       let state:&State=bag::borrow(states,connection_id);
       state
     }
@@ -86,9 +86,7 @@ module xcall::centralized_state {
         balance::join(&mut self.balance,balance);
 
     }
-
-  
-
+    
     public(package) fun claim_fees(self:&mut State,ctx:&mut TxContext){
         let total= self.balance.withdraw_all();
         let coin= coin::from_balance(total,ctx);
