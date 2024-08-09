@@ -271,9 +271,8 @@ public class CallServiceImpl implements CallService, FeeManage {
     }
 
     @External
-    public void getDefaultConnection(String _nid, Address _connection) {
-        checkCallerOrThrow(admin(), "OnlyAdmin");
-        defaultConnection.set(_nid, _connection);
+    public void getDefaultConnection(String _nid) {
+        defaultConnection.get(_nid);
     }
 
     @External(readonly = true)
