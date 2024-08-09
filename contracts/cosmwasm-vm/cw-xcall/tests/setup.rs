@@ -8,8 +8,8 @@ use cosmwasm_std::{
         mock_dependencies, mock_env, mock_info, MockApi, MockQuerier, MockStorage,
         MOCK_CONTRACT_ADDR,
     },
-    to_json_binary, Addr, BlockInfo, ContractInfo, ContractResult, Empty, Env, MessageInfo, OwnedDeps,
-    Storage, SystemResult, Timestamp, TransactionInfo, WasmQuery,
+    to_json_binary, Addr, BlockInfo, ContractInfo, ContractResult, Empty, Env, MessageInfo,
+    OwnedDeps, Storage, SystemResult, Timestamp, TransactionInfo, WasmQuery,
 };
 use cw_xcall::{
     state::CwCallService,

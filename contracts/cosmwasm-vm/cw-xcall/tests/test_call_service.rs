@@ -330,7 +330,10 @@ fn test_query_get_default_connection() {
         nid: NetId::from_str("archway").unwrap(),
     };
     let res = query(deps.as_ref(), ctx.env, msg).unwrap();
-    assert_eq!(res, to_json_binary(&Addr::unchecked("centralized")).unwrap());
+    assert_eq!(
+        res,
+        to_json_binary(&Addr::unchecked("centralized")).unwrap()
+    );
 }
 
 #[test]

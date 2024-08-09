@@ -142,7 +142,9 @@ impl<'a> CwCallService<'a> {
             },
 
             QueryMsg::GetProtocolFee {} => to_json_binary(&self.get_protocol_fee(deps.storage)),
-            QueryMsg::GetProtocolFeeHandler {} => to_json_binary(&self.get_protocol_feehandler(deps)),
+            QueryMsg::GetProtocolFeeHandler {} => {
+                to_json_binary(&self.get_protocol_feehandler(deps))
+            }
             QueryMsg::GetNetworkAddress {} => {
                 to_json_binary(&self.get_own_network_address(deps.storage, &env).unwrap())
             }

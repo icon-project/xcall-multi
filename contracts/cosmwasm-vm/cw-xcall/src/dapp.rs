@@ -1,4 +1,6 @@
-use cosmwasm_std::{to_json_binary, Addr, Binary, CosmosMsg, MessageInfo, StdError, SubMsg, WasmMsg};
+use cosmwasm_std::{
+    to_json_binary, Addr, Binary, CosmosMsg, MessageInfo, StdError, SubMsg, WasmMsg,
+};
 use cw_xcall_lib::{dapp_msg, dapp_multi_msg, network_address::NetworkAddress};
 
 use crate::{error::ContractError, state::CwCallService};

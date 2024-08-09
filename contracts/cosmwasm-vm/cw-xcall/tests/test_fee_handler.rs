@@ -91,7 +91,7 @@ fn get_protocol_fee_handler() {
     let result = contract
         .query(deps.as_ref(), env, QueryMsg::GetProtocolFeeHandler {})
         .unwrap();
-    let result: String = from_json(&result).unwrap();
+    let result: String = from_json(result).unwrap();
     assert_eq!("xyz".to_string(), result);
 }
 
@@ -146,7 +146,7 @@ fn get_protocol_fee() {
     let result = contract
         .query(deps.as_ref(), env, QueryMsg::GetProtocolFee {})
         .unwrap();
-    let result: u128 = from_json(&result).unwrap();
+    let result: u128 = from_json(result).unwrap();
     assert_eq!("123", result.to_string());
 }
 
@@ -202,6 +202,6 @@ fn get_fee() {
             },
         )
         .unwrap();
-    let result: u128 = from_json(&result).unwrap();
+    let result: u128 = from_json(result).unwrap();
     assert_eq!("223", result.to_string());
 }

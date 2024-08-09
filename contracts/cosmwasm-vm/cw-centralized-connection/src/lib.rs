@@ -73,7 +73,9 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
         QueryMsg::GetReceipt {
             src_network,
             conn_sn,
-        } => to_json_binary(&centralized_connection.get_receipt(deps.storage, src_network, conn_sn)),
+        } => {
+            to_json_binary(&centralized_connection.get_receipt(deps.storage, src_network, conn_sn))
+        }
 
         QueryMsg::Admin {} => {
             to_json_binary(&centralized_connection.admin().load(deps.storage).unwrap())

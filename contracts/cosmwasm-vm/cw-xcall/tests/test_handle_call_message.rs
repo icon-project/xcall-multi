@@ -9,7 +9,9 @@ use setup::*;
 use std::str::FromStr;
 
 use cosmwasm_std::{
-     from_json, testing::{mock_dependencies, mock_env, mock_info}, to_json_binary, Addr, Coin, CosmosMsg, Reply, SubMsgResponse, SubMsgResult, WasmMsg
+    from_json,
+    testing::{mock_dependencies, mock_env, mock_info},
+    to_json_binary, Addr, Coin, CosmosMsg, Reply, SubMsgResponse, SubMsgResult, WasmMsg,
 };
 use cw_xcall::{
     state::{CwCallService, EXECUTE_CALL_ID},
@@ -277,7 +279,7 @@ fn execute_rollback_failure() {
             msg,
             funds: _,
         }) => {
-            let r: Vec<u64> = from_json(&msg).unwrap();
+            let r: Vec<u64> = from_json(msg).unwrap();
 
             assert_eq!(vec![1, 2, 3], r)
         }

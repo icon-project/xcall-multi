@@ -7,8 +7,8 @@ pub mod types;
 
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{
-    entry_point, to_json_binary, Binary, CosmosMsg, Deps, DepsMut, Empty, Env, MessageInfo, Response,
-    StdError, StdResult, Storage, SubMsg, WasmMsg,
+    entry_point, to_json_binary, Binary, CosmosMsg, Deps, DepsMut, Empty, Env, MessageInfo,
+    Response, StdError, StdResult, Storage, SubMsg, WasmMsg,
 };
 
 use cw2::set_contract_version;
@@ -106,6 +106,8 @@ pub fn execute(
 pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
     let call_service = CwMockService::default();
     match msg {
-        QueryMsg::GetSequence {} => to_json_binary(&call_service.get_sequence(deps.storage).unwrap()),
+        QueryMsg::GetSequence {} => {
+            to_json_binary(&call_service.get_sequence(deps.storage).unwrap())
+        }
     }
 }
