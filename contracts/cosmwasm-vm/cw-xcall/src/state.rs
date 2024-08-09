@@ -1,4 +1,4 @@
-use cosmwasm_std::{from_slice, to_vec, Order};
+use cosmwasm_std::{from_json, to_json_vec, Order};
 use cw_storage_plus::{KeyDeserialize, PrimaryKey};
 use cw_xcall_lib::network_address::NetId;
 use serde::de::DeserializeOwned;
@@ -347,7 +347,7 @@ impl<'a> CwCallService<'a> {
             return Err(ContractError::CallAlreadyInProgress);
         }
 
-        let bytes = to_vec(data).map_err(ContractError::Std)?;
+        let bytes = to_json_vec(data).map_err(ContractError::Std)?;
         self.callback_data
             .save(store, id, &bytes)
             .map_err(ContractError::Std)
@@ -370,7 +370,7 @@ impl<'a> CwCallService<'a> {
             .callback_data
             .load(store, id)
             .map_err(ContractError::Std)?;
-        let data = from_slice::<T>(&bytes).map_err(ContractError::Std)?;
+        let data = from_json::<T>(&bytes).map_err(ContractError::Std)?;
         Ok(data)
     }
 

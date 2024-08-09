@@ -26,6 +26,7 @@ import com.iconloop.score.test.Score;
 import com.iconloop.score.test.ServiceManager;
 import com.iconloop.score.test.TestBase;
 
+import score.Address;
 import foundation.icon.xcall.messages.CallMessageWithRollback;
 import foundation.icon.xcall.messages.Message;
 import foundation.icon.xcall.messages.PersistentMessage;
@@ -811,6 +812,17 @@ public class CallServiceTest extends TestBase {
     }
 
     @Test
+    public void setGetDefaultCOnnection() throws Exception {
+        // Arrange
+        String nid = "nid";
+
+        xcall.invoke(owner, "setDefaultConnection", nid, baseConnection.getAddress());
+        Address connection =  xcall.call(Address.class, "getDefaultConnection", nid);
+        // Assert
+        assertEquals(connection, baseConnection.getAddress());
+    }
+
+    @Test
     public void getFee_defaultProtocol_notSet() throws Exception {
         // Arrange
         String nid = "nid";
@@ -818,6 +830,8 @@ public class CallServiceTest extends TestBase {
         // Act & Assert
         UserRevertedException e = assertThrows(UserRevertedException.class, ()-> xcall.call(BigInteger.class, "getFee", nid, true));
         assertEquals("Reverted(0): NoDefaultConnection", e.getMessage());
+
+
     }
 
     @Test

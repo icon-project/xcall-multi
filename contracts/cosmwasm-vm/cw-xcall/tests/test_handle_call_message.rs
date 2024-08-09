@@ -9,9 +9,9 @@ use setup::*;
 use std::str::FromStr;
 
 use cosmwasm_std::{
-    from_binary,
+    from_json,
     testing::{mock_dependencies, mock_env, mock_info},
-    to_binary, Addr, Coin, CosmosMsg, Reply, SubMsgResponse, SubMsgResult, WasmMsg,
+    to_json_binary, Addr, Coin, CosmosMsg, Reply, SubMsgResponse, SubMsgResult, WasmMsg,
 };
 use cw_xcall::{
     state::{CwCallService, EXECUTE_CALL_ID},
@@ -279,7 +279,7 @@ fn execute_rollback_failure() {
             msg,
             funds: _,
         }) => {
-            let r: Vec<u64> = from_binary(&msg).unwrap();
+            let r: Vec<u64> = from_json(msg).unwrap();
 
             assert_eq!(vec![1, 2, 3], r)
         }
@@ -332,7 +332,7 @@ fn test_persisted_message_removed_on_success() {
         id: EXECUTE_CALL_ID,
         result: SubMsgResult::Ok(SubMsgResponse {
             events: vec![],
-            data: to_binary(&1).ok(),
+            data: to_json_binary(&1).ok(),
         }),
     };
 
@@ -392,7 +392,7 @@ fn test_handle_reply_fail() {
         Addr::unchecked("dapp"),
         1,
         MessageType::CallMessage,
-        keccak256(&vec![1, 2, 3]).to_vec(),
+        keccak256(&[1, 2, 3]).to_vec(),
         vec![],
     );
     let rollback = get_dummy_rollback_data();
@@ -447,13 +447,13 @@ fn test_handle_request_from_multiple_protocols() {
         Addr::unchecked("dapp"),
         1,
         MessageType::CallMessage,
-        keccak256(&vec![1, 2, 3]).to_vec(),
+        keccak256(&[1, 2, 3]).to_vec(),
         vec!["centralized".to_string(), "ibc".to_string()],
     );
 
     let nid = NetId::from_str("archway").unwrap();
     for protocol in request.protocols() {
-        let info = create_mock_info(&protocol, "icx", 100);
+        let info = create_mock_info(protocol, "icx", 100);
         let res = contract
             .handle_request(deps.as_mut(), info, nid.clone(), &request.as_bytes())
             .unwrap();
@@ -525,7 +525,7 @@ fn test_handle_result_from_multiple_protocols() {
     let msg = get_dummy_result_message().as_bytes();
 
     for protocol in rollback.protocols() {
-        let info = create_mock_info(&protocol, "arch", 100);
+        let info = create_mock_info(protocol, "arch", 100);
         let res = contract.handle_result(deps.as_mut(), info, &msg).unwrap();
         if protocol == "centralized" {
             assert_eq!(res.attributes.len(), 0);

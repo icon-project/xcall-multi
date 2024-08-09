@@ -51,7 +51,7 @@ impl Rollback {
     }
 
     pub fn is_null(&self) -> bool {
-        let r = to_binary(self).unwrap();
+        let r = to_json_binary(self).unwrap();
         r.is_empty()
     }
     pub fn set_enabled(&mut self) {

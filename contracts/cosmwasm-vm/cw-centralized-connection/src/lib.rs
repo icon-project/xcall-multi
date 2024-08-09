@@ -7,11 +7,10 @@ pub mod types;
 
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{
-    entry_point, to_binary, Binary, CosmosMsg, Deps, DepsMut, Empty, Env, MessageInfo, Reply,
+    entry_point, to_json_binary, Binary, CosmosMsg, Deps, DepsMut, Empty, Env, MessageInfo, Reply,
     Response, StdError, StdResult, Storage, SubMsg, WasmMsg,
 };
 
-pub use contract::*;
 use cw2::set_contract_version;
 use cw_storage_plus::{Item, Map};
 pub use errors::*;
@@ -65,7 +64,7 @@ pub fn execute(
 pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
     let centralized_connection = CwCentralizedConnection::default();
     match msg {
-        QueryMsg::GetFee { nid, response } => to_binary(
+        QueryMsg::GetFee { nid, response } => to_json_binary(
             &centralized_connection
                 .get_fee(deps.storage, nid, response)
                 .unwrap(),
@@ -74,10 +73,12 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
         QueryMsg::GetReceipt {
             src_network,
             conn_sn,
-        } => to_binary(&centralized_connection.get_receipt(deps.storage, src_network, conn_sn)),
+        } => {
+            to_json_binary(&centralized_connection.get_receipt(deps.storage, src_network, conn_sn))
+        }
 
         QueryMsg::Admin {} => {
-            to_binary(&centralized_connection.admin().load(deps.storage).unwrap())
+            to_json_binary(&centralized_connection.admin().load(deps.storage).unwrap())
         }
     }
 }

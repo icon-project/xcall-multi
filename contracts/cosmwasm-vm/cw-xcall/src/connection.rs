@@ -1,7 +1,7 @@
 use crate::types::{message::CSMessage, LOG_PREFIX};
 use common::rlp;
 use cosmwasm_std::{
-    to_binary, Addr, Coin, CosmosMsg, Deps, DepsMut, QueryRequest, SubMsg, WasmMsg,
+    to_json_binary, Addr, Coin, CosmosMsg, Deps, DepsMut, QueryRequest, SubMsg, WasmMsg,
 };
 use cosmwasm_std::{MessageInfo, Response};
 use cw_xcall_lib::network_address::NetId;
@@ -27,7 +27,7 @@ impl<'a> CwCallService<'a> {
 
         let cosm_msg = CosmosMsg::Wasm(WasmMsg::Execute {
             contract_addr: address.to_string(),
-            msg: to_binary(&message).map_err(ContractError::Std)?,
+            msg: to_json_binary(&message).map_err(ContractError::Std)?,
             funds: fee,
         });
         let submessage = SubMsg {
@@ -54,7 +54,7 @@ impl<'a> CwCallService<'a> {
 
         let query_request = QueryRequest::Wasm(cosmwasm_std::WasmQuery::Smart {
             contract_addr: address.to_string(),
-            msg: to_binary(&query_message).map_err(ContractError::Std)?,
+            msg: to_json_binary(&query_message).map_err(ContractError::Std)?,
         });
         let fee: u128 = deps
             .querier
