@@ -243,27 +243,7 @@ describe("CentralizedConnection", () => {
         admin: xcallConfig.admin,
         proxyRequest: XcallPDA.proxyRequest(nextReqId).pda,
       })
-      .remainingAccounts([
-        // ACCOUNTS TO CALL SEND_CALL FROM DAPP
-        // {
-        //   pubkey: XcallPDA.config().pda,
-        //   isWritable: true,
-        //   isSigner: false,
-        // },
-        // {
-        //   pubkey: xcallConfig.feeHandler,
-        //   isWritable: true,
-        //   isSigner: false,
-        // },
-        // {
-        //   pubkey: xcallProgram.programId,
-        //   isWritable: false,
-        //   isSigner: false,
-        // },
-
-        // ACCOUNTS TO CALL CONNECTION SEND_MESSAGE
-        ...executeCallAccounts.slice(4),
-      ])
+      .remainingAccounts([...executeCallAccounts.slice(4)])
       .signers([ctx.admin])
       .rpc();
   });
@@ -291,8 +271,14 @@ describe("CentralizedConnection", () => {
         systemProgram: SYSTEM_PROGRAM_ID,
         connectionsAccount: DappPDA.connections("icon").pda,
         sender: ctx.admin.publicKey,
+        authority: DappPDA.authority().pda,
       })
       .remainingAccounts([
+        {
+          pubkey: SYSVAR_INSTRUCTIONS_ID,
+          isSigner: false,
+          isWritable: false,
+        },
         {
           pubkey: XcallPDA.config().pda,
           isSigner: false,
@@ -307,11 +293,6 @@ describe("CentralizedConnection", () => {
           pubkey: XcallPDA.rollback(nextSequenceNo).pda,
           isSigner: false,
           isWritable: true,
-        },
-        {
-          pubkey: SYSVAR_INSTRUCTIONS_ID,
-          isSigner: false,
-          isWritable: false,
         },
         {
           pubkey: connectionProgram.programId,
@@ -418,8 +399,14 @@ describe("CentralizedConnection", () => {
         systemProgram: SYSTEM_PROGRAM_ID,
         connectionsAccount: DappPDA.connections(ctx.dstNetworkId).pda,
         sender: ctx.admin.publicKey,
+        authority: DappPDA.authority().pda,
       })
       .remainingAccounts([
+        {
+          pubkey: SYSVAR_INSTRUCTIONS_ID,
+          isSigner: false,
+          isWritable: false,
+        },
         {
           pubkey: XcallPDA.config().pda,
           isSigner: false,
@@ -434,11 +421,6 @@ describe("CentralizedConnection", () => {
           pubkey: XcallPDA.rollback(nextSequenceNo).pda,
           isSigner: false,
           isWritable: true,
-        },
-        {
-          pubkey: SYSVAR_INSTRUCTIONS_ID,
-          isSigner: false,
-          isWritable: false,
         },
         {
           pubkey: connectionProgram.programId,
@@ -579,8 +561,14 @@ describe("CentralizedConnection", () => {
         systemProgram: SYSTEM_PROGRAM_ID,
         connectionsAccount: DappPDA.connections(ctx.dstNetworkId).pda,
         sender: ctx.admin.publicKey,
+        authority: DappPDA.authority().pda,
       })
       .remainingAccounts([
+        {
+          pubkey: SYSVAR_INSTRUCTIONS_ID,
+          isSigner: false,
+          isWritable: false,
+        },
         {
           pubkey: XcallPDA.config().pda,
           isSigner: false,
@@ -595,11 +583,6 @@ describe("CentralizedConnection", () => {
           pubkey: XcallPDA.rollback(nextSequenceNo).pda,
           isSigner: false,
           isWritable: true,
-        },
-        {
-          pubkey: SYSVAR_INSTRUCTIONS_ID,
-          isSigner: false,
-          isWritable: false,
         },
         {
           pubkey: connectionProgram.programId,

@@ -12,13 +12,12 @@ use anchor_lang::{
 use xcall_lib::{
     network_address::NetworkAddress,
     query_account_type::{AccountMetadata, QueryAccountsPaginateResponse, QueryAccountsResponse},
-    xcall_connection_type::QUERY_SEND_MESSAGE_ACCOUNTS_IX,
-    xcall_dapp_type::QUERY_HANDLE_CALL_MESSAGE_IX,
 };
 
 use crate::{
+    connection, dapp,
     error::*,
-    helper, id,
+    id,
     state::*,
     types::{
         message::{CSMessage, CSMessageType},
@@ -144,6 +143,8 @@ pub fn query_execute_call_accounts(
     limit: u8,
 ) -> Result<QueryAccountsPaginateResponse> {
     let config = &ctx.accounts.config;
+    let req = &ctx.accounts.proxy_request.req;
+
     let (proxy_request, _) = Pubkey::find_program_address(
         &[ProxyRequest::SEED_PREFIX.as_bytes(), &req_id.to_be_bytes()],
         &id(),
@@ -156,12 +157,13 @@ pub fn query_execute_call_accounts(
         AccountMetadata::new(proxy_request, false),
     ];
 
-    let protocols = ctx.accounts.proxy_request.req.protocols();
+    let conn_ix_data = connection::get_query_send_message_accounts_ix_data(
+        &req.from().nid(),
+        -(req.sequence_no() as i64),
+        Vec::new(),
+    )?;
 
-    let conn_ix_data =
-        get_query_send_message_accounts_ix_data(ctx.accounts.proxy_request.req.from().nid())?;
-
-    for (i, source) in protocols.iter().enumerate() {
+    for (i, source) in req.protocols().iter().enumerate() {
         let connection_key = Pubkey::from_str(&source).map_err(|_| XcallError::InvalidPubkey)?;
 
         let res = query_connection_send_message_accoounts(
@@ -176,20 +178,17 @@ pub fn query_execute_call_accounts(
         account_metadata.append(&mut res_accounts);
     }
 
-    let proxy_req = &ctx.accounts.proxy_request.req;
-
-    let dapp_ix_data = get_query_handle_call_message_ix_data(
-        proxy_req.from().to_owned(),
+    let dapp_key = Pubkey::from_str(req.to()).map_err(|_| XcallError::InvalidPubkey)?;
+    let dapp_ix_data = dapp::get_query_handle_call_message_accounts_ix_data(
+        req.from().to_owned(),
         data,
-        protocols.clone(),
+        req.protocols(),
     )?;
-
-    let dapp_key = Pubkey::from_str(proxy_req.to()).map_err(|_| XcallError::InvalidPubkey)?;
 
     let res = query_dapp_handle_call_message_accounts(
         dapp_key,
         dapp_ix_data,
-        &ctx.remaining_accounts[(protocols.len())..],
+        &ctx.remaining_accounts[(req.protocols().len())..],
     )?;
 
     let mut res_accounts = res.accounts;
@@ -219,7 +218,7 @@ pub fn query_execute_rollback_accounts(
         AccountMetadata::new(rollback_account.key(), false),
     ];
 
-    let ix_data = get_query_handle_call_message_ix_data(
+    let ix_data = dapp::get_query_handle_call_message_accounts_ix_data(
         NetworkAddress::new(&config.network_id, &id().to_string()),
         rollback.rollback().to_owned(),
         rollback.protocols().clone(),
@@ -330,32 +329,6 @@ pub fn query_connection_send_message_accoounts<'info>(
     Ok(res)
 }
 
-pub fn get_query_send_message_accounts_ix_data(dst_network: String) -> Result<Vec<u8>> {
-    let mut ix_args_data = vec![];
-    let ix_args = QuerySendMessage { to: dst_network };
-    ix_args.serialize(&mut ix_args_data)?;
-
-    let ix_data = helper::get_instruction_data(QUERY_SEND_MESSAGE_ACCOUNTS_IX, ix_args_data);
-    Ok(ix_data)
-}
-
-pub fn get_query_handle_call_message_ix_data(
-    from: NetworkAddress,
-    data: Vec<u8>,
-    protocols: Vec<String>,
-) -> Result<Vec<u8>> {
-    let mut ix_args_data = vec![];
-    let ix_args = xcall_lib::xcall_dapp_type::HandleCallMessageArgs {
-        from,
-        data,
-        protocols,
-    };
-    ix_args.serialize(&mut ix_args_data)?;
-
-    let ix_data = helper::get_instruction_data(QUERY_HANDLE_CALL_MESSAGE_IX, ix_args_data);
-    Ok(ix_data)
-}
-
 #[derive(Accounts)]
 #[instruction(req_id: u128, data: Vec<u8>)]
 pub struct QueryExecuteCallAccountsCtx<'info> {
@@ -418,9 +391,4 @@ pub struct QueryHandleErrorAccountsCtx<'info> {
         bump
     )]
     pub rollback_account: Account<'info, RollbackAccount>,
-}
-
-#[derive(Debug, Default, PartialEq, Eq, Clone, AnchorSerialize, AnchorDeserialize)]
-pub struct QuerySendMessage {
-    to: String,
 }

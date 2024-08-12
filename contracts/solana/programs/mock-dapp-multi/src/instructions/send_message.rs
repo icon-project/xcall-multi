@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
-use xcall_lib::{message::envelope::Envelope, network_address::*};
+use xcall_lib::{message::envelope::Envelope, network_address::*, xcall_dapp_type};
 
-use crate::{helpers, xcall, Config, Connection, Connections};
+use crate::{helpers, xcall, state::*};
 
 pub fn send_message<'info>(
     ctx: Context<'_, '_, '_, 'info, CallMessageCtx<'info>>,
@@ -22,6 +22,7 @@ pub fn send_message<'info>(
         &ix_data,
         &ctx.accounts.config,
         &ctx.accounts.sender,
+        &ctx.accounts.authority,
         &ctx.accounts.system_program,
         &ctx.remaining_accounts,
     )
@@ -55,6 +56,15 @@ pub struct InitializeCtx<'info> {
     )]
     pub config: Account<'info, Config>,
 
+    #[account(
+        init,
+        payer = sender,
+        space = Authority::MAX_SPACE,
+        seeds = [xcall_dapp_type::DAPP_AUTHORITY_SEED.as_bytes()],
+        bump
+    )]
+    pub authority: Account<'info, Authority>,
+
     #[account(mut)]
     pub sender: Signer<'info>,
 
@@ -70,6 +80,12 @@ pub struct CallMessageCtx<'info> {
         bump
     )]
     pub config: Account<'info, Config>,
+
+    #[account(
+        seeds = [xcall_dapp_type::DAPP_AUTHORITY_SEED.as_bytes()],
+        bump
+    )]
+    pub authority: Account<'info, Authority>,
 
     #[account(
         mut,

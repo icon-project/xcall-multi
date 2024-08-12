@@ -2,6 +2,8 @@ use anchor_lang::prelude::*;
 
 use crate::network_address::NetworkAddress;
 
+pub const DAPP_AUTHORITY_SEED: &str = "dapp_authority";
+
 pub const HANDLE_CALL_MESSAGE_IX: &str = "handle_call_message";
 
 pub const QUERY_HANDLE_CALL_MESSAGE_IX: &str = "query_handle_call_message_accounts";

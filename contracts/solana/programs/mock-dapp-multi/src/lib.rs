@@ -1,6 +1,7 @@
 use anchor_lang::prelude::*;
 use xcall_lib::{network_address::*, query_account_type::QueryAccountsResponse, xcall_dapp_type};
 
+pub mod constants;
 pub mod error;
 pub mod event;
 pub mod helpers;
@@ -24,6 +25,9 @@ pub mod mock_dapp_multi {
             sn: 0,
             bump: ctx.bumps.config,
         });
+        ctx.accounts.authority.set_inner(Authority {
+            bump: ctx.bumps.authority,
+        });
         Ok(())
     }
 
@@ -37,6 +41,7 @@ pub mod mock_dapp_multi {
         let _ = instructions::send_message::send_message(ctx, to, data, msg_type, rollback);
         Ok(())
     }
+
     pub fn handle_call_message<'info>(
         ctx: Context<'_, '_, '_, 'info, HandleCallMessageCtx<'info>>,
         from: NetworkAddress,
@@ -74,21 +79,4 @@ pub mod mock_dapp_multi {
     ) -> Result<QueryAccountsResponse> {
         instructions::query_handle_call_message_accounts(ctx)
     }
-}
-
-#[derive(Accounts)]
-pub struct InitializeCtx<'info> {
-    #[account(
-        init,
-        payer = sender,
-        space = Config::MAX_SPACE,
-        seeds = [Config::SEED_PREFIX.as_bytes()],
-        bump
-    )]
-    pub config: Account<'info, Config>,
-
-    #[account(mut)]
-    pub sender: Signer<'info>,
-
-    pub system_program: Program<'info, System>,
 }

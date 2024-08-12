@@ -117,11 +117,14 @@ pub mod centralized_connection {
         Ok(())
     }
 
+    #[allow(unused_variables)]
     pub fn query_send_message_accounts<'info>(
         ctx: Context<'_, '_, '_, 'info, QueryAccountsCtx<'info>>,
-        dst_network: String,
+        to: String,
+        sn: i64,
+        msg: Vec<u8>,
     ) -> Result<QueryAccountsResponse> {
-        instructions::query_send_message_accounts(ctx, dst_network)
+        instructions::query_send_message_accounts(ctx, to)
     }
 
     pub fn query_recv_message_accounts<'info>(

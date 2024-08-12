@@ -56,7 +56,8 @@ describe("xcall - send message", () => {
         systemProgram: SYSTEM_PROGRAM_ID,
         config: XcallPDA.config().pda,
         signer: wallet.payer.publicKey,
-        rollbackAccount: XcallPDA.rollback(nextSequence).pda,
+        dappAuthority: xcallProgram.programId,
+        rollbackAccount: null,
         instructionSysvar: SYSVAR_INSTRUCTIONS_ID,
         feeHandler: ctx.feeHandler.publicKey,
       })

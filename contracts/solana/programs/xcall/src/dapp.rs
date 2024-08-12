@@ -1,5 +1,3 @@
-use std::vec;
-
 use anchor_lang::{
     prelude::*,
     solana_program::{
@@ -9,7 +7,9 @@ use anchor_lang::{
 };
 use xcall_lib::{
     network_address::NetworkAddress,
-    xcall_dapp_type::{self, HandleCallMessageResponse, HANDLE_CALL_MESSAGE_IX},
+    xcall_dapp_type::{
+        self, HandleCallMessageResponse, HANDLE_CALL_MESSAGE_IX, QUERY_HANDLE_CALL_MESSAGE_IX,
+    },
 };
 
 use crate::{error::XcallError, event, helper, state::*, types::result::CSResponseType};
@@ -82,5 +82,22 @@ pub fn get_handle_call_message_ix_data(
     ix_args.serialize(&mut ix_args_data)?;
 
     let ix_data = helper::get_instruction_data(HANDLE_CALL_MESSAGE_IX, ix_args_data);
+    Ok(ix_data)
+}
+
+pub fn get_query_handle_call_message_accounts_ix_data(
+    from: NetworkAddress,
+    data: Vec<u8>,
+    protocols: Vec<String>,
+) -> Result<Vec<u8>> {
+    let mut ix_args_data = vec![];
+    let ix_args = xcall_dapp_type::HandleCallMessageArgs {
+        from,
+        data,
+        protocols,
+    };
+    ix_args.serialize(&mut ix_args_data)?;
+
+    let ix_data = helper::get_instruction_data(QUERY_HANDLE_CALL_MESSAGE_IX, ix_args_data);
     Ok(ix_data)
 }
