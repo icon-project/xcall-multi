@@ -31,11 +31,11 @@ module xcall::xcall_state {
     public fun get_id_cap_xcall(cap:&IDCap):ID {
         cap.xcall_id
     }
-     public struct AdminCap has key {
+     public struct AdminCap has key,store {
         id: UID
     }
 
-    public struct ConnCap has key {
+    public struct ConnCap has key,store {
         id:UID,
         xcall_id:ID,
         connection_id:String,
