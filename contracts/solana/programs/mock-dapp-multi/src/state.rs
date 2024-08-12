@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use xcall_lib::network_address::NetworkAddress;
+use xcall_lib::xcall_dapp_type;
 
 #[account]
 pub struct Config {
@@ -23,12 +23,6 @@ impl Connections {
     pub const MAX_SPACE: usize = 4 + 256 + 4 + 256;
 }
 
-#[derive(Clone, AnchorSerialize, AnchorDeserialize)]
-pub struct SendMessageArgs {
-    pub msg: Vec<u8>,
-    pub to: NetworkAddress,
-}
-
 #[account]
 #[derive(Debug)]
 pub struct Connection {
@@ -36,15 +30,12 @@ pub struct Connection {
     pub dst_endpoint: String,
 }
 
-#[event]
-pub struct MessageReceived {
-    pub from: String,
-    pub data: Vec<u8>,
+#[account]
+pub struct Authority {
+    pub bump: u8,
 }
 
-#[event]
-pub struct RollbackDataReceived {
-    pub from: String,
-    pub ssn: u128,
-    pub rollback: Vec<u8>,
+impl Authority {
+    pub const SEED_PREFIX: &'static str = xcall_dapp_type::DAPP_AUTHORITY_SEED;
+    pub const MAX_SPACE: usize = 8 + 1;
 }

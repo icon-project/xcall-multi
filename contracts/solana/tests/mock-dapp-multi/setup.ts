@@ -42,6 +42,7 @@ export class TestContext {
       .signers([this.signer])
       .accountsStrict({
         sender: this.signer.publicKey,
+        authority: DappPDA.authority().pda,
         systemProgram: SYSTEM_PROGRAM_ID,
         config: DappPDA.config().pda,
       })
@@ -99,5 +100,14 @@ export class DappPDA {
     );
 
     return { pda, bump };
+  }
+
+  static authority() {
+    let [pda, bump] = PublicKey.findProgramAddressSync(
+      [Buffer.from("dapp_authority")],
+      dappProgram.programId
+    );
+
+    return { bump, pda };
   }
 }

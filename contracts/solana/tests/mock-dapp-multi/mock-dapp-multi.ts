@@ -45,6 +45,11 @@ describe("Mock Dapp", () => {
 
     let remaining_accounts = [
       {
+        pubkey: SYSVAR_INSTRUCTIONS_ID,
+        isSigner: false,
+        isWritable: false,
+      },
+      {
         pubkey: XcallPDA.config().pda,
         isSigner: false,
         isWritable: true,
@@ -55,14 +60,7 @@ describe("Mock Dapp", () => {
         isWritable: true,
       },
       {
-        pubkey: XcallPDA.rollback(
-          (await xcall_context.getConfig()).sequenceNo.toNumber() + 1
-        ).pda,
-        isSigner: false,
-        isWritable: true,
-      },
-      {
-        pubkey: SYSVAR_INSTRUCTIONS_ID,
+        pubkey: xcallProgram.programId,
         isSigner: false,
         isWritable: false,
       },
@@ -100,6 +98,7 @@ describe("Mock Dapp", () => {
         systemProgram: SYSTEM_PROGRAM_ID,
         connectionsAccount: DappPDA.connections(ctx.networkId).pda,
         sender: wallet.payer.publicKey,
+        authority: DappPDA.authority().pda,
       })
       .remainingAccounts(remaining_accounts)
       .instruction();

@@ -8,6 +8,12 @@ pub enum XcallError {
     #[msg("Invalid admin key")]
     InvalidAdminKey,
 
+    #[msg("Invalid few handler")]
+    InvalidFeeHandler,
+
+    #[msg("Invalid signer")]
+    InvalidSigner,
+
     #[msg("Maximum rollback data size exceeded")]
     MaxRollbackSizeExceeded,
 
@@ -25,6 +31,9 @@ pub enum XcallError {
 
     #[msg("Rollback account is not specified")]
     RollbackAccountNotSpecified,
+
+    #[msg("Rollback account must not be specified")]
+    RollbackAccountMustNotBeSpecified,
 
     #[msg("Rollback account creator not specified")]
     RollbackCreatorNotSpecified,
@@ -47,11 +56,17 @@ pub enum XcallError {
     #[msg("Successful response account is not specified")]
     SuccessfulResponseAccountNotSpecified,
 
+    #[msg("Dapp authority not provided")]
+    DappAuthorityNotProvided,
+
     #[msg("Protocol mismatch")]
     ProtocolMismatch,
 
-    #[msg("Connection protocol not specified")]
-    ProtocolNotSpecified,
+    #[msg("Source protocols not specified")]
+    SourceProtocolsNotSpecified,
+
+    #[msg("Destination protocols not specified")]
+    DestinationProtocolsNotSpecified,
 
     #[msg("Rollback not possible")]
     RollbackNotPossible,

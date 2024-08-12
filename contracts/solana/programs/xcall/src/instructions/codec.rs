@@ -30,6 +30,7 @@ pub fn decode_cs_message(message: Vec<u8>) -> Result<CSMessageDecoded> {
 }
 
 #[derive(Accounts)]
-pub struct EmptyContext<'info> {
+pub struct DecodeCSMessageContext<'info> {
+    /// The solana system program account, used for creating and managing accounts.
     pub system_program: Program<'info, System>,
 }

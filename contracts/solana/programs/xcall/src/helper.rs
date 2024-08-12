@@ -2,6 +2,7 @@ use anchor_lang::{
     prelude::*,
     solana_program::{hash, sysvar::instructions::get_instruction_relative},
 };
+use xcall_lib::xcall_dapp_type::DAPP_AUTHORITY_SEED;
 
 use crate::{constants::*, error::*};
 
@@ -26,13 +27,23 @@ pub fn ensure_rollback_size(rollback: &[u8]) -> Result<()> {
     Ok(())
 }
 
-pub fn ensure_program(sysvar_account_info: &AccountInfo) -> Result<()> {
-    let current_ix = get_instruction_relative(0, sysvar_account_info)?;
-    if current_ix.program_id == crate::id() {
-        return Err(XcallError::RollbackNotPossible.into());
+pub fn ensure_dapp_authority(dapp_program_id: &Pubkey, dapp_authority_key: Pubkey) -> Result<()> {
+    let (derived_key, _) =
+        Pubkey::find_program_address(&[DAPP_AUTHORITY_SEED.as_bytes()], &dapp_program_id);
+    if derived_key != dapp_authority_key {
+        return Err(XcallError::InvalidSigner.into());
     }
 
     Ok(())
+}
+
+pub fn is_program(sysvar_account_info: &AccountInfo) -> Result<bool> {
+    let current_ix = get_instruction_relative(0, sysvar_account_info)?;
+    if current_ix.program_id != crate::id() {
+        return Ok(true);
+    }
+
+    Ok(false)
 }
 
 pub fn hash_data(data: &Vec<u8>) -> Vec<u8> {

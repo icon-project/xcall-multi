@@ -60,8 +60,14 @@ describe("CentralizedConnection", () => {
         systemProgram: SYSTEM_PROGRAM_ID,
         connectionsAccount: DappPDA.connections(ctx.dstNetworkId).pda,
         sender: ctx.admin.publicKey,
+        authority: DappPDA.authority().pda,
       })
       .remainingAccounts([
+        {
+          pubkey: SYSVAR_INSTRUCTIONS_ID,
+          isSigner: false,
+          isWritable: false,
+        },
         {
           pubkey: XcallPDA.config().pda,
           isSigner: false,
@@ -76,11 +82,6 @@ describe("CentralizedConnection", () => {
           pubkey: XcallPDA.rollback(nextSequenceNo).pda,
           isSigner: false,
           isWritable: true,
-        },
-        {
-          pubkey: SYSVAR_INSTRUCTIONS_ID,
-          isSigner: false,
-          isWritable: false,
         },
         {
           pubkey: connectionProgram.programId,

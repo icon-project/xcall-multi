@@ -1,11 +1,7 @@
 use anchor_lang::prelude::*;
-use xcall_lib::{
-    message::{call_message::CallMessage, envelope::Envelope, AnyMessage},
-    network_address::NetworkAddress,
-    xcall_dapp_type::HandleCallMessageResponse,
-};
+use xcall_lib::{network_address::NetworkAddress, xcall_dapp_type::HandleCallMessageResponse};
 
-use crate::{state::*, xcall};
+use crate::state::*;
 
 use std::str;
 
@@ -29,25 +25,6 @@ pub fn handle_call_message<'info>(
             success: false,
             message: "Revert from dapp".to_owned(),
         });
-    } else {
-        if msg_data == "reply-response" {
-            let message = AnyMessage::CallMessage(CallMessage {
-                data: vec![1, 2, 3],
-            });
-
-            let envelope = Envelope::new(message, Vec::new(), Vec::new());
-            let msg = rlp::encode(&envelope).to_vec();
-
-            let ix_data = xcall::get_send_call_ix_data(msg, from)?;
-
-            xcall::call_xcall_send_call(
-                &ix_data,
-                &ctx.accounts.config,
-                &ctx.accounts.signer,
-                &ctx.accounts.system_program,
-                &ctx.remaining_accounts,
-            )?;
-        }
     }
 
     return Ok(HandleCallMessageResponse {
