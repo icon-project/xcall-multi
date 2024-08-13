@@ -36,7 +36,9 @@ module xcall::xcall_utils {
    public fun address_to_hex_string(address:&address): String {
         let bytes = bcs::to_bytes(address);
         let hex_bytes = hex::encode(bytes);
-        string::utf8(hex_bytes)
+        let mut prefix = string::utf8(b"0x");
+        prefix.append(string::utf8(hex_bytes));
+        prefix
     }
 
     public fun address_from_hex_string(str: &String): address {
