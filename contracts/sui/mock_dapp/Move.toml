@@ -1,5 +1,5 @@
 [addresses]
-  mock_dapp = '0x7545f1a2cd73437e731b73b718ebbf13c440880fb811dbdef53a76b8586ccb8f'
+  mock_dapp = '0xb3bcf633835681a2e27049ada34ea02b95811e27c8698b208f317dbb16d6e754'
 
 [dependencies]
   [dependencies.Sui]
@@ -17,4 +17,4 @@
 [package]
   edition = '2024.beta'
   name = 'mock_dapp'
-  published-at = '0x7545f1a2cd73437e731b73b718ebbf13c440880fb811dbdef53a76b8586ccb8f'
+  published-at = '0xb3bcf633835681a2e27049ada34ea02b95811e27c8698b208f317dbb16d6e754'
