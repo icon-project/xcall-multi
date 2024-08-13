@@ -54,7 +54,7 @@ module xcall::main {
     const EInvalidConnectionId:u64 =15;
 
     const MAX_DATA_SIZE: u64 = 2048;
-    const CURRENT_VERSION: u64 = 1;
+    const CURRENT_VERSION: u64 = 2;
 
     /*************Events*****************/
 
