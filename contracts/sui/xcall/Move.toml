@@ -1,5 +1,5 @@
 [addresses]
-  xcall = '0xba481bcd34c4c236b1ccda9d8cb549f03a80260d794285f2b2a6798170d8375d'
+  xcall = '0x1c53e2304b957a2dc6facccc53d2dd3c2e08066614ea05a5c0af14d72ac496e3'
 
 [dependencies]
   [dependencies.Sui]
@@ -17,4 +17,4 @@
 [package]
   edition = '2024.alpha'
   name = 'xcall'
-  published-at = '0xba481bcd34c4c236b1ccda9d8cb549f03a80260d794285f2b2a6798170d8375d'
+  published-at = '0x1c53e2304b957a2dc6facccc53d2dd3c2e08066614ea05a5c0af14d72ac496e3'
