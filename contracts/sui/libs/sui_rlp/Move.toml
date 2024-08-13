@@ -4,7 +4,7 @@
 [dependencies]
   [dependencies.Sui]
     git = 'https://github.com/MystenLabs/sui.git'
-    rev = 'framework/testnet'
+    rev = 'framework/mainnet'
     subdir = 'crates/sui-framework/packages/sui-framework'
 
 [dev-addresses]
