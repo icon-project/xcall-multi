@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use xcall_lib::{network_address::NetworkAddress, xcall_dapp_type::HandleCallMessageResponse};
 
-use crate::state::*;
+use crate::{error::*, state::*};
 
 use std::str;
 
@@ -37,6 +37,11 @@ pub fn handle_call_message<'info>(
 pub struct HandleCallMessageCtx<'info> {
     #[account(mut)]
     pub signer: Signer<'info>,
+
+    #[account(
+        owner = config.xcall_address @ DappError::OnlyXcall
+    )]
+    pub xcall: Signer<'info>,
 
     pub system_program: Program<'info, System>,
 

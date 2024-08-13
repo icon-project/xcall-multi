@@ -19,9 +19,9 @@ declare_id!("FiVbT6SdmDt6tiARaCdxvD1q9wY8GZEiw2xbdVA5kNF7");
 pub mod mock_dapp_multi {
     use super::*;
 
-    pub fn initialize(ctx: Context<InitializeCtx>, _xcall_address: Pubkey) -> Result<()> {
+    pub fn initialize(ctx: Context<InitializeCtx>, xcall_address: Pubkey) -> Result<()> {
         ctx.accounts.config.set_inner(Config {
-            xcall_address: _xcall_address,
+            xcall_address,
             sn: 0,
             bump: ctx.bumps.config,
         });
