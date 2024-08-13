@@ -39,8 +39,12 @@ pub fn invoke_handle_call_message_ix<'info>(
     signer: &Signer<'info>,
     remaining_accounts: &[AccountInfo<'info>],
 ) -> Result<xcall_dapp_type::HandleCallMessageResponse> {
-    let mut account_metas: Vec<AccountMeta> = vec![AccountMeta::new(signer.key(), true)];
-    let mut account_infos: Vec<AccountInfo<'info>> = vec![signer.to_account_info()];
+    let mut account_metas: Vec<AccountMeta> = vec![
+        AccountMeta::new(signer.key(), true),
+        AccountMeta::new_readonly(config.key(), true),
+    ];
+    let mut account_infos: Vec<AccountInfo<'info>> =
+        vec![signer.to_account_info(), config.to_account_info()];
     for account in remaining_accounts {
         if account.is_writable {
             account_metas.push(AccountMeta::new(account.key(), account.is_signer))
