@@ -231,11 +231,7 @@ describe("CentralizedConnection", () => {
     );
 
     await xcallProgram.methods
-      .executeCall(
-        new anchor.BN(nextReqId),
-        Buffer.from(data),
-        ctx.dstNetworkId
-      )
+      .executeCall(new anchor.BN(nextReqId), Buffer.from(data))
       .accounts({
         signer: ctx.admin.publicKey,
         systemProgram: SYSTEM_PROGRAM_ID,
@@ -384,7 +380,7 @@ describe("CentralizedConnection", () => {
   });
 
   it("[recv_message]: should receive message and execute rollback", async () => {
-    let data = Buffer.from("rollback", "utf-8");
+    let data = Buffer.from("rollback_data", "utf-8");
 
     let xcallConfig = await xcallCtx.getConfig();
     let nextSequenceNo = xcallConfig.sequenceNo.toNumber() + 1;
