@@ -14,6 +14,19 @@ use xcall_lib::{
 
 use crate::{error::XcallError, event, helper, state::*, types::result::CSResponseType};
 
+/// Handles the response from the DApp after executing a call.
+///
+/// This function processes the response from the DApp's `handle_call_message` instruction,
+/// determining whether the call was successful or not. It then emits an event indicating the
+/// outcome of the call and returns the appropriate response type.
+///
+/// # Parameters
+/// - `req_id`: The unique identifier of the request for which the call was executed.
+/// - `dapp_res`: The response from the DApp, containing information about whether the call was
+///   successful and any associated message.
+///
+/// # Returns
+/// - `Result<CSResponseType>`: The response type indicating success or failure.
 pub fn handle_response(
     req_id: u128,
     dapp_res: HandleCallMessageResponse,
@@ -32,6 +45,23 @@ pub fn handle_response(
     Ok(res_code)
 }
 
+/// Invokes the `handle_call_message` instruction on a DApp program.
+///
+/// This function sends an instruction to the DApp program to handle a call message. It prepares
+/// the required accounts and instruction data, invokes the instruction, and retrieves the response
+/// from the DApp program.
+///
+/// # Parameters
+/// - `dapp_key`: The public key of the DApp program that will handle the call message.
+/// - `ix_data`: The serialized instruction data to be sent to the DApp program.
+/// - `config`: The configuration account, used for verifying the program's settings and bump seed.
+/// - `signer`: The account that signs the transaction, typically the one paying for it.
+/// - `remaining_accounts`: A slice of account infos required by the DApp program, which will be
+///   provided as additional accounts to the instruction.
+///
+/// # Returns
+/// - `Result<xcall_dapp_type::HandleCallMessageResponse>`: The response from the DApp program,
+///   indicating the result of handling the call message, or an error if the invocation fails.
 pub fn invoke_handle_call_message_ix<'info>(
     dapp_key: Pubkey,
     ix_data: Vec<u8>,
@@ -72,6 +102,19 @@ pub fn invoke_handle_call_message_ix<'info>(
     Ok(res)
 }
 
+/// Prepares the instruction data to call the `handle_call_message` instruction on a DApp program.
+///
+/// This function constructs the instruction data required to invoke the `handle_call_message`
+/// instruction on a DApp program. It serializes the message arguments, including the
+/// from network address, data, and the protocols, into a format that the DApp program expects.
+///
+/// # Arguments
+/// - `from`: A reference to the source network address.
+/// - `data`: A vector of bytes representing the message payload.
+/// - `protocols`: The list of protocols used to receive message in source and destination chain.
+///
+/// # Returns
+/// - `Result<Vec<u8>>`: Serialized instruction data for the `handle_call_message` instruction.
 pub fn get_handle_call_message_ix_data(
     from: NetworkAddress,
     data: Vec<u8>,
@@ -89,6 +132,21 @@ pub fn get_handle_call_message_ix_data(
     Ok(ix_data)
 }
 
+/// Prepares the instruction data to call the `query_handle_call_message_accounts` instruction
+/// on DApp program.
+///
+/// This function constructs the instruction data to invoke the`query_handle_call_message_accounts`
+/// instruction on a DApp program. It serializes the message arguments, including the
+/// from network address, data, and the protocols, into a format that the DApp program expects.
+///
+/// # Arguments
+/// - `from`: A reference to the source network address.
+/// - `data`: A vector of bytes representing the message payload.
+/// - `protocols`: The list of protocols used to receive message in source and destination chain.
+///
+/// # Returns
+/// - `Result<Vec<u8>>`: Serialized instruction data for the `query_handle_call_message_accounts`
+/// instruction.
 pub fn get_query_handle_call_message_accounts_ix_data(
     from: NetworkAddress,
     data: Vec<u8>,

@@ -262,16 +262,44 @@ pub mod xcall {
         instructions::decode_cs_message(message)
     }
 
-    #[allow(unused_variables)]
+    /// Instruction: Execute Call
+    ///
+    /// Executes a call of specified `req_id`.
+    ///
+    /// This instruction processes a call by verifying the provided data against the request's data
+    /// and then invoking the `handle_call_message` instruction on the DApp. Depending on the message
+    /// type, it handles the response accordingly, potentially sending a result back through the
+    /// connection program.
+    ///
+    /// # Parameters
+    /// - `ctx`: The context of the solana program instruction
+    /// - `req_id`: The unique identifier for the request being processed.
+    /// - `data`: The data associated with the call request, which will be verified and processed.
+    ///
+    /// # Returns
+    /// - `Result<()>`: Returns `Ok(())` if the call was executed successfully, or an error if it failed.
     pub fn execute_call<'info>(
         ctx: Context<'_, '_, '_, 'info, ExecuteCallCtx<'info>>,
         req_id: u128,
         data: Vec<u8>,
-        from_nid: String,
     ) -> Result<()> {
         instructions::execute_call(ctx, req_id, data)
     }
 
+    /// Instruction: Execute Rollback
+    ///
+    /// Executes a rollback operation using the stored rollback data.
+    ///
+    /// This function initiates a rollback process by delegating to the `instructions::execute_rollback`.
+    /// It handles the rollback of a operation with the specified context and sequence number.
+    ///
+    /// # Arguments
+    /// - `ctx`: The context containing all the necessary accounts and program state.
+    /// - `sn`: The sequence number associated with the rollback operation.
+    ///
+    /// # Returns
+    /// - `Result<()>`: Returns `Ok(())` if the rollback was executed successfully, or an error if it
+    /// failed.
     pub fn execute_rollback<'info>(
         ctx: Context<'_, '_, '_, 'info, ExecuteRollbackCtx<'info>>,
         sn: u128,

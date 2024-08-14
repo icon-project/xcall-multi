@@ -77,6 +77,9 @@ pub enum XcallError {
     #[msg("No rollback data")]
     NoRollbackData,
 
+    #[msg("Revert from dapp")]
+    RevertFromDapp,
+
     #[msg("Invalid reply received")]
     InvalidReplyReceived,
 
