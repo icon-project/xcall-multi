@@ -41,7 +41,10 @@ module xcall::centralized_connection {
   }
   // this is safe because only package can call this other xcall will call other deployed instance
   public(package) fun send_message(states:&mut Bag,connection_id:String,coin:Coin<SUI>,to:String,sn:u128,msg:vector<u8>,is_response:bool,ctx: &mut TxContext){
-    let fee = get_fee(states,connection_id, to, is_response);
+    let mut fee = 0;
+    if(!is_response){
+      fee = get_fee(states,connection_id, to, sn>0);
+    };
     assert!(coin.value() >= fee, ENotEnoughFee);
     let balance = coin.into_balance();
     centralized_state::deposit(get_state_mut(states,connection_id),balance);
