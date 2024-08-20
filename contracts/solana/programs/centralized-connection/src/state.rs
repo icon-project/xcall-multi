@@ -1,4 +1,5 @@
 use anchor_lang::prelude::*;
+use xcall_lib::xcall_connection_type;
 
 use crate::{constants, error::*};
 
@@ -99,4 +100,18 @@ impl Receipt {
     pub const SEED_PREFIX: &'static str = "receipt";
 
     pub const LEN: usize = constants::ACCOUNT_DISCRIMINATOR_SIZE;
+}
+
+#[account]
+pub struct Authority {
+    pub bump: u8,
+}
+
+impl Authority {
+    pub const SEED_PREFIX: &'static str = xcall_connection_type::CONNECTION_AUTHORITY_SEED;
+    pub const LEN: usize = 8 + 1;
+
+    pub fn new(bump: u8) -> Self {
+        Self { bump }
+    }
 }

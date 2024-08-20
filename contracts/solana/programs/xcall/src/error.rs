@@ -29,32 +29,35 @@ pub enum XcallError {
     #[msg("Proxy request account is not specified")]
     ProxyRequestAccountNotSpecified,
 
+    #[msg("Proxy request account must not be specified")]
+    ProxyRequestAccountMustNotBeSpecified,
+
     #[msg("Rollback account is not specified")]
     RollbackAccountNotSpecified,
 
     #[msg("Rollback account must not be specified")]
     RollbackAccountMustNotBeSpecified,
 
-    #[msg("Rollback account creator not specified")]
-    RollbackCreatorNotSpecified,
-
     #[msg("Pending request account is not specified")]
     PendingRequestAccountNotSpecified,
 
-    #[msg("Pending request account creator is not specified")]
-    PendingRequestCreatorNotSpecified,
+    #[msg("Pending request account must not be specified")]
+    PendingRequestAccountMustNotBeSpecified,
 
     #[msg("Pending response account is not specified")]
     PendingResponseAccountNotSpecified,
 
-    #[msg("Pending response account creator is not specified")]
-    PendingResponseCreatorNotSpecified,
+    #[msg("Pending response account must not be specified")]
+    PendingResponseAccountMustNotBeSpecified,
 
     #[msg("Invalid message seed")]
     InvalidMessageSeed,
 
     #[msg("Successful response account is not specified")]
     SuccessfulResponseAccountNotSpecified,
+
+    #[msg("Successful response account must not be specified")]
+    SuccessfulResponseAccountMustNotBeSpecified,
 
     #[msg("Dapp authority not provided")]
     DappAuthorityNotProvided,

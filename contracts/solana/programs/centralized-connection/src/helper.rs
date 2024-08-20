@@ -60,6 +60,7 @@ pub fn call_xcall_handle_message<'info>(
     invoke_instruction(
         ix_data,
         &ctx.accounts.config,
+        &ctx.accounts.authority,
         &ctx.accounts.admin,
         &ctx.accounts.system_program,
         ctx.remaining_accounts,
@@ -79,6 +80,7 @@ pub fn call_xcall_handle_error<'info>(
     invoke_instruction(
         ix_data,
         &ctx.accounts.config,
+        &ctx.accounts.authority,
         &ctx.accounts.admin,
         &ctx.accounts.system_program,
         &ctx.remaining_accounts,
@@ -88,18 +90,19 @@ pub fn call_xcall_handle_error<'info>(
 pub fn invoke_instruction<'info>(
     ix_data: Vec<u8>,
     config: &Account<'info, Config>,
+    authority: &Account<'info, Authority>,
     admin: &Signer<'info>,
     system_program: &Program<'info, System>,
     remaining_accounts: &[AccountInfo<'info>],
 ) -> Result<()> {
     let mut account_metas = vec![
-        AccountMeta::new_readonly(config.key(), true),
         AccountMeta::new(admin.key(), true),
+        AccountMeta::new_readonly(authority.key(), true),
         AccountMeta::new_readonly(system_program.key(), false),
     ];
     let mut account_infos = vec![
-        config.to_account_info(),
         admin.to_account_info(),
+        authority.to_account_info(),
         system_program.to_account_info(),
     ];
     for i in remaining_accounts {
@@ -115,7 +118,7 @@ pub fn invoke_instruction<'info>(
     invoke_signed(
         &ix,
         &account_infos,
-        &[&[Config::SEED_PREFIX.as_bytes(), &[config.bump]]],
+        &[&[Authority::SEED_PREFIX.as_bytes(), &[authority.bump]]],
     )?;
 
     Ok(())
