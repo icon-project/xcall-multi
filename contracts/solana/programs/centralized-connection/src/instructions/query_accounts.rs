@@ -8,6 +8,7 @@ use anchor_lang::{
 };
 use xcall_lib::{
     query_account_type::{AccountMetadata, QueryAccountsPaginateResponse, QueryAccountsResponse},
+    xcall_connection_type,
     xcall_type::{self, QUERY_HANDLE_ERROR_ACCOUNTS_IX, QUERY_HANDLE_MESSAGE_ACCOUNTS_IX},
 };
 
@@ -48,11 +49,16 @@ pub fn query_recv_message_accounts(
         &[Receipt::SEED_PREFIX.as_bytes(), &conn_sn.to_be_bytes()],
         &id(),
     );
+    let (authority, _) = Pubkey::find_program_address(
+        &[xcall_connection_type::CONNECTION_AUTHORITY_SEED.as_bytes()],
+        &id(),
+    );
 
     let mut account_metas = vec![
         AccountMetadata::new(system_program::id(), false),
         AccountMetadata::new(config.key(), false),
         AccountMetadata::new(receipt, false),
+        AccountMetadata::new(authority, false),
     ];
 
     let mut xcall_account_metas = vec![];
@@ -99,10 +105,15 @@ pub fn query_revert_message_accounts(
     limit: u8,
 ) -> Result<QueryAccountsPaginateResponse> {
     let config = &ctx.accounts.config;
+    let (authority, _) = Pubkey::find_program_address(
+        &[xcall_connection_type::CONNECTION_AUTHORITY_SEED.as_bytes()],
+        &id(),
+    );
 
     let mut account_metas = vec![
         AccountMetadata::new(system_program::id(), false),
         AccountMetadata::new(config.key(), false),
+        AccountMetadata::new(authority, false),
     ];
 
     let mut xcall_account_metas = vec![];

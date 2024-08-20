@@ -26,6 +26,9 @@ pub mod centralized_connection {
         ctx.accounts
             .config
             .set_inner(Config::new(xcall, admin, ctx.bumps.config));
+        ctx.accounts
+            .authority
+            .set_inner(Authority::new(ctx.bumps.authority));
 
         Ok(())
     }

@@ -148,6 +148,7 @@ describe("CentralizedConnection", () => {
           config: ConnectionPDA.config().pda,
           admin: ctx.signer.publicKey,
           receipt: ConnectionPDA.receipt(connSn).pda,
+          authority: ConnectionPDA.authority().pda,
           systemProgram: SYSTEM_PROGRAM_ID,
         })
         .signers([ctx.signer])
@@ -198,9 +199,10 @@ describe("CentralizedConnection", () => {
         config: ConnectionPDA.config().pda,
         admin: ctx.admin.publicKey,
         receipt: ConnectionPDA.receipt(connSn).pda,
+        authority: ConnectionPDA.authority().pda,
         systemProgram: SYSTEM_PROGRAM_ID,
       })
-      .remainingAccounts([...recvMessageAccounts.slice(3)])
+      .remainingAccounts([...recvMessageAccounts.slice(4)])
       .signers([ctx.admin])
       .rpc();
 
@@ -363,9 +365,10 @@ describe("CentralizedConnection", () => {
         config: ConnectionPDA.config().pda,
         admin: ctx.admin.publicKey,
         receipt: ConnectionPDA.receipt(connSn).pda,
+        authority: ConnectionPDA.authority().pda,
         systemProgram: SYSTEM_PROGRAM_ID,
       })
-      .remainingAccounts([...recvMessageAccounts.slice(3)])
+      .remainingAccounts([...recvMessageAccounts.slice(4)])
       .signers([ctx.admin])
       .rpc();
     await sleep(2);
@@ -481,9 +484,10 @@ describe("CentralizedConnection", () => {
         config: ConnectionPDA.config().pda,
         admin: ctx.admin.publicKey,
         receipt: ConnectionPDA.receipt(connSn).pda,
+        authority: ConnectionPDA.authority().pda,
         systemProgram: SYSTEM_PROGRAM_ID,
       })
-      .remainingAccounts([...recvMessageAccounts.slice(3)])
+      .remainingAccounts([...recvMessageAccounts.slice(4)])
       .instruction();
 
     let recvMessageTx = await txnHelpers.buildV0Txn(
@@ -530,6 +534,7 @@ describe("CentralizedConnection", () => {
         .accountsStrict({
           config: ConnectionPDA.config().pda,
           admin: ctx.signer.publicKey,
+          authority: ConnectionPDA.authority().pda,
           systemProgram: SYSTEM_PROGRAM_ID,
         })
         .remainingAccounts([])
@@ -618,9 +623,10 @@ describe("CentralizedConnection", () => {
       .accountsStrict({
         config: ConnectionPDA.config().pda,
         admin: ctx.admin.publicKey,
+        authority: ConnectionPDA.authority().pda,
         systemProgram: SYSTEM_PROGRAM_ID,
       })
-      .remainingAccounts([...revertMessageAccounts.slice(2)])
+      .remainingAccounts([...revertMessageAccounts.slice(3)])
       .instruction();
 
     let revertMessageTx = await txnHelpers.buildV0Txn(

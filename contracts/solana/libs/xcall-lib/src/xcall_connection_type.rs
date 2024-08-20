@@ -1,5 +1,7 @@
 use anchor_lang::prelude::*;
 
+pub const CONNECTION_AUTHORITY_SEED: &str = "connection_authority";
+
 pub const GET_FEE_IX: &str = "get_fee";
 pub const SEND_MESSAGE_IX: &str = "send_message";
 

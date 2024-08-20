@@ -20,6 +20,15 @@ pub struct Initialize<'info> {
         space = Config::LEN
     )]
     pub config: Account<'info, Config>,
+
+    #[account(
+        init,
+        payer = signer,
+        space = Authority::LEN,
+        seeds = [Authority::SEED_PREFIX.as_bytes()],
+        bump
+    )]
+    pub authority: Account<'info, Authority>,
 }
 
 #[derive(Accounts)]
@@ -74,6 +83,12 @@ pub struct RecvMessage<'info> {
         bump
     )]
     pub receipt: Account<'info, Receipt>,
+
+    #[account(
+        seeds = [Authority::SEED_PREFIX.as_bytes()],
+        bump = authority.bump
+    )]
+    pub authority: Account<'info, Authority>,
 }
 
 #[derive(Accounts)]
@@ -91,6 +106,12 @@ pub struct RevertMessage<'info> {
         has_one = admin @ ConnectionError::OnlyAdmin,
     )]
     pub config: Account<'info, Config>,
+
+    #[account(
+        seeds = [Authority::SEED_PREFIX.as_bytes()],
+        bump = authority.bump
+    )]
+    pub authority: Account<'info, Authority>,
 }
 
 #[derive(Accounts)]

@@ -2,7 +2,7 @@ use anchor_lang::{prelude::*, solana_program::hash};
 
 use crate::{
     error::*,
-    event,
+    event, helper,
     state::*,
     types::{
         message::{CSMessage, CSMessageType},
@@ -23,8 +23,23 @@ pub fn handle_message(
 
     let cs_message: CSMessage = message.try_into()?;
     match cs_message.message_type() {
-        CSMessageType::CSMessageRequest => handle_request(ctx, from_nid, cs_message.payload()),
-        CSMessageType::CSMessageResult => handle_result(ctx, cs_message.payload()),
+        CSMessageType::CSMessageRequest => {
+            if ctx.accounts.pending_response.is_some() {
+                return Err(XcallError::PendingResponseAccountMustNotBeSpecified.into());
+            }
+            if ctx.accounts.successful_response.is_some() {
+                return Err(XcallError::SuccessfulResponseAccountMustNotBeSpecified.into());
+            }
+
+            handle_request(ctx, from_nid, cs_message.payload())
+        }
+        CSMessageType::CSMessageResult => {
+            if ctx.accounts.pending_request.is_some() {
+                return Err(XcallError::PendingRequestAccountMustNotBeSpecified.into());
+            }
+
+            handle_result(ctx, cs_message.payload())
+        }
     }
 }
 
@@ -39,8 +54,8 @@ pub fn handle_request(
     if src_nid != from_nid {
         return Err(XcallError::ProtocolMismatch.into());
     }
-    let source = ctx.accounts.connection.owner.to_owned();
-    let source_valid = is_valid_source(&source.to_string(), &req.protocols())?;
+    let source = &ctx.accounts.connection;
+    let source_valid = is_valid_source(&source, &req.protocols())?;
     if !source_valid {
         return Err(XcallError::ProtocolMismatch.into());
     }
@@ -52,8 +67,8 @@ pub fn handle_request(
             .as_mut()
             .ok_or(XcallError::PendingRequestAccountNotSpecified)?;
 
-        if !pending_request.sources.contains(&source) {
-            pending_request.sources.push(source)
+        if !pending_request.sources.contains(&source.owner) {
+            pending_request.sources.push(source.owner.to_owned())
         }
         if pending_request.sources.len() != req.protocols().len() {
             return Ok(());
@@ -71,11 +86,7 @@ pub fn handle_request(
         data: req.data()
     });
 
-    let proxy_request = ctx
-        .accounts
-        .proxy_request
-        .as_deref_mut()
-        .ok_or(XcallError::ProxyRequestAccountNotSpecified)?;
+    let proxy_request = ctx.accounts.proxy_request.as_deref_mut().unwrap();
 
     req.hash_data();
     proxy_request.set(req, ctx.bumps.proxy_request.unwrap());
@@ -85,6 +96,7 @@ pub fn handle_request(
 
 pub fn handle_result(ctx: Context<HandleMessageCtx>, payload: &[u8]) -> Result<()> {
     let result: CSMessageResult = payload.try_into()?;
+    let proxy_request = &ctx.accounts.proxy_request;
 
     let rollback_account = ctx
         .accounts
@@ -93,7 +105,7 @@ pub fn handle_result(ctx: Context<HandleMessageCtx>, payload: &[u8]) -> Result<(
         .ok_or(XcallError::CallRequestNotFound)?;
 
     validate_source_and_pending_response(
-        ctx.accounts.connection.owner.key(),
+        &ctx.accounts.connection,
         rollback_account.rollback.protocols(),
         &mut ctx.accounts.pending_response,
         &ctx.accounts.admin,
@@ -118,13 +130,19 @@ pub fn handle_result(ctx: Context<HandleMessageCtx>, payload: &[u8]) -> Result<(
 
             success_res.success = true;
 
-            if result.message().is_some() {
-                let reply = &mut result.message().unwrap();
-
-                handle_reply(ctx, reply)?;
+            if let Some(message) = &mut result.message() {
+                handle_reply(ctx, message)?;
+            } else {
+                if proxy_request.is_some() {
+                    return Err(XcallError::ProxyRequestAccountMustNotBeSpecified.into());
+                }
             }
         }
         _ => {
+            if proxy_request.is_some() {
+                return Err(XcallError::ProxyRequestAccountMustNotBeSpecified.into());
+            }
+
             rollback_account.rollback.enable_rollback();
 
             emit!(event::RollbackMessage {
@@ -140,7 +158,7 @@ pub fn handle_error(ctx: Context<HandleErrorCtx>, sequence_no: u128) -> Result<(
     let rollback_account = &mut ctx.accounts.rollback_account;
 
     validate_source_and_pending_response(
-        ctx.accounts.connection.owner.key(),
+        &ctx.accounts.connection,
         rollback_account.rollback.protocols(),
         &mut ctx.accounts.pending_response,
         &ctx.accounts.admin,
@@ -187,12 +205,12 @@ pub fn handle_reply(ctx: Context<HandleMessageCtx>, reply: &mut CSMessageRequest
 }
 
 pub fn validate_source_and_pending_response<'info>(
-    sender: Pubkey,
+    sender: &Signer,
     protocols: &Vec<String>,
     pending_response: &mut Option<Account<'info, PendingResponse>>,
     admin: &AccountInfo<'info>,
 ) -> Result<()> {
-    let source_valid = is_valid_source(&sender.to_string(), protocols)?;
+    let source_valid = is_valid_source(&sender, protocols)?;
     if !source_valid {
         return Err(XcallError::ProtocolMismatch.into());
     };
@@ -202,8 +220,8 @@ pub fn validate_source_and_pending_response<'info>(
             .as_mut()
             .ok_or(XcallError::PendingResponseAccountNotSpecified)?;
 
-        if !pending_response.sources.contains(&sender) {
-            pending_response.sources.push(sender)
+        if !pending_response.sources.contains(&sender.owner) {
+            pending_response.sources.push(sender.owner.to_owned())
         }
         if pending_response.sources.len() != protocols.len() {
             return Ok(());
@@ -214,8 +232,9 @@ pub fn validate_source_and_pending_response<'info>(
     Ok(())
 }
 
-pub fn is_valid_source(sender: &String, protocols: &Vec<String>) -> Result<bool> {
-    if protocols.contains(sender) {
+pub fn is_valid_source(sender: &Signer, protocols: &Vec<String>) -> Result<bool> {
+    helper::ensure_connection_authority(sender.owner, sender.key())?;
+    if protocols.contains(&sender.owner.to_string()) {
         return Ok(true);
     }
 
@@ -225,23 +244,31 @@ pub fn is_valid_source(sender: &String, protocols: &Vec<String>) -> Result<bool>
 #[derive(Accounts)]
 #[instruction(from_nid: String, msg: Vec<u8>, sequence_no: u128)]
 pub struct HandleMessageCtx<'info> {
-    pub connection: Signer<'info>,
-
+    /// The account that signs and pays for the transaction. This account is mutable
+    /// because it will be debited for any fees or rent required during the transaction.
     #[account(mut)]
     pub signer: Signer<'info>,
 
+    pub connection: Signer<'info>,
+
+    /// The solana system program account, used for creating and managing accounts.
     pub system_program: Program<'info, System>,
 
+    /// The configuration account, which stores important settings and counters for the
+    /// program. This account is mutable because the last request ID of config will be updated.
     #[account(
         mut,
         seeds = [Config::SEED_PREFIX.as_bytes()],
-        bump = config.bump,
-        has_one = admin @ XcallError::InvalidAdminKey
+        bump = config.bump
     )]
     pub config: Box<Account<'info, Config>>,
 
-    /// CHECK: this is safe because we are verifying if the passed account is admin or not
-    #[account(mut)]
+    /// CHECK: This is safe because this account is checked against the `config.admin` to ensure
+    /// it is valid.
+    #[account(
+        mut,
+        address = config.admin @ XcallError::InvalidAdminKey
+    )]
     pub admin: AccountInfo<'info>,
 
     #[account(
@@ -291,23 +318,30 @@ pub struct HandleMessageCtx<'info> {
 #[derive(Accounts)]
 #[instruction(sequence_no: u128)]
 pub struct HandleErrorCtx<'info> {
-    pub connection: Signer<'info>,
-
+    /// The account that signs and pays for the transaction. This account is mutable
+    /// because it will be debited for any fees or rent required during the transaction.
     #[account(mut)]
     pub signer: Signer<'info>,
 
+    pub connection: Signer<'info>,
+
+    /// The solana system program account, used for creating and managing accounts.
     pub system_program: Program<'info, System>,
 
+    /// The configuration account, which stores important settings and counters for the
+    /// program. This account is mutable because the last request ID of config will be updated.
     #[account(
-        mut,
         seeds = [Config::SEED_PREFIX.as_bytes()],
-        bump,
-        has_one = admin @ XcallError::InvalidAdminKey
+        bump
     )]
     pub config: Account<'info, Config>,
 
-    /// CHECK: this is safe because we are verifying if the passed account is admin or not
-    #[account(mut)]
+    /// CHECK: This is safe because this account is checked against the `config.admin` to ensure
+    /// it is valid.
+    #[account(
+        mut,
+        address = config.admin @ XcallError::InvalidAdminKey
+    )]
     pub admin: AccountInfo<'info>,
 
     #[account(

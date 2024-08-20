@@ -82,11 +82,7 @@ describe("xcall - handle message", () => {
         })
         .instruction();
 
-      let handleMessageTx = await txnHelpers.buildTxnWithLookupTable(
-        [handleMessageIx],
-        [sources[i]]
-      );
-      await connection.sendTransaction(handleMessageTx);
+      await txnHelpers.buildTxnWithLookupTable([handleMessageIx], [sources[i]]);
     }
   });
 
