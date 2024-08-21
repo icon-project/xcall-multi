@@ -118,12 +118,12 @@ module multisig::base64_tests {
     #[test]
     fun test_base64(){
        let input = b"Hello, World!";
-        let encoded = base64::encode(&input);
-        assert!(encoded.as_bytes()==b"SGVsbG8sIFdvcmxkIQ==");
+       let encoded = base64::encode(&input);
+       assert!(encoded.as_bytes()==b"SGVsbG8sIFdvcmxkIQ==");
 
-         let decoded = base64::decode(&encoded);
-         std::debug::print(&encoded);
-        assert!(decoded==input);
+       let decoded = base64::decode(&encoded);
+       std::debug::print(&encoded);
+       assert!(decoded==input);
 
     }
 
