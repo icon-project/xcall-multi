@@ -77,7 +77,6 @@ const xcallProgram: anchor.Program<Xcall> = anchor.workspace.Xcall;
   
   // Fetch and check the configuration
   const data = await xcallCtx.getConfig();
-  console.log("admin fetched" , data.admin);
 
   console.log("Xcall admin set successfully.");
 })().catch(err => {
