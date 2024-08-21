@@ -70,12 +70,15 @@ const xcallProgram: anchor.Program<Xcall> = anchor.workspace.Xcall;
   }
 
   const xcallCtx = new XcallContext(connection, wallet, xcallProgram);
-  const networkId = network_id;
-  await xcallCtx.initialize(networkId);
-  await sleep(2000);
 
+  const networkId = network_id;
+  console.log("initializing xcall ")
+  
+  await xcallCtx.initialize(networkId);
+  
   // Fetch and check the configuration
   const data = await xcallCtx.getConfig();
+  console.log("data" , data)
 
   console.log("Xcall program initialized successfully.");
 })().catch(err => {
