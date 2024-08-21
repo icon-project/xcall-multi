@@ -23,6 +23,10 @@ module mock_dapp::dapp_state {
         }
     }
 
+    public fun get_config_id(config: &DappState): ID {
+        config.id.to_inner()
+    }
+
     public fun get_xcall_id(config: &DappState): ID{
         config.xcall_id
     }

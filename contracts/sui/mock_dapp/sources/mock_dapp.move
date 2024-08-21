@@ -44,8 +44,11 @@ public struct WitnessCarrier has key { id: UID, witness: REGISTER_WITNESS }
         let type_args:vector<String> = vector::empty();
 
         let mut result:vector<String> = vector::empty();
+        result.push_back(xcall_utils::id_to_hex_string(&dapp_state::get_config_id(config)));
         result.push_back(xcall_utils::id_to_hex_string(&get_xcall_id(config)));
-        result.push_back(b"coin".to_string());       
+        result.push_back(b"coin".to_string());
+        result.push_back(b"request_id".to_string());
+        result.push_back(b"data".to_string());       
         create_execute_params(type_args, result)
     }
 
@@ -53,7 +56,9 @@ public struct WitnessCarrier has key { id: UID, witness: REGISTER_WITNESS }
         let type_args:vector<String> = vector::empty();
 
         let mut result:vector<String> = vector::empty();
+        result.push_back(xcall_utils::id_to_hex_string(&dapp_state::get_config_id(config)));
         result.push_back(xcall_utils::id_to_hex_string(&get_xcall_id(config)));
+        result.push_back(b"sn".to_string());
         create_execute_params(type_args, result)
     }
 
