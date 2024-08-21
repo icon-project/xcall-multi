@@ -1,8 +1,9 @@
 module mock_dapp::mock_dapp {
     use xcall::main::{Self as xcall};
-    use xcall::xcall_state::{Storage as XCallState};
-    use xcall::network_address::{Self,NetworkAddress};
-    use mock_dapp::dapp_state::{Self,DappState};
+    use xcall::xcall_utils;
+    use xcall::xcall_state::{Self, Storage as XCallState};
+    use xcall::network_address::{Self};
+    use mock_dapp::dapp_state::{Self,DappState, ExecuteParams, create_execute_params, get_xcall_id};
     use xcall::execute_ticket::{Self};
     use xcall::envelope::{Self};
     use sui::coin::{Self, Coin};
@@ -25,7 +26,10 @@ public struct WitnessCarrier has key { id: UID, witness: REGISTER_WITNESS }
     entry public fun register_xcall(xcall:&XCallState,carrier:WitnessCarrier,ctx:&mut TxContext){
         let w= get_witness(carrier);
         let cap= xcall::register_dapp(xcall,w,ctx);
-        let state=dapp_state::new(cap,ctx);
+        let xcall_id = xcall_state::get_id_cap_xcall(&cap);
+        let state=dapp_state::new(cap,xcall_id,ctx);
+
+
         dapp_state::share(state);
 
     }
@@ -34,6 +38,23 @@ public struct WitnessCarrier has key { id: UID, witness: REGISTER_WITNESS }
         let WitnessCarrier { id, witness } = carrier;
         id.delete();
         witness
+    }
+
+    entry fun get_execute_params(config: &DappState, _msg:vector<u8>): ExecuteParams{
+        let type_args:vector<String> = vector::empty();
+
+        let mut result:vector<String> = vector::empty();
+        result.push_back(xcall_utils::id_to_hex_string(&get_xcall_id(config)));
+        result.push_back(b"coin".to_string());       
+        create_execute_params(type_args, result)
+    }
+
+    entry fun get_rollback_params(config: &DappState, _msg:vector<u8>): ExecuteParams{
+        let type_args:vector<String> = vector::empty();
+
+        let mut result:vector<String> = vector::empty();
+        result.push_back(xcall_utils::id_to_hex_string(&get_xcall_id(config)));
+        create_execute_params(type_args, result)
     }
 
     entry public fun execute_call(state:&mut DappState,xcall:&mut XCallState,mut fee: Coin<SUI>,request_id:u128,data:vector<u8>,ctx:&mut TxContext){
@@ -61,7 +82,7 @@ public struct WitnessCarrier has key { id: UID, witness: REGISTER_WITNESS }
 
     }
 
-    entry public fun add_connection(state:&mut DappState,net_id:String,source:String,destination:String,ctx:&mut TxContext){
+    entry public fun add_connection(state:&mut DappState,net_id:String,source:vector<String>,destination:vector<String>,ctx:&mut TxContext){
         dapp_state::add_connection(state,net_id,source,destination,ctx);
     }
 
@@ -70,7 +91,7 @@ public struct WitnessCarrier has key { id: UID, witness: REGISTER_WITNESS }
         let connection= dapp_state::get_connection(state,network_address::net_id(&to));
         let sources=dapp_state::get_connection_source(&connection);
         let destinations=dapp_state::get_connection_dest(&connection);
-        let mut envelope;
+        let envelope;
         if(rollback==vector::empty<u8>()){
             envelope =envelope::wrap_call_message(data,sources,destinations);
         } else {

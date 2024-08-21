@@ -50,16 +50,16 @@ module mock_dapp::mock_dapp_tests {
         scenario.return_to_sender(adminCap);
         scenario.next_tx(admin);
         let mut dapp_state=scenario.take_shared<DappState>();
-        mock_dapp::add_connection(&mut dapp_state,string::utf8(b"netid"),string::utf8(b"centralized-1"),string::utf8(b"destconn"),scenario.ctx());
+        let mut sources = vector::empty();
+        sources.push_back(string::utf8(b"centralized-1"));
+        let mut dests = vector::empty();
+        dests.push_back(string::utf8(b"destconn"));
+        mock_dapp::add_connection(&mut dapp_state,string::utf8(b"netid"),sources,dests,scenario.ctx());
         test_scenario::return_shared<DappState>(dapp_state);
 
         scenario
 
-
-
     }
-
-    
 
 
 
