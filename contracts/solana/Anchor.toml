@@ -19,4 +19,5 @@ wallet = "~/.config/solana/id.json"
 [scripts]
 init-contract = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/begin-initialize/*.ts"
 initialize-xcall = "yarn ts-node --project ./tsconfig.json ./scripts/initialize_xcall.ts"
+set-admin-xcall = "yarn ts-node --project ./tsconfig.json ./scripts/set_xcall_admin.ts"
 test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
