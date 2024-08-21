@@ -73,12 +73,11 @@ const xcallProgram: anchor.Program<Xcall> = anchor.workspace.Xcall;
 
   const networkId = network_id;
   console.log("initializing xcall ")
-  
+
   await xcallCtx.initialize(networkId);
   
   // Fetch and check the configuration
   const data = await xcallCtx.getConfig();
-  console.log("data" , data)
 
   console.log("Xcall program initialized successfully.");
 })().catch(err => {
