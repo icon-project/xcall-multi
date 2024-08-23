@@ -70,6 +70,7 @@ module multisig::multisig {
         title:String,
         multisig_address:address,
         tx_data:vector<u8>,
+        is_digest:bool,
     }
 
     public struct Vote has store,drop{
@@ -164,15 +165,18 @@ module multisig::multisig {
         storage.wallet_proposals.add(multisig_addr, vector::empty<u64>());
     }
 
-    entry fun create_proposal(storage:&mut Storage,title:String,tx_bytes:vector<u8>,multisig_address:address,ctx:&TxContext){
+    entry fun create_proposal(storage:&mut Storage,title:String,tx_bytes_64:String,multisig_address:address,ctx:&TxContext){
+        let tx_bytes=base64::decode(&tx_bytes_64);
         let wallet=storage.wallets.get(&multisig_address);
         assert!(only_member(wallet,ctx.sender())==true);
+        let is_digest=tx_bytes.length()==32;
         let proposal_id=get_proposal_id(storage);
         let proposal= Proposal{
             id:proposal_id,
             title:title,
             multisig_address:multisig_address,
             tx_data:tx_bytes,
+            is_digest,
 
         };
         storage.proposals.add(proposal_id,proposal);
@@ -180,20 +184,20 @@ module multisig::multisig {
        
     }
 
-    entry fun approve_proposal(storage:&mut Storage,proposal_id:u64,signature:vector<u8>,ctx:&TxContext){
+    entry fun approve_proposal(storage:&mut Storage,proposal_id:u64,raw_signature:vector<u8>,ctx:&TxContext){
         let proposal = storage.proposals.borrow(proposal_id);
         let wallet= storage.wallets.get(&proposal.multisig_address);
         assert!(only_member(wallet,ctx.sender())==true);
         let (index,pubkey)=get_pubkey(wallet,ctx.sender());
         assert!(index!=0);
-        assert!(verify_pubkey(&pubkey,&proposal.tx_data,&signature)==true);
+        assert!(verify_pubkey(&pubkey,&proposal.tx_data,&raw_signature,proposal.is_digest)==true);
         let vote_key=VoteKey{
             proposal_id:proposal_id,
             sui_address:ctx.sender()
         };
         assert!(storage.votes.contains(vote_key)==false);
         storage.votes.add(vote_key, Vote{
-             signature:signature,
+             signature:raw_signature,
              voter:ctx.sender()
         });
 
@@ -226,7 +230,12 @@ module multisig::multisig {
         let mut command=vector::empty<u8>();
         command.append(b"sui client execute-signed-tx --tx-bytes ");
         let tx_data_64= base64::encode(&proposal.tx_data);
-        command.append(*tx_data_64.as_bytes());
+        if(proposal.is_digest){
+         command.append(b"${ORIGINAL_TX_BYTES}");
+        }else {
+         command.append(*tx_data_64.as_bytes());
+        };
+       
         command.append(b" --signatures ");
         command.append(*multisig_serialized_64.as_bytes());
 
@@ -335,17 +344,29 @@ module multisig::multisig {
 
     }
 
-    public fun verify_pubkey(key:&vector<u8>,data:&vector<u8>,signature:&vector<u8>):bool{
+    public fun verify_pubkey(key:&vector<u8>,data:&vector<u8>,raw_signature:&vector<u8>,is_digest:bool):bool{
         let flag=*key.borrow(0);
         let public_key=slice_vector(key,1,key.length()-1);
-
+        let (signature,pub,_scheme)= split_signature(raw_signature);
+        assert!(public_key==pub);
+        let digest= if(is_digest==true){
+            data
+        }else {
+             let intent_msg= get_intent_message(data);
+             let digest= hash::blake2b256(&intent_msg);
+             &digest
+        };
         let verify= if(flag==FlagED25519){
-            verify_ed25519(&public_key,data,signature)
+
+            ed25519_verify(&signature,&public_key,digest)
 
         }else if(flag==FlagSecp256k1){
-            verify_secp256k1(&public_key,data,signature)
+            
+            secp256k1_verify(&signature,&public_key,digest,SHA256)
+
         }else if (flag==FlagSecp256r1){
-            verify_secp256r1(&public_key,data,signature)
+
+            secp256r1_verify(&signature,&public_key,digest,SHA256)
         }else {
             return false
         };
@@ -353,33 +374,7 @@ module multisig::multisig {
 
     }
 
-    fun verify_secp256k1(public_key:&vector<u8>,data:&vector<u8>,raw_signature:&vector<u8>):bool{
-        let (sig,pub,_scheme)= split_signature(raw_signature);
-        assert!(*public_key==pub);
-        let intent_msg= get_intent_message(data);
-        let digest= hash::blake2b256(&intent_msg);
-        secp256k1_verify(&sig,&pub,&digest,SHA256)
-
-    }
-
-    fun verify_secp256r1(public_key:&vector<u8>,data:&vector<u8>,raw_signature:&vector<u8>):bool{
-        let (sig,pub,_scheme)= split_signature(raw_signature);
-        assert!(*public_key==pub);
-        let intent_msg= get_intent_message(data);
-        let digest= hash::blake2b256(&intent_msg);
-        secp256r1_verify(&sig,&pub,&digest,SHA256)
-
-    }
-
-    fun verify_ed25519(public_key:&vector<u8>,data:&vector<u8>,raw_signature:&vector<u8>):bool{
-        let (sig,pub,_scheme)= split_signature(raw_signature);
-        assert!(*public_key==pub);
-        let intent_msg= get_intent_message(data);
-        let digest= hash::blake2b256(&intent_msg);
-        ed25519_verify(&sig,&pub,&digest)
-
-    }
-
+    
     fun get_intent_message(msg:&vector<u8>):vector<u8>{
         let mut intent_message:vector<u8> =vector::empty();
         intent_message.push_back(0x00);
@@ -472,36 +467,6 @@ module multisig::tests {
     }
 
     #[test]
-    fun test_verify_pubkey_with_secp256k1(){
-        let tx_data=x"00000200203fab45fb191ca013a74ccfc3b7d5ed27a3ef6dce79adc4d1e39555f01a361bf801001b61730f57e4d64241cecb40ac259c58ced75018bd231acdbe463ddb9ac99176480000000000000020e12acf2025db82d420e8696d3645dfd25c6542382883f6e3762cc655791a007e01010101010001000029a0918bee7a7e37d1a7d0613efc3f4455883ea217046f7db91d53e69c20458901c2a6df77449ebce38397d97785f52c2341abafc21c47523e9cfb71d141d5df614800000000000000209e4e3d3f48881797ecc3690b237e0353e16a8be1cd79ac75210657229942e12b29a0918bee7a7e37d1a7d0613efc3f4455883ea217046f7db91d53e69c204589e80300000000000078be2d000000000000";
-        let public_key=x"01033a62400048712c0696456de882c26d119a3df2fe316c5ab1738ba90726126814";
-        let raw_signature=x"0196e3d1a05e3d9d900281da7a3719dada72b66fdcfd4147275634f3028d71dba02896bf6958bdc97d93462bd0aa7245a04f05caa3e7f09465d725fa79f91fcc76033a62400048712c0696456de882c26d119a3df2fe316c5ab1738ba90726126814";
-        let verify=verify_pubkey(&public_key,&tx_data,&raw_signature);
-        assert!(verify==true);
-
-    }
-
-     #[test]
-    fun test_verify_pubkey_with_secp256r1(){
-        let tx_data=x"00000200203fab45fb191ca013a74ccfc3b7d5ed27a3ef6dce79adc4d1e39555f01a361bf801001b61730f57e4d64241cecb40ac259c58ced75018bd231acdbe463ddb9ac99176480000000000000020e12acf2025db82d420e8696d3645dfd25c6542382883f6e3762cc655791a007e01010101010001000029a0918bee7a7e37d1a7d0613efc3f4455883ea217046f7db91d53e69c20458901c2a6df77449ebce38397d97785f52c2341abafc21c47523e9cfb71d141d5df614800000000000000209e4e3d3f48881797ecc3690b237e0353e16a8be1cd79ac75210657229942e12b29a0918bee7a7e37d1a7d0613efc3f4455883ea217046f7db91d53e69c204589e80300000000000078be2d000000000000";
-        let public_key=x"02023ecb8ff6cf8eb4748ef6fb062eb52f862b093eb3a42d629d89e43d9645108f9e";
-        let raw_signature=x"0222194e51b82f0a13293c4ca9db40ef1a8c4115ace0047466627ece5c0e229766479486a6423f8332b13d8a13f2baba5d72f86c4a5d55c5b8c2c134f2a367299e023ecb8ff6cf8eb4748ef6fb062eb52f862b093eb3a42d629d89e43d9645108f9e";
-        let verify=verify_pubkey(&public_key,&tx_data,&raw_signature);
-        assert!(verify==true);
-
-    }
-
-     #[test]
-    fun test_verify_pubkey_with_ed25519(){
-        let tx_data=x"00000200203fab45fb191ca013a74ccfc3b7d5ed27a3ef6dce79adc4d1e39555f01a361bf801001b61730f57e4d64241cecb40ac259c58ced75018bd231acdbe463ddb9ac99176480000000000000020e12acf2025db82d420e8696d3645dfd25c6542382883f6e3762cc655791a007e01010101010001000029a0918bee7a7e37d1a7d0613efc3f4455883ea217046f7db91d53e69c20458901c2a6df77449ebce38397d97785f52c2341abafc21c47523e9cfb71d141d5df614800000000000000209e4e3d3f48881797ecc3690b237e0353e16a8be1cd79ac75210657229942e12b29a0918bee7a7e37d1a7d0613efc3f4455883ea217046f7db91d53e69c204589e80300000000000078be2d000000000000";
-        let public_key=x"00016e02b7a72826d951789791f3c053f92af9bc28b27a8e2c60fc474ca536f481";
-        let raw_signature=x"00339e5f6df9aeac4e902767679407b1a6ae0e14db0036c4b19d8b45825036099299bb1948ef907b42df3a250b24395d49d1ff24e75748fadd32892934b22aa70e016e02b7a72826d951789791f3c053f92af9bc28b27a8e2c60fc474ca536f481";
-        let verify=verify_pubkey(&public_key,&tx_data,&raw_signature);
-        assert!(verify==true);
-
-    }
-
-    #[test]
     fun test_verify_pubkey(){
         let data=x"00000200203fab45fb191ca013a74ccfc3b7d5ed27a3ef6dce79adc4d1e39555f01a361bf801001b61730f57e4d64241cecb40ac259c58ced75018bd231acdbe463ddb9ac99176480000000000000020e12acf2025db82d420e8696d3645dfd25c6542382883f6e3762cc655791a007e01010101010001000029a0918bee7a7e37d1a7d0613efc3f4455883ea217046f7db91d53e69c20458901c2a6df77449ebce38397d97785f52c2341abafc21c47523e9cfb71d141d5df614800000000000000209e4e3d3f48881797ecc3690b237e0353e16a8be1cd79ac75210657229942e12b29a0918bee7a7e37d1a7d0613efc3f4455883ea217046f7db91d53e69c204589e80300000000000078be2d000000000000";
 
@@ -523,8 +488,9 @@ module multisig::tests {
         while( i < public_keys.length()){
             std::debug::print(public_keys.borrow(i));
             let signature=signatures.borrow(i);
-            let verify=verify_pubkey(public_keys.borrow(i),&data,signature);
+            let verify=verify_pubkey(public_keys.borrow(i),&data,signature,false);
             i=i+1;
+            
             assert!(verify==true);
         };
 
