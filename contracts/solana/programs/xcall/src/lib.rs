@@ -122,16 +122,99 @@ pub mod xcall {
         instructions::send_call(ctx, envelope, to)
     }
 
-    #[allow(unused_variables)]
-    pub fn handle_message(
-        ctx: Context<HandleMessageCtx>,
+    /// Instruction: Handle Message
+    ///
+    /// Entry point for handling cross-chain messages within the xcall program.
+    ///
+    /// This function delegates the processing of an incoming message to the inner `handle_message`
+    /// function, passing along the necessary context and message details. It determines the type of
+    /// the message and invokes the appropriate logic to handle requests or responses from other
+    /// chains.
+    ///
+    /// # Parameters
+    /// - `ctx`: The context containing all necessary accounts and program-specific information.
+    /// - `from_nid`: The network ID of the chain that sent the message.
+    /// - `msg`: The encoded message payload received from the chain.
+    /// - `sequence_no`: The sequence number associated with the message, used to track message
+    ///   ordering and responses.
+    ///
+    /// # Returns
+    /// - `Result<()>`: Returns `Ok(())` if the message is successfully handled, or an error if any
+    ///   validation or processing fails.
+    pub fn handle_message<'info>(
+        ctx: Context<'_, '_, '_, 'info, HandleMessageCtx<'info>>,
         from_nid: String,
         msg: Vec<u8>,
         sequence_no: u128,
     ) -> Result<()> {
-        instructions::handle_message(ctx, from_nid, msg)
+        instructions::handle_message(ctx, from_nid, msg, sequence_no)
     }
 
+    /// Instruction: Handle Request
+    ///
+    /// Invokes the inner `handle_request` function to process an incoming cross-chain request.
+    ///
+    /// This instruction is specifically designed to be called by the xcall program. It delegates
+    /// the processing of the request message to the inner `handle_request` function, passing
+    /// along the necessary context and message payload.
+    ///
+    /// # Parameters
+    /// - `ctx`: Context containing all relevant accounts and program-specific information.
+    /// - `from_nid`: Network ID of the chain that sent the request.
+    /// - `msg_payload`: Encoded payload of the request message.
+    ///
+    /// # Returns
+    /// - `Result<()>`: Returns `Ok(())` if the request is processed successfully, or an error if
+    ///   validation or processing fails.
+    pub fn handle_request<'info>(
+        ctx: Context<'_, '_, '_, 'info, HandleRequestCtx<'info>>,
+        from_nid: String,
+        msg_payload: Vec<u8>,
+    ) -> Result<()> {
+        instructions::handle_request(ctx, from_nid, &msg_payload)
+    }
+
+    /// Instruction: Handle Result
+    ///
+    ///  Invokes the inner `handle_result` function to process an incoming cross-chain result.
+    ///
+    /// This instruction is specifically designed to be called by the xcall program. It forwards
+    /// the result message along with its associated sequence number to the inner `handle_result`
+    /// function for further processing.
+    ///
+    /// # Parameters
+    /// - `ctx`: Context containing all relevant accounts and program-specific information.
+    /// - `from_nid`: Network ID of the chain that sent the result.
+    /// - `msg_payload`: Encoded payload of the result message.
+    /// - `sequence_no`: Unique sequence number of the result message.
+    ///
+    /// # Returns
+    /// - `Result<()>`: Returns `Ok(())` if the result is processed successfully, or an error if
+    ///   validation or processing fails.
+    #[allow(unused_variables)]
+    pub fn handle_result<'info>(
+        ctx: Context<'_, '_, '_, 'info, HandleResultCtx<'info>>,
+        from_nid: String,
+        msg_payload: Vec<u8>,
+        sequence_no: u128,
+    ) -> Result<()> {
+        instructions::handle_result(ctx, &msg_payload)
+    }
+
+    /// Instruction: Handle Error
+    ///
+    /// Handles an error for a specific sequence of messages, enabling a rollback to revert the state.
+    /// This function is called when a rollback message is received for a sequence originally sent from
+    /// the Solana chain. It triggers a rollback to revert the state to the point before the error occurred.
+    ///
+    /// # Arguments
+    ///
+    /// * `ctx` - The context providing access to accounts and program state.
+    /// * `sequence_no` - The unique identifier for the message sequence that encountered the error.
+    ///
+    /// # Returns
+    ///
+    /// Returns a `Result` indicating the success or failure of the rollback operation.
     pub fn handle_error<'info>(
         ctx: Context<'_, '_, '_, 'info, HandleErrorCtx<'info>>,
         sequence_no: u128,

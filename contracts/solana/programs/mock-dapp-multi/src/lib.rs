@@ -57,16 +57,7 @@ pub mod mock_dapp_multi {
         src_endpoint: String,
         dst_endpoint: String,
     ) -> Result<()> {
-<<<<<<< HEAD
-        let _ = instructions::send_message::add_connection(
-            ctx,
-            _network_id,
-            src_endpoint,
-            dst_endpoint,
-        );
-=======
         instructions::send_message::add_connection(ctx, network_id, src_endpoint, dst_endpoint)?;
->>>>>>> 71f41aa (feat: add handle call message and common methods)
         Ok(())
     }
 

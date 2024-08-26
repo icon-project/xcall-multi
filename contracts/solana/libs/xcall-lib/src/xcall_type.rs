@@ -4,6 +4,8 @@ use crate::network_address::NetworkAddress;
 
 pub const SEND_CALL_IX: &str = "send_call";
 pub const HANDLE_MESSAGE_IX: &str = "handle_message";
+pub const HANDLE_REQUEST_IX: &str = "handle_request";
+pub const HANDLE_RESULT_IX: &str = "handle_result";
 pub const HANDLE_ERROR_IX: &str = "handle_error";
 pub const EXECUTE_CALL_IX: &str = "execute_call";
 
@@ -21,6 +23,19 @@ pub struct SendCallArgs {
 pub struct HandleMessageArgs {
     pub from_nid: String,
     pub message: Vec<u8>,
+    pub sequence_no: u128,
+}
+
+#[derive(Debug, Clone, AnchorSerialize, AnchorDeserialize)]
+pub struct HandleRequestArgs {
+    pub from_nid: String,
+    pub msg_payload: Vec<u8>,
+}
+
+#[derive(Debug, Clone, AnchorSerialize, AnchorDeserialize)]
+pub struct HandleResultArgs {
+    pub from_nid: String,
+    pub msg_payload: Vec<u8>,
     pub sequence_no: u128,
 }
 

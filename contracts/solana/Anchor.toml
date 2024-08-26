@@ -5,8 +5,8 @@ resolution = false
 skip-lint = false
 
 [programs.localnet]
-centralized-connection = "CgXQcZ26YLCoqM1wUK4nCXBwtbNeVZoZgt8ueVJ8Bva1"
-mock-dapp-multi = "4iFMixqd6PyDBQqLchp5nhdGYtFyqHSHLvJX8Bcyixz7"
+centralized-connection = "4vfkXyxMxptmREF3RaFKUwnPRuqsXJJeUFzpCjPSSVMb"
+mock-dapp-multi = "FiVbT6SdmDt6tiARaCdxvD1q9wY8GZEiw2xbdVA5kNF7"
 xcall = "47QmEHEPSQqhpEjok5PmooeqdqBXRVpU11aRMhJGe6LW"
 
 [registry]

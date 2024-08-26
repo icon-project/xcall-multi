@@ -82,6 +82,7 @@ pub fn execute_call<'info>(
                 connection::call_connection_send_message(
                     i,
                     &ix_data,
+                    &req.protocols(),
                     &ctx.accounts.config,
                     &ctx.accounts.signer,
                     &ctx.accounts.system_program,

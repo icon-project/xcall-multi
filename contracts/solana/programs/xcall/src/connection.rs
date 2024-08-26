@@ -71,6 +71,7 @@ pub fn query_connection_fee<'info>(
 pub fn call_connection_send_message<'info>(
     index: usize,
     ix_data: &Vec<u8>,
+    protocols: &Vec<String>,
     config: &Account<'info, Config>,
     signer: &Signer<'info>,
     system_program: &Program<'info, System>,
@@ -79,6 +80,10 @@ pub fn call_connection_send_message<'info>(
     let connection = &remaining_accounts[3 * index];
     let conn_config = &remaining_accounts[3 * index + 1];
     let network_fee = &remaining_accounts[3 * index + 2];
+
+    if !protocols.contains(&connection.key.to_string()) {
+        return Err(XcallError::ProtocolMismatch.into());
+    }
 
     let account_metas: Vec<AccountMeta> = vec![
         AccountMeta::new(signer.key(), true),

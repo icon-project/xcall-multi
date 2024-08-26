@@ -15,15 +15,13 @@ pub struct Config {
     pub protocol_fee: u64,
     pub sequence_no: u128,
     pub last_req_id: u128,
-    pub reply_state: Option<CSMessageRequest>,
-    pub call_reply: Option<CSMessageRequest>,
     pub bump: u8,
 }
 
 impl Config {
     pub const SEED_PREFIX: &'static str = "config";
 
-    pub const SIZE: usize = 8 + 1048 + 1;
+    pub const SIZE: usize = ACCOUNT_DISCRIMINATOR_SIZE + 32 + 32 + 32 + 8 + 16 + 16 + 1;
 
     pub fn new(&mut self, admin: Pubkey, network_id: String, bump: u8) {
         self.admin = admin;
@@ -82,7 +80,7 @@ pub struct RollbackAccount {
 impl RollbackAccount {
     pub const SEED_PREFIX: &'static str = "rollback";
 
-    pub const SIZE: usize = 8 + 1024 + 1;
+    pub const SIZE: usize = 8 + 512 + 1;
 
     pub fn set(&mut self, rollback: Rollback, bump: u8) {
         self.rollback = rollback;
@@ -91,7 +89,6 @@ impl RollbackAccount {
 }
 
 #[account]
-#[derive(Debug)]
 pub struct PendingRequest {
     pub sources: Vec<Pubkey>,
 }
@@ -99,11 +96,10 @@ pub struct PendingRequest {
 impl PendingRequest {
     pub const SEED_PREFIX: &'static str = "req";
 
-    pub const SIZE: usize = ACCOUNT_DISCRIMINATOR_SIZE + 640;
+    pub const SIZE: usize = ACCOUNT_DISCRIMINATOR_SIZE + 320;
 }
 
 #[account]
-#[derive(Debug)]
 pub struct PendingResponse {
     pub sources: Vec<Pubkey>,
 }
@@ -111,7 +107,7 @@ pub struct PendingResponse {
 impl PendingResponse {
     pub const SEED_PREFIX: &'static str = "res";
 
-    pub const SIZE: usize = ACCOUNT_DISCRIMINATOR_SIZE + 640;
+    pub const SIZE: usize = ACCOUNT_DISCRIMINATOR_SIZE + 320;
 }
 
 #[account]
@@ -134,7 +130,7 @@ pub struct ProxyRequest {
 impl ProxyRequest {
     pub const SEED_PREFIX: &'static str = "proxy";
 
-    pub const SIZE: usize = ACCOUNT_DISCRIMINATOR_SIZE + 1024 + 32 + 1;
+    pub const SIZE: usize = ACCOUNT_DISCRIMINATOR_SIZE + 1024 + 1;
 
     pub fn set(&mut self, req: CSMessageRequest, bump: u8) {
         self.req = req;

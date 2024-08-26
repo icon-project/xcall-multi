@@ -42,8 +42,8 @@ pub fn query_handle_message_accounts(
     );
 
     let mut account_metas = vec![
-        AccountMetadata::new(config.key(), false),
         AccountMetadata::new(admin, false),
+        AccountMetadata::new_readonly(config.key(), false),
     ];
 
     let cs_message: CSMessage = msg.clone().try_into()?;
@@ -51,31 +51,53 @@ pub fn query_handle_message_accounts(
         CSMessageType::CSMessageRequest => {
             let request: CSMessageRequest = cs_message.payload().try_into()?;
 
+            // Optional pending response account
+            account_metas.push(AccountMetadata::new(id(), false));
+
+            // Optional rollback account
+            account_metas.push(AccountMetadata::new(id(), false));
+
+            // Mutable config account for handle_request instruction
+            account_metas.push(AccountMetadata::new(config.key(), false));
+
+            // Proxy request account
+            account_metas.push(AccountMetadata::new(proxy_request, false));
+
+            // Optional pending request account
             let (pending_request, _) = Pubkey::find_program_address(
                 &[
                     PendingRequest::SEED_PREFIX.as_bytes(),
-                    &hash::hash(&msg).to_bytes(),
+                    &hash::hash(&cs_message.payload).to_bytes(),
                 ],
                 &id(),
             );
-
-            account_metas.push(AccountMetadata::new(proxy_request, false));
-
             if request.protocols().len() > 1 {
                 account_metas.push(AccountMetadata::new(pending_request, false))
             } else {
                 account_metas.push(AccountMetadata::new(id(), false))
             }
-
-            account_metas.push(AccountMetadata::new(id(), false));
-            account_metas.push(AccountMetadata::new(id(), false));
-            account_metas.push(AccountMetadata::new(id(), false));
         }
         CSMessageType::CSMessageResult => {
             let result: CSMessageResult = cs_message.payload().try_into()?;
-
             let sequence_no = result.sequence_no();
 
+            // Rollback account
+            let (rollback_account_pda, _) = Pubkey::find_program_address(
+                &[
+                    RollbackAccount::SEED_PREFIX.as_bytes(),
+                    &sequence_no.to_be_bytes(),
+                ],
+                &id(),
+            );
+            account_metas.push(AccountMetadata::new(rollback_account_pda, false));
+
+            let rollback_account = ctx
+                .accounts
+                .rollback_account
+                .as_ref()
+                .ok_or(XcallError::RollbackAccountNotSpecified)?;
+
+            // Optional pending response account
             let (pending_response, _) = Pubkey::find_program_address(
                 &[
                     PendingResponse::SEED_PREFIX.as_bytes(),
@@ -83,14 +105,19 @@ pub fn query_handle_message_accounts(
                 ],
                 &id(),
             );
-            let (successful_response, _) = Pubkey::find_program_address(
-                &[
-                    SuccessfulResponse::SEED_PREFIX.as_bytes(),
-                    &sequence_no.to_be_bytes(),
-                ],
-                &id(),
-            );
+            if rollback_account.rollback.protocols().len() > 1 {
+                account_metas.push(AccountMetadata::new(pending_response, false));
+            } else {
+                account_metas.push(AccountMetadata::new(id(), false))
+            }
 
+            // Mutable config account for handle_result instruction
+            account_metas.push(AccountMetadata::new(config.key(), false));
+
+            // Mutable rollback account for handle_result instruction
+            account_metas.push(AccountMetadata::new(rollback_account_pda, false));
+
+            // Optional proxy request account
             if result.response_code() == &CSResponseType::CSResponseSuccess
                 && result.message().is_some()
             {
@@ -99,34 +126,19 @@ pub fn query_handle_message_accounts(
                 account_metas.push(AccountMetadata::new(id(), false))
             }
 
-            account_metas.push(AccountMetadata::new(id(), false));
-
-            let rollback_account = ctx
-                .accounts
-                .rollback_account
-                .as_ref()
-                .ok_or(XcallError::RollbackAccountNotSpecified)?;
-
-            if rollback_account.rollback.protocols().len() > 1 {
-                account_metas.push(AccountMetadata::new(pending_response, false));
-            } else {
-                account_metas.push(AccountMetadata::new(id(), false))
-            }
-
+            // Optional successful response account
+            let (successful_response, _) = Pubkey::find_program_address(
+                &[
+                    SuccessfulResponse::SEED_PREFIX.as_bytes(),
+                    &sequence_no.to_be_bytes(),
+                ],
+                &id(),
+            );
             if result.response_code() == &CSResponseType::CSResponseSuccess {
                 account_metas.push(AccountMetadata::new(successful_response, false))
             } else {
                 account_metas.push(AccountMetadata::new(id(), false));
             }
-
-            let (rollback_account, _) = Pubkey::find_program_address(
-                &[
-                    RollbackAccount::SEED_PREFIX.as_bytes(),
-                    &sequence_no.to_be_bytes(),
-                ],
-                &id(),
-            );
-            account_metas.push(AccountMetadata::new(rollback_account, false));
         }
     }
 
