@@ -127,7 +127,8 @@ fun test_approve_proposal() {
             test_scenario::next_tx(&mut scenario, admin);
             assert!(storage.get_proposals().length()>0);
             let signature=x"0196e3d1a05e3d9d900281da7a3719dada72b66fdcfd4147275634f3028d71dba02896bf6958bdc97d93462bd0aa7245a04f05caa3e7f09465d725fa79f91fcc76033a62400048712c0696456de882c26d119a3df2fe316c5ab1738ba90726126814";
-            multisig::approve_proposal(&mut storage,1,signature,scenario.ctx());
+            let signature_64=base64::encode(&signature);
+            multisig::approve_proposal(&mut storage,1,signature_64,scenario.ctx());
             scenario.return_to_sender(adminCap);
             test_scenario::return_shared( storage);
           

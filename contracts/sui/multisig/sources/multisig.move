@@ -184,7 +184,8 @@ module multisig::multisig {
        
     }
 
-    entry fun approve_proposal(storage:&mut Storage,proposal_id:u64,raw_signature:vector<u8>,ctx:&TxContext){
+    entry fun approve_proposal(storage:&mut Storage,proposal_id:u64,raw_signature_64:String,ctx:&TxContext){
+        let raw_signature=base64::decode(&raw_signature_64);
         let proposal = storage.proposals.borrow(proposal_id);
         let wallet= storage.wallets.get(&proposal.multisig_address);
         assert!(only_member(wallet,ctx.sender())==true);
