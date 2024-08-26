@@ -14,6 +14,7 @@ module multisig::multisig {
     use sui::{ed25519::ed25519_verify};
     use sui::{ecdsa_k1::secp256k1_verify};
     use sui::{ecdsa_r1::secp256r1_verify};
+    
 
     /** signature schemes*/
     const FlagED25519 :u8= 0x00;
@@ -24,6 +25,12 @@ module multisig::multisig {
     /* hash algorithm*/
     const KECCAK256: u8 = 0x00;
     const SHA256: u8 = 0x01;
+
+     public struct Executed has copy, drop{
+        proposal_id:u64,
+        command:String,
+       
+    }
 
     
     public struct Signer has store,drop{
@@ -204,6 +211,11 @@ module multisig::multisig {
 
 
         
+    }
+
+    entry fun execute_event(storage:&Storage,proposal_id:u64){
+        let command= get_execute_command(storage,proposal_id);
+        event::emit(Executed {proposal_id:proposal_id,command:command});
     }
 
     public fun get_execute_command(storage:&Storage,proposal_id:u64):String{
