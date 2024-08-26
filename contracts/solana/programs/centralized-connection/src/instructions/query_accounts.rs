@@ -46,7 +46,11 @@ pub fn query_recv_message_accounts(
 ) -> Result<QueryAccountsPaginateResponse> {
     let config = &ctx.accounts.config;
     let (receipt, _) = Pubkey::find_program_address(
-        &[Receipt::SEED_PREFIX.as_bytes(), &conn_sn.to_be_bytes()],
+        &[
+            Receipt::SEED_PREFIX.as_bytes(),
+            src_network.as_bytes(),
+            &conn_sn.to_be_bytes(),
+        ],
         &id(),
     );
     let (authority, _) = Pubkey::find_program_address(

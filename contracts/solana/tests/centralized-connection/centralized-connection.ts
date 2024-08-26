@@ -147,7 +147,7 @@ describe("CentralizedConnection", () => {
         .accountsStrict({
           config: ConnectionPDA.config().pda,
           admin: ctx.signer.publicKey,
-          receipt: ConnectionPDA.receipt(connSn).pda,
+          receipt: ConnectionPDA.receipt(fromNetwork, connSn).pda,
           authority: ConnectionPDA.authority().pda,
           systemProgram: SYSTEM_PROGRAM_ID,
         })
@@ -198,7 +198,7 @@ describe("CentralizedConnection", () => {
       .accountsStrict({
         config: ConnectionPDA.config().pda,
         admin: ctx.admin.publicKey,
-        receipt: ConnectionPDA.receipt(connSn).pda,
+        receipt: ConnectionPDA.receipt(fromNetwork, connSn).pda,
         authority: ConnectionPDA.authority().pda,
         systemProgram: SYSTEM_PROGRAM_ID,
       })
@@ -209,7 +209,7 @@ describe("CentralizedConnection", () => {
     await sleep(2);
 
     // expect receipt account to be initialized
-    expect(await ctx.getReceipt(nextSequenceNo)).to.be.empty;
+    expect(await ctx.getReceipt(fromNetwork, nextSequenceNo)).to.be.empty;
 
     // expect proxy request in xcall PDA's account
     let proxyRequest = await xcallCtx.getProxyRequest(nextReqId);
@@ -364,7 +364,7 @@ describe("CentralizedConnection", () => {
       .accountsStrict({
         config: ConnectionPDA.config().pda,
         admin: ctx.admin.publicKey,
-        receipt: ConnectionPDA.receipt(connSn).pda,
+        receipt: ConnectionPDA.receipt(ctx.dstNetworkId, connSn).pda,
         authority: ConnectionPDA.authority().pda,
         systemProgram: SYSTEM_PROGRAM_ID,
       })
@@ -483,7 +483,7 @@ describe("CentralizedConnection", () => {
       .accountsStrict({
         config: ConnectionPDA.config().pda,
         admin: ctx.admin.publicKey,
-        receipt: ConnectionPDA.receipt(connSn).pda,
+        receipt: ConnectionPDA.receipt(ctx.dstNetworkId, connSn).pda,
         authority: ConnectionPDA.authority().pda,
         systemProgram: SYSTEM_PROGRAM_ID,
       })

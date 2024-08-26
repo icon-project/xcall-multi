@@ -164,9 +164,9 @@ export class TestContext {
     );
   }
 
-  async getReceipt(sequenceNo: number) {
+  async getReceipt(networkId: string, sequenceNo: number) {
     return await this.program.account.receipt.fetch(
-      ConnectionPDA.receipt(sequenceNo).pda,
+      ConnectionPDA.receipt(networkId, sequenceNo).pda,
       "confirmed"
     );
   }
@@ -193,9 +193,9 @@ export class ConnectionPDA {
     return { pda, bump };
   }
 
-  static receipt(sn: number) {
+  static receipt(networkId: string, sn: number) {
     const [pda, bump] = PublicKey.findProgramAddressSync(
-      [Buffer.from("receipt"), uint128ToArray(sn)],
+      [Buffer.from("receipt"), Buffer.from(networkId), uint128ToArray(sn)],
       connectionProgram.programId
     );
 
