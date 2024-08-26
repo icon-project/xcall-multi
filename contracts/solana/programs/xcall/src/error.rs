@@ -26,6 +26,51 @@ pub enum XcallError {
     #[msg("Maximum data size exceeded")]
     MaxDataSizeExceeded,
 
+    #[msg("Dapp authority not provided")]
+    DappAuthorityNotProvided,
+
+    #[msg("Protocol mismatch")]
+    ProtocolMismatch,
+
+    #[msg("Source protocols not specified")]
+    SourceProtocolsNotSpecified,
+
+    #[msg("Destination protocols not specified")]
+    DestinationProtocolsNotSpecified,
+
+    #[msg("Rollback not possible")]
+    RollbackNotPossible,
+
+    #[msg("Call request not found")]
+    CallRequestNotFound,
+
+    #[msg("No rollback data")]
+    NoRollbackData,
+
+    #[msg("Revert from dapp")]
+    RevertFromDapp,
+
+    #[msg("Invalid reply received")]
+    InvalidReplyReceived,
+
+    #[msg("Decode failed")]
+    DecodeFailed,
+
+    #[msg("Invalid source")]
+    InvalidSource,
+
+    #[msg("Invalid request id")]
+    InvalidRequestId,
+
+    #[msg("Data mismatch")]
+    DataMismatch,
+
+    #[msg("Invalid pubkey")]
+    InvalidPubkey,
+
+    #[msg("Invalid response from dapp")]
+    InvalidResponse,
+
     #[msg("Proxy request account is not specified")]
     ProxyRequestAccountNotSpecified,
 
@@ -58,55 +103,4 @@ pub enum XcallError {
 
     #[msg("Successful response account must not be specified")]
     SuccessfulResponseAccountMustNotBeSpecified,
-
-    #[msg("Dapp authority not provided")]
-    DappAuthorityNotProvided,
-
-    #[msg("Protocol mismatch")]
-    ProtocolMismatch,
-
-    #[msg("Source protocols not specified")]
-    SourceProtocolsNotSpecified,
-
-    #[msg("Destination protocols not specified")]
-    DestinationProtocolsNotSpecified,
-
-    #[msg("Rollback not possible")]
-    RollbackNotPossible,
-
-    #[msg("Call request not found")]
-    CallRequestNotFound,
-
-    #[msg("No rollback data")]
-    NoRollbackData,
-
-    #[msg("Revert from dapp")]
-    RevertFromDapp,
-
-    #[msg("Invalid reply received")]
-    InvalidReplyReceived,
-
-    #[msg("Invalid message sequence received")]
-    InvalidMessageSequence,
-
-    #[msg("Decode failed")]
-    DecodeFailed,
-
-    #[msg("Invalid source")]
-    InvalidSource,
-
-    #[msg("Invalid request id")]
-    InvalidRequestId,
-
-    #[msg("Data mismatch")]
-    DataMismatch,
-
-    #[msg("Invalid pubkey")]
-    InvalidPubkey,
-
-    #[msg("Invalid proxy request creator address")]
-    InvalidProxyCreator,
-
-    #[msg("Invalid response from dapp")]
-    InvalidResponse,
 }

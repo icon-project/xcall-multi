@@ -98,6 +98,7 @@ pub fn send_call<'info>(
         connection::call_connection_send_message(
             i,
             &ix_data,
+            &envelope.sources,
             &ctx.accounts.config,
             &ctx.accounts.signer,
             &ctx.accounts.system_program,
@@ -116,7 +117,7 @@ pub fn send_call<'info>(
     }
 
     emit!(event::CallMessageSent {
-        from: ctx.accounts.signer.key(),
+        from: from_key,
         to: to.to_string(),
         sn: sequence_no,
     });

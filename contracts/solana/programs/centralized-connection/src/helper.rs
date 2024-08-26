@@ -106,7 +106,11 @@ pub fn invoke_instruction<'info>(
         system_program.to_account_info(),
     ];
     for i in remaining_accounts {
-        account_metas.push(AccountMeta::new(i.key(), i.is_signer));
+        if i.is_writable {
+            account_metas.push(AccountMeta::new(i.key(), i.is_signer));
+        } else {
+            account_metas.push(AccountMeta::new_readonly(i.key(), i.is_signer))
+        }
         account_infos.push(i.to_account_info());
     }
     let ix = Instruction {
