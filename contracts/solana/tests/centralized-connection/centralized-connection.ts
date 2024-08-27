@@ -639,4 +639,114 @@ describe("CentralizedConnection", () => {
     let rollback = await xcallCtx.getRollback(nextSequenceNo);
     assert.equal(rollback.rollback.enabled, true);
   });
+
+  it("[revert_message]: should receive message message and handle forced rollback message of xcall", async () => {
+    let xcallConfig = await xcallCtx.getConfig();
+
+    const connSn = 5;
+    const fromNetwork = "icon";
+    let nextReqId = xcallConfig.lastReqId.toNumber() + 1;
+    let nextSequenceNo = xcallConfig.sequenceNo.toNumber() + 1;
+
+    let data = Buffer.from("rollback", "utf-8");
+    let request = new CSMessageRequest(
+      "icon/abc",
+      mockDappProgram.programId.toString(),
+      nextSequenceNo,
+      MessageType.CallMessageWithRollback,
+      data,
+      [connectionProgram.programId.toString()]
+    );
+
+    let cs_message = new CSMessage(
+      CSMessageType.CSMessageRequest,
+      request.encode()
+    ).encode();
+
+    let recvMessageAccounts = await ctx.getRecvMessageAccounts(
+      connSn,
+      nextSequenceNo,
+      cs_message,
+      CSMessageType.CSMessageRequest
+    );
+
+    await ctx.program.methods
+      .recvMessage(
+        fromNetwork,
+        new anchor.BN(connSn),
+        Buffer.from(cs_message),
+        new anchor.BN(nextSequenceNo)
+      )
+      .accountsStrict({
+        config: ConnectionPDA.config().pda,
+        admin: ctx.admin.publicKey,
+        receipt: ConnectionPDA.receipt(fromNetwork, connSn).pda,
+        authority: ConnectionPDA.authority().pda,
+        systemProgram: SYSTEM_PROGRAM_ID,
+      })
+      .remainingAccounts([...recvMessageAccounts.slice(4)])
+      .signers([ctx.admin])
+      .rpc();
+
+    await sleep(2);
+
+    let executeForcedRollbackIx = await mockDappProgram.methods
+      .executeForcedRollback(new anchor.BN(nextReqId))
+      .accountsStrict({
+        config: DappPDA.config().pda,
+        systemProgram: SYSTEM_PROGRAM_ID,
+        sender: ctx.admin.publicKey,
+        authority: DappPDA.authority().pda,
+      })
+      .remainingAccounts([
+        {
+          pubkey: XcallPDA.config().pda,
+          isSigner: false,
+          isWritable: true,
+        },
+        {
+          pubkey: xcallConfig.admin,
+          isSigner: false,
+          isWritable: true,
+        },
+        {
+          pubkey: XcallPDA.proxyRequest(nextReqId).pda,
+          isSigner: false,
+          isWritable: true,
+        },
+        {
+          pubkey: connectionProgram.programId,
+          isSigner: false,
+          isWritable: true,
+        },
+        {
+          pubkey: ConnectionPDA.config().pda,
+          isSigner: false,
+          isWritable: true,
+        },
+        {
+          pubkey: ConnectionPDA.network_fee(fromNetwork).pda,
+          isSigner: false,
+          isWritable: true,
+        },
+        {
+          pubkey: xcallProgram.programId,
+          isSigner: false,
+          isWritable: true,
+        },
+        {
+          pubkey: connectionProgram.programId,
+          isSigner: false,
+          isWritable: true,
+        },
+      ])
+      .instruction();
+
+    let executeForcedRollbackTx = await txnHelpers.buildV0Txn(
+      [executeForcedRollbackIx],
+      [ctx.admin]
+    );
+    await connection.sendTransaction(executeForcedRollbackTx);
+    await sleep(2);
+  });
 });

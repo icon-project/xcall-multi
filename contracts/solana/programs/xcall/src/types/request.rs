@@ -58,6 +58,10 @@ impl CSMessageRequest {
         self.data = hash.to_bytes().to_vec();
     }
 
+    pub fn set_data(&mut self, data: Vec<u8>) {
+        self.data = data
+    }
+
     pub fn set_protocols(&mut self, protocols: Vec<String>) {
         self.protocols = protocols
     }

@@ -390,6 +390,30 @@ pub mod xcall {
         instructions::execute_rollback(ctx, sn)
     }
 
+    /// Initiates the handling of a forced rollback for a cross-chain message. This function acts
+    /// as a wrapper, calling the inner `handle_forced_rollback` instruction to handle the rollback
+    /// process.
+    ///
+    /// The rollback is triggered in response to a failure or error that occurred after a message
+    /// was received on the destination chain. It allows the dApp to revert the state by sending
+    /// a failure response back to the source chain, ensuring the original message is effectively
+    /// rolled back.
+    ///
+    /// # Arguments
+    /// * `ctx` - Context containing the accounts required for processing the forced rollback.
+    /// * `req_id` - The unique request ID associated with the message being rolled back.
+    ///
+    /// # Returns
+    /// * `Result<()>` - Returns `Ok(())` on successful execution, or an error if the rollback process
+    /// fails.
+    #[allow(unused_variables)]
+    pub fn handle_forced_rollback<'info>(
+        ctx: Context<'_, '_, '_, 'info, HandleForcedRollbackCtx<'info>>,
+        req_id: u128,
+    ) -> Result<()> {
+        instructions::handle_forced_rollback(ctx)
+    }
+
     pub fn query_execute_call_accounts<'info>(
         ctx: Context<'_, '_, '_, 'info, QueryExecuteCallAccountsCtx<'info>>,
         req_id: u128,
