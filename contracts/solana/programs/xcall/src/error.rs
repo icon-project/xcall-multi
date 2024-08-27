@@ -71,6 +71,9 @@ pub enum XcallError {
     #[msg("Invalid response from dapp")]
     InvalidResponse,
 
+    #[msg("Request is still pending")]
+    RequestPending,
+
     #[msg("Proxy request account is not specified")]
     ProxyRequestAccountNotSpecified,
 
@@ -94,9 +97,6 @@ pub enum XcallError {
 
     #[msg("Pending response account must not be specified")]
     PendingResponseAccountMustNotBeSpecified,
-
-    #[msg("Invalid message seed")]
-    InvalidMessageSeed,
 
     #[msg("Successful response account is not specified")]
     SuccessfulResponseAccountNotSpecified,

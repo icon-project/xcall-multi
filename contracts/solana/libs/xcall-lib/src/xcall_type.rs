@@ -8,6 +8,7 @@ pub const HANDLE_REQUEST_IX: &str = "handle_request";
 pub const HANDLE_RESULT_IX: &str = "handle_result";
 pub const HANDLE_ERROR_IX: &str = "handle_error";
 pub const EXECUTE_CALL_IX: &str = "execute_call";
+pub const HANDLE_FORCED_ROLLBACK_IX: &str = "handle_forced_rollback";
 
 pub const QUERY_HANDLE_MESSAGE_ACCOUNTS_IX: &str = "query_handle_message_accounts";
 pub const QUERY_HANDLE_ERROR_ACCOUNTS_IX: &str = "query_handle_error_accounts";
@@ -42,4 +43,9 @@ pub struct HandleResultArgs {
 #[derive(Debug, Clone, AnchorSerialize, AnchorDeserialize)]
 pub struct HandleErrorArgs {
     pub sequence_no: u128,
+}
+
+#[derive(Debug, Clone, AnchorSerialize, AnchorDeserialize)]
+pub struct HandleForcedRollback {
+    pub req_id: u128,
 }

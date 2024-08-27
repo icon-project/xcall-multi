@@ -61,6 +61,13 @@ pub mod mock_dapp_multi {
         Ok(())
     }
 
+    pub fn execute_forced_rollback<'info>(
+        ctx: Context<'_, '_, '_, 'info, ExecuteForcedRollbackCtx<'info>>,
+        req_id: u128,
+    ) -> Result<()> {
+        instructions::execute_forced_rollback(ctx, req_id)
+    }
+
     #[allow(unused_variables)]
     pub fn query_handle_call_message_accounts(
         ctx: Context<QueryAccountsCtx>,
