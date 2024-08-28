@@ -208,9 +208,6 @@ module multisig::multisig {
              signature:raw_signature,
              voter:ctx.sender()
         });
-
-
-        
     }
 
     entry fun execute_event(storage:&Storage,proposal_id:u64){
@@ -240,9 +237,11 @@ module multisig::multisig {
 
         let multisig= create_multi_signature(&signatures,&wallet.signers,wallet.threshold);
         let multisig_serialized_64= base64::encode(&serialize_multisig(&multisig));
+        
         let mut command=vector::empty<u8>();
         command.append(b"sui client execute-signed-tx --tx-bytes ");
         let tx_data_64= base64::encode(&proposal.tx_data);
+
         if(proposal.is_digest){
          command.append(b"${ORIGINAL_TX_BYTES}");
         }else {
@@ -251,11 +250,7 @@ module multisig::multisig {
        
         command.append(b" --signatures ");
         command.append(*multisig_serialized_64.as_bytes());
-
         string::utf8(command)
-
-
-
     }
 
     fun only_member(wallet:&MultisigWallet,caller:address):bool{
