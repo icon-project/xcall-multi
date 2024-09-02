@@ -104,7 +104,7 @@ pub struct CallMessageCtx<'info> {
 #[instruction(network_id: String)]
 pub struct AddConnectionCtx<'info> {
     #[account(
-        init,
+        init_if_needed,
         payer = sender,
         space= Connections::MAX_SPACE,
         seeds=[Connections::SEED_PREFIX.as_bytes(), network_id.as_bytes()],
