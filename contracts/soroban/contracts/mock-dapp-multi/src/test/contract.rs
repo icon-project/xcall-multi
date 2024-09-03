@@ -164,12 +164,11 @@ fn test_send_call_message_fail_xcall_address_not_set() {
 fn test_handle_call_message_pass() {
     let ctx = TestContext::default();
     let client = MockDappClient::new(&ctx.env, &ctx.contract);
+    ctx.init_context(&client);
     ctx.env.mock_all_auths();
 
-    let from = ctx.network_address;
-    let sender = &from.account(&ctx.env);
+    let from = NetworkAddress::new(&ctx.env, ctx.nid, ctx.xcall.to_string());
     let res = client.try_handle_call_message(
-        &Address::from_string(&sender),
         &from.to_string(),
         &bytes!(&ctx.env, 0xabc),
         &Some(vec![&ctx.env]),
@@ -183,13 +182,13 @@ fn test_handle_call_message_pass() {
 fn test_handle_call_message_revert() {
     let ctx = TestContext::default();
     let client = MockDappClient::new(&ctx.env, &ctx.contract);
+    ctx.init_context(&client);
     ctx.env.mock_all_auths();
 
     let string_data = String::from_str(&ctx.env, "rollback");
     let encoded_data = encoder::encode_string(&ctx.env, string_data);
 
     client.handle_call_message(
-        &Address::generate(&ctx.env),
         &ctx.network_address.to_string(),
         &encoded_data,
         &Some(vec![&ctx.env]),
@@ -201,15 +200,14 @@ fn test_handle_call_message_reply() {
     let ctx = TestContext::default();
     let client = MockDappClient::new(&ctx.env, &ctx.contract);
     ctx.init_context(&client);
+    ctx.env.mock_all_auths_allowing_non_root_auth();
 
-    let sender = Address::generate(&ctx.env);
-    ctx.mint_native_token(&sender, 500);
+    ctx.mint_native_token(&ctx.contract, 500);
 
     let string_data = String::from_str(&ctx.env, "reply-response");
     let encoded_data = encoder::encode_string(&ctx.env, string_data);
 
     client.handle_call_message(
-        &sender,
         &ctx.network_address.to_string(),
         &encoded_data,
         &Some(vec![&ctx.env]),

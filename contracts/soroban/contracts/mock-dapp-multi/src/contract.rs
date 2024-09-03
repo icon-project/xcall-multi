@@ -61,16 +61,18 @@ impl MockDapp {
 
     pub fn handle_call_message(
         env: Env,
-        sender: Address,
         from: String,
         data: Bytes,
         _protocols: Option<Vec<String>>,
     ) {
-        sender.require_auth();
+        let xcall_address = storage::get_xcall_address(&env)
+            .unwrap_or_else(|_| panic_with_error!(&env, ContractError::Uninitialized));
+
+        xcall_address.require_auth();
 
         let network_from = NetworkAddress::from_string(from);
         let (nid, account) = network_from.parse_network_address(&env);
-        if sender.to_string() == account {
+        if xcall_address.to_string() == account {
             return;
         }
 
@@ -83,11 +85,6 @@ impl MockDapp {
                     data: bytes!(&env, 0xabc),
                 });
 
-                let xcall_address = storage::get_xcall_address(&env).ok();
-                if xcall_address.is_none() {
-                    panic_with_error!(&env, ContractError::Uninitialized)
-                }
-
                 let (sources, destinations) = Self::get_network_connections(&env, nid)
                     .unwrap_or_else(|error| panic_with_error!(&env, error));
 
@@ -98,10 +95,10 @@ impl MockDapp {
                 };
                 Self::xcall_send_call(
                     &env,
-                    &sender,
+                    &env.current_contract_address(),
                     &network_from,
                     &envelope,
-                    &xcall_address.unwrap(),
+                    &xcall_address,
                 );
             }
         }

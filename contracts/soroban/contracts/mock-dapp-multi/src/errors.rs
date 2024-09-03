@@ -10,4 +10,5 @@ pub enum ContractError {
     ConnectionNotFound = 4,
     InvalidRollbackMessage = 5,
     RevertFromDapp = 6,
+    OnlyXcall = 7,
 }

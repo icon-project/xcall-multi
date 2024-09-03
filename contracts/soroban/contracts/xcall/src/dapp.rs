@@ -12,19 +12,9 @@ pub fn handle_call_message(
 ) {
     let client = DappClient::new(&e, &address);
     if protocols.len() > 0 {
-        client.handle_call_message(
-            &e.current_contract_address(),
-            &from.to_string(),
-            data,
-            &Some(protocols),
-        )
+        client.handle_call_message(&from.to_string(), data, &Some(protocols))
     } else {
-        client.handle_call_message(
-            &e.current_contract_address(),
-            &from.to_string(),
-            data,
-            &None,
-        )
+        client.handle_call_message(&from.to_string(), data, &None)
     }
 }
 
@@ -42,12 +32,7 @@ pub fn try_handle_call_message(
     }
 
     let client = DappClient::new(&e, &address);
-    let res = client.try_handle_call_message(
-        &e.current_contract_address(),
-        &from.to_string(),
-        data,
-        &protocols,
-    );
+    let res = client.try_handle_call_message(&from.to_string(), data, &protocols);
 
     match res {
         Ok(_) => {
