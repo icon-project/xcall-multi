@@ -12,5 +12,5 @@ pub trait IConnection {
         msg: Bytes,
     ) -> Result<(), ContractError>;
 
-    fn get_fee(env: Env, network_id: String, response: bool) -> u128;
+    fn get_fee(env: Env, network_id: String, response: bool) -> Result<u128, ContractError>;
 }

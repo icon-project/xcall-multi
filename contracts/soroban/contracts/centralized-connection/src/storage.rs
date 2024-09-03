@@ -1,6 +1,17 @@
 use soroban_sdk::{Address, Env, String};
 
-use crate::{errors::ContractError, types::StorageKey};
+use crate::{
+    errors::ContractError,
+    types::{NetworkFee, StorageKey},
+};
+
+const DAY_IN_LEDGERS: u32 = 17280; // assumes 5s a ledger
+
+const LEDGER_THRESHOLD_INSTANCE: u32 = DAY_IN_LEDGERS * 30; // ~ 30 days
+const LEDGER_BUMP_INSTANCE: u32 = LEDGER_THRESHOLD_INSTANCE + DAY_IN_LEDGERS; // ~ 31 days
+
+const LEDGER_THRESHOLD_PERSISTENT: u32 = DAY_IN_LEDGERS * 30; // ~ 30 days
+const LEDGER_BUMP_PERSISTENT: u32 = LEDGER_THRESHOLD_PERSISTENT + DAY_IN_LEDGERS; // ~ 31 days
 
 pub fn is_initialized(e: &Env) -> Result<(), ContractError> {
     let initialized = e.storage().instance().has(&StorageKey::Admin);
@@ -45,30 +56,44 @@ pub fn get_next_conn_sn(e: &Env) -> u128 {
     sn
 }
 
-pub fn get_msg_fee(e: &Env, network_id: String) -> u128 {
-    e.storage()
-        .instance()
-        .get(&StorageKey::MessageFee(network_id))
-        .unwrap_or(0)
+pub fn get_msg_fee(e: &Env, network_id: String) -> Result<u128, ContractError> {
+    let key = StorageKey::NetworkFee(network_id);
+    let network_fee: NetworkFee = e
+        .storage()
+        .persistent()
+        .get(&key)
+        .ok_or(ContractError::NetworkNotSupported)?;
+    extend_persistent(e, &key);
+
+    Ok(network_fee.message_fee)
 }
 
-pub fn get_res_fee(e: &Env, network_id: String) -> u128 {
-    e.storage()
-        .instance()
-        .get(&StorageKey::ResponseFee(network_id))
-        .unwrap_or(0)
+pub fn get_res_fee(e: &Env, network_id: String) -> Result<u128, ContractError> {
+    let key = StorageKey::NetworkFee(network_id);
+    let network_fee: NetworkFee = e
+        .storage()
+        .persistent()
+        .get(&key)
+        .ok_or(ContractError::NetworkNotSupported)?;
+    extend_persistent(e, &key);
+
+    Ok(network_fee.response_fee)
 }
 
 pub fn get_sn_receipt(e: &Env, network_id: String, sn: u128) -> bool {
-    e.storage()
-        .instance()
-        .get(&StorageKey::Receipts(network_id, sn))
-        .unwrap_or(false)
+    let key = StorageKey::Receipts(network_id, sn);
+    let is_received = e.storage().persistent().get(&key).unwrap_or(false);
+    if is_received {
+        extend_persistent(e, &key);
+    }
+
+    is_received
 }
 
 pub fn store_receipt(e: &Env, network_id: String, sn: u128) {
     let key = StorageKey::Receipts(network_id, sn);
-    e.storage().instance().set(&key, &true);
+    e.storage().persistent().set(&key, &true);
+    extend_persistent(e, &key);
 }
 
 pub fn store_admin(e: &Env, admin: Address) {
@@ -88,9 +113,23 @@ pub fn store_conn_sn(e: &Env, sn: u128) {
 }
 
 pub fn store_network_fee(e: &Env, network_id: String, message_fee: u128, response_fee: u128) {
-    let msg_key = StorageKey::MessageFee(network_id.clone());
-    let res_key = StorageKey::ResponseFee(network_id.clone());
+    let key = StorageKey::NetworkFee(network_id);
+    let network_fee = NetworkFee {
+        message_fee,
+        response_fee,
+    };
+    e.storage().persistent().set(&key, &network_fee);
+    extend_persistent(e, &key);
+}
 
-    e.storage().instance().set(&msg_key, &message_fee);
-    e.storage().instance().set(&res_key, &response_fee);
+pub fn extend_instance(e: &Env) {
+    e.storage()
+        .instance()
+        .extend_ttl(LEDGER_THRESHOLD_INSTANCE, LEDGER_BUMP_INSTANCE);
+}
+
+pub fn extend_persistent(e: &Env, key: &StorageKey) {
+    e.storage()
+        .persistent()
+        .extend_ttl(key, LEDGER_THRESHOLD_PERSISTENT, LEDGER_BUMP_PERSISTENT);
 }

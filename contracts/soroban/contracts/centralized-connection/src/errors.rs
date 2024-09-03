@@ -9,4 +9,5 @@ pub enum ContractError {
     AlreadyInitialized = 3,
     InsufficientFund = 4,
     DuplicateMessage = 5,
+    NetworkNotSupported = 6,
 }

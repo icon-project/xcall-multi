@@ -75,7 +75,7 @@ impl CentralizedConnection {
 
         let mut fee: u128 = 0;
         if sn >= 0 {
-            fee = helpers::get_network_fee(&env, to.clone(), sn > 0);
+            fee = helpers::get_network_fee(&env, to.clone(), sn > 0)?;
         }
         if fee > 0 {
             helpers::transfer_token(&env, &tx_origin, &env.current_contract_address(), &fee)?;
@@ -115,8 +115,8 @@ impl CentralizedConnection {
     /// a `Result<(), ContractError)`
     pub fn revert_message(env: &Env, sn: u128) -> Result<(), ContractError> {
         helpers::ensure_admin(&env)?;
-
         helpers::call_xcall_handle_error(&env, sn)?;
+
         Ok(())
     }
 
@@ -175,11 +175,16 @@ impl CentralizedConnection {
     /// Returns:
     ///
     /// a `u128` fee required to send message
-    pub fn get_fee(env: Env, network_id: String, response: bool) -> u128 {
+    pub fn get_fee(env: Env, network_id: String, response: bool) -> Result<u128, ContractError> {
         helpers::get_network_fee(&env, network_id, response)
     }
 
     pub fn get_receipt(env: Env, network_id: String, sn: u128) -> bool {
         storage::get_sn_receipt(&env, network_id, sn)
+    }
+
+    pub fn extend_instance_storage(env: Env) -> Result<(), ContractError> {
+        storage::extend_instance(&env);
+        Ok(())
     }
 }

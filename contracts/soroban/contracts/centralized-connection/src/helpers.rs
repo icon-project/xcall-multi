@@ -16,13 +16,17 @@ pub fn ensure_xcall(e: &Env) -> Result<Address, ContractError> {
     Ok(xcall)
 }
 
-pub fn get_network_fee(env: &Env, network_id: String, response: bool) -> u128 {
-    let mut fee = storage::get_msg_fee(&env, network_id.clone());
+pub fn get_network_fee(
+    env: &Env,
+    network_id: String,
+    response: bool,
+) -> Result<u128, ContractError> {
+    let mut fee = storage::get_msg_fee(&env, network_id.clone())?;
     if response {
-        fee += storage::get_res_fee(&env, network_id);
+        fee += storage::get_res_fee(&env, network_id)?;
     }
 
-    fee
+    Ok(fee)
 }
 
 pub fn transfer_token(

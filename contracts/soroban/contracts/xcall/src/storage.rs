@@ -10,6 +10,17 @@ use crate::{
     },
 };
 
+const DAY_IN_LEDGERS: u32 = 17280; // assumes 5s a ledger
+
+const LEDGER_THRESHOLD_INSTANCE: u32 = DAY_IN_LEDGERS * 30; // ~ 30 days
+const LEDGER_BUMP_INSTANCE: u32 = LEDGER_THRESHOLD_INSTANCE + DAY_IN_LEDGERS; // ~ 31 days
+
+const LEDGER_THRESHOLD_PERSISTENT: u32 = DAY_IN_LEDGERS * 30; // ~ 30 days
+const LEDGER_BUMP_PERSISTENT: u32 = LEDGER_THRESHOLD_PERSISTENT + DAY_IN_LEDGERS; // ~ 31 days
+
+const LEDGER_THRESHOLD_REQUEST: u32 = DAY_IN_LEDGERS * 7; // ~ 7 days
+const LEDGER_BUMP_REQUEST: u32 = LEDGER_THRESHOLD_REQUEST + DAY_IN_LEDGERS; // ~ 8 days
+
 pub const MAX_ROLLBACK_SIZE: u64 = 1024;
 pub const MAX_DATA_SIZE: u64 = 2048;
 
@@ -51,24 +62,37 @@ pub fn protocol_fee(e: &Env) -> u128 {
 }
 
 pub fn default_connection(e: &Env, nid: String) -> Result<Address, ContractError> {
-    e.storage()
-        .instance()
-        .get(&StorageKey::DefaultConnections(nid))
-        .ok_or(ContractError::NoDefaultConnection)
+    let key = StorageKey::DefaultConnections(nid);
+    let connection = e
+        .storage()
+        .persistent()
+        .get(&key)
+        .ok_or(ContractError::NoDefaultConnection)?;
+    extend_persistent(e, &key);
+
+    connection
 }
 
 pub fn get_rollback(e: &Env, sequence_no: u128) -> Result<Rollback, ContractError> {
-    e.storage()
-        .instance()
-        .get(&StorageKey::Rollback(sequence_no))
-        .ok_or(ContractError::CallRequestNotFound)
+    let key = StorageKey::Rollback(sequence_no);
+    let rollback = e
+        .storage()
+        .persistent()
+        .get(&key)
+        .ok_or(ContractError::CallRequestNotFound)?;
+    extend_persistent_request(e, &key);
+
+    rollback
 }
 
 pub fn get_successful_response(e: &Env, sn: u128) -> bool {
-    e.storage()
-        .instance()
-        .get(&StorageKey::SuccessfulResponses(sn))
-        .unwrap_or(false)
+    let key = StorageKey::SuccessfulResponses(sn);
+    let res = e.storage().persistent().get(&key).unwrap_or(false);
+    if res {
+        extend_persistent(e, &key)
+    }
+
+    res
 }
 
 pub fn get_next_sn(e: &Env) -> u128 {
@@ -80,33 +104,44 @@ pub fn get_next_sn(e: &Env) -> u128 {
 }
 
 pub fn get_proxy_request(e: &Env, req_id: u128) -> Result<CSMessageRequest, ContractError> {
-    e.storage()
-        .instance()
-        .get(&StorageKey::ProxyRequest(req_id))
-        .ok_or(ContractError::InvalidRequestId)
+    let key = StorageKey::ProxyRequest(req_id);
+    let request = e
+        .storage()
+        .persistent()
+        .get(&key)
+        .ok_or(ContractError::InvalidRequestId)?;
+    extend_persistent_request(e, &key);
+
+    request
 }
 
 pub fn get_reply_state(e: &Env) -> Option<CSMessageRequest> {
-    e.storage().instance().get(&StorageKey::ReplyState)
+    e.storage().temporary().get(&StorageKey::ReplyState)
 }
 
 pub fn get_pending_request(e: &Env, hash: BytesN<32>) -> Vec<String> {
-    e.storage()
-        .instance()
-        .get(&StorageKey::PendingRequests(hash))
-        .unwrap_or(Vec::new(&e))
+    let key = StorageKey::PendingRequests(hash);
+    let pending_request = e.storage().persistent().get(&key).unwrap_or(Vec::new(&e));
+    if pending_request.len() > 0 {
+        extend_persistent_request(e, &key);
+    }
+
+    pending_request
 }
 
 pub fn get_pending_response(e: &Env, hash: BytesN<32>) -> Vec<String> {
-    e.storage()
-        .instance()
-        .get(&StorageKey::PendingResponses(hash))
-        .unwrap_or(Vec::new(&e))
+    let key = StorageKey::PendingResponses(hash);
+    let pending_response = e.storage().persistent().get(&key).unwrap_or(Vec::new(&e));
+    if pending_response.len() > 0 {
+        extend_persistent_request(e, &key);
+    }
+
+    pending_response
 }
 
 pub fn get_call_reply(e: &Env) -> Option<CSMessageRequest> {
     e.storage()
-        .instance()
+        .temporary()
         .get(&StorageKey::CallReply)
         .unwrap_or(None)
 }
@@ -124,6 +159,7 @@ pub fn get_own_network_address(e: &Env) -> Result<NetworkAddress, ContractError>
 
 pub fn store_admin(e: &Env, address: &Address) {
     e.storage().instance().set(&StorageKey::Admin, &address);
+    extend_instance(&e);
 }
 
 pub fn store_config(e: &Env, config: Config) {
@@ -134,79 +170,84 @@ pub fn store_fee_handler(e: &Env, address: &Address) {
     e.storage()
         .instance()
         .set(&StorageKey::FeeHandler, &address);
+    extend_instance(e)
 }
 
 pub fn store_protocol_fee(e: &Env, fee: u128) {
-    e.storage().instance().set(&StorageKey::ProtocolFee, &fee)
+    e.storage().instance().set(&StorageKey::ProtocolFee, &fee);
+    extend_instance(e)
 }
 
 pub fn store_default_connection(e: &Env, nid: String, address: &Address) {
-    e.storage()
-        .instance()
-        .set(&StorageKey::DefaultConnections(nid), &address);
+    let key = StorageKey::DefaultConnections(nid);
+    e.storage().persistent().set(&key, &address);
+    extend_persistent(e, &key);
 }
 
 pub fn store_rollback(e: &Env, sn: u128, rollback: &Rollback) {
-    e.storage()
-        .instance()
-        .set(&StorageKey::Rollback(sn), rollback)
+    let key = StorageKey::Rollback(sn);
+    e.storage().persistent().set(&key, rollback);
+    extend_persistent_request(e, &key)
 }
 
 pub fn remove_rollback(e: &Env, sn: u128) {
-    e.storage().instance().remove(&StorageKey::Rollback(sn))
+    e.storage().persistent().remove(&StorageKey::Rollback(sn));
 }
 
 pub fn store_proxy_request(e: &Env, req_id: u128, request: &CSMessageRequest) {
-    e.storage()
-        .instance()
-        .set(&StorageKey::ProxyRequest(req_id), request)
+    let key = StorageKey::ProxyRequest(req_id);
+    e.storage().persistent().set(&key, request);
+    extend_persistent_request(e, &key)
 }
 
 pub fn remove_proxy_request(e: &Env, req_id: u128) {
     e.storage()
-        .instance()
+        .persistent()
         .remove(&StorageKey::ProxyRequest(req_id))
 }
 
 pub fn store_call_reply(e: &Env, reply: &CSMessageRequest) {
-    e.storage().instance().set(&StorageKey::CallReply, reply)
+    let key = StorageKey::CallReply;
+    e.storage().temporary().set(&key, reply);
 }
 
 pub fn remove_call_reply(e: &Env) -> Option<CSMessageRequest> {
     let call_reply = get_call_reply(&e);
-    e.storage().instance().remove(&StorageKey::CallReply);
+    e.storage().temporary().remove(&StorageKey::CallReply);
+
     call_reply
 }
 
 pub fn store_reply_state(e: &Env, req: &CSMessageRequest) {
-    e.storage().instance().set(&StorageKey::ReplyState, req)
+    let key = StorageKey::ReplyState;
+    e.storage().temporary().set(&key, req);
 }
 
 pub fn remove_reply_state(e: &Env) {
-    e.storage().instance().remove(&StorageKey::ReplyState)
+    e.storage().temporary().remove(&StorageKey::ReplyState)
 }
 
 pub fn store_pending_request(e: &Env, hash: BytesN<32>, sources: &Vec<String>) {
-    e.storage()
-        .instance()
-        .set(&StorageKey::PendingRequests(hash), sources);
+    let key = StorageKey::PendingRequests(hash.clone());
+    e.storage().persistent().set(&key, sources);
+    extend_persistent_request(e, &key)
 }
 
 pub fn remove_pending_request(e: &Env, hash: BytesN<32>) {
     e.storage()
-        .instance()
+        .persistent()
         .remove(&StorageKey::PendingRequests(hash))
 }
 
 pub fn store_pending_response(e: &Env, hash: BytesN<32>, sources: &Vec<String>) {
-    e.storage()
-        .instance()
-        .set(&StorageKey::PendingResponses(hash), sources)
+    let key = StorageKey::PendingResponses(hash);
+    e.storage().persistent().set(&key, sources);
+    extend_persistent_request(e, &key)
 }
 
 pub fn remove_pending_response(e: &Env, hash: BytesN<32>) {
     e.storage()
-        .instance()
+        .persistent()
         .remove(&StorageKey::PendingResponses(hash))
 }
 
@@ -222,7 +263,25 @@ pub fn increment_last_request_id(e: &Env) -> u128 {
 }
 
 pub fn save_success_response(e: &Env, sn: u128) {
+    let key = StorageKey::SuccessfulResponses(sn);
+    e.storage().persistent().set(&key, &true);
+    extend_persistent(e, &key);
+}
+
+pub fn extend_instance(e: &Env) {
     e.storage()
         .instance()
-        .set(&StorageKey::SuccessfulResponses(sn), &true)
+        .extend_ttl(LEDGER_THRESHOLD_INSTANCE, LEDGER_BUMP_INSTANCE);
+}
+
+pub fn extend_persistent(e: &Env, key: &StorageKey) {
+    e.storage()
+        .persistent()
+        .extend_ttl(key, LEDGER_THRESHOLD_PERSISTENT, LEDGER_BUMP_PERSISTENT);
+}
+
+pub fn extend_persistent_request(e: &Env, key: &StorageKey) {
+    e.storage()
+        .persistent()
+        .extend_ttl(key, LEDGER_THRESHOLD_REQUEST, LEDGER_BUMP_REQUEST);
 }

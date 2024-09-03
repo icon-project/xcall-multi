@@ -135,4 +135,9 @@ impl Xcall {
     pub fn verify_success(env: Env, sn: u128) -> bool {
         storage::get_successful_response(&env, sn)
     }
+
+    pub fn extend_instance_storage(env: Env) -> Result<(), ContractError> {
+        storage::extend_instance(&env);
+        Ok(())
+    }
 }
