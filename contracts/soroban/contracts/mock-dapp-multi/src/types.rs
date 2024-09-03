@@ -3,6 +3,8 @@ use soroban_sdk::{contracttype, String};
 #[contracttype]
 pub enum StorageKey {
     XcallAddress,
+    Admin,
+    Xlm,
     Sn,
     Rollback(u128),
     Connections(String),

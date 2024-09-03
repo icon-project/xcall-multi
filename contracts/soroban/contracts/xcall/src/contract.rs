@@ -1,4 +1,4 @@
-use soroban_sdk::{contract, contractimpl, Address, Bytes, Env, String, Vec};
+use soroban_sdk::{contract, contractimpl, Address, Bytes, BytesN, Env, String, Vec};
 use soroban_xcall_lib::messages::envelope::Envelope;
 
 use crate::{
@@ -134,6 +134,13 @@ impl Xcall {
 
     pub fn verify_success(env: Env, sn: u128) -> bool {
         storage::get_successful_response(&env, sn)
+    }
+
+    pub fn upgrade(env: Env, new_wasm_hash: BytesN<32>) -> Result<(), ContractError> {
+        helpers::ensure_admin(&env)?;
+        env.deployer().update_current_contract_wasm(new_wasm_hash);
+
+        Ok(())
     }
 
     pub fn extend_instance_storage(env: Env) -> Result<(), ContractError> {

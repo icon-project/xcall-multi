@@ -26,6 +26,7 @@ pub fn get_dummy_network_address(env: &Env) -> NetworkAddress {
 pub struct TestContext {
     pub contract: Address,
     pub nid: String,
+    pub admin: Address,
     pub network_address: NetworkAddress,
     pub env: Env,
     pub native_token: Address,
@@ -41,6 +42,7 @@ impl TestContext {
         Self {
             contract: env.register_contract(None, MockDapp),
             nid: String::from_str(&env, "stellar"),
+            admin: Address::generate(&env),
             native_token: env.register_stellar_asset_contract(address),
             network_address: get_dummy_network_address(&env),
             xcall: env.register_contract_wasm(None, xcall_module::WASM),
@@ -52,7 +54,7 @@ impl TestContext {
     pub fn init_context(&self, client: &MockDappClient<'_>) {
         self.env.mock_all_auths();
 
-        client.init(&self.xcall);
+        client.init(&self.admin, &self.xcall, &self.native_token);
         client.add_connection(
             &self.centralized_connection.to_string(),
             &Address::generate(&self.env).to_string(),

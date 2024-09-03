@@ -1,4 +1,4 @@
-use soroban_sdk::{contract, contractimpl, token, Address, Bytes, Env, String};
+use soroban_sdk::{contract, contractimpl, token, Address, Bytes, BytesN, Env, String};
 
 use crate::{errors::ContractError, event, helpers, storage, types::InitializeMsg};
 
@@ -181,6 +181,13 @@ impl CentralizedConnection {
 
     pub fn get_receipt(env: Env, network_id: String, sn: u128) -> bool {
         storage::get_sn_receipt(&env, network_id, sn)
+    }
+
+    pub fn upgrade(env: Env, new_wasm_hash: BytesN<32>) -> Result<(), ContractError> {
+        helpers::ensure_admin(&env)?;
+        env.deployer().update_current_contract_wasm(new_wasm_hash);
+
+        Ok(())
     }
 
     pub fn extend_instance_storage(env: Env) -> Result<(), ContractError> {

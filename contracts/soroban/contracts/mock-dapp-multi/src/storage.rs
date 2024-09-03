@@ -12,6 +12,28 @@ pub fn is_initialized(e: &Env) -> Result<(), ContractError> {
     }
 }
 
+pub fn admin(e: &Env) -> Result<Address, ContractError> {
+    e.storage()
+        .instance()
+        .get(&StorageKey::Admin)
+        .ok_or(ContractError::Uninitialized)
+}
+
+pub fn native_token(e: &Env) -> Result<Address, ContractError> {
+    e.storage()
+        .instance()
+        .get(&StorageKey::Xlm)
+        .ok_or(ContractError::Uninitialized)
+}
+
+pub fn store_admin(e: &Env, admin: Address) {
+    e.storage().instance().set(&StorageKey::Admin, &admin);
+}
+
+pub fn store_native_token(e: &Env, address: Address) {
+    e.storage().instance().set(&StorageKey::Xlm, &address);
+}
+
 pub fn store_xcall_address(e: &Env, address: &Address) {
     e.storage()
         .instance()
