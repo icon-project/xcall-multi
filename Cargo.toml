@@ -38,7 +38,7 @@ cw-common={ git="https://github.com/icon-project/IBC-Integration.git", branch = 
 cw-mock-dapp = {path="contracts/cosmwasm-vm/cw-mock-dapp"}
 cw-mock-dapp-multi = { path="contracts/cosmwasm-vm/cw-mock-dapp-multi"}
 
-soroban-sdk = "20.5.0"
+soroban-sdk = "21.6.0"
 
 [profile.release]
 opt-level = 'z'
