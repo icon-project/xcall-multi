@@ -1,5 +1,6 @@
 import * as anchor from "@coral-xyz/anchor";
 import { MockDappMulti } from "../target/types/mock_dapp_multi"; 
+import { PublicKey } from "@solana/web3.js";
 
 import fs from 'fs';
 import { homedir } from 'os';
@@ -7,8 +8,10 @@ import { join } from 'path';
 
 const args = process.argv.slice(2);
 
-const xcall_param = args[0];
-const environment = args[1]
+const environment = args[0];
+const network_id = args[1];
+const solana_connection = args[2]
+const icon_connection = args[3]
 
 const sleep = (seconds: number) => {
   return new Promise((resolve) => setTimeout(resolve, seconds * 1000));
@@ -46,39 +49,42 @@ const mockDappProgram: anchor.Program<MockDappMulti> = anchor.workspace.MockDapp
       this.program = program;
     }
 
-    async initialize(xcall: anchor.web3.PublicKey) {
-      await this.program.rpc.initialize(xcall, {
-        accounts: {
-          config: (await anchor.web3.PublicKey.findProgramAddress(
-            [Buffer.from("config")],
-            this.program.programId
-          ))[0],
-          sender: this.wallet.publicKey,
-          systemProgram: anchor.web3.SystemProgram.programId,
-        },
-        signers: [this.wallet.payer],
-      });
-    }
 
-    async getConfig() {
-      const configKey = (await anchor.web3.PublicKey.findProgramAddress(
-        [Buffer.from("config")],
-        this.program.programId
-      ))[0];
-      return this.program.account.config.fetch(configKey);
-    }
+  async add_connection(
+    _networkId: string,
+    src_endpoint: string,
+    dst_endpoint: string
+  ) {
 
+    const buffer1 = Buffer.from("connections");
+    const buffer2 = Buffer.from(_networkId);
+    const seed = [buffer1, buffer2];
+
+    const [pda, bump] = PublicKey.findProgramAddressSync(
+      seed,
+      this.program.programId
+    );
+    const result = await this.program.methods
+      .addConnection(_networkId, src_endpoint, dst_endpoint)
+      .accounts({
+        connectionAccount: pda,
+        sender: this.wallet.publicKey,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      })
+      .signers([this.wallet.payer])
+      .rpc();
+
+    return result;
+  }
   }
 
   const mockDappCtx = new MockDappContext(connection, wallet, mockDappProgram);
 
-  const xcall = new anchor.web3.PublicKey(xcall_param)
+  console.log("Adding connection to mock dapp multi")
+  await mockDappCtx.add_connection(network_id , solana_connection , icon_connection )
 
-  console.log("Initializing mock dapp multi")
-
-  await mockDappCtx.initialize(xcall);
-
-  console.log("Mock Dapp Multi program initialized successfully.");
+  console.log(" Connection added successfully.");
 })().catch(err => {
   console.error(err);
 });
+

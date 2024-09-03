@@ -5,7 +5,7 @@ resolution = false
 skip-lint = false
 
 [programs.localnet]
-centralized-connection = "5U3CgESS3wbVD7LsUZsLo9gYFaw9PFkazdXRtNs5bh8t"
+centralized-connection = "4LG2ERs8Gng5jzZ49ka2t1w4kenJZb2CLmAj41nWubN1"
 mock-dapp-multi = "7PpmdU536NgtFwudxSGVB1H7gXbEifXxc2jrqUo89zZX"
 xcall = "9Fspq2pWy4uo8UtDtuxbQUas45W1p49t2gYPpxpfZmTy"
 
@@ -21,5 +21,7 @@ init-contract = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/begin-ini
 initialize-xcall = "yarn ts-node --project ./tsconfig.json ./scripts/initialize_xcall.ts"
 initialize-centralized = "yarn ts-node --project ./tsconfig.json ./scripts/initialize_centralized.ts"
 initialize-mock-dapp-multi = "yarn ts-node --project ./tsconfig.json ./scripts/initialize_mock_dapp_multi.ts"
+add-connection-mock-dapp = "yarn ts-node --project ./tsconfig.json ./scripts/mock_dapp_add_connection.ts"
 set-admin-xcall = "yarn ts-node --project ./tsconfig.json ./scripts/set_xcall_admin.ts"
 test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
+
