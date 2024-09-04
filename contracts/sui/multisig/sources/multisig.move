@@ -72,7 +72,7 @@ module multisig::multisig {
         threshold:u16
     }
 
-    public struct Proposal has store{
+    public struct Proposal has store,drop,copy{
         id:u64,
         title:String,
         multisig_address:address,
@@ -105,8 +105,16 @@ module multisig::multisig {
     public fun get_wallets(self:&Storage):&VecMap<address,MultisigWallet>{
         &self.wallets
     }
-    public fun get_proposals(self:&Storage):&Table<u64,Proposal>{
-        &self.proposals
+    
+    public fun get_proposals(self:&Storage):vector<Proposal>{
+        let mut i = 1;
+        let mut proposals = vector::empty<Proposal>();
+        while (i <= self.proposal_count){
+            let proposal = self.proposals.borrow(i);
+            proposals.push_back(*proposal);
+            i=i+1;
+        };
+        proposals   
     }
     public struct AdminCap has key,store {
         id: UID
