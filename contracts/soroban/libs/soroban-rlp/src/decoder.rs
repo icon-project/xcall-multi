@@ -82,13 +82,16 @@ pub fn decode_list(env: &Env, list: Bytes) -> Vec<Bytes> {
             let data_bytes_len = (byte - 0xf7) as u64;
             let len_bytes = slice_vector(&env, encoded.clone(), i as u64 + 1, data_bytes_len);
             let len = bytes_to_u64(len_bytes);
-
-            decoded.push_back(slice_vector(
-                &env,
-                encoded.clone(),
-                i as u64,
-                data_bytes_len + len + 1,
-            ));
+            if byte == 0xf8 && len == 0 {
+                decoded.push_back(Bytes::new(&env));
+            } else {
+                decoded.push_back(slice_vector(
+                    &env,
+                    encoded.clone(),
+                    i as u64,
+                    data_bytes_len + len + 1,
+                ));
+            }
             i = i + (data_bytes_len + len + 1) as u32
         } else {
             panic!("invalid rlp byte length")
