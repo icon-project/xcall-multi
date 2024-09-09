@@ -17,6 +17,8 @@ pub fn handle_message(
     from_nid: String,
     msg: Bytes,
 ) -> Result<(), ContractError> {
+    sender.require_auth();
+
     let config = storage::get_config(&env)?;
     if config.network_id == from_nid {
         return Err(ContractError::ProtocolsMismatch);
