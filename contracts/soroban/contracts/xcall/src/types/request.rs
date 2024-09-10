@@ -10,9 +10,9 @@ pub struct CSMessageRequest {
     from: String,
     to: String,
     sequence_no: u128,
-    protocols: Vec<String>,
     msg_type: u32,
     data: Bytes,
+    protocols: Vec<String>,
 }
 
 impl CSMessageRequest {
@@ -29,9 +29,9 @@ impl CSMessageRequest {
             from: from.to_string(),
             to,
             sequence_no,
-            protocols,
             msg_type: msg_type as u32,
             data,
+            protocols,
         }
     }
 
