@@ -25,7 +25,7 @@ jobs:
           ./gradlew optimizedJar
           ./gradlew zipOutputOptimizedJars
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: javascore-contracts
           path: ./contracts/javascore/build/javascore-contracts.zip
@@ -48,7 +48,7 @@ jobs:
           cd artifacts/archway && zip -r ../../cosmwasm-contracts.zip . -j
           
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: cosmwasm-contracts
           path: cosmwasm-contracts.zip
@@ -73,7 +73,7 @@ jobs:
           cd artifacts && zip -r ../../../solidity-contracts.zip . -j
         
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: solidity-contracts
           path: solidity-contracts.zip
