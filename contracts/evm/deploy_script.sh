@@ -4,8 +4,8 @@ source .env
 valid_actions=("deploy" "upgrade" "configure")
 valid_contracts=("callservice" "mock" "wormhole" "layerzero" "centralized")
 valid_environments=("mainnet" "testnet" "local")
-valid_mainnet_chains=("ethereum" "binance" "avalanche" "arbitrum" "optimism" "base" "all")
-valid_testnet_chains=("sepolia" "bsctest" "fuji" "base_sepolia" "optimism_sepolia" "arbitrum_sepolia" "all")
+valid_mainnet_chains=("ethereum" "binance" "avalanche" "arbitrum" "optimism" "base" "polygon" "all")
+valid_testnet_chains=("polygon_amoy" "sepolia" "bsctest" "fuji" "base_sepolia" "optimism_sepolia" "arbitrum_sepolia" "all")
 valid_local_chains=("local" "all")
 
 # Initialize variables
@@ -117,7 +117,7 @@ if [ "$action" == "deploy" ]; then
     for chain in "${chains[@]}"; do
         echo "Deploying on $chain"
         rm -rf out
-        if [ "$chain" == "local" ] || [ "$chain" == "base-sepolia" ]; then
+        if [ "$chain" == "local" ] || [ "$chain" == "base_sepolia" ]; then
         forge script DeployCallService  -s "deployContract(string memory env, string memory chain, string memory contractA)" $env $chain $contract --fork-url $chain --broadcast --sender ${ADMIN} --ffi
         else
         forge script DeployCallService  -s "deployContract(string memory env, string memory chain, string memory contractA)" $env $chain $contract --fork-url $chain --broadcast --sender ${ADMIN} --verify --etherscan-api-key $chain --ffi
@@ -130,7 +130,7 @@ elif [ "$action" == "upgrade" ]; then
         echo "Upgrading on $chain"
         if [ "$contract" == "mock" ]; then
         echo "Mock Contract is not upgradeable!"
-        elif [ "$chain" == "local" ] || [ "$chain" == "base-sepolia" ]; then
+        elif [ "$chain" == "local" ] || [ "$chain" == "base_sepolia" ]; then
         forge script DeployCallService  -s "upgradeContract(string memory chain, string memory contractName, string memory contractA)" $chain $contractVersion $contract --fork-url $chain --broadcast --sender ${ADMIN} --ffi       
         else
         forge script DeployCallService  -s "upgradeContract(string memory chain, string memory contractName, string memory contractA)" $chain $contractVersion $contract --fork-url $chain --broadcast --sender ${ADMIN} --verify --etherscan-api-key $chain --ffi       
