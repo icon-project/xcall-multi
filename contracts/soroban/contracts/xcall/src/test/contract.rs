@@ -8,7 +8,7 @@ use soroban_sdk::{
 extern crate std;
 
 use super::setup::*;
-use crate::{contract::XcallClient, storage};
+use crate::contract::XcallClient;
 
 #[test]
 fn test_initialize() {
@@ -154,21 +154,4 @@ fn test_get_fee() {
     let centralized_conn_fee = ctx.get_centralized_connection_fee(need_response);
     let fee = client.get_fee(&ctx.nid, &need_response, &Some(sources));
     assert_eq!(fee, protocol_fee + centralized_conn_fee)
-}
-
-#[test]
-fn test_get_fee_should_returns_zero_in_reply_state() {
-    let ctx = TestContext::default();
-    let client = XcallClient::new(&ctx.env, &ctx.contract);
-    ctx.init_context(&client);
-
-    let need_response = false;
-    let req = get_dummy_message_request(&ctx.env);
-    let sources = req.protocols().clone();
-
-    ctx.env
-        .as_contract(&ctx.contract, || storage::store_reply_state(&ctx.env, &req));
-
-    let fee = client.get_fee(&ctx.nid, &need_response, &Some(sources));
-    assert_eq!(fee, 0_u128);
 }

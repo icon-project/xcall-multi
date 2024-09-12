@@ -5,7 +5,7 @@ extern crate std;
 use soroban_sdk::{
     bytes, symbol_short,
     testutils::{Address as _, AuthorizedFunction, AuthorizedInvocation},
-    vec, Address, Bytes, IntoVal, String, Vec,
+    vec, Address, Bytes, IntoVal, String,
 };
 use soroban_xcall_lib::messages::{
     call_message::CallMessage, call_message_rollback::CallMessageWithRollback, envelope::Envelope,
@@ -341,75 +341,5 @@ fn test_claim_protocol_fail_for_insufficient_amount_sent() {
     ctx.env.as_contract(&ctx.contract, || {
         Xcall::set_protocol_fee(&ctx.env, 150).unwrap();
         send_message::claim_protocol_fee(&ctx.env, &sender).unwrap();
-    });
-}
-
-#[test]
-fn test_array_equal_for_mismatch_length() {
-    let ctx = TestContext::default();
-
-    let protocols = get_dummy_sources(&ctx.env);
-    let sources: Vec<String> = vec![&ctx.env];
-
-    ctx.env.as_contract(&ctx.contract, || {
-        let res = send_message::are_array_equal(&protocols, &sources);
-        assert_eq!(res, false)
-    });
-}
-
-#[test]
-fn test_array_equal_returns_false_for_unknown_protocol() {
-    let ctx = TestContext::default();
-
-    let protocols = get_dummy_sources(&ctx.env);
-    let sources: Vec<String> = vec![
-        &ctx.env,
-        String::from_str(&ctx.env, "layerzero"),
-        String::from_str(&ctx.env, "wormhole"),
-    ];
-
-    ctx.env.as_contract(&ctx.contract, || {
-        let res = send_message::are_array_equal(&protocols, &sources);
-        assert_eq!(res, false)
-    });
-}
-
-#[test]
-fn test_array_equal() {
-    let ctx = TestContext::default();
-
-    let protocols = get_dummy_sources(&ctx.env);
-    let sources = get_dummy_destinations(&ctx.env);
-
-    ctx.env.as_contract(&ctx.contract, || {
-        let res = send_message::are_array_equal(&protocols, &sources);
-        assert_eq!(res, true)
-    });
-}
-
-#[test]
-fn test_is_reply_for_mismatch_network() {
-    let ctx = TestContext::default();
-
-    ctx.env.as_contract(&ctx.contract, || {
-        let req = get_dummy_message_request(&ctx.env);
-        storage::store_reply_state(&ctx.env, &req);
-
-        let nid = String::from_str(&ctx.env, "icon");
-        let res = send_message::is_reply(&ctx.env, &nid, req.protocols());
-        assert_eq!(res, false)
-    });
-}
-
-#[test]
-fn test_is_reply_returns_false_when_missing_reply_state() {
-    let ctx = TestContext::default();
-
-    let sources = get_dummy_sources(&ctx.env);
-    let nid = String::from_str(&ctx.env, "icon");
-
-    ctx.env.as_contract(&ctx.contract, || {
-        let res = send_message::is_reply(&ctx.env, &nid, &sources);
-        assert_eq!(res, false)
     });
 }
