@@ -1,11 +1,14 @@
-use soroban_sdk::{vec, Address, Bytes, Env};
+use soroban_sdk::{vec, Address, Bytes, Env, String};
 use soroban_xcall_lib::messages::msg_type::MessageType;
 
 use crate::{
     connection, dapp,
     errors::ContractError,
     event, helpers, storage,
-    types::{message::CSMessage, result::CSMessageResult},
+    types::{
+        message::CSMessage,
+        result::{CSMessageResult, CSResponseType},
+    },
 };
 
 pub fn execute_message(
@@ -43,6 +46,9 @@ pub fn execute_message(
                 &data,
                 req.protocols().clone(),
             );
+
+            let code: u8 = CSResponseType::CSResponseSuccess.into();
+            event::call_executed(&env, req_id, code, String::from_str(&env, "success"));
         }
         MessageType::CallMessageWithRollback => {
             let code = dapp::try_handle_call_message(
