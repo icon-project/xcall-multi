@@ -106,6 +106,23 @@ let event= swap_order_flat::new(
 
     }
 
+    public(package) fun destroy<T:store>(self:SwapOrder<T>){
+          let SwapOrder {
+                    id,
+                    src_nid,
+                    dst_nid,
+                    creator,
+                    destination_address,
+                    to_token,
+                    min_receive,
+                    data,
+                    token,
+                } =self;
+        coin::destroy_zero(token);
+    }
+
+
+
    
 
 }

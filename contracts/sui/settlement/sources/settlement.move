@@ -21,6 +21,8 @@ module settlement::main {
     const CANCEL: u8 = 2; // Constant for Cancel message type
     const CURRENT_VERSION: u64 = 1;
 
+    const EAlreadyFinished:u64=1;
+
     public struct Receipt has drop, copy, store {
         src_nid: String,
         conn_sn: u128,
@@ -141,8 +143,8 @@ module settlement::main {
         let take = order.fill_amount((fill.get_amount() as u64), ctx);
 
         if (order.get_token().value() == 0) {
-            // self.orders.remove<u128,SwapOrder<T>>(fill.get_id());
-            // cant drop order since coin is also not droppable. need to declare destroy
+            let order=self.orders.remove<u128,SwapOrder<T>>(fill.get_id());
+            swap_order::destroy(order);
         };
         let solver = suiaddress::from_bytes(fill.get_solver());
         transfer::public_transfer(take, solver);
@@ -151,11 +153,11 @@ module settlement::main {
     fun resolve_cancel(
         self: &mut Storage,
         order_bytes: vector<u8>,
-        ctx: &mut TxContext
+        ctx: &TxContext
     ) {
         let order_hash = keccak256(&order_bytes);
         if (self.finished_orders.contains(order_hash)) {
-            return;
+            abort EAlreadyFinished
         };
         let pending_fill = *self.pending_fills.borrow<vector<u8>, SwapOrderFlat>(order_hash);
         self.pending_fills.remove<vector<u8>, SwapOrderFlat>(order_hash);
