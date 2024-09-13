@@ -189,12 +189,14 @@ module settlement::main {
         ctx: &TxContext
     ) {
         let order_hash = keccak256(&order_bytes);
+        let order = swap_order_flat::decode(&order_bytes);
         assert!(
             !self.finished_orders.contains(order_hash)
         );
-
+        // make sure user is filling token wanted by order
+        assert!(string::from_ascii(type_name::get<T>().into_string())==order.get_to_token());
+        // insert order if its first occurrence
         if (!self.pending_fills.contains(order_hash)) {
-            let order = swap_order_flat::decode(&order_bytes);
             self.pending_fills.add(order_hash, order);
         };
 
