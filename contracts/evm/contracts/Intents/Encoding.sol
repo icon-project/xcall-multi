@@ -17,15 +17,16 @@ library Encoding {
         return
             Types.SwapOrder(
                 ls[0].toUint(), // id
-                string(ls[1].toBytes()), // srcNID
-                string(ls[2].toBytes()), // dstNID
-                ls[3].toBytes(), // creator
-                ls[4].toBytes(), // destinationAddress
-                ls[5].toAddress(), // token
-                ls[6].toUint(), // amount
-                ls[7].toBytes(), // toToken
-                ls[8].toUint(), // minReceive
-                ls[9].toBytes() // data
+                ls[1].toBytes(), // emitter
+                string(ls[2].toBytes()), // srcNID
+                string(ls[3].toBytes()), // dstNID
+                ls[4].toBytes(), // creator
+                ls[5].toBytes(), // destinationAddress
+                ls[6].toBytes(), // token
+                ls[7].toUint(), // amount
+                ls[8].toBytes(), // toToken
+                ls[9].toUint(), // minReceive
+                ls[10].toBytes() // data
             );
     }
 
@@ -63,25 +64,6 @@ library Encoding {
             );
     }
 
-    // /// @notice Encodes a `SwapOrder` struct into an RLP-encoded byte array.
-    // function encode(
-    //     Types.SwapOrder memory order
-    // ) internal pure returns (bytes memory) {
-    //     bytes memory encoded = abi.encodePacked(
-    //         order.id.encodeUint(),
-    //         order.srcNID.encodeString(),
-    //         order.dstNID.encodeString(),
-    //         order.creator.encodeBytes(),
-    //         order.destinationAddress.encodeBytes(),
-    //         order.token.encodeAddress(),
-    //         order.amount.encodeUint()
-    //         order.toToken.encodeBytes(),
-    //         order.minReceive.encodeUint(),
-    //         order.data.encodeBytes()
-    //     );
-    //     return encoded.encodeList();
-    // }
-
     /// @notice Encodes a `SwapOrder` struct into an RLP-encoded byte array.
     function encode(
         Types.SwapOrder memory order
@@ -99,6 +81,7 @@ library Encoding {
     ) internal pure returns (bytes memory) {
         bytes memory encoded = abi.encodePacked(
             order.id.encodeUint(),
+            order.emitter.encodeBytes(),
             order.srcNID.encodeString(),
             order.dstNID.encodeString(),
             order.creator.encodeBytes(),
@@ -111,7 +94,7 @@ library Encoding {
         Types.SwapOrder memory order
     ) internal pure returns (bytes memory) {
         bytes memory encoded = abi.encodePacked(
-            order.token.encodeAddress(),
+            order.token.encodeBytes(),
             order.amount.encodeUint(),
             order.toToken.encodeBytes(),
             order.minReceive.encodeUint(),

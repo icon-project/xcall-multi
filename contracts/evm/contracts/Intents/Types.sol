@@ -7,11 +7,12 @@ library Types {
     /// @notice Represents a swap order with source and destination network identifiers, creator, destination address, token details, and minimum receive amount.
     struct SwapOrder {
         uint256 id; // unique ID
+        bytes emitter; // Address of emitter contract
         string srcNID; // Source Network ID
         string dstNID; // Destination Network ID
         bytes creator; // The user who created the order
         bytes destinationAddress; // Destination address on the destination network
-        address token; // Token to be swapped
+        bytes token; // Token to be swapped
         uint256 amount; // Amount of the token to be swapped
         bytes toToken; // Token to receive on the destination network
         uint256 minReceive; // Minimum amount of the toToken to receive
