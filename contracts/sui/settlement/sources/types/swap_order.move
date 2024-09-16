@@ -8,32 +8,34 @@ module settlement::swap_order {
      use settlement::swap_order_flat::{SwapOrderFlat,Self};
 
     public struct SwapOrder<T:store> has store{
-    id:u128,                      // unique ID
+    id:u128,
+    emitter:vector<u8>,                      // unique ID
     src_nid:String,                  // Source Network ID
     dst_nid: String,              // Destination Network ID
     creator:vector<u8>,                // The user who created the order
     destination_address:vector<u8>,     // Destination address on the destination network
     // token:address,                  // Token to be swapped
     // amount:u128,                 // Amount of the token to be swapped
-    to_token:String,                 // Token to receive on the destination network
+    to_token:vector<u8>,                 // Token to receive on the destination network
     min_receive:u128,             // Minimum amount of the toToken to receive
     data:vector<u8>,
     token:Coin<T>                  // Additional data (if any) for future use
 }
 
-public fun new<T:store>( id: u128,
+public fun new<T:store>( id: u128,emitter:vector<u8>,
             src_nid: String,
             dst_nid: String,
             creator: vector<u8>,
             destination_address: vector<u8>,
             token:Coin<T>,
            
-            to_token: String,
+            to_token: vector<u8>,
             min_receive: u128,
             data: vector<u8>):SwapOrder<T>
             {
                 SwapOrder {
                     id,
+                    emitter,
                     src_nid,
                     dst_nid,
                     creator,
@@ -62,7 +64,7 @@ public fun get_creator<T:store>(self:&SwapOrder<T>):vector<u8> {
 public fun get_destination_address<T:store>(self:&SwapOrder<T>):vector<u8> {
     self.destination_address
 }
-public fun get_to_token<T:store>(self:&SwapOrder<T>):String {
+public fun get_to_token<T:store>(self:&SwapOrder<T>):vector<u8> {
     self.to_token
 }
 public fun get_min_receive<T:store>(self:&SwapOrder<T>):u128 {
@@ -86,12 +88,13 @@ public fun encode<T:store>(self:&SwapOrder<T>):vector<u8>{
 public fun to_event<T:store>(self:&SwapOrder<T>):SwapOrderFlat {
 let event= swap_order_flat::new(
             self.id,
+            self.emitter,
             self.src_nid,
             self.dst_nid,
             self.creator,
             self.destination_address,
-            string::from_ascii(type_name::get<T>().into_string()),
-            self.token.value(),
+            *string::from_ascii(type_name::get<T>().into_string()).as_bytes(),
+            self.token.value() as u128,
             self.to_token,
             self.min_receive,
             self.data
@@ -109,6 +112,7 @@ let event= swap_order_flat::new(
     public(package) fun destroy<T:store>(self:SwapOrder<T>){
           let SwapOrder {
                     id,
+                    emitter,
                     src_nid,
                     dst_nid,
                     creator,

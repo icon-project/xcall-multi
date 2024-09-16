@@ -87,13 +87,14 @@ module settlement::main {
 
         let order = swap_order::new<T>(
             deposit_id,
+            self.id.to_bytes(),
             self.nid,
             toNid,
             ctx.sender().to_bytes(),
             toAddress,
             token,
 
-            toToken,
+            *toToken.as_bytes(),
             minReceive,
             data
         );
@@ -188,7 +189,7 @@ module settlement::main {
             !self.finished_orders.contains(order_hash)
         );
         // make sure user is filling token wanted by order
-        assert!(string::from_ascii(type_name::get<T>().into_string())==order.get_to_token());
+        assert!(*string::from_ascii(type_name::get<T>().into_string()).as_bytes()==order.get_to_token());
         // insert order if its first occurrence
         if (!self.pending_fills.contains(order_hash)) {
             self.pending_fills.add(order_hash, order);
@@ -197,12 +198,12 @@ module settlement::main {
         let (remaining, dest_addr, src_nid) = {
             let order = self.pending_fills.borrow_mut<vector<u8>, SwapOrderFlat>(order_hash);
             assert!(
-                fill_token.value() <= (order.get_min_receive() as u64)
+                (fill_token.value() as u128) <= order.get_min_receive()
             );
             let payout = (
-                (order.get_amount() as u64) * fill_token.value()
-            ) / (order.get_min_receive() as u64);
-            order.deduct_min_receive(fill_token.value());
+                order.get_amount() * (fill_token.value() as u128)
+            ) / order.get_min_receive();
+            order.deduct_min_receive(fill_token.value() as u128);
             order.deduct_amount(payout);
             (
                 order.get_min_receive(),

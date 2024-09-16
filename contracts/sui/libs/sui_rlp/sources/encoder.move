@@ -48,25 +48,19 @@ module sui_rlp::encoder {
         let total_length = result.length();
         let len=vector::length(&result);
 
-        if( total_length<= 55){
-            encoded_list=encode_length(len,0xc0);
-            vector::append(&mut encoded_list,result);
+            if( total_length<= 55){
+                encoded_list=encode_length(len,0xc0);
+                vector::append(&mut encoded_list,result);
 
-        } else {
-           let length_bytes = utils::to_bytes_u64(len);
-           let prefix = (0xf7 + vector::length(&length_bytes)) as u8;
-            //std::debug::print(&b"PREFIX".to_string());
-            //std::debug::print(&prefix);
-           vector::push_back(&mut encoded_list, prefix);
-            //std::debug::print(&encoded_list);
-           vector::append(&mut encoded_list, length_bytes);
-                       //std::debug::print(&encoded_list);
-
-           vector::append(&mut encoded_list, result);
-                       //std::debug::print(&encoded_list);
+            } else {
+            let length_bytes = utils::to_bytes_u64(len);
+            let prefix = (0xf7 + vector::length(&length_bytes)) as u8;
+            vector::push_back(&mut encoded_list, prefix);
+            vector::append(&mut encoded_list, length_bytes);
+            vector::append(&mut encoded_list, result);
 
 
-        }
+            }
 
         }else{
             vector::push_back(&mut encoded_list,0xc0);
