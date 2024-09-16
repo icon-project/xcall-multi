@@ -12,7 +12,6 @@ module settlement::cluster_connection {
     public struct ConnectionState has store {
         conn_sn: u128,
         relayer: address, // Address of the relayer
-        signers: vector<vector<u8>>,
         receipts: Table<Receipt, bool>, // Mapping of receipts for tracking
     }
 
@@ -26,7 +25,6 @@ module settlement::cluster_connection {
         ConnectionState {
             conn_sn: 0,
             relayer: relayer,
-            signers: vector::empty(),
             receipts: table::new(ctx),
         }
     }
@@ -40,7 +38,6 @@ module settlement::cluster_connection {
         srcNid: String,
         conn_sn: u128,
         msg: vector<u8>,
-        signatures: vector<vector<u8>>,
         ctx: &TxContext
     ): OrderMessage {
         assert!(self.relayer == ctx.sender());
@@ -65,13 +62,6 @@ module settlement::cluster_connection {
         relayer: address
     ) {
         self.relayer = relayer;
-    }
-
-    public(package) fun set_signers(
-        self: &mut ConnectionState,
-        signers: vector<vector<u8>>
-    ) {
-        self.signers = signers;
     }
 
     fun get_next_conn_sn(self: &mut ConnectionState): u128 {

@@ -108,10 +108,9 @@ module settlement::main {
         srcNetwork: String,
         conn_sn: u128,
         msg: vector<u8>,
-        signatures:vector<vector<u8>>,
         ctx: &mut TxContext,
     ) {
-        let orderMessage = cluster_connection::receive_message(self.get_connection_state_mut(), srcNetwork, conn_sn, msg, vector::empty(), ctx);
+        let orderMessage = cluster_connection::receive_message(self.get_connection_state_mut(), srcNetwork, conn_sn, msg, ctx);
         if (orderMessage.get_type() == FILL) {
             let fill = order_fill::decode(&orderMessage.get_message());
             resolve_fill<T>(self, srcNetwork, &fill, ctx);
