@@ -16,6 +16,7 @@ module settlement::main {
     use settlement::swap_order_flat::{Self, SwapOrderFlat};
     use sui::hash::keccak256;
     use sui::address::{Self as suiaddress};
+    use settlement::cluster_connection::{Self,ConnectionState};
 
     const FILL: u8 = 1; // Constant for Fill message type
     const CANCEL: u8 = 2; // Constant for Cancel message type
@@ -37,9 +38,7 @@ module settlement::main {
         version: u64,
         deposit_id: u128, // Deposit ID counter
         nid: String, // Network Identifier
-        relayer: address, // Address of the relayer
-        conn_sn: u128, // Connection serial number
-        receipts: Table<Receipt, bool>, // Mapping of receipts for tracking
+        connection:ConnectionState,
         orders: Bag, // Mapping of deposit ID to SwapOrder
         pending_fills: Bag, // Mapping of order hash to pending SwapOrder fills
         finished_orders: Table<vector<u8>, bool>
@@ -52,9 +51,7 @@ module settlement::main {
             version: CURRENT_VERSION,
             deposit_id: 0,
             nid: string::utf8(b"sui"),
-            relayer: @0x0,
-            conn_sn: 0,
-            receipts: table::new(ctx),
+            connection:cluster_connection::new(ctx.sender(),ctx),
             orders: bag::new(ctx),
             pending_fills: bag::new(ctx),
             finished_orders: table::new(ctx),
@@ -68,6 +65,10 @@ module settlement::main {
         let deposit_id = storage.deposit_id + 1;
         storage.deposit_id = deposit_id;
         deposit_id
+    }
+
+    fun get_connection_state_mut(self:&mut Storage):&mut ConnectionState {
+       &mut self.connection
     }
 
     entry fun swap<T: store>(
@@ -107,15 +108,10 @@ module settlement::main {
         srcNetwork: String,
         conn_sn: u128,
         msg: vector<u8>,
+        signatures:vector<vector<u8>>,
         ctx: &mut TxContext,
     ) {
-        assert!(self.relayer == ctx.sender());
-        let key = Receipt {src_nid: srcNetwork, conn_sn};
-        assert!(!self.receipts.contains(key));
-
-        self.receipts.add(key, true);
-
-        let orderMessage = order_message::decode(&msg);
+        let orderMessage = cluster_connection::receive_message(self.get_connection_state_mut(), srcNetwork, conn_sn, msg, vector::empty(), ctx);
         if (orderMessage.get_type() == FILL) {
             let fill = order_fill::decode(&orderMessage.get_message());
             resolve_fill<T>(self, srcNetwork, &fill, ctx);
@@ -171,8 +167,7 @@ module settlement::main {
         );
 
         let msg = order_message::new(FILL, orderFill.encode());
-
-        // _sendMessage(pending_fill.srcNID, msg.encode());
+        cluster_connection::send_message(self.get_connection_state_mut(), pending_fill.get_src_nid(), msg.encode())
     }
 
     /// @notice Fills an order for a cross-chain swap.
@@ -233,22 +228,30 @@ module settlement::main {
             fill_token,
             suiaddress::from_bytes(dest_addr)
         );
-        //   _sendMessage(order.srcNID, _msg.encode());
+        cluster_connection::send_message(self.get_connection_state_mut(), src_nid, msg.encode());
     }
 
     entry fun cancel<T: store>(
-        self: &Storage,
+        self: &mut Storage,
         id: u128,
         ctx: &TxContext
     ) {
-        let order = self.orders.borrow<u128, SwapOrder<T>>(id);
-        assert!(
-            order.get_creator() == ctx.sender().to_bytes()
-        );
-        let msg = order_cancel::new(order.encode());
-        let order_msg = order_message::new(CANCEL, msg.encode());
-        // sendMessage(order.get_dst_nid(),order_msg.encode())
+        let(msg,dst_nid) ={
+            let order = self.orders.borrow<u128, SwapOrder<T>>(id);
+            assert!(order.get_creator() == ctx.sender().to_bytes());
+            let msg = order_cancel::new(order.encode());
+            let order_msg = order_message::new(CANCEL, msg.encode());
+            (order_msg,order.get_dst_nid())
+        };
 
+        cluster_connection::send_message(self.get_connection_state_mut(), dst_nid, msg.encode());
+
+    }
+
+    // admin functions //
+
+    entry fun set_relayer(self:&mut Storage,cap:&AdminCap,relayer:address){
+        self.get_connection_state_mut().set_relayer(relayer);
     }
 
 }
