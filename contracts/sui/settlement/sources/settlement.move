@@ -16,13 +16,13 @@ module settlement::main {
     use settlement::swap_order_flat::{Self, SwapOrderFlat};
     use sui::hash::keccak256;
     use sui::address::{Self as suiaddress};
-    use settlement::cluster_connection::{Self,ConnectionState};
+    use settlement::cluster_connection::{Self, ConnectionState};
 
     const FILL: u8 = 1; // Constant for Fill message type
     const CANCEL: u8 = 2; // Constant for Cancel message type
     const CURRENT_VERSION: u64 = 1;
 
-    const EAlreadyFinished:u64=1;
+    const EAlreadyFinished: u64 = 1;
 
     public struct Receipt has drop, copy, store {
         src_nid: String,
@@ -38,10 +38,13 @@ module settlement::main {
         version: u64,
         deposit_id: u128, // Deposit ID counter
         nid: String, // Network Identifier
-        connection:ConnectionState,
-        orders: Bag, // Mapping of deposit ID to SwapOrder
-        pending_fills: Bag, // Mapping of order hash to pending SwapOrder fills
-        finished_orders: Table<vector<u8>, bool>
+        connection: ConnectionState,
+        orders: Table<u128, SwapOrderFlat>, // Mapping of deposit ID to SwapOrder
+        pending_fills: Table<vector<u8>, u128>, // Mapping of order hash to pending payment
+        finished_orders: Table<vector<u8>, bool>,
+        fee: u8,
+        fee_handler: address,
+        funds:Bag,
     }
 
     fun init(ctx: &mut TxContext) {
@@ -51,10 +54,14 @@ module settlement::main {
             version: CURRENT_VERSION,
             deposit_id: 0,
             nid: string::utf8(b"sui"),
-            connection:cluster_connection::new(ctx.sender(),ctx),
-            orders: bag::new(ctx),
-            pending_fills: bag::new(ctx),
+            connection: cluster_connection::new(ctx.sender(), ctx),
+            orders: table::new(ctx),
+            pending_fills: table::new(ctx),
             finished_orders: table::new(ctx),
+            fee: 1,
+            fee_handler: ctx.sender(),
+            funds:bag::new(ctx),
+
         };
         transfer::public_transfer(admin, ctx.sender());
         transfer::public_share_object(storage);
@@ -67,8 +74,8 @@ module settlement::main {
         deposit_id
     }
 
-    fun get_connection_state_mut(self:&mut Storage):&mut ConnectionState {
-       &mut self.connection
+    fun get_connection_state_mut(self: &mut Storage): &mut ConnectionState {
+        &mut self.connection
     }
 
     entry fun swap<T: store>(
@@ -84,22 +91,22 @@ module settlement::main {
     ) {
         // Escrows amount from user
         let deposit_id = get_deposit_id(self);
-
-        let order = swap_order::new<T>(
+        let order = swap_order_flat::new(
             deposit_id,
             self.id.to_bytes(),
             self.nid,
             toNid,
             ctx.sender().to_bytes(),
             toAddress,
-            token,
-
+     *string::from_ascii(type_name::get<T>().into_string()).as_bytes(),
+            token.value() as u128,
             *toToken.as_bytes(),
             minReceive,
             data
         );
+        self.funds.add<u128,Coin<T>>(deposit_id, token);
 
-        swap_order_flat::emit(order.to_event());
+        swap_order_flat::emit(order);
         self.orders.add(deposit_id, order);
 
     }
@@ -111,7 +118,13 @@ module settlement::main {
         msg: vector<u8>,
         ctx: &mut TxContext,
     ) {
-        let orderMessage = cluster_connection::receive_message(self.get_connection_state_mut(), srcNetwork, conn_sn, msg, ctx);
+        let orderMessage = cluster_connection::receive_message(
+            self.get_connection_state_mut(),
+            srcNetwork,
+            conn_sn,
+            msg,
+            ctx
+        );
         if (orderMessage.get_type() == FILL) {
             let fill = order_fill::decode(&orderMessage.get_message());
             resolve_fill<T>(self, srcNetwork, &fill, ctx);
@@ -128,20 +141,23 @@ module settlement::main {
         fill: &OrderFill,
         ctx: &mut TxContext
     ) {
-        let order = self.orders.borrow_mut<u128, SwapOrder<T>>(fill.get_id());
-        assert!(
-            keccak256(&order.encode()) == keccak256(&fill.get_order_bytes())
-        );
-        assert!(order.get_dst_nid() == srcNid);
-        assert!(
-            order.get_token().value() >= (fill.get_amount() as u64)
-        );
-        let take = order.fill_amount((fill.get_amount() as u64), ctx);
+        let order = self.orders.borrow<u128, SwapOrderFlat>(fill.get_id());
 
-        if (order.get_token().value() == 0) {
-            let order=self.orders.remove<u128,SwapOrder<T>>(fill.get_id());
-            swap_order::destroy(order);
+        assert!(keccak256(&order.encode()) == keccak256(&fill.get_order_bytes()));
+        assert!(order.get_dst_nid() == srcNid);
+
+        let take= {
+            let fund= self.funds.borrow_mut<u128,Coin<T>>(fill.get_id());
+            assert!(fund.value() >= (fill.get_amount() as u64));
+            let take = fund.split((fill.get_amount() as u64), ctx);
+            take
         };
+
+        if (fill.get_close_order() == true) {
+            self.orders.remove<u128, SwapOrderFlat>(fill.get_id());
+            coin::destroy_zero(self.funds.remove<u128,Coin<T>>(fill.get_id()));
+        };
+
         let solver = suiaddress::from_bytes(fill.get_solver());
         transfer::public_transfer(take, solver);
     }
@@ -152,22 +168,29 @@ module settlement::main {
         ctx: &TxContext
     ) {
         let order_hash = keccak256(&order_bytes);
+        let order = swap_order_flat::decode(&order_bytes);
+
         if (self.finished_orders.contains(order_hash)) {
             abort EAlreadyFinished
         };
-        let pending_fill = *self.pending_fills.borrow<vector<u8>, SwapOrderFlat>(order_hash);
-        self.pending_fills.remove<vector<u8>, SwapOrderFlat>(order_hash);
+
+        let pending_fill = self.pending_fills.remove<vector<u8>, u128>(order_hash);
         self.finished_orders.add<vector<u8>, bool>(order_hash, true);
 
         let orderFill = order_fill::new(
-            pending_fill.get_id(),
+            order.get_id(),
             order_bytes,
-            pending_fill.get_creator(),
-            (pending_fill.get_amount() as u128)
+            order.get_creator(),
+            pending_fill,
+            true
         );
 
         let msg = order_message::new(FILL, orderFill.encode());
-        cluster_connection::send_message(self.get_connection_state_mut(), pending_fill.get_src_nid(), msg.encode())
+        cluster_connection::send_message(
+            self.get_connection_state_mut(),
+            order.get_src_nid(),
+            msg.encode()
+        )
     }
 
     /// @notice Fills an order for a cross-chain swap.
@@ -175,60 +198,69 @@ module settlement::main {
     /// @param order The SwapOrder object.
     /// @param amount The amount to fill.
     /// @param solverAddress The address of the solver filling the order.
-    entry fun fill<T>(
+    entry fun fill<T: store>(
         self: &mut Storage,
         id: u128,
         order_bytes: vector<u8>,
-        fill_token: Coin<T>,
+        mut fill_token: Coin<T>,
         solveraddress: address,
-        ctx: &TxContext
+        ctx: &mut TxContext
     ) {
         let order_hash = keccak256(&order_bytes);
         let order = swap_order_flat::decode(&order_bytes);
-        assert!(
-            !self.finished_orders.contains(order_hash)
-        );
+
+        assert!(!self.finished_orders.contains(order_hash));
+
         // make sure user is filling token wanted by order
-        assert!(*string::from_ascii(type_name::get<T>().into_string()).as_bytes()==order.get_to_token());
+        assert!(*string::from_ascii(type_name::get<T>().into_string()).as_bytes() == order.get_to_token());
+        assert!((fill_token.value() as u128) <= order.get_min_receive());
+
         // insert order if its first occurrence
         if (!self.pending_fills.contains(order_hash)) {
-            self.pending_fills.add(order_hash, order);
+            self.pending_fills.add<vector<u8>,u128>(order_hash, order.get_amount());
         };
 
-        let (remaining, dest_addr, src_nid) = {
-            let order = self.pending_fills.borrow_mut<vector<u8>, SwapOrderFlat>(order_hash);
-            assert!(
-                (fill_token.value() as u128) <= order.get_min_receive()
-            );
-            let payout = (
-                order.get_amount() * (fill_token.value() as u128)
-            ) / order.get_min_receive();
-            order.deduct_min_receive(fill_token.value() as u128);
-            order.deduct_amount(payout);
-            (
-                order.get_min_receive(),
-                order.get_destination_address(),
-                order.get_src_nid()
-            )
-        };
-        if (remaining == 0) {
-            self.pending_fills.remove<vector<u8>, SwapOrderFlat>(order_hash);
+        let payout = (order.get_amount() * (fill_token.value() as u128)) / order.get_min_receive();
+        let mut pending = self.pending_fills.remove<vector<u8>, u128>(order_hash);
+        pending = pending - payout;
+
+        if (pending == 0) {
             self.finished_orders.add(order_hash, true);
+        }else{
+            self.pending_fills.add(order_hash, pending);
         };
+
+
+
+        let fee = (fill_token.value() * (self.fee as u64)) / 10000;
+        let fee_token = fill_token.split(fee, ctx);
 
         let fill = order_fill::new(
             id,
             order_bytes,
             solveraddress.to_bytes(),
-            (fill_token.value() as u128)
+            payout,
+            self.finished_orders.contains(order_hash)
         );
-
         let msg = order_message::new(FILL, fill.encode());
+
         transfer::public_transfer(
             fill_token,
-            suiaddress::from_bytes(dest_addr)
+            suiaddress::from_bytes(order.get_destination_address())
         );
-        cluster_connection::send_message(self.get_connection_state_mut(), src_nid, msg.encode());
+        transfer::public_transfer(fee_token, self.fee_handler);
+
+
+        if (order.get_src_nid() == order.get_dst_nid()) {
+            self.resolve_fill<T>(order.get_src_nid(), &fill, ctx);
+        } else {
+            cluster_connection::send_message(
+                self.get_connection_state_mut(),
+                order.get_src_nid(),
+                msg.encode()
+            );
+        };
+
     }
 
     entry fun cancel<T: store>(
@@ -236,21 +268,38 @@ module settlement::main {
         id: u128,
         ctx: &TxContext
     ) {
-        let(msg,dst_nid) ={
-            let order = self.orders.borrow<u128, SwapOrder<T>>(id);
-            assert!(order.get_creator() == ctx.sender().to_bytes());
+        let (msg, src_nid, dst_nid) = {
+            let order = self.orders.borrow<u128, SwapOrderFlat>(id);
+            assert!(
+                order.get_creator() == ctx.sender().to_bytes()
+            );
             let msg = order_cancel::new(order.encode());
             let order_msg = order_message::new(CANCEL, msg.encode());
-            (order_msg,order.get_dst_nid())
+            (
+                order_msg,
+                order.get_src_nid(),
+                order.get_dst_nid()
+            )
         };
-
-        cluster_connection::send_message(self.get_connection_state_mut(), dst_nid, msg.encode());
+        if (src_nid == dst_nid) {
+            self.resolve_cancel(msg.encode(), ctx);
+        } else {
+            cluster_connection::send_message(
+                self.get_connection_state_mut(),
+                dst_nid,
+                msg.encode()
+            );
+        };
 
     }
 
     // admin functions //
 
-    entry fun set_relayer(self:&mut Storage,cap:&AdminCap,relayer:address){
+    entry fun set_relayer(
+        self: &mut Storage,
+        _cap: &AdminCap,
+        relayer: address
+    ) {
         self.get_connection_state_mut().set_relayer(relayer);
     }
 

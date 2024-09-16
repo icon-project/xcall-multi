@@ -126,6 +126,13 @@ module sui_rlp::encoder {
         let vec= bcs::to_bytes(addr);
         encode(&vec)
     }
+    
+    public fun encode_bool(val:bool):vector<u8>{
+        if(val==true){
+            return vector<u8>[1]
+        };
+        vector<u8>[0]
+    }
 }
 
 
