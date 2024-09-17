@@ -74,6 +74,15 @@ public class RelayAggregator {
         admin.set(_admin);
     }
 
+    /**
+     * Retrieves the admin address.
+     *
+     * @return The admin address.
+     */
+    @External(readonly = true)
+    public Address getAdmin() {
+        return admin.get();
+    }
 
     /**
      * Checks if the caller of the function is the admin.
