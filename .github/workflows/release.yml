@@ -77,6 +77,37 @@ jobs:
         with:
           name: solidity-contracts
           path: solidity-contracts.zip
+
+  build_stellar:
+    name: Build stellar Contracts
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v3
+        with:
+          submodules: true
+      - name: Install stable toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: 1.79.0
+          target: wasm32-unknown-unknown
+          override: true
+          profile: minimal
+  
+      - name: Install wasm32
+        run: |
+          rustup target add wasm32-unknown-unknown
+          cargo install --locked soroban-cli
+      - name: Compile WASM
+        run: |
+          bash ./scripts/optimize-stellar.sh
+          cd artifacts/stellar && zip -r ../../stellar-contracts.zip . -j
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: stellar-contracts
+          path: stellar-contracts.zip
+
   release:
     name: Release and Publish
     runs-on: ubuntu-latest
@@ -107,6 +138,12 @@ jobs:
           name: solidity-contracts
           path: solidity-contracts
 
+      - name: Download Stellar Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: stellar-contracts
+          path: stellar-contracts
+
       - name: Unzip Javascore Artifacts
         run: unzip javascore-contracts/javascore-contracts.zip -d javascore-contracts && rm -rf javascore-contracts/javascore-contracts.zip
 
@@ -115,6 +152,9 @@ jobs:
 
       - name: Unzip Cosmwasm Artifacts
         run: unzip solidity-contracts/solidity-contracts.zip -d solidity-contracts && rm -rf solidity-contracts/solidity-contracts.zip
+     
+      - name: Unzip Stellar Artifacts
+        run: unzip stellar-contracts/stellar-contracts.zip -d stellar-contracts && rm -rf stellar-contracts/stellar-contracts.zip
 
       - name: Changelog
         uses: scottbrenner/generate-changelog-action@master
@@ -143,4 +183,5 @@ jobs:
             ./javascore-contracts/*.jar
             ./cosmwasm-contracts/*.wasm
             ./solidity-contracts/*
+            ./stellar-contracts/*
             check256sums.txt
