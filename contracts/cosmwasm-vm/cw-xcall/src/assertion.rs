@@ -1,3 +1,5 @@
+use cosmwasm_std::to_json_binary;
+
 use super::*;
 
 use crate::{
@@ -103,7 +105,7 @@ impl<'a> CwCallService<'a> {
         req_id: u128,
         message: &CSMessageRequest,
     ) -> Result<(), ContractError> {
-        let data = to_binary(message).unwrap();
+        let data = to_json_binary(message).unwrap();
         ensure!(
             !(data.is_empty()),
             ContractError::InvalidRequestId { id: req_id }
@@ -130,7 +132,7 @@ impl<'a> CwCallService<'a> {
         sequence_no: u128,
         message: &Rollback,
     ) -> Result<(), ContractError> {
-        let data = to_binary(message).unwrap();
+        let data = to_json_binary(message).unwrap();
         ensure!(
             !(data.is_empty()),
             ContractError::InvalidSequenceId { id: sequence_no }

@@ -289,6 +289,7 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
             tryExecuteCall(_reqId, dapp, req.from, _data, protocols);
         } else if (req.messageType == Types.PERSISTENT_MESSAGE_TYPE) {
             this.executeMessage(dapp, req.from, _data, protocols);
+            emit CallExecuted(_reqId, Types.CS_RESP_SUCCESS, "");
         } else if (req.messageType == Types.CALL_MESSAGE_ROLLBACK_TYPE) {
             replyState = req;
             int256 code = tryExecuteCall(
@@ -446,7 +447,7 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
         string memory fromNID = req.from.nid();
         require(netFrom.compareTo(fromNID), "Invalid NID");
 
-        bytes32 dataHash = keccak256(req.data);
+        bytes32 dataHash = keccak256(msgPayload);
         if (req.protocols.length > 1) {
             pendingReqs[dataHash][msg.sender.toString()] = true;
             for (uint i = 0; i < req.protocols.length; i++) {
@@ -472,7 +473,7 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
             req.to,
             req.sn,
             req.messageType,
-            dataHash,
+            keccak256(req.data),
             req.protocols
         );
 

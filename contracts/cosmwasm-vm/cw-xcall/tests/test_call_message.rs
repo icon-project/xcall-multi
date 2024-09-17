@@ -1,16 +1,26 @@
 mod account;
 mod setup;
-use std::{collections::HashMap, str::FromStr, vec};
 
 use crate::account::*;
+use setup::{get_dummy_network_address, test::*, TestContext};
+use std::{collections::HashMap, str::FromStr, vec};
+
 use cosmwasm_std::{
     testing::{mock_env, MOCK_CONTRACT_ADDR},
-    to_binary, Addr, Binary, ContractInfoResponse, ContractResult, SystemError, SystemResult,
+    to_json_binary, Addr, Binary, ContractInfoResponse, ContractResult, SystemError, SystemResult,
     WasmQuery,
 };
-use cw_xcall::{state::CwCallService, types::config::Config};
-use cw_xcall_lib::network_address::{NetId, NetworkAddress};
-use setup::test::*;
+use cw_xcall::{
+    state::CwCallService,
+    types::{config::Config, request::CSMessageRequest},
+};
+use cw_xcall_lib::{
+    message::{
+        call_message_persisted::CallMessagePersisted, envelope::Envelope, msg_type::MessageType,
+        AnyMessage,
+    },
+    network_address::{NetId, NetworkAddress},
+};
 
 const MOCK_CONTRACT_TO_ADDR: &str = "cosmoscontract";
 
@@ -84,7 +94,7 @@ fn send_packet_failure_due_data_len() {
             WasmQuery::ContractInfo { contract_addr } => {
                 if *contract_addr == constract1 {
                     let response = ContractInfoResponse::new(0, "test");
-                    SystemResult::Ok(ContractResult::Ok(to_binary(&response).unwrap()))
+                    SystemResult::Ok(ContractResult::Ok(to_json_binary(&response).unwrap()))
                 } else {
                     SystemResult::Err(SystemError::NoSuchContract {
                         addr: contract_addr.clone(),
@@ -95,7 +105,7 @@ fn send_packet_failure_due_data_len() {
             WasmQuery::Smart {
                 contract_addr: _,
                 msg: _,
-            } => SystemResult::Ok(ContractResult::Ok(to_binary(&0_u128).unwrap())),
+            } => SystemResult::Ok(ContractResult::Ok(to_json_binary(&0_u128).unwrap())),
             _ => todo!(),
         }
     });
@@ -151,7 +161,7 @@ fn send_packet_failure_due_rollback_len() {
             WasmQuery::ContractInfo { contract_addr } => {
                 if *contract_addr == constract1 {
                     let response = ContractInfoResponse::new(0, "test");
-                    SystemResult::Ok(ContractResult::Ok(to_binary(&response).unwrap()))
+                    SystemResult::Ok(ContractResult::Ok(to_json_binary(&response).unwrap()))
                 } else {
                     SystemResult::Err(SystemError::NoSuchContract {
                         addr: contract_addr.clone(),
@@ -161,7 +171,7 @@ fn send_packet_failure_due_rollback_len() {
             WasmQuery::Smart {
                 contract_addr: _,
                 msg: _,
-            } => SystemResult::Ok(ContractResult::Ok(to_binary(&0_u128).unwrap())),
+            } => SystemResult::Ok(ContractResult::Ok(to_json_binary(&0_u128).unwrap())),
             _ => todo!(),
         }
     });
@@ -227,7 +237,7 @@ fn send_packet_success_needresponse() {
             WasmQuery::ContractInfo { contract_addr } => {
                 if *contract_addr == constract1 {
                     let response = ContractInfoResponse::default();
-                    SystemResult::Ok(ContractResult::Ok(to_binary(&response).unwrap()))
+                    SystemResult::Ok(ContractResult::Ok(to_json_binary(&response).unwrap()))
                 } else {
                     SystemResult::Err(SystemError::NoSuchContract {
                         addr: contract_addr.clone(),
@@ -237,7 +247,7 @@ fn send_packet_success_needresponse() {
             WasmQuery::Smart {
                 contract_addr: _,
                 msg: _,
-            } => SystemResult::Ok(ContractResult::Ok(to_binary(&10_u128).unwrap())),
+            } => SystemResult::Ok(ContractResult::Ok(to_json_binary(&10_u128).unwrap())),
             _ => todo!(),
         }
     });
@@ -302,7 +312,7 @@ fn send_packet_fail_insufficient_funds() {
             WasmQuery::ContractInfo { contract_addr } => {
                 if *contract_addr == constract1 {
                     let response = ContractInfoResponse::new(0, "test");
-                    SystemResult::Ok(ContractResult::Ok(to_binary(&response).unwrap()))
+                    SystemResult::Ok(ContractResult::Ok(to_json_binary(&response).unwrap()))
                 } else {
                     SystemResult::Err(SystemError::NoSuchContract {
                         addr: contract_addr.clone(),
@@ -312,7 +322,7 @@ fn send_packet_fail_insufficient_funds() {
             WasmQuery::Smart {
                 contract_addr: _,
                 msg: _,
-            } => SystemResult::Ok(ContractResult::Ok(to_binary(&10_u128).unwrap())),
+            } => SystemResult::Ok(ContractResult::Ok(to_json_binary(&10_u128).unwrap())),
             _ => todo!(),
         }
     });
@@ -343,4 +353,95 @@ fn send_packet_fail_insufficient_funds() {
         .unwrap();
 
     assert!(!result.enabled())
+}
+
+#[test]
+fn test_send_message_on_reply_state() {
+    let mut deps = deps();
+    let contract = CwCallService::new();
+
+    let ctx = TestContext::default();
+    ctx.init_reply_state(deps.as_mut().storage, &contract);
+
+    let from = ctx.request_message.unwrap().from().clone();
+    let envelope = Envelope::new(
+        AnyMessage::CallMessagePersisted(CallMessagePersisted {
+            data: vec![1, 2, 3],
+        }),
+        vec![],
+        vec![],
+    );
+
+    let res = contract
+        .send_call(deps.as_mut(), ctx.info, from, envelope)
+        .unwrap();
+    assert_eq!(res.attributes[0].value, "xcall-service");
+    assert_eq!(res.attributes[1].value, "send_packet");
+}
+
+#[test]
+fn test_is_reply_returns_false_on_mismatch_network_id() {
+    let mut deps = deps();
+    let contract = CwCallService::new();
+
+    let ctx = TestContext::default();
+    ctx.init_reply_state(deps.as_mut().storage, &contract);
+
+    let res = contract.is_reply(deps.as_ref(), ctx.nid, &vec![]);
+    assert!(!res)
+}
+
+#[test]
+fn test_is_reply_returns_false_on_proxy_request_not_found() {
+    let deps = deps();
+    let contract = CwCallService::new();
+
+    let ctx = TestContext::default();
+
+    let res = contract.is_reply(deps.as_ref(), ctx.nid, &vec![]);
+    assert!(!res)
+}
+
+#[test]
+fn test_is_reply_returns_false_on_mismatch_array_len() {
+    let mut deps = deps();
+    let contract = CwCallService::new();
+
+    let ctx = TestContext::default();
+    ctx.init_reply_state(deps.as_mut().storage, &contract);
+
+    let res = contract.is_reply(
+        deps.as_ref(),
+        NetId::from_str("archway").unwrap(),
+        &vec!["src_1".to_string()],
+    );
+    assert!(!res)
+}
+
+#[test]
+fn test_is_reply_returns_false_on_mismatch_protocols() {
+    let mut deps = deps();
+    let contract = CwCallService::new();
+
+    let ctx = TestContext::default();
+    ctx.init_reply_state(deps.as_mut().storage, &contract);
+
+    let request = CSMessageRequest::new(
+        get_dummy_network_address("archway"),
+        Addr::unchecked("dapp"),
+        1,
+        MessageType::CallMessagePersisted,
+        vec![],
+        vec!["src_2".to_string()],
+    );
+    contract
+        .store_proxy_request(deps.as_mut().storage, ctx.request_id, &request)
+        .unwrap();
+
+    let res = contract.is_reply(
+        deps.as_ref(),
+        NetId::from_str("archway").unwrap(),
+        &vec!["src_1".to_string()],
+    );
+    assert!(!res)
 }

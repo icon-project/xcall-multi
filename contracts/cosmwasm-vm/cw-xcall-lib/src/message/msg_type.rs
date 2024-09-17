@@ -36,3 +36,31 @@ impl MessageType {
         MessageType::from(val)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::message::msg_type::MessageType;
+
+    #[test]
+    fn test_message_type_for_u8() {
+        assert_eq!(MessageType::CallMessage, 0.into());
+        assert_eq!(MessageType::CallMessagePersisted, 2.into());
+        assert_eq!(MessageType::CallMessageWithRollback, 1.into())
+    }
+
+    #[test]
+    fn test_message_type_from_int() {
+        assert_eq!(MessageType::from_int(0), MessageType::CallMessage);
+        assert_eq!(
+            MessageType::from_int(1),
+            MessageType::CallMessageWithRollback
+        );
+        assert_eq!(MessageType::from_int(2), MessageType::CallMessagePersisted)
+    }
+
+    #[test]
+    #[should_panic(expected = "unsupported message type")]
+    fn test_message_type_from_int_fail() {
+        MessageType::from_int(4);
+    }
+}

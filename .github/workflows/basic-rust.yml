@@ -12,7 +12,7 @@ on:
   push:
     branches:
       - main
-
+      
 jobs:
 
   test:
@@ -23,19 +23,12 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v3
 
-      - name: Install Rust
-        run: rustup update stable
-
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
 
       - name: Run unit tests
         run: |
           RUST_BACKTRACE=1 cargo unit-test --locked
-
-      - name: Install wasm32
-        run: |
-          rustup target add wasm32-unknown-unknown
 
       - name: Compile WASM contract
         run: |
@@ -51,16 +44,9 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v3
 
-      - name: Install Rust
-        run: rustup update stable
-
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
-
-      - name: Run cargo fmt
-        run: |
-          cargo fmt --all -- --check
-
+      
       - name: Run cargo clippy
         run: |
           cargo clippy

@@ -135,28 +135,30 @@ impl<'a> CwCallService<'a> {
     pub fn query(&self, deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
         match msg {
             QueryMsg::GetAdmin {} => match self.query_admin(deps.storage) {
-                Ok(admin) => Ok(to_binary(&admin)?),
+                Ok(admin) => Ok(to_json_binary(&admin)?),
                 Err(error) => Err(StdError::NotFound {
                     kind: error.to_string(),
                 }),
             },
 
-            QueryMsg::GetProtocolFee {} => to_binary(&self.get_protocol_fee(deps.storage)),
-            QueryMsg::GetProtocolFeeHandler {} => to_binary(&self.get_protocol_feehandler(deps)),
+            QueryMsg::GetProtocolFee {} => to_json_binary(&self.get_protocol_fee(deps.storage)),
+            QueryMsg::GetProtocolFeeHandler {} => {
+                to_json_binary(&self.get_protocol_feehandler(deps))
+            }
             QueryMsg::GetNetworkAddress {} => {
-                to_binary(&self.get_own_network_address(deps.storage, &env).unwrap())
+                to_json_binary(&self.get_own_network_address(deps.storage, &env).unwrap())
             }
             QueryMsg::VerifySuccess { sn } => {
-                to_binary(&self.get_successful_response(deps.storage, sn))
+                to_json_binary(&self.get_successful_response(deps.storage, sn))
             }
             QueryMsg::GetDefaultConnection { nid } => {
-                to_binary(&self.get_default_connection(deps.storage, nid).unwrap())
+                to_json_binary(&self.get_default_connection(deps.storage, nid).unwrap())
             }
             QueryMsg::GetFee {
                 nid,
                 rollback,
                 sources,
-            } => to_binary(
+            } => to_json_binary(
                 &self
                     .get_fee(deps, nid, rollback, sources.unwrap_or(vec![]))
                     .unwrap(),
@@ -242,34 +244,5 @@ impl<'a> CwCallService<'a> {
         let address = env.contract.address.to_string();
         let na = NetworkAddress::new(&config.network_id, &address);
         Ok(na)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use cosmwasm_std::testing::{mock_dependencies, mock_env};
-    use cw2::{get_contract_version, ContractVersion};
-
-    use crate::{
-        contract::{CONTRACT_NAME, CONTRACT_VERSION},
-        state::CwCallService,
-        MigrateMsg,
-    };
-
-    #[test]
-    fn test_migrate() {
-        let mut mock_deps = mock_dependencies();
-        let env = mock_env();
-
-        let contract = CwCallService::default();
-        let result = contract.migrate(mock_deps.as_mut(), env, MigrateMsg {});
-        assert!(result.is_ok());
-        let expected = ContractVersion {
-            contract: CONTRACT_NAME.to_string(),
-            version: CONTRACT_VERSION.to_string(),
-        };
-        let version = get_contract_version(&mock_deps.storage).unwrap();
-        println!("{version:?}");
-        assert_eq!(expected, version);
     }
 }

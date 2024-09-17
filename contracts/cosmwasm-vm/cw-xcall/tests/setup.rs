@@ -1,11 +1,107 @@
+use std::{collections::HashMap, str::FromStr};
+
+use common::{rlp, utils::keccak256};
+use cosmwasm::encoding::Binary;
 use cosmwasm_std::{
     coins,
     testing::{
         mock_dependencies, mock_env, mock_info, MockApi, MockQuerier, MockStorage,
         MOCK_CONTRACT_ADDR,
     },
-    Addr, BlockInfo, ContractInfo, Empty, Env, MessageInfo, OwnedDeps, Timestamp, TransactionInfo,
+    to_json_binary, Addr, BlockInfo, ContractInfo, ContractResult, Empty, Env, MessageInfo,
+    OwnedDeps, Storage, SystemResult, Timestamp, TransactionInfo, WasmQuery,
 };
+use cw_xcall::{
+    state::CwCallService,
+    types::{
+        config::Config,
+        message::CSMessage,
+        request::CSMessageRequest,
+        result::{CSMessageResult, CallServiceResponseType},
+        rollback::Rollback,
+    },
+};
+use cw_xcall_lib::{
+    message::{
+        call_message::CallMessage, call_message_rollback::CallMessageWithRollback,
+        envelope::Envelope, msg_trait::IMessage, msg_type::MessageType, AnyMessage,
+    },
+    network_address::{NetId, NetworkAddress},
+};
+
+pub fn get_dummy_network_address(nid: &str) -> NetworkAddress {
+    NetworkAddress::new(nid, "xcall")
+}
+
+pub fn get_dummy_call_msg_envelop() -> Envelope {
+    let msg = AnyMessage::CallMessage(CallMessage {
+        data: vec![1, 2, 3],
+    });
+    Envelope::new(msg, vec![], vec![])
+}
+
+pub fn get_dummy_req_msg() -> CSMessageRequest {
+    CSMessageRequest::new(
+        get_dummy_network_address("archway"),
+        Addr::unchecked("dapp"),
+        1,
+        MessageType::CallMessage,
+        keccak256(&[1, 2, 3]).to_vec(),
+        vec![],
+    )
+}
+
+pub fn get_dummy_rollback_data() -> Rollback {
+    let msg = AnyMessage::CallMessageWithRollback(CallMessageWithRollback {
+        data: vec![1, 2, 3],
+        rollback: vec![1, 2, 3],
+    });
+    let envelope = Envelope::new(msg, vec![], vec![]);
+
+    Rollback::new(
+        Addr::unchecked("xcall"),
+        get_dummy_network_address("archway"),
+        envelope.sources,
+        envelope.message.rollback().unwrap(),
+        true,
+    )
+}
+
+pub fn get_dummy_request_message() -> CSMessage {
+    let payload = get_dummy_req_msg();
+    CSMessage::new(
+        cw_xcall::types::message::CSMessageType::CSMessageRequest,
+        rlp::encode(&payload).to_vec(),
+    )
+}
+
+pub fn get_dummy_result_message() -> CSMessageResult {
+    let payload = get_dummy_req_msg();
+    CSMessageResult::new(
+        1,
+        CallServiceResponseType::CallServiceResponseSuccess,
+        Some(payload.as_bytes()),
+    )
+}
+
+pub fn get_dummy_result_message_failure() -> CSMessageResult {
+    let payload = get_dummy_req_msg();
+    CSMessageResult::new(
+        1,
+        CallServiceResponseType::CallServiceResponseFailure,
+        Some(payload.as_bytes()),
+    )
+}
+
+pub fn mock_connection_fee_query(deps: &mut OwnedDeps<MockStorage, MockApi, MockQuerier, Empty>) {
+    deps.querier.update_wasm(|r| match r {
+        WasmQuery::Smart {
+            contract_addr: _,
+            msg: _,
+        } => SystemResult::Ok(ContractResult::Ok(to_json_binary(&10_u128).unwrap())),
+        _ => todo!(),
+    });
+}
 
 pub struct MockEnvBuilder {
     env: Env,
@@ -92,4 +188,113 @@ fn test() {
         .build();
 
     assert_ne!(mock, mock_env_builder)
+}
+
+pub struct TestContext {
+    pub nid: NetId,
+    pub network_address: NetworkAddress,
+    pub env: Env,
+    pub info: MessageInfo,
+    pub request_id: u128,
+    pub request_message: Option<CSMessageRequest>,
+    pub envelope: Option<Envelope>,
+    pub mock_queries: HashMap<Binary, Binary>,
+}
+
+impl TestContext {
+    pub fn default() -> Self {
+        Self {
+            nid: NetId::from_str("icon").unwrap(),
+            network_address: get_dummy_network_address("icon"),
+            env: MockEnvBuilder::new().env,
+            info: mock_info("admin", &coins(100, "icx")),
+            request_id: u128::default(),
+            request_message: Some(get_dummy_req_msg()),
+            envelope: None,
+            mock_queries: HashMap::<Binary, Binary>::new(),
+        }
+    }
+
+    pub fn init_context(&self, storage: &mut dyn Storage, contract: &CwCallService) {
+        self.store_config(storage, contract);
+        self.set_admin(storage, contract);
+        self.init_last_request_id(storage, contract);
+        self.init_last_sequence_no(storage, contract);
+        self.store_default_connection(storage, contract);
+        self.store_protocol_fee_handler(storage, contract)
+    }
+
+    pub fn init_execute_call(&self, storage: &mut dyn Storage, contract: &CwCallService) {
+        self.init_context(storage, contract);
+        self.store_proxy_request(storage, contract);
+    }
+
+    pub fn init_reply_state(&self, storage: &mut dyn Storage, contract: &CwCallService) {
+        self.init_context(storage, contract);
+        self.store_proxy_request(storage, contract);
+        self.store_execute_request_id(storage, contract);
+    }
+
+    pub fn set_admin(&self, storage: &mut dyn Storage, contract: &CwCallService) {
+        contract
+            .set_admin(storage, self.info.sender.clone())
+            .unwrap();
+    }
+
+    pub fn store_config(&self, storage: &mut dyn Storage, contract: &CwCallService) {
+        let config = Config {
+            network_id: "icon".to_string(),
+            denom: "icx".to_string(),
+        };
+        contract.store_config(storage, &config).unwrap();
+    }
+
+    pub fn store_protocol_fee_handler(&self, storage: &mut dyn Storage, contract: &CwCallService) {
+        contract
+            .store_protocol_fee_handler(storage, self.info.sender.to_string())
+            .unwrap();
+    }
+
+    pub fn store_default_connection(&self, storage: &mut dyn Storage, contract: &CwCallService) {
+        let network = get_dummy_network_address("archway");
+        let address = Addr::unchecked("centralized");
+        contract
+            .store_default_connection(storage, network.nid(), address)
+            .unwrap();
+    }
+
+    pub fn store_proxy_request(&self, storage: &mut dyn Storage, contract: &CwCallService) {
+        if let Some(proxy_request) = &self.request_message {
+            contract
+                .store_proxy_request(storage, self.request_id, proxy_request)
+                .unwrap();
+        }
+    }
+
+    pub fn store_execute_request_id(&self, storage: &mut dyn Storage, contract: &CwCallService) {
+        contract
+            .store_execute_request_id(storage, self.request_id)
+            .unwrap();
+    }
+
+    pub fn init_last_request_id(&self, storage: &mut dyn Storage, contract: &CwCallService) {
+        contract
+            .init_last_request_id(storage, self.request_id)
+            .unwrap();
+    }
+
+    pub fn init_last_sequence_no(&self, storage: &mut dyn Storage, contract: &CwCallService) {
+        contract
+            .init_last_sequence_no(storage, u128::default())
+            .unwrap();
+    }
+
+    pub fn set_successful_response(
+        &self,
+        storage: &mut dyn Storage,
+        contract: &CwCallService,
+        sn: u128,
+    ) {
+        contract.set_successful_response(storage, sn).unwrap();
+    }
 }
