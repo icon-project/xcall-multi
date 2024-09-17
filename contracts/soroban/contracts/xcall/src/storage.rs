@@ -115,10 +115,6 @@ pub fn get_proxy_request(e: &Env, req_id: u128) -> Result<CSMessageRequest, Cont
     request
 }
 
-pub fn get_reply_state(e: &Env) -> Option<CSMessageRequest> {
-    e.storage().temporary().get(&StorageKey::ReplyState)
-}
-
 pub fn get_pending_request(e: &Env, hash: BytesN<32>) -> Vec<String> {
     let key = StorageKey::PendingRequests(hash);
     let pending_request = e.storage().persistent().get(&key).unwrap_or(Vec::new(&e));
@@ -137,13 +133,6 @@ pub fn get_pending_response(e: &Env, hash: BytesN<32>) -> Vec<String> {
     }
 
     pending_response
-}
-
-pub fn get_call_reply(e: &Env) -> Option<CSMessageRequest> {
-    e.storage()
-        .temporary()
-        .get(&StorageKey::CallReply)
-        .unwrap_or(None)
 }
 
 pub fn get_own_network_address(e: &Env) -> Result<NetworkAddress, ContractError> {
@@ -204,27 +193,6 @@ pub fn remove_proxy_request(e: &Env, req_id: u128) {
     e.storage()
         .persistent()
         .remove(&StorageKey::ProxyRequest(req_id))
-}
-
-pub fn store_call_reply(e: &Env, reply: &CSMessageRequest) {
-    let key = StorageKey::CallReply;
-    e.storage().temporary().set(&key, reply);
-}
-
-pub fn remove_call_reply(e: &Env) -> Option<CSMessageRequest> {
-    let call_reply = get_call_reply(&e);
-    e.storage().temporary().remove(&StorageKey::CallReply);
-
-    call_reply
-}
-
-pub fn store_reply_state(e: &Env, req: &CSMessageRequest) {
-    let key = StorageKey::ReplyState;
-    e.storage().temporary().set(&key, req);
-}
-
-pub fn remove_reply_state(e: &Env) {
-    e.storage().temporary().remove(&StorageKey::ReplyState)
 }
 
 pub fn store_pending_request(e: &Env, hash: BytesN<32>, sources: &Vec<String>) {

@@ -46,20 +46,17 @@ pub fn send_call(
     let encode_msg = cs_message.encode(&env);
     helpers::ensure_data_size(encode_msg.len() as usize)?;
 
-    if is_reply(&env, &nid_to, &envelope.sources) && !need_response {
-        storage::store_call_reply(&env, &request);
-    } else {
-        call_connection(
-            &env,
-            &tx_origin,
-            &nid_to,
-            sequence_no,
-            envelope.sources,
-            need_response,
-            encode_msg.clone(),
-        )?;
-        claim_protocol_fee(&env, &tx_origin)?;
-    }
+    call_connection(
+        &env,
+        &tx_origin,
+        &nid_to,
+        sequence_no,
+        envelope.sources,
+        need_response,
+        encode_msg.clone(),
+    )?;
+    claim_protocol_fee(&env, &tx_origin)?;
+
     event::message_sent(&env, sender, to.to_string(), sequence_no);
 
     Ok(sequence_no)
@@ -134,10 +131,6 @@ pub fn get_total_fee(
     sources: Vec<String>,
     rollback: bool,
 ) -> Result<u128, ContractError> {
-    if !rollback && is_reply(&env, &nid, &sources) {
-        return Ok(0_u128);
-    }
-
     let mut sources = sources;
     if sources.is_empty() {
         let default_conn = storage::default_connection(&env, nid.clone())?;
@@ -154,26 +147,4 @@ pub fn get_total_fee(
     }
 
     Ok(connections_fee + protocol_fee)
-}
-
-pub fn is_reply(e: &Env, nid: &String, sources: &Vec<String>) -> bool {
-    if let Some(req) = storage::get_reply_state(&e) {
-        if req.from().nid(&e) != *nid {
-            return false;
-        }
-        return are_array_equal(req.protocols(), &sources);
-    }
-    false
-}
-
-pub fn are_array_equal(protocols: &Vec<String>, sources: &Vec<String>) -> bool {
-    if protocols.len() != sources.len() {
-        return false;
-    }
-    for protocol in protocols.iter() {
-        if !sources.contains(protocol) {
-            return false;
-        }
-    }
-    return true;
 }

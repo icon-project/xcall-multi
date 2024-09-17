@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document outlines the major changes in the xCall implementation on the Stellar blockchain and the reasoning behind these updates. Key modifications include a new fee deduction mechanism where xCall and each connection directly deduct fees from the user’s account, and an updated storage management approach utilizing instance and persistent storage while extending rent periodically to comply with Stellar's requirements.
+This document outlines the key updates made to the xCall implementation on the Stellar blockchain. These changes were introduced to improve how the protocol handles fees, manage storage more efficiently, and adapt to Stellar’s security model. The goal is to ensure smooth functionality while aligning with Stellar’s unique constraints and requirements.
 
 ## Major Changes
 
@@ -29,6 +29,17 @@ This document outlines the major changes in the xCall implementation on the Stel
 **Rationale**
 
 - Stellar’s storage model has distinct types such as temporary, persistent, and instance storage, each with different cost and management implications. We use these types based on their suitability and extend the rent periodically as needed to ensure compliance with Stellar's requirements and maintain data accessibility.
+
+**3. Remove Reply State**
+
+**Change**
+
+- The send_call and execute_call methods have been simplified by removing the reply logic
+- When xCall invokes a dApp's method, the dApp is no longer able invoke any further methods back to xCall within the same transaction
+
+**Rationale**
+
+- Stellar's security model restricts cross-contract reentrancy, preventing dApps from re-invoking xCall during the same execution flow. This ensures a more secure and predictable execution environment.
 
 ## Conclusion
 

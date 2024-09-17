@@ -40,7 +40,6 @@ pub fn try_handle_call_message(
             event::call_executed(&e, req_id, code, String::from_str(&e, "success"));
             code
         }
-        // TODO: convert error type to string
         Err(err) => match err {
             Ok(_error) => {
                 let code = CSResponseType::CSResponseFailure.into();

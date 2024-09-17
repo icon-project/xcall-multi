@@ -1,4 +1,4 @@
-use soroban_sdk::{vec, Address, Bytes, Env};
+use soroban_sdk::{vec, Address, Bytes, Env, String};
 use soroban_xcall_lib::messages::msg_type::MessageType;
 
 use crate::{
@@ -46,9 +46,11 @@ pub fn execute_message(
                 &data,
                 req.protocols().clone(),
             );
+
+            let code: u8 = CSResponseType::CSResponseSuccess.into();
+            event::call_executed(&env, req_id, code, String::from_str(&env, "success"));
         }
         MessageType::CallMessageWithRollback => {
-            storage::store_reply_state(&env, &req);
             let code = dapp::try_handle_call_message(
                 &env,
                 req_id,
@@ -57,16 +59,9 @@ pub fn execute_message(
                 &data,
                 req.protocols().clone(),
             );
-            storage::remove_reply_state(&env);
 
             let response_code = code.into();
-            let mut message = Bytes::new(&env);
-            let call_reply = storage::remove_call_reply(&env);
-            if call_reply.is_some() && response_code == CSResponseType::CSResponseSuccess {
-                message = call_reply.unwrap().encode(&env);
-            }
-
-            let result = CSMessageResult::new(req.sequence_no(), response_code, message);
+            let result = CSMessageResult::new(req.sequence_no(), response_code, Bytes::new(&env));
             let cs_message = CSMessage::from_result(&env, &result).encode(&env);
 
             let nid = req.from().nid(&env);
