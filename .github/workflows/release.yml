@@ -29,29 +29,29 @@ jobs:
         with:
           name: javascore-contracts
           path: ./contracts/javascore/build/javascore-contracts.zip
-  build_wasm:
-    name: Build Cosmwasm Contracts
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@v3
-        with:
-          submodules: true
+  # build_wasm:
+  #   name: Build Cosmwasm Contracts
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Checkout sources
+  #       uses: actions/checkout@v3
+  #       with:
+  #         submodules: true
           
-      - name: Cache Rust dependencies
-        uses: Swatinem/rust-cache@v2
-      - name: Compile WASM
-        run: |
-          # rustup component add rustfmt --toolchain 1.78.0-x86_64-unknown-linux-gnu
-          # rustup component add clippy --toolchain 1.78.0-x86_64-unknown-linux-gnu     
-          bash ./scripts/optimize-cosmwasm.sh
-          cd artifacts/archway && zip -r ../../cosmwasm-contracts.zip . -j
+  #     - name: Cache Rust dependencies
+  #       uses: Swatinem/rust-cache@v2
+  #     - name: Compile WASM
+  #       run: |
+  #         # rustup component add rustfmt --toolchain 1.78.0-x86_64-unknown-linux-gnu
+  #         # rustup component add clippy --toolchain 1.78.0-x86_64-unknown-linux-gnu     
+  #         bash ./scripts/optimize-cosmwasm.sh
+  #         cd artifacts/archway && zip -r ../../cosmwasm-contracts.zip . -j
           
-      - name: Upload Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: cosmwasm-contracts
-          path: cosmwasm-contracts.zip
+  #     - name: Upload Artifacts
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: cosmwasm-contracts
+  #         path: cosmwasm-contracts.zip
   build_solidity:
     name: Build Solidity Contracts
     runs-on: ubuntu-latest
@@ -97,7 +97,7 @@ jobs:
       - name: Install wasm32
         run: |
           rustup target add wasm32-unknown-unknown
-          cargo install --locked soroban-cli
+          cargo install --locked stellar-cli --features opt
       - name: Compile WASM
         run: |
           bash ./scripts/optimize-stellar.sh
@@ -114,6 +114,8 @@ jobs:
     needs:
       - build_javascore
       - build_wasm
+      - build_stellar
+      - build_solidity
     steps:
       - name: Initialize variables
         id: vars
@@ -126,11 +128,11 @@ jobs:
           name: javascore-contracts
           path: javascore-contracts
 
-      - name: Download Cosmwasm Artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: cosmwasm-contracts
-          path: cosmwasm-contracts
+      # - name: Download Cosmwasm Artifacts
+      #   uses: actions/download-artifact@v4
+      #   with:
+      #     name: cosmwasm-contracts
+      #     path: cosmwasm-contracts
 
       - name: Download Solidity Artifacts
         uses: actions/download-artifact@v4
@@ -147,8 +149,8 @@ jobs:
       - name: Unzip Javascore Artifacts
         run: unzip javascore-contracts/javascore-contracts.zip -d javascore-contracts && rm -rf javascore-contracts/javascore-contracts.zip
 
-      - name: Unzip Cosmwasm Artifacts
-        run: unzip cosmwasm-contracts/cosmwasm-contracts.zip -d cosmwasm-contracts && rm -rf cosmwasm-contracts/cosmwasm-contracts.zip
+      # - name: Unzip Cosmwasm Artifacts
+      #   run: unzip cosmwasm-contracts/cosmwasm-contracts.zip -d cosmwasm-contracts && rm -rf cosmwasm-contracts/cosmwasm-contracts.zip
 
       - name: Unzip Cosmwasm Artifacts
         run: unzip solidity-contracts/solidity-contracts.zip -d solidity-contracts && rm -rf solidity-contracts/solidity-contracts.zip
@@ -166,9 +168,9 @@ jobs:
         uses: jmgilman/actions-generate-checksum@v1
         with:
           patterns: |
-            cosmwasm-contracts/*.wasm
             javascore-contracts/*.jar
             solidity-contracts/*
+            ./stellar-contracts/*
           output: check256sums.txt
 
       - name: Create Release
@@ -181,7 +183,6 @@ jobs:
             ${{ steps.Changelog.outputs.changelog }}
           files: |
             ./javascore-contracts/*.jar
-            ./cosmwasm-contracts/*.wasm
             ./solidity-contracts/*
             ./stellar-contracts/*
             check256sums.txt
