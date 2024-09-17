@@ -263,7 +263,7 @@ module settlement::main {
 
     }
 
-    entry fun cancel<T: store>(
+    entry fun cancel(
         self: &mut Storage,
         id: u128,
         ctx: &TxContext
@@ -304,3 +304,462 @@ module settlement::main {
     }
 
 }
+
+
+// #[test_only]
+// module settlement::main_tests {
+//     use sui::test_scenario::{Self, Scenario};
+//     use sui::coin::{Self, Coin};
+//     use sui::transfer;
+//     use sui::bag;
+//     use sui::address;
+//     use std::string;
+//     use settlement::main::{Self, Storage, AdminCap};
+//     use settlement::order_fill;
+//     use settlement::order_cancel;
+//     use settlement::order_message;
+//     use settlement::swap_order_flat;
+
+//     // Test coin type
+//     public struct USDC has store{}
+
+//     // Helper function to set up a test scenario
+//     fun setup_test() : Scenario {
+//         let scenario = test_scenario::begin(@0x1);
+//         let ctx = test_scenario::ctx(&mut scenario);
+        
+//         // Initialize the module
+//         main::init(ctx);
+        
+//         scenario
+//     }
+
+//     #[test]
+//     fun test_init() {
+//         let scenario = setup_test();
+//         test_scenario::next_tx(&mut scenario, @0x1);
+//         {
+//             let storage = test_scenario::take_shared<Storage>(&scenario);
+//             assert!(storage.version == 1, 0);
+//             assert!(storage.deposit_id == 0, 0);
+//             assert!(storage.nid == string::utf8(b"sui"), 0);
+//             assert!(storage.fee == 1, 0);
+//             assert!(storage.fee_handler == @0x1, 0);
+//             test_scenario::return_shared(storage);
+
+//             let admin_cap = test_scenario::take_from_sender<AdminCap>(&scenario);
+//             test_scenario::return_to_sender(&scenario, admin_cap);
+//         };
+//         test_scenario::end(scenario);
+//     }
+
+//     #[test]
+//     fun test_swap() {
+//         let scenario = setup_test();
+//         test_scenario::next_tx(&mut scenario, @0x1);
+//         {
+//             let storage = test_scenario::take_shared<Storage>(&scenario);
+//             let ctx = test_scenario::ctx(&mut scenario);
+            
+//             let usdc_coin = coin::mint_for_testing<USDC>(1000, ctx);
+//             main::swap<USDC>(
+//                 &mut storage,
+//                 string::utf8(b"eth"),
+//                 usdc_coin,
+//                 string::utf8(b"ETH"),
+//                 address::to_bytes(@0x2),
+//                 900,
+//                 b"test_data",
+//                 ctx
+//             );
+
+//             assert!(storage.deposit_id == 1, 0);
+//             assert!(bag::contains(&storage.funds, 1), 0);
+
+//             test_scenario::return_shared(storage);
+//         };
+//         test_scenario::end(scenario);
+//     }
+
+//     #[test]
+//     #[expected_failure(abort_code = sui::bag::EKeyAlreadyExists)]
+//     fun test_swap_duplicate_deposit_id() {
+//         let scenario = setup_test();
+//         test_scenario::next_tx(&mut scenario, @0x1);
+//         {
+//             let storage = test_scenario::take_shared<Storage>(&scenario);
+//             let ctx = test_scenario::ctx(&mut scenario);
+            
+//             let usdc_coin1 = coin::mint_for_testing<USDC>(1000, ctx);
+//             let usdc_coin2 = coin::mint_for_testing<USDC>(1000, ctx);
+
+//             main::swap<USDC>(
+//                 &mut storage,
+//                 string::utf8(b"eth"),
+//                 usdc_coin1,
+//                 string::utf8(b"ETH"),
+//                 address::to_bytes(@0x2),
+//                 900,
+//                 b"test_data",
+//                 ctx
+//             );
+
+//             // This should fail as it will try to use the same deposit_id
+//             main::swap<USDC>(
+//                 &mut storage,
+//                 string::utf8(b"eth"),
+//                 usdc_coin2,
+//                 string::utf8(b"ETH"),
+//                 address::to_bytes(@0x2),
+//                 900,
+//                 b"test_data",
+//                 ctx
+//             );
+
+//             test_scenario::return_shared(storage);
+//         };
+//         test_scenario::end(scenario);
+//     }
+
+//     #[test]
+//     fun test_recv_message_fill() {
+//         let scenario = setup_test();
+//         test_scenario::next_tx(&mut scenario, @0x1);
+//         {
+//             let storage = test_scenario::take_shared<Storage>(&scenario);
+//             let ctx = test_scenario::ctx(&mut scenario);
+            
+//             let usdc_coin = coin::mint_for_testing<USDC>(1000, ctx);
+//             main::swap<USDC>(
+//                 &mut storage,
+//                 string::utf8(b"eth"),
+//                 usdc_coin,
+//                 string::utf8(b"ETH"),
+//                 address::to_bytes(@0x2),
+//                 900,
+//                 b"test_data",
+//                 ctx
+//             );
+
+//             let order = swap_order_flat::new(
+//                 1,
+//                 *sui::object::id_to_bytes(&storage.id),
+//                 string::utf8(b"sui"),
+//                 string::utf8(b"eth"),
+//                 address::to_bytes(@0x1),
+//                 address::to_bytes(@0x2),
+//                 b"USDC",
+//                 1000,
+//                 b"ETH",
+//                 900,
+//                 b"test_data"
+//             );
+
+//             let fill = order_fill::new(
+//                 1,
+//                 swap_order_flat::encode(&order),
+//                 address::to_bytes(@0x3),
+//                 900,
+//                 true
+//             );
+
+//             let msg = order_message::new(1, order_fill::encode(&fill));
+
+//             main::recv_message<USDC>(
+//                 &mut storage,
+//                 string::utf8(b"eth"),
+//                 1,
+//                 order_message::encode(&msg),
+//                 ctx
+//             );
+
+//             // Assert that the order has been processed
+//             assert!(!bag::contains(&storage.funds, 1), 0);
+
+//             test_scenario::return_shared(storage);
+//         };
+//         test_scenario::end(scenario);
+//     }
+
+//     #[test]
+//     #[expected_failure(abort_code = sui::dynamic_field::EFieldAlreadyExists)]
+//     fun test_recv_message_duplicate_fill() {
+//         let scenario = setup_test();
+//         test_scenario::next_tx(&mut scenario, @0x1);
+//         {
+//             let storage = test_scenario::take_shared<Storage>(&scenario);
+//             let ctx = test_scenario::ctx(&mut scenario);
+            
+//             let usdc_coin = coin::mint_for_testing<USDC>(1000, ctx);
+//             main::swap<USDC>(
+//                 &mut storage,
+//                 string::utf8(b"eth"),
+//                 usdc_coin,
+//                 string::utf8(b"ETH"),
+//                 address::to_bytes(@0x2),
+//                 900,
+//                 b"test_data",
+//                 ctx
+//             );
+
+//             let order = swap_order_flat::new(
+//                 1,
+//                 *sui::object::id_to_bytes(&storage.id),
+//                 string::utf8(b"sui"),
+//                 string::utf8(b"eth"),
+//                 address::to_bytes(@0x1),
+//                 address::to_bytes(@0x2),
+//                 b"USDC",
+//                 1000,
+//                 b"ETH",
+//                 900,
+//                 b"test_data"
+//             );
+
+//             let fill = order_fill::new(
+//                 1,
+//                 swap_order_flat::encode(&order),
+//                 address::to_bytes(@0x3),
+//                 900,
+//                 true
+//             );
+
+//             let msg = order_message::new(1, order_fill::encode(&fill));
+
+//             main::recv_message<USDC>(
+//                 &mut storage,
+//                 string::utf8(b"eth"),
+//                 1,
+//                 order_message::encode(&msg),
+//                 ctx
+//             );
+
+//             // Attempt to process the same fill again, should fail
+//             main::recv_message<USDC>(
+//                 &mut storage,
+//                 string::utf8(b"eth"),
+//                 1,
+//                 order_message::encode(&msg),
+//                 ctx
+//             );
+
+//             test_scenario::return_shared(storage);
+//         };
+//         test_scenario::end(scenario);
+//     }
+
+//     #[test]
+//     fun test_fill() {
+//         let scenario = setup_test();
+//         test_scenario::next_tx(&mut scenario, @0x1);
+//         {
+//             let storage = test_scenario::take_shared<Storage>(&scenario);
+//             let ctx = test_scenario::ctx(&mut scenario);
+            
+//             let usdc_coin = coin::mint_for_testing<USDC>(1000, ctx);
+//             main::swap<USDC>(
+//                 &mut storage,
+//                 string::utf8(b"sui"),
+//                 usdc_coin,
+//                 string::utf8(b"ETH"),
+//                 address::to_bytes(@0x2),
+//                 900,
+//                 b"test_data",
+//                 ctx
+//             );
+
+//             let order = swap_order_flat::new(
+//                 1,
+//                 *sui::object::id_to_bytes(&storage.id),
+//                 string::utf8(b"sui"),
+//                 string::utf8(b"sui"),
+//                 address::to_bytes(@0x1),
+//                 address::to_bytes(@0x2),
+//                 b"USDC",
+//                 1000,
+//                 b"ETH",
+//                 900,
+//                 b"test_data"
+//             );
+
+//             let fill_coin = coin::mint_for_testing<USDC>(900, ctx);
+//             main::fill<USDC>(
+//                 &mut storage,
+//                 1,
+//                 swap_order_flat::encode(&order),
+//                 fill_coin,
+//                 @0x3,
+//                 ctx
+//             );
+
+//             // Assert that the order has been filled
+//             assert!(!bag::contains(&storage.funds, 1), 0);
+
+//             test_scenario::return_shared(storage);
+//         };
+//         test_scenario::end(scenario);
+//     }
+
+//     #[test]
+//     #[expected_failure(abort_code = sui::dynamic_field::EFieldAlreadyExists)]
+//     fun test_fill_already_finished() {
+//         let scenario = setup_test();
+//         test_scenario::next_tx(&mut scenario, @0x1);
+//         {
+//             let storage = test_scenario::take_shared<Storage>(&scenario);
+//             let ctx = test_scenario::ctx(&mut scenario);
+            
+//             let usdc_coin = coin::mint_for_testing<USDC>(1000, ctx);
+//             main::swap<USDC>(
+//                 &mut storage,
+//                 string::utf8(b"sui"),
+//                 usdc_coin,
+//                 string::utf8(b"ETH"),
+//                 address::to_bytes(@0x2),
+//                 900,
+//                 b"test_data",
+//                 ctx
+//             );
+
+//             let order = swap_order_flat::new(
+//                 1,
+//                 *sui::object::id_to_bytes(&storage.id),
+//                 string::utf8(b"sui"),
+//                 string::utf8(b"sui"),
+//                 address::to_bytes(@0x1),
+//                 address::to_bytes(@0x2),
+//                 b"USDC",
+//                 1000,
+//                 b"ETH",
+//                 900,
+//                 b"test_data"
+//             );
+
+//             let fill_coin1 = coin::mint_for_testing<USDC>(900, ctx);
+//             main::fill<USDC>(
+//                 &mut storage,
+//                 1,
+//                 swap_order_flat::encode(&order),
+//                 fill_coin1,
+//                 @0x3,
+//                 ctx
+//             );
+
+//             // Attempt to fill the same order again, should fail
+//             let fill_coin2 = coin::mint_for_testing<USDC>(900, ctx);
+//             main::fill<USDC>(
+//                 &mut storage,
+//                 1,
+//                 swap_order_flat::encode(&order),
+//                 fill_coin2,
+//                 @0x3,
+//                 ctx
+//             );
+
+//             test_scenario::return_shared(storage);
+//         };
+//         test_scenario::end(scenario);
+//     }
+
+//     #[test]
+//     fun test_cancel() {
+//         let scenario = setup_test();
+//         test_scenario::next_tx(&mut scenario, @0x1);
+//         {
+//             let storage = test_scenario::take_shared<Storage>(&scenario);
+//             let ctx = test_scenario::ctx(&mut scenario);
+            
+//             let usdc_coin = coin::mint_for_testing<USDC>(1000, ctx);
+//             main::swap<USDC>(
+//                 &mut storage,
+//                 string::utf8(b"sui"),
+//                 usdc_coin,
+//                 string::utf8(b"ETH"),
+//                 address::to_bytes(@0x2),
+//                 900,
+//                 b"test_data",
+//                 ctx
+//             );
+
+//             main::cancel(&mut storage, 1, ctx);
+
+//             // Assert that the order has been cancelled
+//             assert!(!bag::contains(&storage.funds, 1), 0);
+
+//             test_scenario::return_shared(storage);
+//         };
+//         test_scenario::end(scenario);
+//     }
+
+//     #[test]
+//     #[expected_failure]
+//     fun test_cancel_by_non_creator() {
+//         let scenario = setup_test();
+//         test_scenario::next_tx(&mut scenario, @0x1);
+//         {
+//             let storage = test_scenario::take_shared<Storage>(&scenario);
+//             let ctx = test_scenario::ctx(&mut scenario);
+            
+//             let usdc_coin = coin::mint_for_testing<USDC>(1000, ctx);
+//             main::swap<USDC>(
+//                 &mut storage,
+//                 string::utf8(b"sui"),
+//                 usdc_coin,
+//                 string::utf8(b"ETH"),
+//                 address::to_bytes(@0x2),
+//                 900,
+//                 b"test_data",
+//                 ctx
+//             );
+
+//             test_scenario::next_tx(&mut scenario, @0x2);
+//             let ctx = test_scenario::ctx(&mut scenario);
+
+//             // Attempt to cancel by a different address, should fail
+//             main::cancel(&mut storage, 1, ctx);
+
+//             test_scenario::return_shared(storage);
+//         };
+//         test_scenario::end(scenario);
+//     }
+
+//     #[test]
+//     fun test_set_relayer() {
+//         let scenario = setup_test();
+//         test_scenario::next_tx(&mut scenario, @0x1);
+//         {
+//             let storage = test_scenario::take_shared<Storage>(&scenario);
+//             let admin_cap = test_scenario::take_from_sender<AdminCap>(&scenario);
+            
+//             main::set_relayer(&mut storage, &admin_cap, @0x4);
+
+//             // Assert that the relayer has been set
+//             // Note: We can't directly access the relayer field, so we'll need to add a getter function in the main module to test this properly
+
+//             test_scenario::return_shared(storage);
+//             test_scenario::return_to_sender(&scenario, admin_cap);
+//         };
+//         test_scenario::end(scenario);
+//     }
+
+//     #[test]
+//     #[expected_failure]
+//     fun test_set_relayer_without_admin_cap() {
+//         let scenario = setup_test();
+//         test_scenario::next_tx(&mut scenario, @0x2);
+//         {
+//             let storage = test_scenario::take_shared<Storage>(&scenario);
+//             let ctx = test_scenario::ctx(&mut scenario);
+            
+//             // Create a fake AdminCap
+//             let fake_admin_cap = AdminCap { id: sui::object::new(ctx) };
+
+//             // Attempt to set relayer with fake AdminCap, should fail
+//             main::set_relayer(&mut storage, &fake_admin_cap, @0x4);
+
+//             test_scenario::return_shared(storage);
+//             transfer::public_transfer(fake_admin_cap, @0x2);
+//         };
+//         test_scenario::end(scenario);
+//     }
+// }
