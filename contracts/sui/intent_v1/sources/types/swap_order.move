@@ -6,7 +6,7 @@ module intents_v1::swap_order {
      use sui_rlp::decoder::{Self};
      public struct SwapOrder has copy,drop,store {
         id:u128,   
-        emitter:vector<u8>,                
+        emitter:String,                
         src_nid:String,               
         dst_nid: String,             
         creator:String,                
@@ -19,7 +19,7 @@ module intents_v1::swap_order {
 }
 
 public fun new( id:u128,    
-    emitter:vector<u8>,                 
+    emitter:String,                 
     src_nid:String,               
     dst_nid: String,             
     creator:String,                
@@ -51,8 +51,8 @@ public fun new( id:u128,
     self.id
 }
 
-public fun get_emitter(self:&SwapOrder):&vector<u8>{
-    &self.emitter
+public fun get_emitter(self:&SwapOrder):String{
+    self.emitter
 }
 public fun get_src_nid(self:&SwapOrder):String {
     self.src_nid
@@ -99,7 +99,7 @@ public(package) fun deduct_amount(self:&mut SwapOrder,amount:u128){
 public fun encode(self:&SwapOrder):vector<u8>{
      let mut list=vector::empty<vector<u8>>();
            vector::push_back(&mut list,encoder::encode_u128(self.get_id()));
-            vector::push_back(&mut list,encoder::encode(self.get_emitter()));
+            vector::push_back(&mut list,encoder::encode_string(&self.get_emitter()));
           vector::push_back(&mut list,encoder::encode_string(&self.get_src_nid()));
           vector::push_back(&mut list,encoder::encode_string(&self.get_dst_nid()));
           vector::push_back(&mut list,encoder::encode_string(&self.get_creator()));
@@ -118,7 +118,7 @@ public fun encode(self:&SwapOrder):vector<u8>{
 public fun decode(bytes:&vector<u8>):SwapOrder{
        let decoded=decoder::decode_list(bytes);
         let id= decoder::decode_u128(vector::borrow(&decoded,0));
-         let emitter= *vector::borrow(&decoded,1);
+         let emitter= decoder::decode_string(decoded.borrow(1));
         let src_nid= decoder::decode_string(decoded.borrow(2));
          let dst_nid= decoder::decode_string(decoded.borrow(3));
          let creator= decoder::decode_string(decoded.borrow(4));

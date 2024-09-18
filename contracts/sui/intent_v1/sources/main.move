@@ -17,6 +17,7 @@ module intents_v1::main {
     use sui::address::{Self as suiaddress};
     use intents_v1::cluster_connection::{Self, ConnectionState};
     use sui::hex::{Self};
+    use intents_v1::utils::{id_to_hex_string};
 
 
     const FILL: u8 = 1; // Constant for Fill message type
@@ -103,65 +104,7 @@ module intents_v1::main {
         &mut self.connection
     }
 
-    entry fun swap<T: store>(
-        self: &mut Storage,
-        toNid: String,
-        token: Coin<T>,
-        toToken: String,
-        toAddress: String,
-        minReceive: u128,
-        data: vector<u8>,
-        ctx: &TxContext
-
-    ) {
-        // Escrows amount from user
-        let deposit_id = get_next_deposit_id(self);
-        let order = swap_order::new(
-            deposit_id,
-            self.id.to_bytes(),
-            self.nid,
-            toNid,
-            ctx.sender().to_string(),
-            toAddress,
-     string::from_ascii(type_name::get<T>().into_string()),
-            token.value() as u128,
-            toToken,
-            minReceive,
-            data
-        );
-        self.funds.add<u128,Coin<T>>(deposit_id, token);
-
-        swap_order::emit(order);
-        self.orders.add(deposit_id, order);
-        
-
-    }
-
-    entry fun recv_message<T: store>(
-        self: &mut Storage,
-        srcNetwork: String,
-        conn_sn: u128,
-        msg: vector<u8>,
-        ctx: &mut TxContext,
-    ) {
-        let orderMessage = cluster_connection::receive_message(
-            self.get_connection_state_mut(),
-            srcNetwork,
-            conn_sn,
-            msg,
-            ctx
-        );
-        if (orderMessage.get_type() == FILL) {
-            let fill = order_fill::decode(&orderMessage.get_message());
-            resolve_fill<T>(self, srcNetwork, &fill, ctx);
-        }
-        else if (orderMessage.get_type() == CANCEL) {
-            let cancel = order_cancel::decode(&orderMessage.get_message());
-            resolve_cancel(self, cancel.get_order_bytes(), ctx);
-        }
-    }
-
-    fun resolve_fill<T: store>(
+     fun resolve_fill<T: store>(
         self: &mut Storage,
         srcNid: String,
         fill: &OrderFill,
@@ -235,7 +178,65 @@ module intents_v1::main {
         )
     }
 
-    /// @notice Fills an order for a cross-chain swap.
+    entry fun swap<T: store>(
+        self: &mut Storage,
+        toNid: String,
+        token: Coin<T>,
+        toToken: String,
+        toAddress: String,
+        minReceive: u128,
+        data: vector<u8>,
+        ctx: &TxContext
+
+    ) {
+        // Escrows amount from user
+        let deposit_id = get_next_deposit_id(self);
+        let order = swap_order::new(
+            deposit_id,
+            id_to_hex_string(&self.get_id()),
+            self.nid,
+            toNid,
+            ctx.sender().to_string(),
+            toAddress,
+     string::from_ascii(type_name::get<T>().into_string()),
+            token.value() as u128,
+            toToken,
+            minReceive,
+            data
+        );
+        self.funds.add<u128,Coin<T>>(deposit_id, token);
+
+        swap_order::emit(order);
+        self.orders.add(deposit_id, order);
+        
+
+    }
+
+    entry fun recv_message<T: store>(
+        self: &mut Storage,
+        srcNetwork: String,
+        conn_sn: u128,
+        msg: vector<u8>,
+        ctx: &mut TxContext,
+    ) {
+        let orderMessage = cluster_connection::receive_message(
+            self.get_connection_state_mut(),
+            srcNetwork,
+            conn_sn,
+            msg,
+            ctx
+        );
+        if (orderMessage.get_type() == FILL) {
+            let fill = order_fill::decode(&orderMessage.get_message());
+            resolve_fill<T>(self, srcNetwork, &fill, ctx);
+        }
+        else if (orderMessage.get_type() == CANCEL) {
+            let cancel = order_cancel::decode(&orderMessage.get_message());
+            resolve_cancel(self, cancel.get_order_bytes(), ctx);
+        }
+    }
+
+     /// @notice Fills an order for a cross-chain swap.
     /// @param id The order ID.
     /// @param order The SwapOrder object.
     /// @param amount The amount to fill.
@@ -243,13 +244,23 @@ module intents_v1::main {
     entry fun fill<T:store,F: store>(
         self: &mut Storage,
         id: u128,
-        order_bytes: vector<u8>,
+        emitter:String,                
+        src_nid:String,               
+        dst_nid: String,             
+        creator:String,                
+        destination_address:String,    
+        token:String,                
+        amount:u128,                 
+        to_token:String,                 
+        min_receive:u128,             
+        data:vector<u8>,
         mut fill_token: Coin<F>,
         solveraddress: String,
         ctx: &mut TxContext
     ) {
-        let order_hash = keccak256(&order_bytes);
-        let order = swap_order::decode(&order_bytes);
+        let order = swap_order::new(id, emitter, src_nid, dst_nid, creator, destination_address, token, amount, to_token, min_receive, data);
+
+        let order_hash = keccak256(&order.encode());
 
         assert!(!self.finished_orders.contains<vector<u8>,bool>(order_hash),EAlreadyFinished);
 
@@ -279,7 +290,7 @@ module intents_v1::main {
 
         let fill = order_fill::new(
             id,
-            order_bytes,
+            order.encode(),
             solveraddress,
             payout,
             self.finished_orders.contains(order_hash)
@@ -365,6 +376,10 @@ module intents_v1::main {
         self.get_connection_state_mut().set_relayer(relayer);
     }
 
+   
+
+   
+
     public fun get_version(self:&Storage):u64{
         self.version
 
@@ -424,6 +439,7 @@ module intents_v1::main_tests {
     use intents_v1::order_cancel;
     use intents_v1::order_message;
     use intents_v1::swap_order;
+    use intents_v1::utils::id_to_hex_string;
 
     // Test coin type
     public struct USDC has store{}
@@ -515,7 +531,7 @@ module intents_v1::main_tests {
 
             let order = swap_order::new(
                 1,
-                sui::object::id_to_bytes(&storage.get_id()),
+                id_to_hex_string(&storage.get_id()),
                 string::utf8(b"sui"),
                 string::utf8(b"eth"),
                 @0x1.to_string(),
@@ -577,7 +593,7 @@ module intents_v1::main_tests {
 
             let order = swap_order::new(
                 1,
-                sui::object::id_to_bytes(&storage.get_id()),
+                id_to_hex_string(&storage.get_id()),
                 string::utf8(b"sui"),
                 string::utf8(b"eth"),
                 (@0x1).to_string(),
@@ -644,7 +660,7 @@ module intents_v1::main_tests {
 
             let order = swap_order::new(
                 1,
-                sui::object::id_to_bytes(&storage.get_id()),
+                id_to_hex_string(&storage.get_id()),
                 string::utf8(b"sui"),
                 string::utf8(b"sui"),
                 @0x1.to_string(),
@@ -659,8 +675,17 @@ module intents_v1::main_tests {
             let fill_coin = coin::mint_for_testing<SUI>(900, ctx);
             main::fill<USDC,SUI>(
                 &mut storage,
-                1,
-                swap_order::encode(&order),
+                order.get_id(),
+                order.get_emitter(),
+                order.get_src_nid(),
+                order.get_dst_nid(),
+                order.get_creator(),
+                order.get_destination_address(),
+                order.get_token(),
+                order.get_amount(),
+                order.get_to_token(),
+                order.get_min_receive(),
+                *order.get_data(),
                 fill_coin,
                 (@0x3).to_string(),
                 ctx
@@ -701,7 +726,7 @@ module intents_v1::main_tests {
 
             let order = swap_order::new(
                 1,
-                sui::object::id_to_bytes(&storage.get_id()),
+                id_to_hex_string(&storage.get_id()),
                 string::utf8(b"sui"),
                 string::utf8(b"sui"),
                 (@0x1).to_string(),
@@ -716,8 +741,17 @@ module intents_v1::main_tests {
             let fill_coin = coin::mint_for_testing<SUI>(800, ctx);
             main::fill<USDC,SUI>(
                 &mut storage,
-                1,
-                swap_order::encode(&order),
+               order.get_id(),
+                order.get_emitter(),
+                order.get_src_nid(),
+                order.get_dst_nid(),
+                order.get_creator(),
+                order.get_destination_address(),
+                order.get_token(),
+                order.get_amount(),
+                order.get_to_token(),
+                order.get_min_receive(),
+                *order.get_data(),
                 fill_coin,
                 (@0x3).to_string(),
                 ctx
@@ -758,7 +792,7 @@ module intents_v1::main_tests {
 
             let order = swap_order::new(
                 1,
-                sui::object::id_to_bytes(&storage.get_id()),
+                id_to_hex_string(&storage.get_id()),
                 string::utf8(b"sui"),
                 string::utf8(b"sui"),
                 (@0x1).to_string(),
@@ -773,8 +807,17 @@ module intents_v1::main_tests {
             let fill_coin1 = coin::mint_for_testing<SUI>(900, ctx);
             main::fill<USDC,SUI>(
                 &mut storage,
-                1,
-                swap_order::encode(&order),
+               order.get_id(),
+                order.get_emitter(),
+                order.get_src_nid(),
+                order.get_dst_nid(),
+                order.get_creator(),
+                order.get_destination_address(),
+                order.get_token(),
+                order.get_amount(),
+                order.get_to_token(),
+                order.get_min_receive(),
+                *order.get_data(),
                 fill_coin1,
                 @0x3.to_string(),
                 ctx
@@ -784,8 +827,17 @@ module intents_v1::main_tests {
             let fill_coin2 = coin::mint_for_testing<SUI>(900, ctx);
             main::fill<USDC,SUI>(
                 &mut storage,
-                1,
-                swap_order::encode(&order),
+                order.get_id(),
+                order.get_emitter(),
+                order.get_src_nid(),
+                order.get_dst_nid(),
+                order.get_creator(),
+                order.get_destination_address(),
+                order.get_token(),
+                order.get_amount(),
+                order.get_to_token(),
+                order.get_min_receive(),
+                *order.get_data(),
                 fill_coin2,
                 @0x3.to_string(),
                 ctx
@@ -820,7 +872,7 @@ module intents_v1::main_tests {
 
             let order = swap_order::new(
                 1,
-                sui::object::id_to_bytes(&storage.get_id()),
+                id_to_hex_string(&storage.get_id()),
                 string::utf8(b"sui"),
                 string::utf8(b"sui"),
                 (@0x1).to_string(),
@@ -835,8 +887,17 @@ module intents_v1::main_tests {
             let fill_coin1 = coin::mint_for_testing<TEST>(900, ctx);
             main::fill<USDC,TEST>(
                 &mut storage,
-                1,
-                swap_order::encode(&order),
+               order.get_id(),
+                order.get_emitter(),
+                order.get_src_nid(),
+                order.get_dst_nid(),
+                order.get_creator(),
+                order.get_destination_address(),
+                order.get_token(),
+                order.get_amount(),
+                order.get_to_token(),
+                order.get_min_receive(),
+                *order.get_data(),
                 fill_coin1,
                 @0x3.to_string(),
                 ctx
@@ -871,7 +932,7 @@ module intents_v1::main_tests {
 
             let order = swap_order::new(
                 1,
-                sui::object::id_to_bytes(&storage.get_id()),
+                id_to_hex_string(&storage.get_id()),
                 string::utf8(b"sui"),
                 string::utf8(b"sui"),
                 (@0x1).to_string(),
@@ -886,8 +947,17 @@ module intents_v1::main_tests {
             let fill_coin1 = coin::mint_for_testing<SUI>(1100, ctx);
             main::fill<USDC,SUI>(
                 &mut storage,
-                1,
-                swap_order::encode(&order),
+               order.get_id(),
+                order.get_emitter(),
+                order.get_src_nid(),
+                order.get_dst_nid(),
+                order.get_creator(),
+                order.get_destination_address(),
+                order.get_token(),
+                order.get_amount(),
+                order.get_to_token(),
+                order.get_min_receive(),
+                *order.get_data(),
                 fill_coin1,
                 @0x3.to_string(),
                 ctx
