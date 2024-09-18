@@ -1,7 +1,7 @@
-module settlement::cluster_connection {
+module intents_v1::cluster_connection {
     use std::string::{String, Self};
     use sui::table::{Table, Self};
-    use settlement::order_message::{OrderMessage, Self};
+    use intents_v1::order_message::{OrderMessage, Self};
     use sui::event::{ Self };
 
     public struct Receipt has drop, copy, store {

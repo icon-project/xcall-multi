@@ -1,6 +1,6 @@
 
-/// Module: settlement
-module settlement::main {
+/// Module: intents_v1
+module intents_v1::main {
     use std::string::{String, Self};
     use sui::linked_table::{LinkedTable, Self};
     use sui::table::{Table, Self};
@@ -9,19 +9,21 @@ module settlement::main {
     use sui::bag::{Bag, Self};
     use sui::event::{ Self };
     use std::type_name::{ Self };
-    use settlement::order_fill::{OrderFill, Self};
-    use settlement::order_cancel::{Cancel, Self};
-    use settlement::order_message::{OrderMessage, Self};
-    use settlement::swap_order::{Self, SwapOrder};
+    use intents_v1::order_fill::{OrderFill, Self};
+    use intents_v1::order_cancel::{Cancel, Self};
+    use intents_v1::order_message::{OrderMessage, Self};
+    use intents_v1::swap_order::{Self, SwapOrder};
     use sui::hash::keccak256;
     use sui::address::{Self as suiaddress};
-    use settlement::cluster_connection::{Self, ConnectionState};
+    use intents_v1::cluster_connection::{Self, ConnectionState};
 
     const FILL: u8 = 1; // Constant for Fill message type
     const CANCEL: u8 = 2; // Constant for Cancel message type
     const CURRENT_VERSION: u64 = 1;
 
     const EAlreadyFinished: u64 = 1;
+    const EInvalidFillToken:u64=2;
+    const EInvalidPayoutAmount:u64=3;
 
     public struct Receipt has drop, copy, store {
         src_nid: String,
@@ -200,6 +202,9 @@ module settlement::main {
         if (self.finished_orders.contains(order_hash)) {
             abort EAlreadyFinished
         };
+        if(!self.pending_fills.contains<vector<u8>,u128>(order_hash)){
+           self.pending_fills.add<vector<u8>,u128>(order_hash,order.get_amount());
+        };
 
         let pending_fill = self.pending_fills.remove<vector<u8>, u128>(order_hash);
         self.finished_orders.add<vector<u8>, bool>(order_hash, true);
@@ -232,22 +237,21 @@ module settlement::main {
     /// @param order The SwapOrder object.
     /// @param amount The amount to fill.
     /// @param solverAddress The address of the solver filling the order.
-    entry fun fill<T: store>(
+    entry fun fill<T:store,F: store>(
         self: &mut Storage,
         id: u128,
         order_bytes: vector<u8>,
-        mut fill_token: Coin<T>,
+        mut fill_token: Coin<F>,
         solveraddress: address,
         ctx: &mut TxContext
     ) {
         let order_hash = keccak256(&order_bytes);
         let order = swap_order::decode(&order_bytes);
 
-        assert!(!self.finished_orders.contains(order_hash));
+        assert!(!self.finished_orders.contains<vector<u8>,bool>(order_hash),EAlreadyFinished);
 
         // make sure user is filling token wanted by order
-        assert!(string::from_ascii(type_name::get<T>().into_string()).as_bytes()== order.get_to_token());
-        assert!((fill_token.value() as u128) <= order.get_min_receive());
+        assert!(string::from_ascii(type_name::get<F>().into_string()).as_bytes()== order.get_to_token(),EInvalidFillToken);
 
         // insert order if its first occurrence
         if (!self.pending_fills.contains(order_hash)) {
@@ -256,6 +260,7 @@ module settlement::main {
 
         let payout = (order.get_amount() * (fill_token.value() as u128)) / order.get_min_receive();
         let mut pending = self.pending_fills.remove<vector<u8>, u128>(order_hash);
+        assert!(pending >= payout,EInvalidPayoutAmount);
         pending = pending - payout;
 
         if (pending == 0) {
@@ -317,6 +322,7 @@ module settlement::main {
     ) {
         let (msg, src_nid, dst_nid) = {
             let order = self.orders.borrow<u128, SwapOrder>(id);
+            std::debug::print(order);
             assert!(
                 order.get_creator() == ctx.sender().to_bytes()
             );
@@ -331,7 +337,8 @@ module settlement::main {
 
         
         if (src_nid == dst_nid) {
-            self.resolve_cancel(msg.encode(), ctx);
+            let order = self.orders.borrow<u128, SwapOrder>(id);
+            self.resolve_cancel(order.encode(), ctx);
         } else {
             cluster_connection::send_message(
                 self.get_connection_state_mut(),
@@ -369,6 +376,10 @@ module settlement::main {
         self.id.to_inner()
     }
 
+    public fun get_relayer(self:&Storage):address{
+        self.connection.get_relayer()
+    }
+
     #[test_only]
     public fun test_init(ctx:&mut TxContext){
         init(ctx);
@@ -378,23 +389,25 @@ module settlement::main {
 
 
 #[test_only]
-module settlement::main_tests {
+module intents_v1::main_tests {
     use sui::test_scenario::{Self, Scenario};
     use sui::coin::{Self, Coin};
     use sui::transfer;
     use sui::bag;
     use sui::address;
     use std::string;
-    use settlement::main::{Self, Storage, AdminCap};
-    use settlement::order_fill;
-    use settlement::order_cancel;
-    use settlement::order_message;
-    use settlement::swap_order;
+    use intents_v1::main::{Self, Storage, AdminCap};
+    use intents_v1::order_fill;
+    use intents_v1::order_cancel;
+    use intents_v1::order_message;
+    use intents_v1::swap_order;
 
     // Test coin type
     public struct USDC has store{}
 
     public struct SUI has store{}
+
+    public struct TEST has store {}
 
     // Helper function to set up a test scenario
     fun setup_test(admin:address) : Scenario {
@@ -586,7 +599,7 @@ module settlement::main_tests {
     }
 
     #[test]
-    fun test_fill() {
+    fun test_complete_fill() {
         let admin=@0x1;
         let mut scenario = setup_test(admin);
         test_scenario::next_tx(&mut scenario, @0x1);
@@ -621,7 +634,7 @@ module settlement::main_tests {
             );
 
             let fill_coin = coin::mint_for_testing<SUI>(900, ctx);
-            main::fill<SUI>(
+            main::fill<USDC,SUI>(
                 &mut storage,
                 1,
                 swap_order::encode(&order),
@@ -631,9 +644,67 @@ module settlement::main_tests {
             );
 
             // Assert that the order has been filled
-            assert!(!bag::contains(storage.get_funds(), 1), 0);
+            assert!(!bag::contains<u128>(storage.get_funds(), 1), 0);
+
+            // let coin= storage.get_funds().borrow<u128,Coin<USDC>>(1);
+            // std::debug::print(coin);
+
+            test_scenario::return_shared(storage);
+        };
+        test_scenario::end(scenario);
+    }
+
+
+    #[test]
+    fun test_partial_fill() {
+        let admin=@0x1;
+        let mut scenario = setup_test(admin);
+        test_scenario::next_tx(&mut scenario, @0x1);
+        {
+            let mut storage = test_scenario::take_shared<Storage>(&scenario);
+            let ctx = test_scenario::ctx(&mut scenario);
+            
+            let usdc_coin = coin::mint_for_testing<USDC>(1000, ctx);
+            main::swap<USDC>(
+                &mut storage,
+                string::utf8(b"sui"),
+                usdc_coin,
+                *string::from_ascii(std::type_name::get<SUI>().into_string()).as_bytes(),
+                address::to_bytes(@0x2),
+                900,
+                b"test_data",
+                ctx
+            );
+
+            let order = swap_order::new(
+                1,
+                sui::object::id_to_bytes(&storage.get_id()),
+                string::utf8(b"sui"),
+                string::utf8(b"sui"),
+                address::to_bytes(@0x1),
+                address::to_bytes(@0x2),
+                *string::from_ascii(std::type_name::get<USDC>().into_string()).as_bytes(),
+                1000,
+                *string::from_ascii(std::type_name::get<SUI>().into_string()).as_bytes(),
+                900,
+                b"test_data"
+            );
+
+            let fill_coin = coin::mint_for_testing<SUI>(800, ctx);
+            main::fill<USDC,SUI>(
+                &mut storage,
+                1,
+                swap_order::encode(&order),
+                fill_coin,
+                @0x3,
+                ctx
+            );
+
+            // Assert that the order has been filled
+            assert!(bag::contains<u128>(storage.get_funds(), 1), 0);
 
             let coin= storage.get_funds().borrow<u128,Coin<USDC>>(1);
+            assert!(coin.value()==112);
 
             test_scenario::return_shared(storage);
         };
@@ -641,7 +712,7 @@ module settlement::main_tests {
     }
 
     #[test]
-    #[expected_failure(abort_code = sui::dynamic_field::EFieldDoesNotExist)]
+    #[expected_failure(abort_code = 1)]
     fun test_fill_already_finished() {
         let admin=@0x1;
         let mut scenario = setup_test(admin);
@@ -677,7 +748,7 @@ module settlement::main_tests {
             );
 
             let fill_coin1 = coin::mint_for_testing<SUI>(900, ctx);
-            main::fill<SUI>(
+            main::fill<USDC,SUI>(
                 &mut storage,
                 1,
                 swap_order::encode(&order),
@@ -688,11 +759,113 @@ module settlement::main_tests {
 
             // Attempt to fill the same order again, should fail
             let fill_coin2 = coin::mint_for_testing<SUI>(900, ctx);
-            main::fill<SUI>(
+            main::fill<USDC,SUI>(
                 &mut storage,
                 1,
                 swap_order::encode(&order),
                 fill_coin2,
+                @0x3,
+                ctx
+            );
+
+            test_scenario::return_shared(storage);
+        };
+        test_scenario::end(scenario);
+    }
+
+    #[test]
+    #[expected_failure(abort_code = 2)]
+    fun test_fill_invalid_token_finished() {
+        let admin=@0x1;
+        let mut scenario = setup_test(admin);
+        test_scenario::next_tx(&mut scenario, @0x1);
+        {
+            let mut storage = test_scenario::take_shared<Storage>(&scenario);
+            let ctx = test_scenario::ctx(&mut scenario);
+            
+            let usdc_coin = coin::mint_for_testing<USDC>(1000, ctx);
+            main::swap<USDC>(
+                &mut storage,
+                string::utf8(b"sui"),
+                usdc_coin,
+                *string::from_ascii(std::type_name::get<SUI>().into_string()).as_bytes(),
+                address::to_bytes(@0x2),
+                900,
+                b"test_data",
+                ctx
+            );
+
+            let order = swap_order::new(
+                1,
+                sui::object::id_to_bytes(&storage.get_id()),
+                string::utf8(b"sui"),
+                string::utf8(b"sui"),
+                address::to_bytes(@0x1),
+                address::to_bytes(@0x2),
+                *string::from_ascii(std::type_name::get<USDC>().into_string()).as_bytes(),
+                1000,
+                *string::from_ascii(std::type_name::get<SUI>().into_string()).as_bytes(),
+                900,
+                b"test_data"
+            );
+
+            let fill_coin1 = coin::mint_for_testing<TEST>(900, ctx);
+            main::fill<USDC,TEST>(
+                &mut storage,
+                1,
+                swap_order::encode(&order),
+                fill_coin1,
+                @0x3,
+                ctx
+            );
+
+            test_scenario::return_shared(storage);
+        };
+        test_scenario::end(scenario);
+    }
+
+     #[test]
+    #[expected_failure(abort_code = 3)]
+    fun test_fill_invalid_payout_amount() {
+        let admin=@0x1;
+        let mut scenario = setup_test(admin);
+        test_scenario::next_tx(&mut scenario, @0x1);
+        {
+            let mut storage = test_scenario::take_shared<Storage>(&scenario);
+            let ctx = test_scenario::ctx(&mut scenario);
+            
+            let usdc_coin = coin::mint_for_testing<USDC>(1000, ctx);
+            main::swap<USDC>(
+                &mut storage,
+                string::utf8(b"sui"),
+                usdc_coin,
+                *string::from_ascii(std::type_name::get<SUI>().into_string()).as_bytes(),
+                address::to_bytes(@0x2),
+                900,
+                b"test_data",
+                ctx
+            );
+
+            let order = swap_order::new(
+                1,
+                sui::object::id_to_bytes(&storage.get_id()),
+                string::utf8(b"sui"),
+                string::utf8(b"sui"),
+                address::to_bytes(@0x1),
+                address::to_bytes(@0x2),
+                *string::from_ascii(std::type_name::get<USDC>().into_string()).as_bytes(),
+                1000,
+                *string::from_ascii(std::type_name::get<SUI>().into_string()).as_bytes(),
+                900,
+                b"test_data"
+            );
+
+            let fill_coin1 = coin::mint_for_testing<SUI>(1100, ctx);
+            main::fill<USDC,SUI>(
+                &mut storage,
+                1,
+                swap_order::encode(&order),
+                fill_coin1,
                 @0x3,
                 ctx
             );
@@ -716,7 +889,7 @@ module settlement::main_tests {
                 &mut storage,
                 string::utf8(b"sui"),
                 usdc_coin,
-                b"ETH",
+                *string::from_ascii(std::type_name::get<SUI>().into_string()).as_bytes(),
                 address::to_bytes(@0x2),
                 900,
                 b"test_data",
@@ -774,12 +947,8 @@ module settlement::main_tests {
         {
             let mut storage = test_scenario::take_shared<Storage>(&scenario);
             let admin_cap = test_scenario::take_from_sender<AdminCap>(&scenario);
-            
             main::set_relayer(&mut storage, &admin_cap, @0x4);
-
-            // Assert that the relayer has been set
-            // Note: We can't directly access the relayer field, so we'll need to add a getter function in the main module to test this properly
-
+            assert!(storage.get_relayer()==@0x4);
             test_scenario::return_shared(storage);
             test_scenario::return_to_sender(&scenario, admin_cap);
         };

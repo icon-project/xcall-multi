@@ -1,4 +1,4 @@
-module settlement::order_message {
+module intents_v1::order_message {
      use sui_rlp::encoder::{Self};
      use sui_rlp::decoder::{Self};
     public struct OrderMessage has copy,drop{

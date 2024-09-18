@@ -1,4 +1,4 @@
-module settlement::order_cancel {
+module intents_v1::order_cancel {
     use sui_rlp::encoder::{Self};
     use sui_rlp::decoder::{Self};
     /// @title Cancel type

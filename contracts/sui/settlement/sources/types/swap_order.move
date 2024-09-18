@@ -1,4 +1,4 @@
-module settlement::swap_order {
+module intents_v1::swap_order {
     use std::string::{String,Self};
     use sui::event::{Self};
      use sui_rlp::encoder::{Self};

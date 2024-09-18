@@ -1,4 +1,4 @@
-module settlement::order_fill {
+module intents_v1::order_fill {
     use sui_rlp::encoder::{Self};
     use sui_rlp::decoder::{Self};
     /// @title OrderFill type
