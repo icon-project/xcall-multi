@@ -39,4 +39,33 @@ public fun encode(self:&OrderMessage):vector<u8>{
 
     }
 
+
+    #[test]
+ fun test_order_message_encoding(){
+    let swap_order= OrderMessage {
+    message_type: 1,
+    message: x"6c449988e2f33302803c93f8287dc1d8cb33848a"
+   };
+
+
+    let encoded= swap_order.encode();
+    std::debug::print(&encoded);
+    assert!(encoded==x"d601946c449988e2f33302803c93f8287dc1d8cb33848a")
+
+ }
+
+ #[test]
+ fun test_order_message_encoding2(){
+    let swap_order= OrderMessage {
+    message_type: 2,
+    message: x"6c449988e2f33302803c93f8287dc1d8cb33848a"
+   };
+
+
+    let encoded= swap_order.encode();
+    std::debug::print(&encoded);
+    assert!(encoded==x"d602946c449988e2f33302803c93f8287dc1d8cb33848a")
+
+ }
+
 }

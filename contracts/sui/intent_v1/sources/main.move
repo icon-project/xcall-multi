@@ -16,6 +16,8 @@ module intents_v1::main {
     use sui::hash::keccak256;
     use sui::address::{Self as suiaddress};
     use intents_v1::cluster_connection::{Self, ConnectionState};
+    use sui::hex::{Self};
+
 
     const FILL: u8 = 1; // Constant for Fill message type
     const CANCEL: u8 = 2; // Constant for Cancel message type
@@ -24,6 +26,7 @@ module intents_v1::main {
     const EAlreadyFinished: u64 = 1;
     const EInvalidFillToken:u64=2;
     const EInvalidPayoutAmount:u64=3;
+    const EInvalidMsgType:u64=4;
 
     public struct Receipt has drop, copy, store {
         src_nid: String,
@@ -104,8 +107,8 @@ module intents_v1::main {
         self: &mut Storage,
         toNid: String,
         token: Coin<T>,
-        toToken: vector<u8>,
-        toAddress: vector<u8>,
+        toToken: String,
+        toAddress: String,
         minReceive: u128,
         data: vector<u8>,
         ctx: &TxContext
@@ -118,9 +121,9 @@ module intents_v1::main {
             self.id.to_bytes(),
             self.nid,
             toNid,
-            ctx.sender().to_bytes(),
+            ctx.sender().to_string(),
             toAddress,
-     *string::from_ascii(type_name::get<T>().into_string()).as_bytes(),
+     string::from_ascii(type_name::get<T>().into_string()),
             token.value() as u128,
             toToken,
             minReceive,
@@ -185,7 +188,7 @@ module intents_v1::main {
             event::emit(OrderClosed { id:removed.get_id() })
         };
 
-        let solver = suiaddress::from_bytes(fill.get_solver());
+        let solver = suiaddress::from_ascii_bytes(fill.get_solver().bytes());
         transfer::public_transfer(take, solver);
     }
 
@@ -242,7 +245,7 @@ module intents_v1::main {
         id: u128,
         order_bytes: vector<u8>,
         mut fill_token: Coin<F>,
-        solveraddress: address,
+        solveraddress: String,
         ctx: &mut TxContext
     ) {
         let order_hash = keccak256(&order_bytes);
@@ -251,7 +254,7 @@ module intents_v1::main {
         assert!(!self.finished_orders.contains<vector<u8>,bool>(order_hash),EAlreadyFinished);
 
         // make sure user is filling token wanted by order
-        assert!(string::from_ascii(type_name::get<F>().into_string()).as_bytes()== order.get_to_token(),EInvalidFillToken);
+        assert!(string::from_ascii(type_name::get<F>().into_string())== order.get_to_token(),EInvalidFillToken);
 
         // insert order if its first occurrence
         if (!self.pending_fills.contains(order_hash)) {
@@ -277,7 +280,7 @@ module intents_v1::main {
         let fill = order_fill::new(
             id,
             order_bytes,
-            solveraddress.to_bytes(),
+            solveraddress,
             payout,
             self.finished_orders.contains(order_hash)
         );
@@ -295,10 +298,13 @@ module intents_v1::main {
             remaning_amount:pending,
         });
 
+        std::debug::print(&order);
+        std::debug::print(&fill);
+
 
         transfer::public_transfer(
             fill_token,
-            suiaddress::from_bytes(order.get_destination_address())
+            suiaddress::from_ascii_bytes(order.get_destination_address().as_bytes())
         );
         transfer::public_transfer(fee_token, self.fee_handler);
 
@@ -324,7 +330,7 @@ module intents_v1::main {
             let order = self.orders.borrow<u128, SwapOrder>(id);
             std::debug::print(order);
             assert!(
-                order.get_creator() == ctx.sender().to_bytes()
+                order.get_creator() == ctx.sender().to_string()
             );
             let msg = order_cancel::new(order.encode());
             let order_msg = order_message::new(CANCEL, msg.encode());
@@ -378,6 +384,23 @@ module intents_v1::main {
 
     public fun get_relayer(self:&Storage):address{
         self.connection.get_relayer()
+    }
+
+    public fun get_type_arg(msg:vector<u8>):String{
+        let msg= order_message::decode(&msg);
+        let bytes= if (msg.get_type() == FILL) {
+            let fill = order_fill::decode(&msg.get_message());
+            fill.get_order_bytes()
+        }else if (msg.get_type() == CANCEL) {
+            let cancel = order_cancel::decode(&msg.get_message());
+            cancel.get_order_bytes()
+        } else {
+            abort EInvalidMsgType
+        };
+        
+        let order=swap_order::decode(&bytes);
+        return order.get_token()
+
     }
 
     #[test_only]
@@ -449,8 +472,8 @@ module intents_v1::main_tests {
                 &mut storage,
                 string::utf8(b"eth"),
                 usdc_coin,
-                b"ETH",
-                address::to_bytes(@0x2),
+                string::utf8(b"ETH"),
+                (@0x2).to_string(),
                 900,
                 b"test_data",
                 ctx
@@ -483,8 +506,8 @@ module intents_v1::main_tests {
                 &mut storage,
                 string::utf8(b"eth"),
                 usdc_coin,
-                b"ETH",
-                address::to_bytes(@0x2),
+                string::utf8(b"ETH"),
+                (@0x2).to_string(),
                 900,
                 b"test_data",
                 ctx
@@ -495,11 +518,11 @@ module intents_v1::main_tests {
                 sui::object::id_to_bytes(&storage.get_id()),
                 string::utf8(b"sui"),
                 string::utf8(b"eth"),
-                address::to_bytes(@0x1),
-                address::to_bytes(@0x2),
-                *string::from_ascii(std::type_name::get<USDC>().into_string()).as_bytes(),
+                @0x1.to_string(),
+                (@0x2).to_string(),
+                string::from_ascii(std::type_name::get<USDC>().into_string()),
                 1000,
-                b"ETH",
+                string::utf8(b"ETH"),
                 900,
                 b"test_data"
             );
@@ -507,7 +530,7 @@ module intents_v1::main_tests {
             let fill = order_fill::new(
                 1,
                 swap_order::encode(&order),
-                address::to_bytes(@0x3),
+                (@0x3).to_string(),
                 1000,
                 true
             );
@@ -545,8 +568,8 @@ module intents_v1::main_tests {
                 &mut storage,
                 string::utf8(b"eth"),
                 usdc_coin,
-                b"ETH",
-                address::to_bytes(@0x2),
+                string::utf8(b"ETH"),
+                (@0x2).to_string(),
                 900,
                 b"test_data",
                 ctx
@@ -557,11 +580,11 @@ module intents_v1::main_tests {
                 sui::object::id_to_bytes(&storage.get_id()),
                 string::utf8(b"sui"),
                 string::utf8(b"eth"),
-                address::to_bytes(@0x1),
-                address::to_bytes(@0x2),
-                *string::from_ascii(std::type_name::get<USDC>().into_string()).as_bytes(),
+                (@0x1).to_string(),
+                (@0x2).to_string(),
+                string::from_ascii(std::type_name::get<USDC>().into_string()),
                 1000,
-                b"ETH",
+                b"ETH".to_string(),
                 900,
                 b"test_data"
             );
@@ -569,7 +592,7 @@ module intents_v1::main_tests {
             let fill = order_fill::new(
                 1,
                 swap_order::encode(&order),
-                address::to_bytes(@0x3),
+                (@0x3).to_string(),
                 1000,
                 true
             );
@@ -612,8 +635,8 @@ module intents_v1::main_tests {
                 &mut storage,
                 string::utf8(b"sui"),
                 usdc_coin,
-                *string::from_ascii(std::type_name::get<SUI>().into_string()).as_bytes(),
-                address::to_bytes(@0x2),
+                string::from_ascii(std::type_name::get<SUI>().into_string()),
+                @0x2.to_string(),
                 900,
                 b"test_data",
                 ctx
@@ -624,11 +647,11 @@ module intents_v1::main_tests {
                 sui::object::id_to_bytes(&storage.get_id()),
                 string::utf8(b"sui"),
                 string::utf8(b"sui"),
-                address::to_bytes(@0x1),
-                address::to_bytes(@0x2),
-                *string::from_ascii(std::type_name::get<USDC>().into_string()).as_bytes(),
+                @0x1.to_string(),
+                @0x2.to_string(),
+                string::from_ascii(std::type_name::get<USDC>().into_string()),
                 1000,
-                *string::from_ascii(std::type_name::get<SUI>().into_string()).as_bytes(),
+                string::from_ascii(std::type_name::get<SUI>().into_string()),
                 900,
                 b"test_data"
             );
@@ -639,7 +662,7 @@ module intents_v1::main_tests {
                 1,
                 swap_order::encode(&order),
                 fill_coin,
-                @0x3,
+                (@0x3).to_string(),
                 ctx
             );
 
@@ -669,8 +692,8 @@ module intents_v1::main_tests {
                 &mut storage,
                 string::utf8(b"sui"),
                 usdc_coin,
-                *string::from_ascii(std::type_name::get<SUI>().into_string()).as_bytes(),
-                address::to_bytes(@0x2),
+                string::from_ascii(std::type_name::get<SUI>().into_string()),
+                (@0x2).to_string(),
                 900,
                 b"test_data",
                 ctx
@@ -681,11 +704,11 @@ module intents_v1::main_tests {
                 sui::object::id_to_bytes(&storage.get_id()),
                 string::utf8(b"sui"),
                 string::utf8(b"sui"),
-                address::to_bytes(@0x1),
-                address::to_bytes(@0x2),
-                *string::from_ascii(std::type_name::get<USDC>().into_string()).as_bytes(),
+                (@0x1).to_string(),
+                (@0x2).to_string(),
+                string::from_ascii(std::type_name::get<USDC>().into_string()),
                 1000,
-                *string::from_ascii(std::type_name::get<SUI>().into_string()).as_bytes(),
+                string::from_ascii(std::type_name::get<SUI>().into_string()),
                 900,
                 b"test_data"
             );
@@ -696,7 +719,7 @@ module intents_v1::main_tests {
                 1,
                 swap_order::encode(&order),
                 fill_coin,
-                @0x3,
+                (@0x3).to_string(),
                 ctx
             );
 
@@ -726,8 +749,8 @@ module intents_v1::main_tests {
                 &mut storage,
                 string::utf8(b"sui"),
                 usdc_coin,
-                *string::from_ascii(std::type_name::get<SUI>().into_string()).as_bytes(),
-                address::to_bytes(@0x2),
+                string::from_ascii(std::type_name::get<SUI>().into_string()),
+                (@0x2).to_string(),
                 900,
                 b"test_data",
                 ctx
@@ -738,11 +761,11 @@ module intents_v1::main_tests {
                 sui::object::id_to_bytes(&storage.get_id()),
                 string::utf8(b"sui"),
                 string::utf8(b"sui"),
-                address::to_bytes(@0x1),
-                address::to_bytes(@0x2),
-                *string::from_ascii(std::type_name::get<USDC>().into_string()).as_bytes(),
+                (@0x1).to_string(),
+                (@0x2).to_string(),
+                string::from_ascii(std::type_name::get<USDC>().into_string()),
                 1000,
-                *string::from_ascii(std::type_name::get<SUI>().into_string()).as_bytes(),
+                string::from_ascii(std::type_name::get<SUI>().into_string()),
                 900,
                 b"test_data"
             );
@@ -753,7 +776,7 @@ module intents_v1::main_tests {
                 1,
                 swap_order::encode(&order),
                 fill_coin1,
-                @0x3,
+                @0x3.to_string(),
                 ctx
             );
 
@@ -764,7 +787,7 @@ module intents_v1::main_tests {
                 1,
                 swap_order::encode(&order),
                 fill_coin2,
-                @0x3,
+                @0x3.to_string(),
                 ctx
             );
 
@@ -788,8 +811,8 @@ module intents_v1::main_tests {
                 &mut storage,
                 string::utf8(b"sui"),
                 usdc_coin,
-                *string::from_ascii(std::type_name::get<SUI>().into_string()).as_bytes(),
-                address::to_bytes(@0x2),
+                string::from_ascii(std::type_name::get<SUI>().into_string()),
+                (@0x2).to_string(),
                 900,
                 b"test_data",
                 ctx
@@ -800,11 +823,11 @@ module intents_v1::main_tests {
                 sui::object::id_to_bytes(&storage.get_id()),
                 string::utf8(b"sui"),
                 string::utf8(b"sui"),
-                address::to_bytes(@0x1),
-                address::to_bytes(@0x2),
-                *string::from_ascii(std::type_name::get<USDC>().into_string()).as_bytes(),
+                (@0x1).to_string(),
+                (@0x2).to_string(),
+                string::from_ascii(std::type_name::get<USDC>().into_string()),
                 1000,
-                *string::from_ascii(std::type_name::get<SUI>().into_string()).as_bytes(),
+                string::from_ascii(std::type_name::get<SUI>().into_string()),
                 900,
                 b"test_data"
             );
@@ -815,7 +838,7 @@ module intents_v1::main_tests {
                 1,
                 swap_order::encode(&order),
                 fill_coin1,
-                @0x3,
+                @0x3.to_string(),
                 ctx
             );
 
@@ -839,8 +862,8 @@ module intents_v1::main_tests {
                 &mut storage,
                 string::utf8(b"sui"),
                 usdc_coin,
-                *string::from_ascii(std::type_name::get<SUI>().into_string()).as_bytes(),
-                address::to_bytes(@0x2),
+                string::from_ascii(std::type_name::get<SUI>().into_string()),
+                (@0x2).to_string(),
                 900,
                 b"test_data",
                 ctx
@@ -851,11 +874,11 @@ module intents_v1::main_tests {
                 sui::object::id_to_bytes(&storage.get_id()),
                 string::utf8(b"sui"),
                 string::utf8(b"sui"),
-                address::to_bytes(@0x1),
-                address::to_bytes(@0x2),
-                *string::from_ascii(std::type_name::get<USDC>().into_string()).as_bytes(),
+                (@0x1).to_string(),
+                (@0x2).to_string(),
+                string::from_ascii(std::type_name::get<USDC>().into_string()),
                 1000,
-                *string::from_ascii(std::type_name::get<SUI>().into_string()).as_bytes(),
+                string::from_ascii(std::type_name::get<SUI>().into_string()),
                 900,
                 b"test_data"
             );
@@ -866,7 +889,7 @@ module intents_v1::main_tests {
                 1,
                 swap_order::encode(&order),
                 fill_coin1,
-                @0x3,
+                @0x3.to_string(),
                 ctx
             );
 
@@ -889,8 +912,8 @@ module intents_v1::main_tests {
                 &mut storage,
                 string::utf8(b"sui"),
                 usdc_coin,
-                *string::from_ascii(std::type_name::get<SUI>().into_string()).as_bytes(),
-                address::to_bytes(@0x2),
+                string::from_ascii(std::type_name::get<SUI>().into_string()),
+                (@0x2).to_string(),
                 900,
                 b"test_data",
                 ctx
@@ -921,8 +944,8 @@ module intents_v1::main_tests {
                 &mut storage,
                 string::utf8(b"sui"),
                 usdc_coin,
-                b"ETH",
-                address::to_bytes(@0x2),
+                string::utf8(b"ETH"),
+                (@0x2).to_string(),
                 900,
                 b"test_data",
                 ctx

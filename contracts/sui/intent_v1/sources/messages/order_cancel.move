@@ -11,7 +11,7 @@ module intents_v1::order_cancel {
         Cancel { order_bytes }
     }
 
-    public fun get_order_bytes(self:&Cancel):vector<u8>{
+    public fun get_order_bytes(self:&Cancel): vector<u8>{
         self.order_bytes
     }
 
@@ -33,6 +33,16 @@ module intents_v1::order_cancel {
         }
     }
 
+#[test]
+ fun test_order_cancel_encoding(){
+    let swap_order= Cancel {
+      order_bytes:x"6c449988e2f33302803c93f8287dc1d8cb33848a",
+    };
 
+    let encoded= swap_order.encode();
+    std::debug::print(&encoded);
+    assert!(encoded==x"d5946c449988e2f33302803c93f8287dc1d8cb33848a")
+
+ }
 
 }
