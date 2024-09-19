@@ -54,6 +54,13 @@ pub fn get_fee_handler(e: &Env) -> Result<Address, ContractError> {
         .ok_or(ContractError::Uninitialized)
 }
 
+pub fn get_upgrade_authority(e: &Env) -> Result<Address, ContractError> {
+    e.storage()
+        .instance()
+        .get(&StorageKey::UpgradeAuthority)
+        .ok_or(ContractError::Uninitialized)
+}
+
 pub fn protocol_fee(e: &Env) -> u128 {
     e.storage()
         .instance()
@@ -159,6 +166,13 @@ pub fn store_fee_handler(e: &Env, address: &Address) {
     e.storage()
         .instance()
         .set(&StorageKey::FeeHandler, &address);
+    extend_instance(e)
+}
+
+pub fn store_upgrade_authority(e: &Env, address: &Address) {
+    e.storage()
+        .instance()
+        .set(&StorageKey::UpgradeAuthority, &address);
     extend_instance(e)
 }
 

@@ -5,6 +5,7 @@ use soroban_sdk::{contracttype, Address, String};
 pub enum StorageKey {
     Xcall,
     Admin,
+    UpgradeAuthority,
     Xlm,
     ConnSn,
     NetworkFee(String),
@@ -16,6 +17,7 @@ pub struct InitializeMsg {
     pub relayer: Address,
     pub native_token: Address,
     pub xcall_address: Address,
+    pub upgrade_authority: Address,
 }
 
 #[contracttype]

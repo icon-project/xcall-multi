@@ -155,3 +155,31 @@ fn test_get_fee() {
     let fee = client.get_fee(&ctx.nid, &need_response, &Some(sources));
     assert_eq!(fee, protocol_fee + centralized_conn_fee)
 }
+
+#[test]
+fn test_set_upgrade_authority() {
+    let ctx = TestContext::default();
+    let client = XcallClient::new(&ctx.env, &ctx.contract);
+    ctx.init_context(&client);
+
+    let new_upgrade_authority = Address::generate(&ctx.env);
+    client.set_upgrade_authority(&new_upgrade_authority);
+
+    assert_eq!(
+        ctx.env.auths(),
+        std::vec![(
+            ctx.upgrade_authority.clone(),
+            AuthorizedInvocation {
+                function: AuthorizedFunction::Contract((
+                    ctx.contract.clone(),
+                    Symbol::new(&ctx.env, "set_upgrade_authority"),
+                    (&new_upgrade_authority,).into_val(&ctx.env)
+                )),
+                sub_invocations: std::vec![]
+            }
+        )]
+    );
+
+    let autorhity = client.get_upgrade_authority();
+    assert_eq!(autorhity, new_upgrade_authority);
+}
