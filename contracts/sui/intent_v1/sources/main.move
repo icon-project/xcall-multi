@@ -61,6 +61,7 @@ module intents_v1::main {
         fee:u128,
         solver_payout:u128,
         remaning_amount:u128,
+        solver:String,
     }
 
     public struct OrderCancelled has copy,drop{
@@ -104,7 +105,7 @@ module intents_v1::main {
         &mut self.connection
     }
 
-     fun resolve_fill<T: store>(
+     fun resolve_fill<T>(
         self: &mut Storage,
         srcNid: String,
         fill: &OrderFill,
@@ -178,7 +179,7 @@ module intents_v1::main {
         )
     }
 
-    entry fun swap<T: store>(
+    entry fun swap<T>(
         self: &mut Storage,
         toNid: String,
         token: Coin<T>,
@@ -212,7 +213,7 @@ module intents_v1::main {
 
     }
 
-    entry fun recv_message<T: store>(
+    entry fun recv_message<T>(
         self: &mut Storage,
         srcNetwork: String,
         conn_sn: u128,
@@ -241,7 +242,7 @@ module intents_v1::main {
     /// @param order The SwapOrder object.
     /// @param amount The amount to fill.
     /// @param solverAddress The address of the solver filling the order.
-    entry fun fill<T:store,F: store>(
+    entry fun fill<T,F>(
         self: &mut Storage,
         id: u128,
         emitter:String,                
@@ -307,6 +308,7 @@ module intents_v1::main {
             fee:fee as u128,
             solver_payout:payout,
             remaning_amount:pending,
+            solver:solveraddress,
         });
 
         std::debug::print(&order);
@@ -401,6 +403,10 @@ module intents_v1::main {
         self.connection.get_relayer()
     }
 
+    public fun get_order(self:&Storage,id:u128):SwapOrder{
+        *self.orders.borrow<u128,SwapOrder>(id)
+    }
+
     public fun get_type_arg(msg:vector<u8>):String{
         let msg= order_message::decode(&msg);
         let bytes= if (msg.get_type() == FILL) {
@@ -442,11 +448,11 @@ module intents_v1::main_tests {
     use intents_v1::utils::id_to_hex_string;
 
     // Test coin type
-    public struct USDC has store{}
+    public struct USDC {}
 
-    public struct SUI has store{}
+    public struct SUI {}
 
-    public struct TEST has store {}
+    public struct TEST {}
 
     // Helper function to set up a test scenario
     fun setup_test(admin:address) : Scenario {
