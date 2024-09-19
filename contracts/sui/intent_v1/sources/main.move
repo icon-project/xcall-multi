@@ -17,7 +17,7 @@ module intents_v1::main {
     use sui::address::{Self as suiaddress};
     use intents_v1::cluster_connection::{Self, ConnectionState};
     use sui::hex::{Self};
-    use intents_v1::utils::{id_to_hex_string};
+    use intents_v1::utils::{id_to_hex_string,Self};
 
 
     const FILL: u8 = 1; // Constant for Fill message type
@@ -72,6 +72,11 @@ module intents_v1::main {
     }
     public struct OrderClosed  has copy,drop{
         id:u128,
+    }
+
+      public struct Params has drop {
+        type_args: vector<String>, 
+        args: vector<String>,
     }
 
     fun init(ctx: &mut TxContext) {
@@ -378,6 +383,35 @@ module intents_v1::main {
         self.get_connection_state_mut().set_relayer(relayer);
     }
 
+     entry fun get_receive_msg_args(self:&Storage,msg:vector<u8>):Params{
+        let msg= order_message::decode(&msg);
+        let bytes= if (msg.get_type() == FILL) {
+            let fill = order_fill::decode(&msg.get_message());
+            fill.get_order_bytes()
+        }else if (msg.get_type() == CANCEL) {
+            let cancel = order_cancel::decode(&msg.get_message());
+            cancel.get_order_bytes()
+        } else {
+            abort EInvalidMsgType
+        };
+        
+        let order=swap_order::decode(&bytes);
+        let token_type=order.get_token();
+
+        let mut type_args:vector<String> = vector::empty();
+        type_args.push_back(token_type);
+
+        let mut args:vector<String> = vector::empty();
+        args.push_back(utils::id_to_hex_string(&self.get_id()));
+        args.push_back(b"srcNid".to_string());  
+        args.push_back(b"conn_sn".to_string()); 
+        args.push_back(b"msg".to_string());
+
+        Params { type_args, args }
+
+
+    }
+
    
 
    
@@ -407,22 +441,7 @@ module intents_v1::main {
         *self.orders.borrow<u128,SwapOrder>(id)
     }
 
-    public fun get_type_arg(msg:vector<u8>):String{
-        let msg= order_message::decode(&msg);
-        let bytes= if (msg.get_type() == FILL) {
-            let fill = order_fill::decode(&msg.get_message());
-            fill.get_order_bytes()
-        }else if (msg.get_type() == CANCEL) {
-            let cancel = order_cancel::decode(&msg.get_message());
-            cancel.get_order_bytes()
-        } else {
-            abort EInvalidMsgType
-        };
-        
-        let order=swap_order::decode(&bytes);
-        return order.get_token()
-
-    }
+   
 
     #[test_only]
     public fun test_init(ctx:&mut TxContext){
