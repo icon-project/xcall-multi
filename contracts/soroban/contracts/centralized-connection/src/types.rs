@@ -23,3 +23,12 @@ pub struct NetworkFee {
     pub message_fee: u128,
     pub response_fee: u128,
 }
+
+impl NetworkFee {
+    pub fn default() -> Self {
+        Self {
+            message_fee: 0,
+            response_fee: 0,
+        }
+    }
+}
