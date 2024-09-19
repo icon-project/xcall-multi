@@ -40,7 +40,7 @@ module intents_v1::cluster_connection {
         msg: vector<u8>,
         ctx: &TxContext
     ): OrderMessage {
-        assert!(self.relayer == ctx.sender());
+      //  assert!(self.relayer == ctx.sender());
         let key = Receipt {src_nid: srcNid, conn_sn};
         assert!(!self.receipts.contains(key));
         self.receipts.add(key, true);

@@ -38,7 +38,7 @@ module intents_v1::main {
         id: UID
     }
 
-    public struct Storage has key, store {
+    public struct Storage has key {
         id: UID,
         version: u64,
         deposit_id: u128, // Deposit ID counter
@@ -90,7 +90,7 @@ module intents_v1::main {
 
         };
         transfer::public_transfer(admin, ctx.sender());
-        transfer::public_share_object(storage);
+        transfer::share_object(storage);
 
     }
 
