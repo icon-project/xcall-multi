@@ -1,5 +1,5 @@
 [addresses]
-  sui_rlp = '0x79f43aaf49660c0997bc79f7ea3c94f190f4103d314cb9b76105246bd46827bd'
+  sui_rlp = '0x2a6996eb17172ab0983f18da7f5d5baeea298a34e0e28d2cd3c01bcb2c27923e'
 
 [dependencies]
   [dependencies.Sui]
@@ -14,4 +14,4 @@
 [package]
   edition = '2024.alpha'
   name = 'sui_rlp'
-  published-at = '0x79f43aaf49660c0997bc79f7ea3c94f190f4103d314cb9b76105246bd46827bd'
+  published-at = '0x2a6996eb17172ab0983f18da7f5d5baeea298a34e0e28d2cd3c01bcb2c27923e'
