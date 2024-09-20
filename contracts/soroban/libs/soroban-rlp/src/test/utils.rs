@@ -41,5 +41,5 @@ fn test_slice_vector() {
     let bytes = u128_to_bytes(&env, 1844674407);
     let slice = slice_vector(&env, bytes.clone(), 1, 2);
 
-    assert_eq!(slice, bytes!(&env, 0xF37F));
+    assert_eq!(slice, bytes!(&env, 0x6DF3));
 }

@@ -62,8 +62,11 @@ pub fn get_msg_fee(e: &Env, network_id: String) -> Result<u128, ContractError> {
         .storage()
         .persistent()
         .get(&key)
-        .ok_or(ContractError::NetworkNotSupported)?;
-    extend_persistent(e, &key);
+        .unwrap_or(NetworkFee::default());
+
+    if network_fee.message_fee > 0 {
+        extend_persistent(e, &key);
+    }
 
     Ok(network_fee.message_fee)
 }
@@ -74,8 +77,11 @@ pub fn get_res_fee(e: &Env, network_id: String) -> Result<u128, ContractError> {
         .storage()
         .persistent()
         .get(&key)
-        .ok_or(ContractError::NetworkNotSupported)?;
-    extend_persistent(e, &key);
+        .unwrap_or(NetworkFee::default());
+
+    if network_fee.response_fee > 0 {
+        extend_persistent(e, &key);
+    }
 
     Ok(network_fee.response_fee)
 }
