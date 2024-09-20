@@ -412,6 +412,10 @@ module intents_v1::main {
 
     }
 
+    entry fun get_receipt(self:&Storage,nid:String,conn_sn:u128):bool {
+        self.connection.get_receipt(nid, conn_sn)
+    }
+
    
 
    

@@ -69,4 +69,9 @@ module intents_v1::cluster_connection {
         self.conn_sn = sn;
         sn
     }
+
+     public fun get_receipt(self: &ConnectionState, net_id: String, sn: u128): bool {
+        let receipt_key = Receipt { src_nid: net_id, conn_sn: sn };
+        self.receipts.contains<Receipt,bool>(receipt_key)
+    }
 }
