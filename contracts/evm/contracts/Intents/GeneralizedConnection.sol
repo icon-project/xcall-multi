@@ -39,6 +39,20 @@ contract GeneralizedConnection {
         require(!receipts[srcNetwork][_connSn], "Duplicate Message");
         receipts[srcNetwork][_connSn] = true;
     }
+
+    /**
+     @notice Gets a message receipt
+     @param srcNetwork String ( Network Id )
+     @param _connSn Integer ( connection message sn )
+     @return boolean if is has been recived or not
+     */
+    function getReceipt(
+        string memory srcNetwork,
+        uint256 _connSn
+    ) public view returns (bool) {
+        return receipts[srcNetwork][_connSn];
+    }
+
     /**
         @notice Set the address of the admin.
         @param _address The address of the admin.

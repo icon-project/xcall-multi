@@ -17,14 +17,14 @@ library Encoding {
         return
             Types.SwapOrder(
                 ls[0].toUint(), // id
-                ls[1].toBytes(), // emitter
+                string(ls[1].toBytes()), // emitter
                 string(ls[2].toBytes()), // srcNID
                 string(ls[3].toBytes()), // dstNID
-                ls[4].toBytes(), // creator
-                ls[5].toBytes(), // destinationAddress
-                ls[6].toBytes(), // token
+                string(ls[4].toBytes()), // creator
+                string(ls[5].toBytes()), // destinationAddress
+                string(ls[6].toBytes()), // token
                 ls[7].toUint(), // amount
-                ls[8].toBytes(), // toToken
+                string(ls[8].toBytes()), // toToken
                 ls[9].toUint(), // minReceive
                 ls[10].toBytes() // data
             );
@@ -49,8 +49,9 @@ library Encoding {
             Types.OrderFill(
                 ls[0].toUint(), // id
                 ls[1].toBytes(), // orderBytes
-                ls[2].toBytes(), // solver
-                ls[3].toUint() // amount
+                string(ls[2].toBytes()), // solver
+                ls[3].toUint(), // amount
+                ls[4].toBoolean() // close
             );
     }
 
@@ -81,11 +82,11 @@ library Encoding {
     ) internal pure returns (bytes memory) {
         bytes memory encoded = abi.encodePacked(
             order.id.encodeUint(),
-            order.emitter.encodeBytes(),
+            order.emitter.encodeString(),
             order.srcNID.encodeString(),
             order.dstNID.encodeString(),
-            order.creator.encodeBytes(),
-            order.destinationAddress.encodeBytes()
+            order.creator.encodeString(),
+            order.destinationAddress.encodeString()
         );
         return encoded;
     }
@@ -94,9 +95,9 @@ library Encoding {
         Types.SwapOrder memory order
     ) internal pure returns (bytes memory) {
         bytes memory encoded = abi.encodePacked(
-            order.token.encodeBytes(),
+            order.token.encodeString(),
             order.amount.encodeUint(),
-            order.toToken.encodeBytes(),
+            order.toToken.encodeString(),
             order.minReceive.encodeUint(),
             order.data.encodeBytes()
         );
@@ -121,8 +122,9 @@ library Encoding {
         bytes memory encoded = abi.encodePacked(
             fill.id.encodeUint(),
             fill.orderBytes.encodeBytes(),
-            fill.solver.encodeBytes(),
-            fill.amount.encodeUint()
+            fill.solver.encodeString(),
+            fill.amount.encodeUint(),
+            fill.closeOrder.encodeBool()
         );
         return encoded.encodeList();
     }

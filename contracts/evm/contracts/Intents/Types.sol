@@ -7,14 +7,14 @@ library Types {
     /// @notice Represents a swap order with source and destination network identifiers, creator, destination address, token details, and minimum receive amount.
     struct SwapOrder {
         uint256 id; // unique ID
-        bytes emitter; // Address of emitter contract
+        string emitter; // Address of emitter contract
         string srcNID; // Source Network ID
         string dstNID; // Destination Network ID
-        bytes creator; // The user who created the order
-        bytes destinationAddress; // Destination address on the destination network
-        bytes token; // Token to be swapped
+        string creator; // The user who created the order
+        string destinationAddress; // Destination address on the destination network
+        string token; // Token to be swapped
         uint256 amount; // Amount of the token to be swapped
-        bytes toToken; // Token to receive on the destination network
+        string toToken; // Token to receive on the destination network
         uint256 minReceive; // Minimum amount of the toToken to receive
         bytes data; // Additional data (if any) for future use
     }
@@ -32,8 +32,9 @@ library Types {
     struct OrderFill {
         uint256 id; // ID of the order being filled
         bytes orderBytes; // rlp of the order
-        bytes solver; // Address of the solver that fills the order
+        string solver; // Address of the solver that fills the order
         uint256 amount; // Amount filled by the solver
+        bool closeOrder; // If order can be closed
     }
 
     /// @title Cancel type

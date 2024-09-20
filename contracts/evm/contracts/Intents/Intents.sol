@@ -4,20 +4,28 @@ pragma abicoder v2;
 
 import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import "openzeppelin-contracts/contracts/utils/Strings.sol";
+import "@iconfoundation/xcall-solidity-library/utils/ParseAddress.sol";
+
 import "./Types.sol";
 import "./Encoding.sol";
 import "./GeneralizedConnection.sol";
+
+import {console} from "forge-std/console.sol";
 
 /// @title ICONIntents
 /// @notice Implements the intent-based swapping protocol for cross-chain swaps.
 contract Intents is GeneralizedConnection {
     using Encoding for *;
     using Strings for string;
+    using SafeERC20 for IERC20;
+    using ParseAddress for address;
+    using ParseAddress for string;
 
     uint256 public depositId; // Deposit ID counter
     string public nid; // Network Identifier
     uint16 public protocolFee; //  ProtocolFee in basis points taken on outgoing transfersr
     address public feeHandler;  // Receiver of protocol fees
+    address public constant NATIVE_ADDRESS = address(0);
 
     mapping(uint256 => Types.SwapOrder) public orders; // Mapping of deposit ID to SwapOrder
     mapping(bytes32 => uint256) public pendingFills; // Mapping of order hash to pending amount to fill
@@ -37,20 +45,25 @@ contract Intents is GeneralizedConnection {
     /// @param data Additional arbitrary data for the swap.
     event SwapIntent(
         uint256 indexed id,
-        bytes emitter,
+        string emitter,
         string srcNID,
         string dstNID,
-        bytes creator,
-        bytes destinationAddress,
-        bytes token,
+        string creator,
+        string destinationAddress,
+        string token,
         uint256 amount,
-        bytes toToken,
+        string toToken,
         uint256 minReceive,
         bytes data
     );
 
-    constructor(string memory _nid, uint16 _protocolFee, address _feeHandler) {
+    event OrderFilled(uint256 indexed  id, string indexed srcNID, bytes32 indexed orderHash uint256 fillAmount, uint256 fee, uint256 solverPayout, uint256 remaningAmount);
+    event OrderCancelled(uint256 indexed id, string indexed srcNID, bytes32 indexed orderHash, uint256 userReturn);
+    event OrderClosed(uint256 indexed id);
+
+    constructor(string memory _nid, uint16 _protocolFee, address _feeHandler, address _relayer) {
         nid = _nid;
+        relayAdress = _relayer;
         protocolFee = _protocolFee;
         feeHandler = _feeHandler;
     }
@@ -67,25 +80,29 @@ contract Intents is GeneralizedConnection {
         string memory to,
         address token,
         uint256 amount,
-        bytes memory toToken,
-        bytes memory toAddress,
+        string memory toToken,
+        string memory toAddress,
         uint256 minReceive,
         bytes memory data
-    ) public {
+    ) public payable {
         // Escrows amount from user
-        IERC20(token).transferFrom(msg.sender, address(this), amount);
+        if (token == NATIVE_ADDRESS) {
+            require(msg.value == amount, "Deposit amount not equal to order amount");
+        } else {
+            IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
+        }
 
         // Create unique deposit ID
         uint256 id = depositId++;
 
         Types.SwapOrder memory order = Types.SwapOrder({
             id: id,
-            emitter: abi.encode(address(this)),
+            emitter: address(this).toString(),
             srcNID: nid,
             dstNID: to,
-            creator: abi.encode(msg.sender),
+            creator: msg.sender.toString(),
             destinationAddress: toAddress,
-            token: abi.encode(token),
+            token: token.toString(),
             amount: amount,
             toToken: toToken,
             minReceive: minReceive,
@@ -109,16 +126,14 @@ contract Intents is GeneralizedConnection {
     }
 
     /// @notice Fills an order for a cross-chain swap.
-    /// @param id The order ID.
     /// @param order The SwapOrder object.
     /// @param amount The amount to fill.
     /// @param solverAddress The address of the solver filling the order.
     function fill(
-        uint256 id,
         Types.SwapOrder memory order,
         uint256 amount,
-        bytes memory solverAddress
-    ) external {
+        string memory solverAddress
+    ) external payable {
         // Compute the hash of the order
         bytes memory orderBytes = order.encode();
         bytes32 orderHash = keccak256(orderBytes);
@@ -132,51 +147,60 @@ contract Intents is GeneralizedConnection {
             remaningAmount = order.amount;
         }
 
+        // Calculate the payout
+        uint256 payout = (order.amount * amount) / order.minReceive;
         // Ensure the amount to fill is valid
         require(
-            amount <= remaningAmount,
+            payout <= remaningAmount,
             "Cannot fill more than remaining ask"
         );
 
-        // Calculate the payout
-        uint256 payout = (order.amount * amount) / order.minReceive;
         remaningAmount -= payout;
 
         // Update order state
-        if (order.minReceive == 0) {
+        bool closeOrder = false;
+        if (remaningAmount == 0) {
             // Finalize the order if fully filled
             delete pendingFills[orderHash];
             finishedOrders[orderHash] = true;
+            closeOrder = true;
         } else {
             pendingFills[orderHash] = remaningAmount;
         }
 
         // Transfer tokens
-        uint256 fee = (payout * protocolFee) / 10_000;
-        payout -= fee;
-        address toAddress = _bytesToAddress(order.destinationAddress);
-        address toTokenAddress = _bytesToAddress(order.toToken);
-        IERC20(toTokenAddress).transferFrom(
-            msg.sender,
-            toAddress,
-            payout
-        );
-        IERC20(toTokenAddress).transferFrom(
-            msg.sender,
-            feeHandler,
-            fee
-        );
+        uint256 fee = (amount * protocolFee) / 10_000;
+        amount -= fee;
+        address toAddress = order.destinationAddress.parseAddress("IllegalArgument");
+        address toTokenAddress = order.toToken.parseAddress("IllegalArgument");
+        if (toTokenAddress == NATIVE_ADDRESS) {
+            require(msg.value == amount+fee, "Deposit amount not equal to order amount");
+            _nativeTransfer(toAddress, amount);
+            _nativeTransfer(feeHandler, fee);
+        } else {
+            IERC20(toTokenAddress).safeTransferFrom(
+                msg.sender,
+                toAddress,
+                amount
+            );
+            IERC20(toTokenAddress).safeTransferFrom(
+                msg.sender,
+                feeHandler,
+                fee
+            );
+        }
 
         // Create and send the order message
         Types.OrderFill memory orderFill = Types.OrderFill({
-            id: id,
+            id: order.id,
             orderBytes: orderBytes,
             solver: solverAddress,
-            amount: amount
+            amount: payout,
+            closeOrder: closeOrder
         });
 
         if (order.srcNID.equal(order.dstNID)) {
-            _resolveFill(orderFill);
+            _resolveFill(nid, orderFill);
             return;
         }
 
@@ -186,6 +210,7 @@ contract Intents is GeneralizedConnection {
         });
 
         _sendMessage(order.srcNID, orderMessage.encode());
+        emit OrderFilled(order.id, order.srcNID, orderHash, amount, fee, payout, remaningAmount);
     }
 
     /// @notice Cancels a cross-chain order.
@@ -193,18 +218,18 @@ contract Intents is GeneralizedConnection {
     function cancel(uint256 id) external {
         Types.SwapOrder storage order = orders[id];
         require(
-            _bytesToAddress(order.creator) == msg.sender,
+            order.creator.parseAddress("IllegalArgument") == msg.sender,
             "Cannot cancel this order"
         );
 
         if (order.srcNID.equal(order.dstNID)) {
-            _resolveCancel(order.encode());
+            _resolveCancel(nid, order.encode());
             return;
         }
 
         Types.OrderMessage memory _msg = Types.OrderMessage({
             messageType: Types.CANCEL,
-            message: order.encode()
+            message: Types.Cancel({orderBytes:order.encode()}).encode()
         });
         _sendMessage(order.dstNID, _msg.encode());
     }
@@ -219,51 +244,67 @@ contract Intents is GeneralizedConnection {
         bytes calldata _msg
     ) external {
         // Handle incoming messages from the relayer
-        _recvMessage(srcNetwork, _connSn);
+        // _recvMessage(srcNetwork, _connSn);
 
         Types.OrderMessage memory orderMessage = _msg.decodeOrderMessage();
         if (orderMessage.messageType == Types.FILL) {
             Types.OrderFill memory _fill = orderMessage
                 .message
                 .decodeOrderFill();
-            _resolveFill(_fill);
+            _resolveFill(srcNetwork, _fill);
         } else if (orderMessage.messageType == Types.CANCEL) {
             Types.Cancel memory _cancel = orderMessage.message.decodeCancel();
-            _resolveCancel(_cancel.orderBytes);
+            _resolveCancel(srcNetwork, _cancel.orderBytes);
         }
     }
 
+    function getOrder(uint256 id) external view returns (Types.SwapOrder memory) {
+        return orders[id];
+    }
+
     function _resolveFill(
+        string memory srcNetwork,
         Types.OrderFill memory _fill
     ) internal {
         Types.SwapOrder memory order = orders[_fill.id];
         require(
-            string(order.encode()).equal(string(_fill.orderBytes)),
+            keccak256(order.encode()) == keccak256(_fill.orderBytes),
             "Mismatched order"
         );
+
         require(
-            order.amount >= _fill.amount,
-            "Fill amount exceeds order amount"
+            order.dstNID.equal(srcNetwork),
+            "Mismatched order"
         );
 
-        order.amount -= _fill.amount;
-        if (order.amount == 0) {
+        if (_fill.closeOrder) {
             delete orders[_fill.id];
+            emit OrderClosed(_fill.id);
         }
 
-        IERC20(_bytesToAddress(order.token)).transfer(
-            _bytesToAddress(_fill.solver),
-            _fill.amount
-        );
+        address tokenAddress = order.token.parseAddress("IllegalArgument");
+        if (tokenAddress == NATIVE_ADDRESS) {
+            _nativeTransfer(_fill.solver.parseAddress("IllegalArgument"), _fill.amount);
+        } else {
+            IERC20(tokenAddress).safeTransfer(
+                _fill.solver.parseAddress("IllegalArgument"),
+                _fill.amount
+            );
+        }
     }
 
-    function _resolveCancel(bytes memory orderBytes) internal {
+    function _resolveCancel(string memory srcNetwork, bytes memory orderBytes) internal {
         bytes32 orderHash = keccak256(orderBytes);
         if (finishedOrders[orderHash]) {
             return;
         }
 
         Types.SwapOrder memory order = orderBytes.decodeSwapOrder();
+
+        require(
+            order.srcNID.equal(srcNetwork),
+            "Mismatched order"
+        );
 
         // Load the pending amount if available
         uint256 remaningAmount = pendingFills[orderHash];
@@ -279,7 +320,8 @@ contract Intents is GeneralizedConnection {
             id: order.id,
             orderBytes: orderBytes,
             solver: order.creator,
-            amount: remaningAmount
+            amount: remaningAmount,
+            closeOrder: true
         });
 
         Types.OrderMessage memory _msg = Types.OrderMessage({
@@ -288,9 +330,12 @@ contract Intents is GeneralizedConnection {
         });
 
         _sendMessage(order.srcNID, _msg.encode());
+        emit OrderCancelled(order.id, order.srcNID, orderHash, remaningAmount);
     }
 
-    function _bytesToAddress(bytes memory b) private pure returns (address) {
-        return address(uint160(bytes20(b)));
+    function _nativeTransfer(address to, uint256 amount) internal {
+        bool sent = payable(to).send(amount);
+        require(sent, "Failed to send tokens");
     }
+
 }
