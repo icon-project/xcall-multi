@@ -7,33 +7,51 @@ module mock_dapp::dapp_state {
     use xcall::execute_ticket::{Self};
 
     public struct Connection has store,copy,drop{
-        source:String,
-        destination:String,
+        source:vector<String>,
+        destination:vector<String>,
+    }
+
+    public struct ExecuteParams has drop {
+        type_args: vector<String>, 
+        args: vector<String>,
+    }
+
+    public fun create_execute_params(type_args: vector<String>, args: vector<String>): ExecuteParams {
+        ExecuteParams{
+            type_args:type_args,
+            args:args
+        }
+    }
+
+    public fun get_config_id(config: &DappState): ID {
+        config.id.to_inner()
+    }
+
+    public fun get_xcall_id(config: &DappState): ID{
+        config.xcall_id
     }
 
     public fun get_connection_source(connection:&Connection):vector<String>{
-          let mut sources=vector::empty<String>();
-          sources.push_back(connection.source);
-          sources
+          connection.source
     }
     public fun get_connection_dest(connection:&Connection):vector<String>{
-          let mut sources=vector::empty<String>();
-          sources.push_back(connection.destination);
-          sources
+          connection.destination
     }
 
     public struct DappState has key{
         id:UID,
         xcall_cap:IDCap,
+        xcall_id:ID,
         connections:VecMap<String,Connection>
 
     }
 
-    public(package) fun new(cap:IDCap,ctx: &mut TxContext):DappState{
+    public(package) fun new(cap:IDCap, xcall_id: ID, ctx: &mut TxContext):DappState{
 
         DappState {
             id: object::new(ctx),
             xcall_cap:cap,
+            xcall_id:xcall_id,
             connections:vec_map::empty<String,Connection>(),
         }
 
@@ -61,7 +79,7 @@ module mock_dapp::dapp_state {
 
     }
 
-    public fun add_connection(self:&mut DappState,net_id:String,source:String,dest:String,ctx:&mut TxContext){
+    public fun add_connection(self:&mut DappState,net_id:String,source:vector<String>,dest:vector<String>,ctx:&mut TxContext){
         if (vec_map::contains(&self.connections,&net_id)){
             vec_map::remove(&mut self.connections,&net_id);
         };
