@@ -57,7 +57,7 @@ contract Intents is GeneralizedConnection {
         bytes data
     );
 
-    event OrderFilled(uint256 indexed  id, string indexed srcNID, bytes32 indexed orderHash uint256 fillAmount, uint256 fee, uint256 solverPayout, uint256 remaningAmount);
+    event OrderFilled(uint256 indexed  id, string indexed srcNID, bytes32 indexed orderHash, string solverAddres, uint256 fillAmount, uint256 fee, uint256 solverPayout, uint256 remaningAmount);
     event OrderCancelled(uint256 indexed id, string indexed srcNID, bytes32 indexed orderHash, uint256 userReturn);
     event OrderClosed(uint256 indexed id);
 
@@ -171,24 +171,7 @@ contract Intents is GeneralizedConnection {
         // Transfer tokens
         uint256 fee = (amount * protocolFee) / 10_000;
         amount -= fee;
-        address toAddress = order.destinationAddress.parseAddress("IllegalArgument");
-        address toTokenAddress = order.toToken.parseAddress("IllegalArgument");
-        if (toTokenAddress == NATIVE_ADDRESS) {
-            require(msg.value == amount+fee, "Deposit amount not equal to order amount");
-            _nativeTransfer(toAddress, amount);
-            _nativeTransfer(feeHandler, fee);
-        } else {
-            IERC20(toTokenAddress).safeTransferFrom(
-                msg.sender,
-                toAddress,
-                amount
-            );
-            IERC20(toTokenAddress).safeTransferFrom(
-                msg.sender,
-                feeHandler,
-                fee
-            );
-        }
+        _transferResult(order.destinationAddress, order.toToken, amount, fee);
 
         // Create and send the order message
         Types.OrderFill memory orderFill = Types.OrderFill({
@@ -210,7 +193,28 @@ contract Intents is GeneralizedConnection {
         });
 
         _sendMessage(order.srcNID, orderMessage.encode());
-        emit OrderFilled(order.id, order.srcNID, orderHash, amount, fee, payout, remaningAmount);
+        emit OrderFilled(order.id, order.srcNID, orderHash, solverAddress, amount, fee, payout, remaningAmount);
+    }
+
+    function _transferResult(string memory _toAddress, string memory _toToken, uint256 amount, uint256 fee) internal {
+        address toAddress = _toAddress.parseAddress("IllegalArgument");
+        address toTokenAddress = _toToken.parseAddress("IllegalArgument");
+        if (toTokenAddress == NATIVE_ADDRESS) {
+            require(msg.value == amount+fee, "Deposit amount not equal to order amount");
+            _nativeTransfer(toAddress, amount);
+            _nativeTransfer(feeHandler, fee);
+        } else {
+            IERC20(toTokenAddress).safeTransferFrom(
+                msg.sender,
+                toAddress,
+                amount
+            );
+            IERC20(toTokenAddress).safeTransferFrom(
+                msg.sender,
+                feeHandler,
+                fee
+            );
+        }
     }
 
     /// @notice Cancels a cross-chain order.
