@@ -29,6 +29,13 @@ pub fn admin(e: &Env) -> Result<Address, ContractError> {
         .ok_or(ContractError::Uninitialized)
 }
 
+pub fn get_upgrade_authority(e: &Env) -> Result<Address, ContractError> {
+    e.storage()
+        .instance()
+        .get(&StorageKey::UpgradeAuthority)
+        .ok_or(ContractError::Uninitialized)
+}
+
 pub fn get_xcall(e: &Env) -> Result<Address, ContractError> {
     e.storage()
         .instance()
@@ -104,6 +111,12 @@ pub fn store_receipt(e: &Env, network_id: String, sn: u128) {
 
 pub fn store_admin(e: &Env, admin: Address) {
     e.storage().instance().set(&StorageKey::Admin, &admin);
+}
+
+pub fn store_upgrade_authority(e: &Env, address: Address) {
+    e.storage()
+        .instance()
+        .set(&StorageKey::UpgradeAuthority, &address);
 }
 
 pub fn store_xcall(e: &Env, xcall: Address) {

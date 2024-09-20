@@ -14,6 +14,7 @@ impl CentralizedConnection {
         storage::store_conn_sn(&env, 0);
         storage::store_admin(&env, msg.relayer);
         storage::store_xcall(&env, msg.xcall_address);
+        storage::store_upgrade_authority(&env, msg.upgrade_authority);
 
         Ok(())
     }
@@ -26,6 +27,18 @@ impl CentralizedConnection {
     pub fn set_admin(env: Env, address: Address) -> Result<(), ContractError> {
         helpers::ensure_admin(&env)?;
         storage::store_admin(&env, address);
+        Ok(())
+    }
+
+    pub fn get_upgrade_authority(env: Env) -> Result<Address, ContractError> {
+        let address = storage::get_upgrade_authority(&env)?;
+        Ok(address)
+    }
+
+    pub fn set_upgrade_authority(env: &Env, address: Address) -> Result<(), ContractError> {
+        helpers::ensure_upgrade_authority(&env)?;
+        storage::store_upgrade_authority(&env, address);
+
         Ok(())
     }
 
@@ -109,7 +122,7 @@ impl CentralizedConnection {
     }
 
     pub fn upgrade(env: Env, new_wasm_hash: BytesN<32>) -> Result<(), ContractError> {
-        helpers::ensure_admin(&env)?;
+        helpers::ensure_upgrade_authority(&env)?;
         env.deployer().update_current_contract_wasm(new_wasm_hash);
 
         Ok(())

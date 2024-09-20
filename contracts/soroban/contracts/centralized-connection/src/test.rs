@@ -26,6 +26,7 @@ pub struct TestContext {
     native_token: Address,
     token_admin: Address,
     nid: String,
+    upgrade_authority: Address,
 }
 
 impl TestContext {
@@ -38,6 +39,7 @@ impl TestContext {
             relayer: Address::generate(&env),
             native_token: env.register_stellar_asset_contract(token_admin.clone()),
             nid: String::from_str(&env, "icon"),
+            upgrade_authority: Address::generate(&env),
             env,
             token_admin,
         }
@@ -50,6 +52,7 @@ impl TestContext {
             relayer: self.relayer.clone(),
             native_token: self.native_token.clone(),
             xcall_address: self.xcall.clone(),
+            upgrade_authority: self.upgrade_authority.clone(),
         });
     }
 
@@ -66,6 +69,7 @@ fn get_dummy_initialize_msg(env: &Env) -> InitializeMsg {
         relayer: Address::generate(&env),
         native_token: env.register_stellar_asset_contract(Address::generate(&env)),
         xcall_address: Address::generate(&env),
+        upgrade_authority: Address::generate(&env),
     }
 }
 
@@ -141,6 +145,34 @@ fn test_set_admin_fail() {
             }
         )]
     )
+}
+
+#[test]
+fn test_set_upgrade_authority() {
+    let ctx = TestContext::default();
+    let client = CentralizedConnectionClient::new(&ctx.env, &ctx.contract);
+    ctx.init_context(&client);
+
+    let new_upgrade_authority = Address::generate(&ctx.env);
+    client.set_upgrade_authority(&new_upgrade_authority);
+
+    assert_eq!(
+        ctx.env.auths(),
+        std::vec![(
+            ctx.upgrade_authority.clone(),
+            AuthorizedInvocation {
+                function: AuthorizedFunction::Contract((
+                    ctx.contract.clone(),
+                    Symbol::new(&ctx.env, "set_upgrade_authority"),
+                    (&new_upgrade_authority,).into_val(&ctx.env)
+                )),
+                sub_invocations: std::vec![]
+            }
+        )]
+    );
+
+    let autorhity = client.get_upgrade_authority();
+    assert_eq!(autorhity, new_upgrade_authority);
 }
 
 #[test]

@@ -17,6 +17,13 @@ pub fn ensure_admin(e: &Env) -> Result<Address, ContractError> {
     Ok(admin)
 }
 
+pub fn ensure_upgrade_authority(e: &Env) -> Result<Address, ContractError> {
+    let authority = storage::get_upgrade_authority(&e)?;
+    authority.require_auth();
+
+    Ok(authority)
+}
+
 pub fn ensure_fee_handler(e: &Env) -> Result<Address, ContractError> {
     let fee_handler = storage::get_fee_handler(&e)?;
     fee_handler.require_auth();
