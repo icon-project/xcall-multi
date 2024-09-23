@@ -422,6 +422,10 @@ module intents_v1::main {
         self.get_connection_state_mut().set_relayer(relayer);
     }
 
+    entry fun set_fee_handler(self:&mut Storage,_cap:&AdminCap,handler:address){
+        self.fee_handler=handler;
+    }
+
      entry fun get_receive_msg_args(self:&Storage,msg:vector<u8>):Params{
         let msg= order_message::decode(&msg);
         let bytes= if (msg.get_type() == FILL) {
@@ -463,15 +467,16 @@ module intents_v1::main {
         *self.orders.borrow<u128,SwapOrder>(id)
     }
 
+    entry public fun get_protocol_fee(self:&Storage):u8 {
+        self.fee
+    }
+
     
 
     public fun get_version(self:&Storage):u64{
         self.version
 
     }
-
-  
-
     public fun get_funds(self:&Storage):&Bag {
         &self.funds
     }
