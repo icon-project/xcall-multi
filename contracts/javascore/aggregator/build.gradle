@@ -1,6 +1,11 @@
 version = '0.1.0'
 
+repositories {
+    mavenCentral()
+}
+
 dependencies {
+    implementation 'org.bouncycastle:bcprov-jdk15on:1.70'
     testImplementation 'foundation.icon:javaee-unittest:0.11.1'
     testImplementation project(':test-lib')
 }
