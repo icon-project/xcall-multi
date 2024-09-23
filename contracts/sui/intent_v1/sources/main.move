@@ -416,18 +416,22 @@ module intents_v1::main {
         self.connection.get_receipt(nid, conn_sn)
     }
 
-   
+    entry public fun get_deposit_id(self:&Storage):u128 {
+        self.deposit_id
+    }
 
-   
+    entry public fun get_order(self:&Storage,id:u128):SwapOrder{
+        *self.orders.borrow<u128,SwapOrder>(id)
+    }
+
+    
 
     public fun get_version(self:&Storage):u64{
         self.version
 
     }
 
-    public fun get_deposit_id(self:&Storage):u128 {
-        self.deposit_id
-    }
+  
 
     public fun get_funds(self:&Storage):&Bag {
         &self.funds
@@ -441,10 +445,7 @@ module intents_v1::main {
         self.connection.get_relayer()
     }
 
-    public fun get_order(self:&Storage,id:u128):SwapOrder{
-        *self.orders.borrow<u128,SwapOrder>(id)
-    }
-
+    
    
 
     #[test_only]
