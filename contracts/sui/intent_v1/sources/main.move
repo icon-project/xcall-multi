@@ -2,7 +2,7 @@
 /// Module: intents_v1
 module intents_v1::main {
     use std::string::{String, Self};
-    use sui::linked_table::{LinkedTable, Self};
+    use sui::linked_table::{ Self};
     use sui::table::{Table, Self};
     use sui::transfer::{ Self };
     use sui::coin::{Coin, Self};
