@@ -245,7 +245,7 @@ module intents_v1::main {
     /// - `conn_sn`: Connection serial number as a u128.
     /// - `msg`: Vector of bytes representing the message.
     /// - `ctx`: Mutable reference to the TxContext.
-    entry fun recv_message<T>(
+    entry fun receive_message<T>(
         self: &mut Storage,
         srcNetwork: String,
         conn_sn: u128,
@@ -626,7 +626,7 @@ module intents_v1::main_tests {
 
             let msg = order_message::new(1, order_fill::encode(&fill));
 
-            main::recv_message<USDC>(
+            main::receive_message<USDC>(
                 &mut storage,
                 string::utf8(b"eth"),
                 1,
@@ -688,7 +688,7 @@ module intents_v1::main_tests {
 
             let msg = order_message::new(1, order_fill::encode(&fill));
 
-            main::recv_message<USDC>(
+            main::receive_message<USDC>(
                 &mut storage,
                 string::utf8(b"eth"),
                 1,
@@ -697,7 +697,7 @@ module intents_v1::main_tests {
             );
 
             // Attempt to process the same fill again, should fail
-            main::recv_message<USDC>(
+            main::receive_message<USDC>(
                 &mut storage,
                 string::utf8(b"eth"),
                 2,
