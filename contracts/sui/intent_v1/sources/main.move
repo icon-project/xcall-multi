@@ -29,10 +29,6 @@ module intents_v1::main {
     const EInvalidPayoutAmount:u64=3;
     const EInvalidMsgType:u64=4;
 
-    public struct Receipt has drop, copy, store {
-        src_nid: String,
-        conn_sn: u128,
-    }
 
     public struct AdminCap has key, store {
         id: UID
@@ -110,7 +106,16 @@ module intents_v1::main {
         &mut self.connection
     }
 
-     fun resolve_fill<T>(
+
+    /// The resolve_fill function processes the filling of an order for a cross-chain swap.
+    /// It verifies the order details, ensures sufficient funds, 
+    /// and transfers the specified amount to the solver.
+    /// Parameters:
+    /// - `self`: Mutable reference to the Storage struct.
+    /// - `srcNid`: Source network identifier as a String.
+    /// - `fill`: Reference to the OrderFill object.
+    /// - `ctx`: Mutable reference to the TxContext.
+    fun resolve_fill<T>(
         self: &mut Storage,
         srcNid: String,
         fill: &OrderFill,
@@ -142,7 +147,13 @@ module intents_v1::main {
     }
 
 
-
+    /// Processes the cancellation of an order.
+    /// Checks if the order is already finished, adds pending fills if necessary,
+    /// emits an OrderCancelled event, and sends a message through the cluster connection.
+    /// Parameters:
+    /// - `self`: Mutable reference to the Storage struct.
+    /// - `order_bytes`: Vector of bytes representing the order.
+    /// - `ctx`: Mutable reference to the TxContext.
     fun resolve_cancel(
         self: &mut Storage,
         order_bytes: vector<u8>,
@@ -183,7 +194,16 @@ module intents_v1::main {
             msg.encode()
         )
     }
-
+    /// Escrows the specified amount from the user for a cross-chain swap.
+    /// Creates a new swap order with the provided details and adds it to the storage.
+    /// Parameters:
+    /// - `toNid`: Destination network identifier as a String.
+    /// - `token`: Coin object representing the token to be swapped.
+    /// - `toToken`: Token to be received on the destination network.
+    /// - `toAddress`: Address on the destination network for receiving the swapped tokens.
+    /// - `minReceive`: Minimum amount to be received in the swap.
+    /// - `data`: Additional data for the swap in vector format.
+    /// - `ctx`: Mutable reference to the transaction context.
     entry fun swap<T>(
         self: &mut Storage,
         toNid: String,
@@ -217,7 +237,14 @@ module intents_v1::main {
         
 
     }
-
+    /// Receives and processes a message for a cross-chain swap.
+    /// Decodes the message type and triggers corresponding actions.
+    /// Parameters:
+    /// - `self`: Mutable reference to the Storage struct.
+    /// - `srcNetwork`: Source network identifier as a String.
+    /// - `conn_sn`: Connection serial number as a u128.
+    /// - `msg`: Vector of bytes representing the message.
+    /// - `ctx`: Mutable reference to the TxContext.
     entry fun recv_message<T>(
         self: &mut Storage,
         srcNetwork: String,
@@ -242,11 +269,22 @@ module intents_v1::main {
         }
     }
 
-     /// @notice Fills an order for a cross-chain swap.
-    /// @param id The order ID.
-    /// @param order The SwapOrder object.
-    /// @param amount The amount to fill.
-    /// @param solverAddress The address of the solver filling the order.
+    /// Fills an order for a cross-chain swap, processes the payment, and handles the fee distribution.
+    /// Parameters:
+    /// - `id`: The unique identifier of the order.
+    /// - `emitter`: The entity emitting the order.
+    /// - `src_nid`: Source network identifier.
+    /// - `dst_nid`: Destination network identifier.
+    /// - `creator`: Creator of the order.
+    /// - `destination_address`: Address for receiving swapped tokens.
+    /// - `token`: Token to be swapped.
+    /// - `amount`: Amount to be filled.
+    /// - `to_token`: Token expected to be received.
+    /// - `min_receive`: Minimum amount expected to be received.
+    /// - `data`: Additional data for the swap.
+    /// - `fill_token`: Coin object representing the payment.
+    /// - `solveraddress`: Address of the solver handling the order.
+    /// - `ctx`: Transaction context for the operation.
     entry fun fill<T,F>(
         self: &mut Storage,
         id: u128,
@@ -316,9 +354,6 @@ module intents_v1::main {
             solver:solveraddress,
         });
 
-        std::debug::print(&order);
-        std::debug::print(&fill);
-
 
         transfer::public_transfer(
             fill_token,
@@ -339,6 +374,11 @@ module intents_v1::main {
 
     }
 
+    /// Cancels an order by emitting a cancellation message and sending it through the cluster connection.
+    /// Parameters:
+    /// - `self`: Mutable reference to the Storage struct.
+    /// - `id`: The unique identifier of the order to be canceled.
+    /// - `ctx`: Mutable reference to the TxContext.
     entry fun cancel(
         self: &mut Storage,
         id: u128,
@@ -346,7 +386,6 @@ module intents_v1::main {
     ) {
         let (msg, src_nid, dst_nid) = {
             let order = self.orders.borrow<u128, SwapOrder>(id);
-            std::debug::print(order);
             assert!(
                 order.get_creator() == ctx.sender().to_string()
             );
@@ -526,7 +565,6 @@ module intents_v1::main_tests {
             );
 
             assert!(storage.get_deposit_id() == 1, 0);
-            std::debug::print(storage.get_funds());
             assert!(bag::contains<u128>(storage.get_funds(), 1), 0);
             let deposited= storage.get_funds().borrow<u128,Coin<USDC>>(1);
             assert!(deposited.value()==1000);
@@ -723,10 +761,6 @@ module intents_v1::main_tests {
 
             // Assert that the order has been filled
             assert!(!bag::contains<u128>(storage.get_funds(), 1), 0);
-
-            // let coin= storage.get_funds().borrow<u128,Coin<USDC>>(1);
-            // std::debug::print(coin);
-
             test_scenario::return_shared(storage);
         };
         test_scenario::end(scenario);
