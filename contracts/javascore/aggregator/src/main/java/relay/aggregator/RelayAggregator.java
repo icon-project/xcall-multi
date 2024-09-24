@@ -19,7 +19,6 @@ package relay.aggregator;
 
 import java.math.BigInteger;
 
-import s.java.lang.Integer;
 import score.Context;
 import score.Address;
 import score.ArrayDB;
