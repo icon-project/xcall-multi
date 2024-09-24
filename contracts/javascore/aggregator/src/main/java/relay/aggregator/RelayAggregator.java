@@ -34,7 +34,7 @@ public class RelayAggregator {
 
     private final BranchDB<String, DictDB<BigInteger, byte[]>> packets = Context.newBranchDB("packets", byte[].class);
 
-    private final BranchDB<String, BranchDB<BigInteger, DictDB<Address, String>>> signatures = Context.newBranchDB("signatures", DictDB.class);
+    private final BranchDB<String, BranchDB<BigInteger, DictDB<Address, byte[]>>> signatures = Context.newBranchDB("signatures", byte[].class);
 
     public RelayAggregator(Address _admin, Address[] _relayers) {
         if (admin.get() == null) {
@@ -70,36 +70,37 @@ public class RelayAggregator {
      * @param signature packet signature
      */
     @External
-    public void submitSignature(String nid, BigInteger sn, String signature) {
+    public void submitSignature(String nid, BigInteger sn, byte[] signature) {
         relayersOnly();
 
         DictDB<BigInteger, byte[]> packetDict = getPackets(nid);
         byte[] packetData = packetDict.get(sn);
-        Context.require(packetData != null, "Packet does not exist");
+        Context.require(packetData != null, "Packet not registered");
 
+        byte[] dataHash = Context.hash("sha-256", packetData);
 
-        DictDB<Address, String> addressSigns = getSignatures(nid, sn);
-
+        byte[] key = Context.recoverKey("ecdsa-secp256k1", dataHash, signature, true);
+        Address address = Context.getAddressFromKey(key);
         Address caller = Context.getCaller();
-        String sign = addressSigns.get(caller);
-        Context.require(sign == null, "Signature already exists.");
 
-        addressSigns.set(caller, signature);
+        Context.require(address.equals(caller), "Invalid signature");
+
+        byte[] sign = signatures.at(nid).at(sn).get(caller);
+        Context.require(sign == null, "Signature already exists");
+
+        setSignature(nid, sn, caller, signature);
     }
 
     /**
-     * Retrieves the signatures dictionary for the packet.
+     * Sets the signature for that packet at particular nid, sn and address
      *
      * @param nid network ID of the source chain
      * @param sn sequence number of the source chain message
-     * @return map of relayer addresses to signatures
+     * @param addr address of signature setter
+     * @param sign signature of packet
      */
-    protected DictDB<Address, String> getSignatures(String nid, BigInteger sn) {
-        BranchDB<BigInteger, DictDB<Address, String>> snSigns = signatures.at(nid);
-        if (snSigns == null) {
-            snSigns = Context.newBranchDB(nid+"-signs", DictDB.class);
-        }
-        return snSigns.at(sn);
+    protected void setSignature(String nid, BigInteger sn, Address addr, byte[] sign) {
+        signatures.at(nid).at(sn).set(addr, sign);
     }
     
 
