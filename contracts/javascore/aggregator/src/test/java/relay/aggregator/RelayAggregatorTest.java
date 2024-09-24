@@ -36,6 +36,9 @@ class RelayAggregatorTest extends TestBase {
     private  KeyWallet relayerTwo;
     private  Account relayerTwoAc;
 
+    private  KeyWallet relayerThree;
+    private  Account relayerThreeAc;
+
     private Score aggregator;
     private RelayAggregator aggregatorSpy;
 
@@ -49,6 +52,9 @@ class RelayAggregatorTest extends TestBase {
 
         relayerTwo = KeyWallet.create();
         relayerTwoAc = sm.getAccount(Address.fromString(relayerTwo.getAddress().toString()));
+
+        relayerThree = KeyWallet.create();
+        relayerThreeAc = sm.getAccount(Address.fromString(relayerThree.getAddress().toString()));
 
         Address[] relayers = new Address[]{relayerOneAc.getAddress(), relayerTwoAc.getAddress()};
         aggregator = sm.deploy(adminAc, RelayAggregator.class, adminAc.getAddress(), relayers);
@@ -116,11 +122,27 @@ class RelayAggregatorTest extends TestBase {
         aggregator.invoke(adminAc, "registerPacket", nid, sn, data);
 
         byte[] dataHash = Context.hash("sha-256", data);
-        byte[] sign = relayerOne.sign(dataHash);;
+        byte[] sign = relayerOne.sign(dataHash);
 
         aggregator.invoke(relayerOneAc, "submitSignature", nid, sn, sign);
 
         verify(aggregatorSpy).setSignature(nid, sn, relayerOneAc.getAddress(), sign);
+    }
+
+    @Test
+    public void testSubmitSignature_unauthorized() throws Exception {
+        String nid = "0x2.icon";
+        BigInteger sn = BigInteger.ONE;
+        byte[] data = new byte[]{0x01, 0x02};
+
+        aggregator.invoke(adminAc, "registerPacket", nid, sn, data);
+
+        byte[] dataHash = Context.hash("sha-256", data);
+        byte[] sign = relayerThree.sign(dataHash);
+
+        Executable action = () -> aggregator.invoke(relayerThreeAc, "submitSignature", nid, sn, sign);
+        UserRevertedException e = assertThrows(UserRevertedException.class, action);
+        assertEquals("Reverted(0): Unauthorized: caller is not a registered relayer", e.getMessage());
     }
 
     @Test
@@ -172,4 +194,5 @@ class RelayAggregatorTest extends TestBase {
     
         assertEquals("Reverted(0): Invalid signature", e.getMessage());
     }
+
 }

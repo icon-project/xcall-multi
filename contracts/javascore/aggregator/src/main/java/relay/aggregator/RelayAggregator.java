@@ -19,18 +19,21 @@ package relay.aggregator;
 
 import java.math.BigInteger;
 
+import s.java.lang.Integer;
 import score.Context;
 import score.Address;
+import score.ArrayDB;
 import score.VarDB;
 import score.DictDB;
 import score.BranchDB;
-
+import score.annotation.EventLog;
 import score.annotation.External;
+import scorex.util.ArrayList;
 
 public class RelayAggregator {
     private final VarDB<Address> admin = Context.newVarDB("admin", Address.class);
 
-    private final DictDB<Address, Boolean> relayers = Context.newDictDB("relayers", Boolean.class);
+    private final ArrayDB<Address> relayers = Context.newArrayDB("relayers", Address.class);
 
     private final BranchDB<String, DictDB<BigInteger, byte[]>> packets = Context.newBranchDB("packets", byte[].class);
 
@@ -40,9 +43,30 @@ public class RelayAggregator {
         if (admin.get() == null) {
             admin.set(_admin);
             for (Address relayer : _relayers) {
-                relayers.set(relayer, true);
+                relayers.add(relayer);
             }
         }
+    }
+
+    /**
+     * Sets the admin address.
+     *
+     * @param _admin the new admin address
+     */
+    @External
+    public void setAdmin(Address _admin) {
+        adminOnly();
+        admin.set(_admin);
+    }
+
+    /**
+     * Retrieves the admin address.
+     *
+     * @return admin address.
+     */
+    @External(readonly = true)
+    public Address getAdmin() {
+        return admin.get();
     }
 
     /**
@@ -60,6 +84,8 @@ public class RelayAggregator {
         Context.require(pkt == null, "Packet already exists");
 
         packetDict.set(sn, data);
+
+        PacketRegistered(nid, sn, data);
     }
 
     /**
@@ -89,9 +115,45 @@ public class RelayAggregator {
         Context.require(sign == null, "Signature already exists");
 
         setSignature(nid, sn, caller, signature);
-    }
+
+        if (signatureThresholdReached(nid, sn)) {
+            PacketConfirmed(nid, sn, packetData);
+        }
+    }    
 
     /**
+     * Retrieves the list of signatures for the particular packet.
+     * *
+     * @param nid network id of the source chain
+     * @param sn sequence number of packet on source chain
+     * @return list of  signatures
+     */
+    @External(readonly = true)
+    public ArrayList<byte[]> getSignatures(String nid, BigInteger sn) {    
+        DictDB<Address, byte[]> signDict = signatures.at(nid).at(sn); 
+        ArrayList<byte[]> signatureList = new ArrayList<byte[]>();
+
+        for (int i = 0; i < relayers.size(); i++) {
+            Address relayer = relayers.get(i);
+            byte[] sign = signDict.get(relayer);
+            if (sign != null) {
+                signatureList.add(sign);
+            }
+        }
+        return signatureList;
+    }
+
+    /** 
+     * Retrieves the packets dictionary.
+     * *
+     * @param nid network id of the source chain
+     * @return list of mapping from sn to packet data.
+     */
+    protected DictDB<BigInteger, byte[]> getPackets(String nid) {
+        return packets.at(nid);
+    }
+
+        /**
      * Sets the signature for that packet at particular nid, sn and address
      *
      * @param nid network ID of the source chain
@@ -101,38 +163,6 @@ public class RelayAggregator {
      */
     protected void setSignature(String nid, BigInteger sn, Address addr, byte[] sign) {
         signatures.at(nid).at(sn).set(addr, sign);
-    }
-    
-
-    /**
-     * Sets the admin address.
-     *
-     * @param _admin the new admin address
-     */
-    @External
-    public void setAdmin(Address _admin) {
-        adminOnly();
-        admin.set(_admin);
-    }
-
-    /**
-     * Retrieves the admin address.
-     *
-     * @return admin address.
-     */
-    @External(readonly = true)
-    public Address getAdmin() {
-        return admin.get();
-    }
-
-    /**
-     * Retrieves the packets dictionary.
-     * *
-     * @param nid network id of the source chain
-     * @return list of mapping from sn to packet data.
-     */
-    protected DictDB<BigInteger, byte[]> getPackets(String nid) {
-        return packets.at(nid);
     }
 
     /**
@@ -151,7 +181,43 @@ public class RelayAggregator {
      */
     private void relayersOnly() {
         Address caller = Context.getCaller();
-        boolean isRelayer = relayers.get(caller);
+        Boolean isRelayer = false;
+        for (int i = 0; i < relayers.size(); i++) {
+            Address relayer = relayers.get(i);
+            if (relayer.equals(caller)){
+                isRelayer = true;
+                break;
+            }
+        }
         Context.require(isRelayer, "Unauthorized: caller is not a registered relayer");
+    }
+
+    /**
+     * Checks if the number of signatures reached the threshold for the packet.
+     *
+     * @param nid network ID of the source chain
+     * @param sn sequence number of the source chain message
+     * 
+     * @return true if the number of signatures reached the threshold.
+     */
+    private Boolean signatureThresholdReached(String nid, BigInteger sn) {
+        int noOfSignatures = 0;
+        for (int i = 0; i < relayers.size(); i++) {
+            Address relayer = relayers.get(i);
+            byte[] relayerSign = signatures.at(nid).at(sn).get(relayer);
+            if (relayerSign != null) {
+                noOfSignatures++;
+            }
+        }
+        int threshold = (relayers.size() * 66) / 100;
+        return noOfSignatures >= threshold;
+    }
+
+    @EventLog(indexed = 2)
+    public void PacketRegistered(String srcNetwork, BigInteger srcSn, byte[] data) {
+    }
+
+    @EventLog(indexed = 1)
+    public void PacketConfirmed(String srcNetwork, BigInteger srcSn, byte[] data) {
     }
 }
