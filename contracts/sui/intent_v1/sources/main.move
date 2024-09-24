@@ -18,6 +18,7 @@ module intents_v1::main {
     use intents_v1::cluster_connection::{Self, ConnectionState};
     use sui::hex::{Self};
     use intents_v1::utils::{id_to_hex_string,Self};
+    
 
 
     const FILL: u8 = 1; // Constant for Fill message type
@@ -142,7 +143,7 @@ module intents_v1::main {
             event::emit(OrderClosed { id:removed.get_id() })
         };
 
-        let solver = suiaddress::from_ascii_bytes(fill.get_solver().bytes());
+        let solver = utils::address_from_str(&fill.get_solver());
         transfer::public_transfer(take, solver);
     }
 
@@ -357,7 +358,7 @@ module intents_v1::main {
 
         transfer::public_transfer(
             fill_token,
-            suiaddress::from_ascii_bytes(order.get_destination_address().as_bytes())
+            utils::address_from_str(&order.get_destination_address())
         );
         transfer::public_transfer(fee_token, self.fee_handler);
 
@@ -497,6 +498,13 @@ module intents_v1::main {
         init(ctx);
     }
 
+    #[test_only]
+    public fun insert_order<T>(self:&mut Storage,order:&SwapOrder,coin:Coin<T>){
+        self.orders.add(order.get_id(), *order);
+        self.funds.add(order.get_id(), coin);
+
+    }
+
 }
 
 
@@ -514,6 +522,8 @@ module intents_v1::main_tests {
     use intents_v1::order_message;
     use intents_v1::swap_order;
     use intents_v1::utils::id_to_hex_string;
+    use intents_v1::main::{insert_order};
+    use sui::sui::{SUI as RSUI};
 
     // Test coin type
     public struct USDC {}
@@ -631,6 +641,60 @@ module intents_v1::main_tests {
                 string::utf8(b"eth"),
                 1,
                 order_message::encode(&msg),
+                ctx
+            );
+
+            // Assert that the order has been processed
+            assert!(!bag::contains(storage.get_funds(), 1), 0);
+
+            test_scenario::return_shared(storage);
+        };
+        test_scenario::end(scenario);
+    }
+
+
+     #[test]
+    fun test_recv_message_encoding() {
+        let admin=@0x1;
+        let mut scenario = setup_test(admin);
+        test_scenario::next_tx(&mut scenario, @0x1);
+        {
+            let mut storage = test_scenario::take_shared<Storage>(&scenario);
+            let ctx = test_scenario::ctx(&mut scenario);
+            
+            let order = swap_order::new(
+                3,
+                string::utf8(b"0x236100b56f782f11767dccdcb3ce948fd031fcdcf4073bf4a84ee980dd6b7cb0"),
+                string::utf8(b"sui"),
+                string::utf8(b"0xa869.fuji"),
+                string::utf8(b"7b1b1b36d80f6464b0427cd4d4927e1467d53fb4e308304d2a069684d0eae49f"),
+                string::utf8(b"0xb89cd0fd9043e5e8144c501b54303b7e8a65be02"),
+                string::utf8(b"0000000000000000000000000000000000000000000000000000000000000002::sui::SUI"),
+                1000000000,
+                string::utf8(b"0x0000000000000000000000000000000000000000"),
+                10,
+                x""
+            );
+
+           let msg_bytes=x"f9019801b90194f9019103b90143f9014003b842307832333631303062353666373832663131373637646363646362336365393438666430333166636463663430373362663461383465653938306464366237636230837375698b3078613836392e66756a69b84037623162316233366438306636343634623034323763643464343932376531343637643533666234653330383330346432613036393638346430656165343966aa307862383963643066643930343365356538313434633530316235343330336237653861363562653032b84a303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030323a3a7375693a3a535549843b9aca00aa3078303030303030303030303030303030303030303030303030303030303030303030303030303030300a80b842307864663861326639346233333236376435633633643237363166396435383264663638663666353261373765613937316666346261363231346566626164653432843b9aca0001";
+
+            let msg = order_message::decode(&msg_bytes);
+            let fill = order_fill::decode(&msg.get_message());
+            let order2= swap_order::decode(&fill.get_order_bytes());
+            std::debug::print(&fill);
+            std::debug::print(&fill.get_order_bytes());
+            std::debug::print(&order.encode());
+
+            std::debug::print(&order2);
+             let coin = coin::mint_for_testing<RSUI>(order.get_amount() as u64, ctx);
+
+            insert_order(&mut storage,&order,coin);
+
+            main::receive_message<RSUI>(
+                &mut storage,
+                string::utf8(b"0xa869.fuji"),
+                1,
+                msg_bytes,
                 ctx
             );
 
