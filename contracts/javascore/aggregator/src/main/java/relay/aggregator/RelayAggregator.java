@@ -16,7 +16,6 @@
 
 package relay.aggregator;
 
-
 import java.math.BigInteger;
 
 import score.Context;
@@ -34,9 +33,10 @@ public class RelayAggregator {
 
     private final ArrayDB<Address> relayers = Context.newArrayDB("relayers", Address.class);
 
-    private final BranchDB<String, DictDB<BigInteger, byte[]>> packets = Context.newBranchDB("packets", byte[].class);
+    private final DictDB<String, Packet> packets = Context.newDictDB("packets", Packet.class);
 
-    private final BranchDB<String, BranchDB<BigInteger, DictDB<Address, byte[]>>> signatures = Context.newBranchDB("signatures", byte[].class);
+    private final BranchDB<String, DictDB<Address, byte[]>> signatures = Context.newBranchDB("signatures",
+            byte[].class);
 
     public RelayAggregator(Address _admin, Address[] _relayers) {
         if (admin.get() == null) {
@@ -47,89 +47,69 @@ public class RelayAggregator {
         }
     }
 
-    /**
-     * Sets the admin address.
-     *
-     * @param _admin the new admin address
-     */
     @External
     public void setAdmin(Address _admin) {
         adminOnly();
         admin.set(_admin);
     }
 
-    /**
-     * Retrieves the admin address.
-     *
-     * @return admin address.
-     */
     @External(readonly = true)
     public Address getAdmin() {
         return admin.get();
     }
 
-    /**
-     * Registers a new packet.
-     *
-     * @param nid network ID
-     * @param sn sequence number
-     * @param data packet data
-     */
     @External
-    public void registerPacket(String nid, BigInteger sn, byte[] data) {
+    public void registerPacket(
+            String srcNetwork,
+            String contractAddress,
+            BigInteger srcSn,
+            String dstNetwork,
+            byte[] data) {
+
         adminOnly();
-        DictDB<BigInteger, byte[]> packetDict = getPackets(nid);
-        byte[] pkt = packetDict.get(sn);
-        Context.require(pkt == null, "Packet already exists");
 
-        packetDict.set(sn, data);
+        Packet pkt = new Packet(srcNetwork, contractAddress, srcSn, dstNetwork, data);
+        String id = pkt.getId();
 
-        PacketRegistered(nid, sn, data);
+        Context.require(packets.get(id) == null, "Packet already exists");
+
+        packets.set(id, pkt);
+
+        PacketRegistered(pkt.getSrcNetwork(), pkt.getContractAddress(), pkt.getSrcSn());
     }
 
-    /**
-     * Submits a signature for the registered packet.
-     *
-     * @param nid network ID
-     * @param sn sequence number
-     * @param signature packet signature
-     */
     @External
-    public void submitSignature(String nid, BigInteger sn, byte[] signature) {
+    public void submitSignature(
+            String srcNetwork,
+            String contractAddress,
+            BigInteger srcSn,
+            byte[] signature) {
+
         relayersOnly();
 
-        DictDB<BigInteger, byte[]> packetDict = getPackets(nid);
-        byte[] packetData = packetDict.get(sn);
-        Context.require(packetData != null, "Packet not registered");
+        String pktID = Packet.createId(srcNetwork, contractAddress, srcSn);
+        Packet pkt = packets.get(pktID);
+        Context.require(pkt != null, "Packet not registered");
 
-        byte[] dataHash = Context.hash("sha-256", packetData);
+        byte[] existingSign = signatures.at(pktID).get(Context.getCaller());
+        Context.require(existingSign == null, "Signature already exists");
 
-        byte[] key = Context.recoverKey("ecdsa-secp256k1", dataHash, signature, true);
-        Address address = Context.getAddressFromKey(key);
-        Address caller = Context.getCaller();
+        setSignature(pktID, Context.getCaller(), signature);
 
-        Context.require(address.equals(caller), "Invalid signature");
-
-        byte[] sign = signatures.at(nid).at(sn).get(caller);
-        Context.require(sign == null, "Signature already exists");
-
-        setSignature(nid, sn, caller, signature);
-
-        if (signatureThresholdReached(nid, sn)) {
-            PacketConfirmed(nid, sn, packetData);
+        if (signatureThresholdReached(pktID)) {
+            PacketConfirmed(
+                    pkt.getSrcNetwork(),
+                    pkt.getContractAddress(),
+                    pkt.getSrcSn(),
+                    pkt.getDstNetwork(),
+                    pkt.getData());
         }
-    }    
+    }
 
-    /**
-     * Retrieves the list of signatures for the particular packet.
-     * *
-     * @param nid network id of the source chain
-     * @param sn sequence number of packet on source chain
-     * @return list of  signatures
-     */
     @External(readonly = true)
-    public ArrayList<byte[]> getSignatures(String nid, BigInteger sn) {    
-        DictDB<Address, byte[]> signDict = signatures.at(nid).at(sn); 
+    public ArrayList<byte[]> getSignatures(String srcNetwork, String contractAddress, BigInteger srcSn) {
+        String pktID = Packet.createId(srcNetwork, contractAddress, srcSn);
+        DictDB<Address, byte[]> signDict = signatures.at(pktID);
         ArrayList<byte[]> signatureList = new ArrayList<byte[]>();
 
         for (int i = 0; i < relayers.size(); i++) {
@@ -142,48 +122,20 @@ public class RelayAggregator {
         return signatureList;
     }
 
-    /** 
-     * Retrieves the packets dictionary.
-     * *
-     * @param nid network id of the source chain
-     * @return list of mapping from sn to packet data.
-     */
-    protected DictDB<BigInteger, byte[]> getPackets(String nid) {
-        return packets.at(nid);
+    protected void setSignature(String pktID, Address addr, byte[] sign) {
+        signatures.at(pktID).set(addr, sign);
     }
 
-        /**
-     * Sets the signature for that packet at particular nid, sn and address
-     *
-     * @param nid network ID of the source chain
-     * @param sn sequence number of the source chain message
-     * @param addr address of signature setter
-     * @param sign signature of packet
-     */
-    protected void setSignature(String nid, BigInteger sn, Address addr, byte[] sign) {
-        signatures.at(nid).at(sn).set(addr, sign);
-    }
-
-    /**
-     * Checks if the caller of the function is the admin.
-     *
-     * @return true if the caller is the admin, false otherwise
-     */
     private void adminOnly() {
         Context.require(Context.getCaller().equals(admin.get()), "Unauthorized: caller is not the leader relayer");
     }
 
-    /**
-     * Checks if the caller of the function is among the relayers.
-     *
-     * @return true if the caller is among the relayers, otherwise false
-     */
     private void relayersOnly() {
         Address caller = Context.getCaller();
         Boolean isRelayer = false;
         for (int i = 0; i < relayers.size(); i++) {
             Address relayer = relayers.get(i);
-            if (relayer.equals(caller)){
+            if (relayer.equals(caller)) {
                 isRelayer = true;
                 break;
             }
@@ -191,19 +143,11 @@ public class RelayAggregator {
         Context.require(isRelayer, "Unauthorized: caller is not a registered relayer");
     }
 
-    /**
-     * Checks if the number of signatures reached the threshold for the packet.
-     *
-     * @param nid network ID of the source chain
-     * @param sn sequence number of the source chain message
-     * 
-     * @return true if the number of signatures reached the threshold.
-     */
-    private Boolean signatureThresholdReached(String nid, BigInteger sn) {
+    private Boolean signatureThresholdReached(String pktID) {
         int noOfSignatures = 0;
         for (int i = 0; i < relayers.size(); i++) {
             Address relayer = relayers.get(i);
-            byte[] relayerSign = signatures.at(nid).at(sn).get(relayer);
+            byte[] relayerSign = signatures.at(pktID).get(relayer);
             if (relayerSign != null) {
                 noOfSignatures++;
             }
@@ -213,10 +157,18 @@ public class RelayAggregator {
     }
 
     @EventLog(indexed = 2)
-    public void PacketRegistered(String srcNetwork, BigInteger srcSn, byte[] data) {
+    public void PacketRegistered(
+            String srcNetwork,
+            String contractAddress,
+            BigInteger srcSn) {
     }
 
-    @EventLog(indexed = 1)
-    public void PacketConfirmed(String srcNetwork, BigInteger srcSn, byte[] data) {
+    @EventLog(indexed = 2)
+    public void PacketConfirmed(
+            String srcNetwork,
+            String contractAddress,
+            BigInteger srcSn,
+            String dstNetwork,
+            byte[] data) {
     }
 }

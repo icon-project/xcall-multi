@@ -9,7 +9,6 @@ import org.junit.jupiter.api.function.Executable;
 import score.Address;
 import score.Context;
 import score.UserRevertedException;
-import score.DictDB;
 
 import com.iconloop.score.test.Account;
 import com.iconloop.score.test.Score;
@@ -19,25 +18,23 @@ import foundation.icon.icx.KeyWallet;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 class RelayAggregatorTest extends TestBase {
     private final ServiceManager sm = getServiceManager();
 
-    private  KeyWallet admin;
-    private  Account adminAc;
-    
-    private  KeyWallet relayerOne;
-    private  Account relayerOneAc;
+    private KeyWallet admin;
+    private Account adminAc;
 
-    private  KeyWallet relayerTwo;
-    private  Account relayerTwoAc;
+    private KeyWallet relayerOne;
+    private Account relayerOneAc;
 
-    private  KeyWallet relayerThree;
-    private  Account relayerThreeAc;
+    private KeyWallet relayerTwo;
+    private Account relayerTwoAc;
+
+    private KeyWallet relayerThree;
+    private Account relayerThreeAc;
 
     private Score aggregator;
     private RelayAggregator aggregatorSpy;
@@ -56,7 +53,7 @@ class RelayAggregatorTest extends TestBase {
         relayerThree = KeyWallet.create();
         relayerThreeAc = sm.getAccount(Address.fromString(relayerThree.getAddress().toString()));
 
-        Address[] relayers = new Address[]{relayerOneAc.getAddress(), relayerTwoAc.getAddress()};
+        Address[] relayers = new Address[] { relayerOneAc.getAddress(), relayerTwoAc.getAddress() };
         aggregator = sm.deploy(adminAc, RelayAggregator.class, adminAc.getAddress(), relayers);
 
         aggregatorSpy = (RelayAggregator) spy(aggregator.getInstance());
@@ -76,123 +73,118 @@ class RelayAggregatorTest extends TestBase {
     public void testSetAdmin_unauthorized() {
         Account normalAc = sm.createAccount();
         Account newAdminAc = sm.createAccount();
-    
+
         Executable action = () -> aggregator.invoke(normalAc, "setAdmin", newAdminAc.getAddress());
         UserRevertedException e = assertThrows(UserRevertedException.class, action);
-    
+
         assertEquals("Reverted(0): Unauthorized: caller is not the leader relayer", e.getMessage());
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void testRegisterPacket() {
-        String nid = "0x2.icon";
-        BigInteger sn = BigInteger.ONE;
-        byte[] data = new byte[]{0x01, 0x02};
-    
-        DictDB<BigInteger, byte[]> mockDictDB = mock(DictDB.class);
+        String srcNetwork = "0x2.icon";
+        String dstNetwork = "sui";
+        BigInteger srcSn = BigInteger.ONE;
+        String contractAddress = "hxjuiod";
+        byte[] data = new byte[] { 0x01, 0x02 };
 
-        when(aggregatorSpy.getPackets(nid)).thenReturn(mockDictDB);
+        aggregator.invoke(adminAc, "registerPacket", srcNetwork, contractAddress, srcSn, dstNetwork, data);
 
-        aggregator.invoke(adminAc, "registerPacket", nid, sn, data);
-
-        verify(mockDictDB).set(sn, data);
+        verify(aggregatorSpy).PacketRegistered(srcNetwork, contractAddress, srcSn);
     }
 
     @Test
     public void testRegisterPacket_duplicate() {
-        String nid = "0x2.icon";
-        BigInteger sn = BigInteger.ONE;
-        byte[] data = new byte[]{0x01, 0x02};
+        String srcNetwork = "0x2.icon";
+        String dstNetwork = "sui";
+        BigInteger srcSn = BigInteger.ONE;
+        String contractAddress = "hxjuiod";
+        byte[] data = new byte[] { 0x01, 0x02 };
 
-        aggregator.invoke(adminAc, "registerPacket", nid, sn, data);
+        aggregator.invoke(adminAc, "registerPacket", srcNetwork, contractAddress, srcSn, dstNetwork, data);
 
-        Executable action = () -> aggregator.invoke(adminAc, "registerPacket", nid, sn, data);
+        Executable action = () -> aggregator.invoke(adminAc, "registerPacket", srcNetwork, contractAddress, srcSn,
+                dstNetwork, data);
         UserRevertedException e = assertThrows(UserRevertedException.class, action);
-    
+
         assertEquals("Reverted(0): Packet already exists", e.getMessage());
     }
 
     @Test
     public void testSubmitSignature() throws Exception {
-        String nid = "0x2.icon";
-        BigInteger sn = BigInteger.ONE;
-        byte[] data = new byte[]{0x01, 0x02};
+        String srcNetwork = "0x2.icon";
+        String dstNetwork = "sui";
+        BigInteger srcSn = BigInteger.ONE;
+        String contractAddress = "hxjuiod";
+        byte[] data = new byte[] { 0x01, 0x02 };
 
-        aggregator.invoke(adminAc, "registerPacket", nid, sn, data);
+        aggregator.invoke(adminAc, "registerPacket", srcNetwork, contractAddress, srcSn, dstNetwork, data);
 
         byte[] dataHash = Context.hash("sha-256", data);
         byte[] sign = relayerOne.sign(dataHash);
 
-        aggregator.invoke(relayerOneAc, "submitSignature", nid, sn, sign);
+        aggregator.invoke(relayerOneAc, "submitSignature", srcNetwork, contractAddress, srcSn, sign);
 
-        verify(aggregatorSpy).setSignature(nid, sn, relayerOneAc.getAddress(), sign);
+        String pktID = Packet.createId(srcNetwork, contractAddress, srcSn);
+        verify(aggregatorSpy).setSignature(pktID, relayerOneAc.getAddress(), sign);
     }
 
     @Test
     public void testSubmitSignature_unauthorized() throws Exception {
-        String nid = "0x2.icon";
-        BigInteger sn = BigInteger.ONE;
-        byte[] data = new byte[]{0x01, 0x02};
+        String srcNetwork = "0x2.icon";
+        String dstNetwork = "sui";
+        BigInteger srcSn = BigInteger.ONE;
+        String contractAddress = "hxjuiod";
+        byte[] data = new byte[] { 0x01, 0x02 };
 
-        aggregator.invoke(adminAc, "registerPacket", nid, sn, data);
+        aggregator.invoke(adminAc, "registerPacket", srcNetwork, contractAddress, srcSn, dstNetwork, data);
 
         byte[] dataHash = Context.hash("sha-256", data);
         byte[] sign = relayerThree.sign(dataHash);
 
-        Executable action = () -> aggregator.invoke(relayerThreeAc, "submitSignature", nid, sn, sign);
+        Executable action = () -> aggregator.invoke(relayerThreeAc, "submitSignature", srcNetwork, contractAddress,
+                srcSn,
+                sign);
         UserRevertedException e = assertThrows(UserRevertedException.class, action);
-        assertEquals("Reverted(0): Unauthorized: caller is not a registered relayer", e.getMessage());
+        assertEquals("Reverted(0): Unauthorized: caller is not a registered relayer",
+                e.getMessage());
     }
 
     @Test
     public void testSubmitSignature_duplicate() throws Exception {
-        String nid = "0x2.icon";
-        BigInteger sn = BigInteger.ONE;
-        byte[] data = new byte[]{0x01, 0x02};
+        String srcNetwork = "0x2.icon";
+        String dstNetwork = "sui";
+        BigInteger srcSn = BigInteger.ONE;
+        String contractAddress = "hxjuiod";
+        byte[] data = new byte[] { 0x01, 0x02 };
 
-        aggregator.invoke(adminAc, "registerPacket", nid, sn, data);
+        aggregator.invoke(adminAc, "registerPacket", srcNetwork, contractAddress, srcSn, dstNetwork, data);
 
         byte[] dataHash = Context.hash("sha-256", data);
-        byte[] sign = relayerOne.sign(dataHash);;
+        byte[] sign = relayerOne.sign(dataHash);
 
-        aggregator.invoke(relayerOneAc, "submitSignature", nid, sn, sign);
+        aggregator.invoke(relayerOneAc, "submitSignature", srcNetwork, contractAddress, srcSn, sign);
 
-        Executable action = () -> aggregator.invoke(relayerOneAc, "submitSignature", nid, sn, sign);
+        Executable action = () -> aggregator.invoke(relayerOneAc, "submitSignature", srcNetwork, contractAddress, srcSn,
+                sign);
         UserRevertedException e = assertThrows(UserRevertedException.class, action);
         assertEquals("Reverted(0): Signature already exists", e.getMessage());
     }
 
     @Test
     public void testSubmitSignature_packetUnregistered() throws Exception {
-        String nid = "0x2.icon";
-        BigInteger sn = BigInteger.ONE;
-        byte[] data = new byte[]{0x01, 0x02};
+        String srcNetwork = "0x2.icon";
+        BigInteger srcSn = BigInteger.ONE;
+        String contractAddress = "hxjuiod";
+        byte[] data = new byte[] { 0x01, 0x02 };
 
         byte[] dataHash = Context.hash("sha-256", data);
-        byte[] sign = relayerOne.sign(dataHash);;
+        byte[] sign = relayerOne.sign(dataHash);
 
-        Executable action = () -> aggregator.invoke(relayerOneAc, "submitSignature", nid, sn, sign);
+        Executable action = () -> aggregator.invoke(relayerOneAc, "submitSignature", srcNetwork, contractAddress, srcSn,
+                sign);
         UserRevertedException e = assertThrows(UserRevertedException.class, action);
         assertEquals("Reverted(0): Packet not registered", e.getMessage());
-    }
-
-    @Test
-    public void testSubmitSignature_invalidSignatureWithWrongData() throws Exception {
-        String nid = "0x2.icon";
-        BigInteger sn = BigInteger.ONE;
-        byte[] data = new byte[]{0x01, 0x02};
-
-        aggregator.invoke(adminAc, "registerPacket", nid, sn, data);
-
-        byte[] wrongData = new byte[]{0x01, 0x02, 0x03};
-        byte[] dataHash = Context.hash("sha-256", wrongData);
-        byte[] sign = relayerOne.sign(dataHash);;
-
-        Executable action = () -> aggregator.invoke(relayerOneAc, "submitSignature", nid, sn, sign);
-        UserRevertedException e = assertThrows(UserRevertedException.class, action);
-    
-        assertEquals("Reverted(0): Invalid signature", e.getMessage());
     }
 
 }
