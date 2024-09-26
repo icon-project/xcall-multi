@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - main
+      - 381-fix-cosmwasm-build-issue
   pull_request:
     branches:
       - main
