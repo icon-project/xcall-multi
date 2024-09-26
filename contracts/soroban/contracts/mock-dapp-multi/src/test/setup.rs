@@ -31,6 +31,7 @@ pub struct TestContext {
     pub env: Env,
     pub native_token: Address,
     pub xcall: Address,
+    pub upgrade_authority: Address,
     pub centralized_connection: Address,
 }
 
@@ -46,6 +47,7 @@ impl TestContext {
             native_token: env.register_stellar_asset_contract(address),
             network_address: get_dummy_network_address(&env),
             xcall: env.register_contract_wasm(None, xcall_module::WASM),
+            upgrade_authority: Address::generate(&env),
             centralized_connection: env.register_contract_wasm(None, connection::WASM),
             env,
         }
@@ -72,6 +74,7 @@ impl TestContext {
             native_token: self.native_token.clone(),
             network_id: self.nid.clone(),
             sender: Address::generate(&self.env),
+            upgrade_authority: self.upgrade_authority.clone(),
         };
         xcall_client.initialize(&initialize_msg);
 
@@ -86,6 +89,7 @@ impl TestContext {
             native_token: self.native_token.clone(),
             relayer: Address::generate(&self.env),
             xcall_address: self.xcall.clone(),
+            upgrade_authority: self.upgrade_authority.clone(),
         };
         connection_client.initialize(&initialize_msg);
 

@@ -160,6 +160,7 @@ impl TestContext {
             native_token: self.native_token.clone(),
             relayer: self.admin.clone(),
             xcall_address: self.contract.clone(),
+            upgrade_authority: self.upgrade_authority.clone(),
         };
         connection_client.initialize(&initialize_msg);
 
