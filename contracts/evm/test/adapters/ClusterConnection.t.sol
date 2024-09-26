@@ -337,11 +337,11 @@ contract ClusterConnectionTest is Test {
         uint256 pk4 = hexStringToUint256("2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6");
         bytes32 hash = keccak256(RLPEncodeStruct.encodeCSMessage(message));
         vm.startPrank(destination_relayer);
-        adapterTarget.addSigner(address(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266));
-        adapterTarget.addSigner(address(0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65));
-        adapterTarget.addSigner(address(0x70997970C51812dc3A010C7d01b50e0d17dc79C8));
-        adapterTarget.addSigner(address(0xa0Ee7A142d267C1f36714E4a8F75612F20a79720));       
-        adapterTarget.setRequiredCount(4);
+        adapterTarget.addValidator(address(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266));
+        adapterTarget.addValidator(address(0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65));
+        adapterTarget.addValidator(address(0x70997970C51812dc3A010C7d01b50e0d17dc79C8));
+        adapterTarget.addValidator(address(0xa0Ee7A142d267C1f36714E4a8F75612F20a79720));       
+        adapterTarget.setRequiredValidatorCount(4);
         vm.expectEmit();
         emit CallMessage(iconDapp, ParseAddress.toString(address(dappSource)), 1, 1, data);
         vm.expectCall(address(xCallTarget), abi.encodeCall(xCallTarget.handleMessage, (nidSource,RLPEncodeStruct.encodeCSMessage(message))));
@@ -390,29 +390,29 @@ contract ClusterConnectionTest is Test {
         return number;
     }
 
-    function testAddSigner() public {
+    function testAddValidator() public {
         vm.startPrank(destination_relayer);
-        adapterTarget.addSigner(address(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266));
-        assertEq(2, adapterTarget.listSigners().length);
+        adapterTarget.addValidator(address(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266));
+        assertEq(2, adapterTarget.listValidators().length);
         vm.stopPrank();
     }
 
-    function testRemoveSigner() public {
+    function testRemoveValidator() public {
         vm.startPrank(destination_relayer);
-        adapterTarget.addSigner(address(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266));
-        adapterTarget.addSigner(address(0x976EA74026E726554dB657fA54763abd0C3a0aa9));
-        assertEq(3, adapterTarget.listSigners().length);
-        adapterTarget.removeSigner(address(0xa0Ee7A142d267C1f36714E4a8F75612F20a79720));
-        assertEq(3, adapterTarget.listSigners().length);
-        adapterTarget.removeSigner(address(0x976EA74026E726554dB657fA54763abd0C3a0aa9));
-        assertEq(2, adapterTarget.listSigners().length);
+        adapterTarget.addValidator(address(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266));
+        adapterTarget.addValidator(address(0x976EA74026E726554dB657fA54763abd0C3a0aa9));
+        assertEq(3, adapterTarget.listValidators().length);
+        adapterTarget.removeValidator(address(0xa0Ee7A142d267C1f36714E4a8F75612F20a79720));
+        assertEq(3, adapterTarget.listValidators().length);
+        adapterTarget.removeValidator(address(0x976EA74026E726554dB657fA54763abd0C3a0aa9));
+        assertEq(2, adapterTarget.listValidators().length);
         vm.stopPrank();
     }
 
     function testRequiredCount() public {
         vm.startPrank(destination_relayer);
-        adapterTarget.setRequiredCount(3);
-        assertEq(3, adapterTarget.getRequiredCount());
+        adapterTarget.setRequiredValidatorCount(3);
+        assertEq(3, adapterTarget.getRequiredValidatorCount());
         vm.stopPrank();
     }
 }

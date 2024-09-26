@@ -11,17 +11,17 @@ contract ClusterConnection is Initializable, IConnection {
     mapping(string => uint256) private messageFees;
     mapping(string => uint256) private responseFees;
     mapping(string => mapping(uint256 => bool)) receipts;
-    mapping(address => bool) public isSigner;
+    mapping(address => bool) public isValidator;
 
     address private xCall;
     address private adminAddress;
     uint256 public connSn;
-    address[] private signers;
-    uint8 private reqSigCount;
+    address[] private validators;
+    uint8 private reqValidatorCnt;
 
     event Message(string targetNetwork, uint256 sn, bytes _msg);
-    event SignerAdded(address _signer);
-    event SignerRemoved(address _signer);
+    event ValidatorAdded(address _validator);
+    event ValidatorRemoved(address _validator);
 
     modifier onlyAdmin() {
         require(msg.sender == this.admin(), "OnlyRelayer");
@@ -30,33 +30,32 @@ contract ClusterConnection is Initializable, IConnection {
 
     function initialize(address _relayer, address _xCall) public initializer {
         xCall = _xCall;
-        signers.push(_relayer);
+        validators.push(_relayer);
         adminAddress = _relayer;
-        emit SignerAdded(_relayer);
+        emit ValidatorAdded(_relayer);
     }
 
-    function listSigners() external view returns (address[] memory) {
-        return signers;
+    function listValidators() external view returns (address[] memory) {
+        return validators;
     }
 
-    function addSigner(address _newSigner) external onlyAdmin {
-        require(!isSigner[_newSigner], "Address is already an signer");
-        signers.push(_newSigner);
-        isSigner[_newSigner] = true;
-        emit SignerAdded(_newSigner);
+    function addValidator(address _validator) external onlyAdmin {
+        require(!isValidator[_validator], "Address is already an signer");
+        validators.push(_validator);
+        isValidator[_validator] = true;
+        emit ValidatorAdded(_validator);
     }
 
-    // Function to remove an existing signer
-    function removeSigner(address _signer) external onlyAdmin {
-        require(_signer!=this.admin(), "cannot remove admin");
-        for (uint i = 0; i < signers.length; i++) {
-            if (signers[i] == _signer) {
-                signers[i] = signers[signers.length - 1]; 
-                signers.pop();                 
-                isSigner[_signer] = false;
+    function removeValidator(address _validator) external onlyAdmin {
+        require(_validator!=this.admin(), "cannot remove admin");
+        for (uint i = 0; i < validators.length; i++) {
+            if (validators[i] == _validator) {
+                validators[i] = validators[validators.length - 1]; 
+                validators.pop();                 
+                isValidator[_validator] = false;
                 break;
             }
-            emit SignerRemoved(_signer);
+            emit ValidatorRemoved(_validator);
         }
     }
 
@@ -132,25 +131,25 @@ contract ClusterConnection is Initializable, IConnection {
         bytes[] calldata _signedMessages
     ) public onlyAdmin {
         require(_signedMessages.length > 0, "No signatures provided");
-        require(_signedMessages.length >= reqSigCount, "Not enough signatures passed");
+        require(_signedMessages.length >= reqValidatorCnt, "Not enough signatures passed");
         bytes32 messageHash = keccak256(_msg);
         uint signerCount = 0;
         address[] memory collectedSigners = new address[](_signedMessages.length);
         for (uint i = 0; i < _signedMessages.length; i++) {
             address signer = recoverSigner(messageHash, _signedMessages[i]);
             require(signer != address(0), "Invalid signature");
-            if (!isSignerProcessed(collectedSigners, signer)){
+            if (!isValidatorProcessed(collectedSigners, signer)){
                 collectedSigners[signerCount] = signer;
                 signerCount++;
             }
         }
 
-        if (signerCount >= reqSigCount) {
+        if (signerCount >= reqValidatorCnt) {
             recvMessage(srcNetwork,_connSn,_msg);
         }
     }
 
-    function isSignerProcessed(address[] memory processedSigners, address signer) public pure returns (bool) {
+    function isValidatorProcessed(address[] memory processedSigners, address signer) public pure returns (bool) {
         for (uint i = 0; i < processedSigners.length; i++) {
             if (processedSigners[i] == signer) {
                 return true;
@@ -246,11 +245,11 @@ contract ClusterConnection is Initializable, IConnection {
         @notice Set the required signature count for verification.
         @param _count The desired count.
      */
-    function setRequiredCount(uint8 _count) external onlyAdmin {
-        reqSigCount = _count;
+    function setRequiredValidatorCount(uint8 _count) external onlyAdmin {
+        reqValidatorCnt = _count;
     }
 
-    function getRequiredCount() external view returns (uint8) {
-        return reqSigCount;
+    function getRequiredValidatorCount() external view returns (uint8) {
+        return reqValidatorCnt;
     }
 }
