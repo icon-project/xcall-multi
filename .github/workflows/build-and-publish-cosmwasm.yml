@@ -3,13 +3,13 @@ on:
   push:
     branches:
       - main
+      - fix/remove-stellar-contracts-from-root-workspace
   pull_request:
     branches:
       - main
     paths:
       - contracts/cosmwasm-vm/**
       - libraries/common/rust/**
-      - fix/remove-stellar-contracts-from-root-workspace
       - .github/workflows/deploy-cosmwasm-contracts.yml
 jobs:
   Build:
