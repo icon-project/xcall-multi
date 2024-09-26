@@ -214,8 +214,8 @@ public class ClusterConnectionTest extends TestBase {
         byte[][] byteArray = new byte[1][];
         KeyWallet wallet = KeyWallet.create();
         byteArray[0] = wallet.sign(messageHash);
-        connection.invoke(source_relayer, "addSigner", Address.fromString(wallet.getAddress().toString()));
-        connection.invoke(source_relayer, "setRequiredSignerCount", BigInteger.ONE);
+        connection.invoke(source_relayer, "addValidator", Address.fromString(wallet.getAddress().toString()));
+        connection.invoke(source_relayer, "setRequiredValidatorCount", BigInteger.ONE);
         connection.invoke(source_relayer, "recvMessageWithSignatures", nidSource, BigInteger.ONE, data, byteArray);
         verify(callservice.mock).handleMessage(eq(nidSource), eq("test".getBytes()));
     }
@@ -229,9 +229,9 @@ public class ClusterConnectionTest extends TestBase {
         KeyWallet wallet2 = KeyWallet.create();
         byteArray[0] = wallet.sign(messageHash);
         byteArray[1] = wallet2.sign(messageHash);
-        connection.invoke(source_relayer, "addSigner", Address.fromString(wallet.getAddress().toString()));
-        connection.invoke(source_relayer, "addSigner", Address.fromString(wallet2.getAddress().toString()));
-        connection.invoke(source_relayer, "setRequiredSignerCount", BigInteger.TWO);
+        connection.invoke(source_relayer, "addValidator", Address.fromString(wallet.getAddress().toString()));
+        connection.invoke(source_relayer, "addValidator", Address.fromString(wallet2.getAddress().toString()));
+        connection.invoke(source_relayer, "setRequiredValidatorCount", BigInteger.TWO);
         connection.invoke(source_relayer, "recvMessageWithSignatures", nidSource, BigInteger.ONE, data, byteArray);
         verify(callservice.mock).handleMessage(eq(nidSource), eq("test".getBytes()));
     }
@@ -243,8 +243,8 @@ public class ClusterConnectionTest extends TestBase {
         KeyWallet wallet = KeyWallet.create();
         byte[][] byteArray = new byte[1][];
         byteArray[0] = wallet.sign(messageHash);
-        connection.invoke(source_relayer, "addSigner", Address.fromString(wallet.getAddress().toString()));
-        connection.invoke(source_relayer, "setRequiredSignerCount", BigInteger.TWO);
+        connection.invoke(source_relayer, "addValidator", Address.fromString(wallet.getAddress().toString()));
+        connection.invoke(source_relayer, "setRequiredValidatorCount", BigInteger.TWO);
         UserRevertedException e = assertThrows(UserRevertedException.class,
                 ()->connection.invoke(source_relayer, "recvMessageWithSignatures", nidSource, BigInteger.ONE, data, byteArray));
         assertEquals("Reverted(0): Not enough signatures", e.getMessage());
@@ -260,8 +260,8 @@ public class ClusterConnectionTest extends TestBase {
     @Test
     public void testAddSigners() throws Exception{
         KeyWallet wallet = KeyWallet.create();
-        connection.invoke(source_relayer, "addSigner", Address.fromString(wallet.getAddress().toString()));
-        Address[] signers = connection.call(Address[].class,"listSigners");
+        connection.invoke(source_relayer, "addValidator", Address.fromString(wallet.getAddress().toString()));
+        Address[] signers = connection.call(Address[].class,"listValidators");
         assertEquals(signers.length, 2);
     }
 
@@ -270,17 +270,17 @@ public class ClusterConnectionTest extends TestBase {
         KeyWallet wallet = KeyWallet.create();
         KeyWallet wallet2 = KeyWallet.create();
         KeyWallet wallet3 = KeyWallet.create();
-        connection.invoke(source_relayer, "addSigner", Address.fromString(wallet.getAddress().toString()));
-        connection.invoke(source_relayer, "addSigner", Address.fromString(wallet2.getAddress().toString()));
-        Address[] signers = connection.call(Address[].class,"listSigners");
+        connection.invoke(source_relayer, "addValidator", Address.fromString(wallet.getAddress().toString()));
+        connection.invoke(source_relayer, "addValidator", Address.fromString(wallet2.getAddress().toString()));
+        Address[] signers = connection.call(Address[].class,"listValidators");
         assertEquals(signers.length, 3);
 
-        connection.invoke(source_relayer, "removeSigner", Address.fromString(wallet3.getAddress().toString()));
-        signers = connection.call(Address[].class,"listSigners");
+        connection.invoke(source_relayer, "removeValidator", Address.fromString(wallet3.getAddress().toString()));
+        signers = connection.call(Address[].class,"listValidators");
         assertEquals(signers.length, 3);
 
-        connection.invoke(source_relayer, "removeSigner", Address.fromString(wallet2.getAddress().toString()));
-        signers = connection.call(Address[].class,"listSigners");
+        connection.invoke(source_relayer, "removeValidator", Address.fromString(wallet2.getAddress().toString()));
+        signers = connection.call(Address[].class,"listValidators");
         assertEquals(signers.length, 2);
     }
 

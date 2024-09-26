@@ -36,9 +36,9 @@ import java.util.List;
 public class ClusterConnection {
     protected final VarDB<Address> xCall = Context.newVarDB("callService", Address.class);
     protected final VarDB<Address> adminAddress = Context.newVarDB("relayer", Address.class);
-    protected final VarDB<BigInteger> reqSignerCnt = Context.newVarDB("reqSignerCnt", BigInteger.class);
+    protected final VarDB<BigInteger> reqValidatorCnt = Context.newVarDB("reqValidatorCnt", BigInteger.class);
     private final VarDB<BigInteger> connSn = Context.newVarDB("connSn", BigInteger.class);
-    private final ArrayDB<Address> signers =  Context.newArrayDB("signers", Address.class);
+    private final ArrayDB<Address> validators =  Context.newArrayDB("signers", Address.class);
 
     protected final DictDB<String, BigInteger> messageFees = Context.newDictDB("messageFees", BigInteger.class);
     protected final DictDB<String, BigInteger> responseFees = Context.newDictDB("responseFees", BigInteger.class);
@@ -50,49 +50,49 @@ public class ClusterConnection {
             xCall.set(_xCall);
             adminAddress.set(_relayer);
             connSn.set(BigInteger.ZERO);
-            signers.add(_relayer);
-            SignerAdded(_relayer);
+            validators.add(_relayer);
+            ValidatorAdded(_relayer);
         }
     }
 
       /**
-     * Retrieves the signers.
+     * Retrieves the validators.
      *
-     * @return The signers .
+     * @return The validators .
      */
     @External(readonly = true)
-    public Address[] listSigners() {
-        Address[] sgs = new Address[signers.size()];
-        for(int i=0; i < signers.size(); i++) {
-            sgs[i] = signers.get(i);
+    public Address[] listValidators() {
+        Address[] sgs = new Address[validators.size()];
+        for(int i = 0; i < validators.size(); i++) {
+            sgs[i] = validators.get(i);
         }
         return sgs;
     }
 
     @External
-    public void addSigner(Address signer) {
+    public void addValidator(Address _validator) {
         OnlyAdmin();
-        if (!signerExists(signer)){
-            signers.add(signer);
-            SignerAdded(signer);
+        if (!validatorExists(_validator)){
+            validators.add(_validator);
+            ValidatorAdded(_validator);
         }
     }
 
     @External
-    public void removeSigner(Address _signer) {
+    public void removeValidator(Address _validator) {
         OnlyAdmin();
-        Context.require(_signer != adminAddress.get(),"cannot remove admin");
-        if (signerExists(_signer)){
-            Address top = this.signers.pop();
-            if (!top.equals(_signer)) {
-                for (int i = 0; i < this.signers.size(); i++) {
-                    if (_signer.equals(this.signers.get(i))) {
-                        this.signers.set(i, top);
+        Context.require(_validator != adminAddress.get(),"cannot remove admin");
+        if (validatorExists(_validator)){
+            Address top = this.validators.pop();
+            if (!top.equals(_validator)) {
+                for (int i = 0; i < this.validators.size(); i++) {
+                    if (_validator.equals(this.validators.get(i))) {
+                        this.validators.set(i, top);
                         break;
                     }
                 }
-            }       
-            SignerRemoved(_signer);
+            }
+            ValidatorRemoved(_validator);
         }
     }
 
@@ -101,11 +101,11 @@ public class ClusterConnection {
     }
 
     @EventLog(indexed = 1)
-    public void SignerAdded(Address _signer) {
+    public void ValidatorAdded(Address _validator) {
     }
 
     @EventLog(indexed = 1)
-    public void SignerRemoved(Address _signer) {
+    public void ValidatorRemoved(Address _validator) {
     }
 
     /**
@@ -130,24 +130,24 @@ public class ClusterConnection {
     }
 
     /**
-     * Sets the required signer count
+     * Sets the required validator count
      *
-     * @param _signerCnt the new required signer count
+     * @param _validatorCnt the new required validator count
      */
     @External
-    public void setRequiredSignerCount(BigInteger _signerCnt) {
+    public void setRequiredValidatorCount(BigInteger _validatorCnt) {
         OnlyAdmin();
-        reqSignerCnt.set(_signerCnt);
+        reqValidatorCnt.set(_validatorCnt);
     }
 
      /**
-     * Retrieves the required signer count.
+     * Retrieves the required validator count.
      *
-     * @return The required signer count.
+     * @return The required validator count.
      */
     @External(readonly = true)
-    public BigInteger requiredSignerCount() {
-        return reqSignerCnt.get();
+    public BigInteger requiredValidatorCount() {
+        return reqValidatorCnt.get();
     }
 
     /**
@@ -220,23 +220,23 @@ public class ClusterConnection {
      public void recvMessageWithSignatures(String srcNetwork, BigInteger _connSn, byte[] msg,
                                            byte[][] signatures) {
          OnlyAdmin();
-         Context.require(signatures.length >= reqSignerCnt.get().intValue(), "Not enough signatures");
-         List<Address> uniqueSigners = new ArrayList<>();
+         Context.require(signatures.length >= reqValidatorCnt.get().intValue(), "Not enough signatures");
+         List<Address> uniqueValidators = new ArrayList<>();
          for (byte[] signature : signatures) {
-             Address signer = getSigner(msg, signature);
-             Context.require(signerExists(signer), "Invalid signature provided");
-             if (!uniqueSigners.contains(signer)) {
-                 uniqueSigners.add(signer);
+             Address validator = getValidator(msg, signature);
+             Context.require(validatorExists(validator), "Invalid signature provided");
+             if (!uniqueValidators.contains(validator)) {
+                 uniqueValidators.add(validator);
              }
          }
-         if (uniqueSigners.size() >= reqSignerCnt.get().intValue()) {
+         if (uniqueValidators.size() >= reqValidatorCnt.get().intValue()) {
              recvMessage(srcNetwork, _connSn, msg);
          }
      }
 
-    private boolean signerExists(Address signer) {
-        for (int i = 0; i < signers.size(); i++) {
-            if (signers.get(i).equals(signer)) {
+    private boolean validatorExists(Address _validator) {
+        for (int i = 0; i < validators.size(); i++) {
+            if (validators.get(i).equals(_validator)) {
                 return true; 
             }
         }
@@ -258,7 +258,7 @@ public class ClusterConnection {
         Context.call(xCall.get(), "handleMessage", srcNetwork, msg);
     }
 
-    private Address getSigner(byte[] msg,byte[] sig){
+    private Address getValidator(byte[] msg, byte[] sig){
         byte[] hashMessage = getHash(msg);
         byte[] key = Context.recoverKey("ecdsa-secp256k1", hashMessage, sig, true);
         return Context.getAddressFromKey(key);
