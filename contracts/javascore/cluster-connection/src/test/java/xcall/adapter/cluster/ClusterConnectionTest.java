@@ -75,20 +75,11 @@ public class ClusterConnectionTest extends TestBase {
 
     protected MockContract<CallService> callservice;
 
-    // @BeforeAll
-    // protected static void init() {
-    //     contextMock = Mockito.mockStatic(Context.class, Mockito.CALLS_REAL_METHODS);
-    // }
-
     @BeforeEach
     public void setup() throws Exception {
         Security.addProvider(new BouncyCastleProvider());
         callservice = new MockContract<>(CallServiceScoreInterface.class, CallService.class, sm, owner);
 
-        // xcall = sm.deploy(owner, CallService.class, nidSource);
-        // xcallSpy = (CallService) spy(xcall.getInstance());
-        // xcall.setInstance(xcallSpy);
-        // contextMock.reset();
 
         connection = sm.deploy(owner, ClusterConnection.class, source_relayer.getAddress(),
                 callservice.getAddress());
@@ -98,8 +89,6 @@ public class ClusterConnectionTest extends TestBase {
 
     @Test
     public void testSetAdmin() {
-        // connection.invoke(source_relayer, "setFee", "0xevm", BigInteger.TEN,
-        // BigInteger.TEN);
 
         connection.invoke(source_relayer, "setAdmin", admin.getAddress());
         assertEquals(connection.call("admin"), admin.getAddress());
@@ -256,12 +245,13 @@ public class ClusterConnectionTest extends TestBase {
         byteArray[0] = wallet.sign(messageHash);
         connection.invoke(source_relayer, "addSigner", Address.fromString(wallet.getAddress().toString()));
         connection.invoke(source_relayer, "setRequiredSignerCount", BigInteger.TWO);
-        connection.invoke(source_relayer, "recvMessageWithSignatures", nidSource, BigInteger.ONE, data, byteArray);
+        UserRevertedException e = assertThrows(UserRevertedException.class,
+                ()->connection.invoke(source_relayer, "recvMessageWithSignatures", nidSource, BigInteger.ONE, data, byteArray));
+        assertEquals("Reverted(0): Not enough signatures", e.getMessage());
         verifyNoInteractions(callservice.mock);
     }
 
 
-    // Hash the message with Keccak-256
     public static byte[] keccak256(byte[] input) {
         Keccak.Digest256 keccak256 = new Keccak.Digest256();
         return keccak256.digest(input);

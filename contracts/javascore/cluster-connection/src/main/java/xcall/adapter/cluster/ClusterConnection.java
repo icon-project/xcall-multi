@@ -208,29 +208,31 @@ public class ClusterConnection {
         Message(to, nextConnSn, msg);
     }
 
-     /**
+    /**
      * Receives a message from a source network.
      *
      * @param srcNetwork the source network id from which the message is received
      * @param _connSn    the serial number of the connection message
      * @param msg        serialized bytes of Service Message
+     * @param signatures array of signatures
      */
-    @External
-    public void recvMessageWithSignatures(String srcNetwork, BigInteger _connSn, byte[] msg,
-        byte[][] signatures) {
-        OnlyAdmin();
-        List<Address> uniqueSigners = new ArrayList<>();
-        for (byte[] signature : signatures) {
-            Address signer = getSigner(msg, signature);
-            Context.require(signerExists(signer), "Invalid signer");
-            if (!uniqueSigners.contains(signer)){
-                uniqueSigners.add(signer);
-            }
-        }
-        if (uniqueSigners.size() >= reqSignerCnt.get().intValue()){
-            recvMessage(srcNetwork, _connSn, msg);  
-        }
-    }
+     @External
+     public void recvMessageWithSignatures(String srcNetwork, BigInteger _connSn, byte[] msg,
+                                           byte[][] signatures) {
+         OnlyAdmin();
+         Context.require(signatures.length >= reqSignerCnt.get().intValue(), "Not enough signatures");
+         List<Address> uniqueSigners = new ArrayList<>();
+         for (byte[] signature : signatures) {
+             Address signer = getSigner(msg, signature);
+             Context.require(signerExists(signer), "Invalid signature provided");
+             if (!uniqueSigners.contains(signer)) {
+                 uniqueSigners.add(signer);
+             }
+         }
+         if (uniqueSigners.size() >= reqSignerCnt.get().intValue()) {
+             recvMessage(srcNetwork, _connSn, msg);
+         }
+     }
 
     private boolean signerExists(Address signer) {
         for (int i = 0; i < signers.size(); i++) {
