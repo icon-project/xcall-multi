@@ -36,7 +36,7 @@ rustup target add wasm32-unknown-unknown
 cargo install cosmwasm-check@2.1.1 --locked
 
 
-RUSTFLAGS='-C link-arg=-s' cargo build --workspace --exclude test-utils --release --lib --target wasm32-unknown-unknown
+RUSTFLAGS='-C link-arg=-s' cargo build --workspace --exclude contracts/soroban/contracts --exclude contracts/soroban/libs --exclude test-utils --release --lib --target wasm32-unknown-unknown
 for WASM in ./target/wasm32-unknown-unknown/release/*.wasm; do
   NAME=$(basename "$WASM" .wasm)${SUFFIX}.wasm
   echo "Creating intermediate hash for $NAME ..."
