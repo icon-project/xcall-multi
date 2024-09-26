@@ -16,7 +16,7 @@ use state::*;
 
 use xcall_lib::query_account_type::{QueryAccountsPaginateResponse, QueryAccountsResponse};
 
-declare_id!("C1UHYinUgsdf4TuSMx7QQpSZ4huHpLKxsNRoUGbXm9k3");
+declare_id!("BWruc8NzF3hnGhWEAa89rDW2hP6jFnWGUdEwqckkAfNF");
 
 #[program]
 pub mod centralized_connection {

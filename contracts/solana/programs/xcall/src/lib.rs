@@ -18,7 +18,7 @@ use xcall_lib::{
     query_account_type::{QueryAccountsPaginateResponse, QueryAccountsResponse},
 };
 
-declare_id!("EirUdPrXn6AvFJKJXq2i12Crry4KgrWCSwtRjjQy3DV9");
+declare_id!("GTQovomJUtRyo6kdfwh7PuKFQSDkS45VAymzm8Ka2jks");
 
 #[program]
 pub mod xcall {
