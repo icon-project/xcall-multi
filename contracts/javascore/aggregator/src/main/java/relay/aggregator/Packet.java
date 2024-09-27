@@ -2,6 +2,7 @@ package relay.aggregator;
 
 import java.math.BigInteger;
 
+import score.Context;
 import score.ObjectReader;
 import score.ObjectWriter;
 
@@ -23,6 +24,11 @@ public class Packet {
     private final BigInteger srcSn;
 
     /**
+     * The source height of the packet in the source network (chain).
+     */
+    private final BigInteger srcHeight;
+
+    /**
      * The ID of the destination network (chain) where the packet is being sent.
      */
     private final String dstNetwork;
@@ -42,20 +48,24 @@ public class Packet {
      * @param data       the payload data for this packet.
      * @throws IllegalArgumentException if {@code srcNetwork},
      *                                  {@code contractAddress}, {@code srcSn},
+     *                                  {@code srcHeight},
      *                                  {@code dstNetwork}, or {@code data} is
      *                                  {@code null}.
      */
-    public Packet(String srcNetwork, String contractAddress, BigInteger srcSn, String dstNetwork, byte[] data) {
-        if (srcNetwork == null || contractAddress == null || contractAddress == null || srcSn == null
-                || dstNetwork == null || data == null) {
-            throw new IllegalArgumentException(
-                    "srcNetwork, contractAddress, srcSn, dstNetwork, and data cannot be null");
+    public Packet(String srcNetwork, String contractAddress, BigInteger srcSn, BigInteger srcHeight, String dstNetwork,
+            byte[] data) {
+        Boolean isIllegalArg = srcNetwork == null || contractAddress == null || contractAddress == null || srcSn == null
+                || srcHeight == null || dstNetwork == null || data == null;
+        Context.require(!isIllegalArg,
+                "srcNetwork, contractAddress, srcSn, srcHeight, dstNetwork, and data cannot be null");
+        if (isIllegalArg) {
         }
         this.srcNetwork = srcNetwork;
         this.contractAddress = contractAddress;
         this.srcSn = srcSn;
+        this.srcHeight = srcHeight;
         this.dstNetwork = dstNetwork;
-        this.data = data.clone(); // clone for immutability
+        this.data = data;
     }
 
     public String getId() {
@@ -94,6 +104,15 @@ public class Packet {
     }
 
     /**
+     * Returns the height of the packet in the source network (chain).
+     *
+     * @return the source height.
+     */
+    public BigInteger getSrcHeight() {
+        return srcHeight;
+    }
+
+    /**
      * Returns the destination network (chain) where the packet is being sent.
      *
      * @return the destination network ID.
@@ -108,14 +127,15 @@ public class Packet {
      * @return a byte array containing the packet data.
      */
     public byte[] getData() {
-        return data.clone(); // return a clone to preserve immutability
+        return data;
     }
 
     public static void writeObject(ObjectWriter w, Packet p) {
-        w.beginList(5);
+        w.beginList(6);
         w.write(p.srcNetwork);
         w.write(p.contractAddress);
         w.write(p.srcSn);
+        w.write(p.srcHeight);
         w.write(p.dstNetwork);
         w.writeNullable(p.data);
         w.end();
@@ -126,6 +146,7 @@ public class Packet {
         Packet p = new Packet(
                 r.readString(),
                 r.readString(),
+                r.readBigInteger(),
                 r.readBigInteger(),
                 r.readString(),
                 r.readNullable(byte[].class));
