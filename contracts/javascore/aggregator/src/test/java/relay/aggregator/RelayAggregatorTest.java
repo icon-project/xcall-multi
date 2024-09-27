@@ -2,7 +2,6 @@ package relay.aggregator;
 
 import java.math.BigInteger;
 
-import org.bouncycastle.util.Arrays;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
@@ -18,6 +17,7 @@ import com.iconloop.score.test.TestBase;
 
 import foundation.icon.icx.KeyWallet;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -264,8 +264,8 @@ class RelayAggregatorTest extends TestBase {
         byte[] encodedSigs = RelayAggregator.serializeSignatures(sigs);
         byte[][] decodedSigs = RelayAggregator.deserializeSignatures(encodedSigs);
 
-        assertTrue(Arrays.areEqual(signOne, decodedSigs[0]));
-        assertTrue(Arrays.areEqual(signTwo, decodedSigs[1]));
+        assertArrayEquals(signOne, decodedSigs[0]);
+        assertArrayEquals(signTwo, decodedSigs[1]);
 
         verify(aggregatorSpy).PacketAcknowledged(srcNetwork, contractAddress, srcSn, srcHeight, dstNetwork, data,
                 encodedSigs);
