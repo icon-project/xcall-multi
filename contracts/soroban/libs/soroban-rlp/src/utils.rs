@@ -1,14 +1,17 @@
 use soroban_sdk::{
+    bytes,
     xdr::{FromXdr, ToXdr},
     Bytes, Env, String,
 };
 
 pub fn u32_to_bytes(env: &Env, number: u32) -> Bytes {
-    let mut bytes = Bytes::new(&env);
+    let mut bytes = bytes!(&env, 0x00);
     let mut i = 3;
+    let mut leading_zero = true;
     while i >= 0 {
         let val = (number >> (i * 8) & 0xff) as u8;
-        if val > 0 {
+        if val > 0 || !leading_zero {
+            leading_zero = false;
             bytes.push_back(val);
         }
 
@@ -26,11 +29,13 @@ pub fn bytes_to_u32(bytes: Bytes) -> u32 {
 }
 
 pub fn u64_to_bytes(env: &Env, number: u64) -> Bytes {
-    let mut bytes = Bytes::new(&env);
+    let mut bytes = bytes!(&env, 0x00);
     let mut i = 7;
+    let mut leading_zero = true;
     while i >= 0 {
         let val = (number >> (i * 8) & 0xff) as u8;
-        if val > 0 {
+        if val > 0 || !leading_zero {
+            leading_zero = false;
             bytes.push_back(val);
         }
 
@@ -48,11 +53,13 @@ pub fn bytes_to_u64(bytes: Bytes) -> u64 {
 }
 
 pub fn u128_to_bytes(env: &Env, number: u128) -> Bytes {
-    let mut bytes = Bytes::new(&env);
+    let mut bytes = bytes!(&env, 0x00);
     let mut i = 15;
+    let mut leading_zero = true;
     while i >= 0 {
         let val = (number >> (i * 8) & 0xff) as u8;
-        if val > 0 {
+        if val > 0 || !leading_zero {
+            leading_zero = false;
             bytes.push_back(val);
         }
 

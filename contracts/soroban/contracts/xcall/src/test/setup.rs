@@ -114,6 +114,7 @@ pub struct TestContext {
     pub native_token: Address,
     pub token_admin: Address,
     pub network_address: NetworkAddress,
+    pub upgrade_authority: Address,
     pub centralized_connection: Address,
 }
 
@@ -130,6 +131,7 @@ impl TestContext {
             native_token: env.register_stellar_asset_contract(token_admin.clone()),
             nid: String::from_str(&env, "stellar"),
             network_address: get_dummy_network_address(&env),
+            upgrade_authority: Address::generate(&env),
             env,
             token_admin,
             centralized_connection,
@@ -143,6 +145,7 @@ impl TestContext {
             sender: self.admin.clone(),
             network_id: String::from_str(&self.env, "icon"),
             native_token: self.native_token.clone(),
+            upgrade_authority: self.upgrade_authority.clone(),
         });
 
         self.init_connection_state();

@@ -29,6 +29,13 @@ pub fn admin(e: &Env) -> Result<Address, ContractError> {
         .ok_or(ContractError::Uninitialized)
 }
 
+pub fn get_upgrade_authority(e: &Env) -> Result<Address, ContractError> {
+    e.storage()
+        .instance()
+        .get(&StorageKey::UpgradeAuthority)
+        .ok_or(ContractError::Uninitialized)
+}
+
 pub fn get_xcall(e: &Env) -> Result<Address, ContractError> {
     e.storage()
         .instance()
@@ -62,8 +69,11 @@ pub fn get_msg_fee(e: &Env, network_id: String) -> Result<u128, ContractError> {
         .storage()
         .persistent()
         .get(&key)
-        .ok_or(ContractError::NetworkNotSupported)?;
-    extend_persistent(e, &key);
+        .unwrap_or(NetworkFee::default());
+
+    if network_fee.message_fee > 0 {
+        extend_persistent(e, &key);
+    }
 
     Ok(network_fee.message_fee)
 }
@@ -74,8 +84,11 @@ pub fn get_res_fee(e: &Env, network_id: String) -> Result<u128, ContractError> {
         .storage()
         .persistent()
         .get(&key)
-        .ok_or(ContractError::NetworkNotSupported)?;
-    extend_persistent(e, &key);
+        .unwrap_or(NetworkFee::default());
+
+    if network_fee.response_fee > 0 {
+        extend_persistent(e, &key);
+    }
 
     Ok(network_fee.response_fee)
 }
@@ -98,6 +111,12 @@ pub fn store_receipt(e: &Env, network_id: String, sn: u128) {
 
 pub fn store_admin(e: &Env, admin: Address) {
     e.storage().instance().set(&StorageKey::Admin, &admin);
+}
+
+pub fn store_upgrade_authority(e: &Env, address: Address) {
+    e.storage()
+        .instance()
+        .set(&StorageKey::UpgradeAuthority, &address);
 }
 
 pub fn store_xcall(e: &Env, xcall: Address) {

@@ -91,4 +91,5 @@ pub struct InitializeMsg {
     pub network_id: String,
     pub sender: Address,
     pub native_token: Address,
+    pub upgrade_authority: Address,
 }

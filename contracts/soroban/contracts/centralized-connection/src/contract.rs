@@ -7,18 +7,6 @@ pub struct CentralizedConnection;
 
 #[contractimpl]
 impl CentralizedConnection {
-    /// It checks if contract is not already initialized and initialize the contract otherwise
-    /// returns the ContractError
-    ///
-    /// Arguments:
-    ///
-    /// * `env`: The `Env` type provides access to the environment the contract is executing within
-    /// * `msg`: `msg` is a struct which includes admin, xcall and native token address to initialize
-    /// the contract
-    ///
-    /// Returns:
-    ///
-    /// a `Result<(), ContractError>`
     pub fn initialize(env: Env, msg: InitializeMsg) -> Result<(), ContractError> {
         storage::is_initialized(&env)?;
 
@@ -26,38 +14,31 @@ impl CentralizedConnection {
         storage::store_conn_sn(&env, 0);
         storage::store_admin(&env, msg.relayer);
         storage::store_xcall(&env, msg.xcall_address);
+        storage::store_upgrade_authority(&env, msg.upgrade_authority);
 
         Ok(())
     }
 
-    /// It quries the admin from the contract and returns ContractError if the contract is
-    /// not initialized
-    ///
-    /// Arguments:
-    ///
-    /// * `env`: The `Env` type provides access to the environment the contract is executing within
-    ///
-    /// Returns:
-    ///
-    /// a `Result<Address, ContractError>`
     pub fn get_admin(env: Env) -> Result<Address, ContractError> {
         let address = storage::admin(&env)?;
         Ok(address)
     }
 
-    /// It ensures if the caller is an admin and sets the new admin for the contract
-    ///
-    /// Arguments:
-    ///
-    /// * `env`: The `Env` type provides access to the environment the contract is executing within
-    /// * `address`: The new admin address
-    ///
-    /// Returns:
-    ///
-    /// a `Result<(), ContractError>`
     pub fn set_admin(env: Env, address: Address) -> Result<(), ContractError> {
         helpers::ensure_admin(&env)?;
         storage::store_admin(&env, address);
+        Ok(())
+    }
+
+    pub fn get_upgrade_authority(env: Env) -> Result<Address, ContractError> {
+        let address = storage::get_upgrade_authority(&env)?;
+        Ok(address)
+    }
+
+    pub fn set_upgrade_authority(env: &Env, address: Address) -> Result<(), ContractError> {
+        helpers::ensure_upgrade_authority(&env)?;
+        storage::store_upgrade_authority(&env, address);
+
         Ok(())
     }
 
@@ -102,17 +83,6 @@ impl CentralizedConnection {
         Ok(())
     }
 
-    /// The function receives message sequence `sn` of failed message from the destination chain
-    /// and call xcall to handle the response of failure message
-    ///
-    /// Arguments:
-    ///
-    /// * `env`: The `Env` type provides access to the environment the contract is executing within
-    /// * `sn`: `sn` is the unique ID of the message send from source chain to the destination chain
-    ///
-    /// Returns:
-    ///
-    /// a `Result<(), ContractError)`
     pub fn revert_message(env: &Env, sn: u128) -> Result<(), ContractError> {
         helpers::ensure_admin(&env)?;
         helpers::call_xcall_handle_error(&env, sn)?;
@@ -120,19 +90,6 @@ impl CentralizedConnection {
         Ok(())
     }
 
-    /// It sets fee required to send and recieve message from source chain to destination chain
-    ///
-    /// Arguments:
-    /// * `env`: The `Env` type provides access to the environment the contract is executing within
-    /// * `network_id`: `network_id` is the unique identifier of a blockchain network
-    /// * `message_fee`: `message_fee` is the amount of XLM Asset required to send message from
-    /// source chain to the destination chain
-    /// * `response_fee`: `response_fee` is the amount of XLM Asset required to receive response of
-    /// send message from the destination chain
-    ///
-    /// Returns:
-    ///
-    /// a `Result<(), ContractError>`
     pub fn set_fee(
         env: Env,
         network_id: String,
@@ -145,13 +102,6 @@ impl CentralizedConnection {
         Ok(())
     }
 
-    /// This function allows admin to claim all the native (XLM) token stored in the contract. First
-    /// it checks if the caller is an admin, then it sends `transfer` message to Stellar Asset
-    /// Contract (SAC) of native XLM asset and transfers all the contract fund to admin address
-    ///
-    /// Returns:
-    ///
-    /// a `Result<(), ContractError>`
     pub fn claim_fees(env: Env) -> Result<(), ContractError> {
         let admin = helpers::ensure_admin(&env)?;
 
@@ -163,18 +113,6 @@ impl CentralizedConnection {
         Ok(())
     }
 
-    /// It returns the fee required to send the message for specific blockchain network
-    ///
-    /// Arguments:
-    ///
-    /// * `env`: The `Env` type provides access to the environment the contract is executing within.
-    /// * `network_id`: `network_id` is the unique blockchain network id stored in the contract storage
-    /// * `response`: `response` is a boolean value which indicates if the response fee should be
-    /// included or not.
-    ///
-    /// Returns:
-    ///
-    /// a `u128` fee required to send message
     pub fn get_fee(env: Env, network_id: String, response: bool) -> Result<u128, ContractError> {
         helpers::get_network_fee(&env, network_id, response)
     }
@@ -184,7 +122,7 @@ impl CentralizedConnection {
     }
 
     pub fn upgrade(env: Env, new_wasm_hash: BytesN<32>) -> Result<(), ContractError> {
-        helpers::ensure_admin(&env)?;
+        helpers::ensure_upgrade_authority(&env)?;
         env.deployer().update_current_contract_wasm(new_wasm_hash);
 
         Ok(())
