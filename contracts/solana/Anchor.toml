@@ -5,9 +5,9 @@ resolution = false
 skip-lint = false
 
 [programs.localnet]
-centralized-connection = "4vfkXyxMxptmREF3RaFKUwnPRuqsXJJeUFzpCjPSSVMb"
-mock-dapp-multi = "FiVbT6SdmDt6tiARaCdxvD1q9wY8GZEiw2xbdVA5kNF7"
-xcall = "47QmEHEPSQqhpEjok5PmooeqdqBXRVpU11aRMhJGe6LW"
+centralized-connection = "8oxnXrSmqWJqkb2spZk2uz1cegzPsLy6nJp9XwFhkMD5"
+mock-dapp-multi = "hSruQVdc5a9dUAqHfRaLcn2S9cbgdpoomG5eWhhDS5W"
+xcall = "6PDxNoATKJpTdkEEiiKQucnhUJYvhZg3BNVckyV8sS1q"
 
 [registry]
 url = "https://api.apr.dev"
@@ -17,13 +17,11 @@ cluster = "Localnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
-test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
+add-connection-mock-dapp = "yarn ts-node --project ./tsconfig.json ./scripts/mock-dapp-multi/add-connection.ts"
+initialize-centralized = "yarn ts-node --project ./tsconfig.json ./scripts/centralized-connection/initialize.ts"
+initialize-mock-dapp-multi = "yarn ts-node --project ./tsconfig.json ./scripts/mock-dapp-multi/initialize.ts"
 initialize-xcall = "yarn ts-node --project ./tsconfig.json ./scripts/xcall/initialize.ts"
 set-admin-xcall = "yarn ts-node --project ./tsconfig.json ./scripts/xcall/set-admin.ts"
-set-protocol-fee-xcall = "yarn ts-node --project ./tsconfig.json ./scripts/xcall/set-protocol-fee.ts"
 set-protocol-fee-handler-xcall = "yarn ts-node --project ./tsconfig.json ./scripts/xcall/set-protocol-fee-handler.ts"
-
-initialize-centralized = "yarn ts-node --project ./tsconfig.json ./scripts/centralized-connection/initialize.ts"
-
-initialize-mock-dapp-multi = "yarn ts-node --project ./tsconfig.json ./scripts/mock-dapp-multi/initialize.ts"
-add-connection-mock-dapp = "yarn ts-node --project ./tsconfig.json ./scripts/mock-dapp-multi/add-connection.ts"
+set-protocol-fee-xcall = "yarn ts-node --project ./tsconfig.json ./scripts/xcall/set-protocol-fee.ts"
+test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
