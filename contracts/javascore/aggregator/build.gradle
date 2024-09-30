@@ -37,6 +37,5 @@ deployJar {
     password = rootProject.hasProperty('keystorePass') ? "$keystorePass" : ''
     parameters {
         arg('_admin', "hxb6b5791be0b5ef67063b3c10b840fb81514db2fd")
-        arg('_relayers', "[]")
     }
 }

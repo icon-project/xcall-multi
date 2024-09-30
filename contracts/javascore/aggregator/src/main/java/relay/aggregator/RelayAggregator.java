@@ -45,12 +45,9 @@ public class RelayAggregator {
     private final BranchDB<String, DictDB<Address, byte[]>> signatures = Context.newBranchDB("signatures",
             byte[].class);
 
-    public RelayAggregator(Address _admin, Address[] _relayers) {
+    public RelayAggregator(Address _admin) {
         if (admin.get() == null) {
             admin.set(_admin);
-            for (Address relayer : _relayers) {
-                relayers.add(relayer);
-            }
             signatureThreshold.set(DEFAULT_SIGNATURE_THRESHOLD);
         }
     }

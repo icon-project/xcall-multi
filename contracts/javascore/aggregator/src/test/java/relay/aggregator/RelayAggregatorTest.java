@@ -62,9 +62,11 @@ class RelayAggregatorTest extends TestBase {
         relayerFour = KeyWallet.create();
         relayerFourAc = sm.getAccount(Address.fromString(relayerFour.getAddress().toString()));
 
+        aggregator = sm.deploy(adminAc, RelayAggregator.class, adminAc.getAddress());
+
         Address[] relayers = new Address[] { relayerOneAc.getAddress(), relayerTwoAc.getAddress(),
                 relayerThreeAc.getAddress() };
-        aggregator = sm.deploy(adminAc, RelayAggregator.class, adminAc.getAddress(), relayers);
+        aggregator.invoke(adminAc, "addRelayers", (Object) relayers);
 
         aggregatorSpy = (RelayAggregator) spy(aggregator.getInstance());
         aggregator.setInstance(aggregatorSpy);
