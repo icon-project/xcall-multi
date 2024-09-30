@@ -73,7 +73,7 @@ public class RelayAggregator {
     }
 
     @External(readonly = true)
-    public Integer getSignatureThreshold() {
+    public int getSignatureThreshold() {
         return signatureThreshold.get();
     }
 
@@ -272,7 +272,7 @@ public class RelayAggregator {
                 noOfSignatures++;
             }
         }
-        return noOfSignatures >= 2;
+        return noOfSignatures >= signatureThreshold.get();
     }
 
     private void removePacket(String pktID) {
