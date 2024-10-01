@@ -13,7 +13,7 @@ use error::*;
 use instructions::*;
 use state::*;
 
-declare_id!("hSruQVdc5a9dUAqHfRaLcn2S9cbgdpoomG5eWhhDS5W");
+declare_id!("J1hCTRxgJXGMpSD6abzeyerTugAkbQ2sCuwWmju7tZu4");
 
 #[program]
 pub mod mock_dapp_multi {
