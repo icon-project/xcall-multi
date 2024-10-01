@@ -16,9 +16,6 @@
 [submodule "contracts/evm/lib/solidity-examples"]
 	path = contracts/evm/lib/solidity-examples
 	url = https://github.com/LayerZero-Labs/solidity-examples
-[submodule "contracts/evm/lib/openzeppelin-contracts"]
-	path = contracts/evm/lib/openzeppelin-contracts
-	url = https://github.com/OpenZeppelin/openzeppelin-contracts
 [submodule "contracts/evm/lib/openzeppelin-contracts-upgradeable"]
 	path = contracts/evm/lib/openzeppelin-contracts-upgradeable
 	url = https://github.com/OpenZeppelin/openzeppelin-contracts-upgradeable
