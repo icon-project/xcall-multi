@@ -51,7 +51,7 @@ impl<'a> CwMockService<'a> {
         };
         let message: CosmosMsg<Empty> = CosmosMsg::Wasm(WasmMsg::Execute {
             contract_addr: address,
-            msg: to_binary(&msg).unwrap(),
+            msg: to_json_binary(&msg).unwrap(),
             funds: info.funds,
         });
 
@@ -89,7 +89,7 @@ impl<'a> CwMockService<'a> {
         let msg = ExecuteMsg::SendCall { envelope, to };
         let message: CosmosMsg<Empty> = CosmosMsg::Wasm(WasmMsg::Execute {
             contract_addr: address,
-            msg: to_binary(&msg).unwrap(),
+            msg: to_json_binary(&msg).unwrap(),
             funds: info.funds,
         });
 

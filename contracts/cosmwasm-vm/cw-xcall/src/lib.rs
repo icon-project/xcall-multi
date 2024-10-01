@@ -35,7 +35,7 @@ use crate::{
 
 use cosmwasm_schema::{cw_serde, QueryResponses};
 use cosmwasm_std::{
-    ensure, ensure_eq, entry_point, to_binary, Addr, Api, Binary, Deps, DepsMut, Env, Event,
+    ensure, ensure_eq, entry_point, to_json_binary, Addr, Api, Binary, Deps, DepsMut, Env, Event,
     MessageInfo, QuerierWrapper, Reply, Response, StdError, StdResult, Storage, SubMsg,
 };
 

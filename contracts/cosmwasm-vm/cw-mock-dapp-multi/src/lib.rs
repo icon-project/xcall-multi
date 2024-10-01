@@ -7,19 +7,16 @@ pub mod types;
 
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{
-    entry_point, to_binary, Binary, CosmosMsg, Deps, DepsMut, Empty, Env, MessageInfo, Response,
-    StdError, StdResult, Storage, WasmMsg,
+    entry_point, to_json_binary, Binary, CosmosMsg, Deps, DepsMut, Empty, Env, MessageInfo,
+    Response, StdError, StdResult, Storage, WasmMsg,
 };
 
-pub use contract::*;
 use cw2::set_contract_version;
 use cw_storage_plus::{Item, Map};
 pub use errors::*;
-pub use helper::*;
 use msg::{ExecuteMsg, QueryMsg};
 use state::{Connection, CwMockService};
 use thiserror::Error;
-use types::InstantiateMsg;
 pub use types::*;
 
 #[entry_point]
@@ -85,6 +82,8 @@ pub fn execute(
 pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
     let call_service = CwMockService::default();
     match msg {
-        QueryMsg::GetSequence {} => to_binary(&call_service.get_sequence(deps.storage).unwrap()),
+        QueryMsg::GetSequence {} => {
+            to_json_binary(&call_service.get_sequence(deps.storage).unwrap())
+        }
     }
 }
