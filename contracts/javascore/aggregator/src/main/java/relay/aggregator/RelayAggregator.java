@@ -39,6 +39,7 @@ public class RelayAggregator {
     private final VarDB<Address> admin = Context.newVarDB("admin", Address.class);
 
     private final ArrayDB<Address> relayers = Context.newArrayDB("relayers", Address.class);
+    private final DictDB<Address, Boolean> relayersLookup = Context.newDictDB("relayersLookup", Boolean.class);
 
     private final DictDB<String, Packet> packets = Context.newDictDB("packets", Packet.class);
 
@@ -89,16 +90,11 @@ public class RelayAggregator {
 
         Context.require(newRelayers != null && newRelayers.length != 0, "new relayers cannot be empty");
 
-        HashMap<Address, Boolean> existingRelayers = new HashMap<Address, Boolean>();
-        for (int i = 0; i < relayers.size(); i++) {
-            Address relayer = relayers.get(i);
-            existingRelayers.put(relayer, true);
-        }
-
         for (Address newRelayer : newRelayers) {
-            if (!existingRelayers.containsKey(newRelayer)) {
+            Boolean exits = relayersLookup.get(newRelayer);
+            if (exits == null) {
                 relayers.add(newRelayer);
-                existingRelayers.put(newRelayer, true);
+                relayersLookup.set(newRelayer, true);
             }
         }
     }
@@ -118,6 +114,7 @@ public class RelayAggregator {
 
         for (Address relayerToBeRemoved : relayersToBeRemoved) {
             if (existingRelayers.containsKey(relayerToBeRemoved)) {
+                relayersLookup.set(relayerToBeRemoved, null);
                 Address top = relayers.pop();
                 if (!top.equals(relayerToBeRemoved)) {
                     Integer pos = existingRelayers.get(relayerToBeRemoved);
@@ -249,15 +246,8 @@ public class RelayAggregator {
 
     private void relayersOnly() {
         Address caller = Context.getCaller();
-        Boolean isRelayer = false;
-        for (int i = 0; i < relayers.size(); i++) {
-            Address relayer = relayers.get(i);
-            if (relayer.equals(caller)) {
-                isRelayer = true;
-                break;
-            }
-        }
-        Context.require(isRelayer, "Unauthorized: caller is not a registered relayer");
+        Boolean isRelayer = relayersLookup.get(caller);
+        Context.require(isRelayer != null && isRelayer, "Unauthorized: caller is not a registered relayer");
     }
 
     private Boolean signatureThresholdReached(String pktID) {
