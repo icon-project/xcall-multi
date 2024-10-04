@@ -126,44 +126,30 @@ public class RelayAggregator {
     }
 
     @External
-    public void registerPacket(
+    public void submitPacket(
             String srcNetwork,
             String contractAddress,
             BigInteger srcSn,
             BigInteger srcHeight,
             String dstNetwork,
-            byte[] data) {
-
-        adminOnly();
-
-        Packet pkt = new Packet(srcNetwork, contractAddress, srcSn, srcHeight, dstNetwork, data);
-        String id = pkt.getId();
-
-        Context.require(packets.get(id) == null, "Packet already exists");
-
-        packets.set(id, pkt);
-
-        PacketRegistered(
-                pkt.getSrcNetwork(),
-                pkt.getContractAddress(),
-                pkt.getSrcSn(),
-                pkt.getSrcHeight(),
-                pkt.getDstNetwork(),
-                pkt.getData());
-    }
-
-    @External
-    public void acknowledgePacket(
-            String srcNetwork,
-            String contractAddress,
-            BigInteger srcSn,
+            byte[] data,
             byte[] signature) {
 
         relayersOnly();
 
-        String pktID = Packet.createId(srcNetwork, contractAddress, srcSn);
-        Packet pkt = packets.get(pktID);
-        Context.require(pkt != null, "Packet not registered");
+        Packet pkt = new Packet(srcNetwork, contractAddress, srcSn, srcHeight, dstNetwork, data);
+        String pktID = pkt.getId();
+
+        if (packets.get(pktID) == null) {
+            packets.set(pktID, pkt);
+            PacketRegistered(
+                    pkt.getSrcNetwork(),
+                    pkt.getContractAddress(),
+                    pkt.getSrcSn(),
+                    pkt.getSrcHeight(),
+                    pkt.getDstNetwork(),
+                    pkt.getData());
+        }
 
         byte[] existingSign = signatures.at(pktID).get(Context.getCaller());
         Context.require(existingSign == null, "Signature already exists");
