@@ -129,9 +129,9 @@ public class RelayAggregator {
     public boolean packetSubmitted(
             Address relayer,
             String srcNetwork,
-            String contractAddress,
+            String srcContractAddress,
             BigInteger srcSn) {
-        String pktID = Packet.createId(srcNetwork, contractAddress, srcSn);
+        String pktID = Packet.createId(srcNetwork, srcContractAddress, srcSn);
         byte[] existingSign = signatures.at(pktID).get(relayer);
         return existingSign != null;
     }
@@ -139,26 +139,28 @@ public class RelayAggregator {
     @External
     public void submitPacket(
             String srcNetwork,
-            String contractAddress,
+            String srcContractAddress,
             BigInteger srcSn,
             BigInteger srcHeight,
             String dstNetwork,
+            String dstContractAddress,
             byte[] data,
             byte[] signature) {
 
         relayersOnly();
 
-        Packet pkt = new Packet(srcNetwork, contractAddress, srcSn, srcHeight, dstNetwork, data);
+        Packet pkt = new Packet(srcNetwork, srcContractAddress, srcSn, srcHeight, dstNetwork, dstContractAddress, data);
         String pktID = pkt.getId();
 
         if (packets.get(pktID) == null) {
             packets.set(pktID, pkt);
             PacketRegistered(
                     pkt.getSrcNetwork(),
-                    pkt.getContractAddress(),
+                    pkt.getSrcContractAddress(),
                     pkt.getSrcSn(),
                     pkt.getSrcHeight(),
                     pkt.getDstNetwork(),
+                    pkt.getDstContractAddress(),
                     pkt.getData());
         }
 
@@ -168,22 +170,23 @@ public class RelayAggregator {
         setSignature(pktID, Context.getCaller(), signature);
 
         if (signatureThresholdReached(pktID)) {
-            byte[][] sigs = getSignatures(srcNetwork, contractAddress, srcSn);
+            byte[][] sigs = getSignatures(srcNetwork, srcContractAddress, srcSn);
             byte[] encodedSigs = serializeSignatures(sigs);
             PacketAcknowledged(
                     pkt.getSrcNetwork(),
-                    pkt.getContractAddress(),
+                    pkt.getSrcContractAddress(),
                     pkt.getSrcSn(),
                     pkt.getSrcHeight(),
                     pkt.getDstNetwork(),
+                    pkt.getDstContractAddress(),
                     pkt.getData(),
                     encodedSigs);
             removePacket(pktID);
         }
     }
 
-    private byte[][] getSignatures(String srcNetwork, String contractAddress, BigInteger srcSn) {
-        String pktID = Packet.createId(srcNetwork, contractAddress, srcSn);
+    private byte[][] getSignatures(String srcNetwork, String srcContractAddress, BigInteger srcSn) {
+        String pktID = Packet.createId(srcNetwork, srcContractAddress, srcSn);
         DictDB<Address, byte[]> signDict = signatures.at(pktID);
         ArrayList<byte[]> signatureList = new ArrayList<byte[]>();
 
@@ -272,20 +275,22 @@ public class RelayAggregator {
     @EventLog(indexed = 2)
     public void PacketRegistered(
             String srcNetwork,
-            String contractAddress,
+            String srcContractAddress,
             BigInteger srcSn,
             BigInteger srcHeight,
             String dstNetwork,
+            String dstContractAddress,
             byte[] data) {
     }
 
     @EventLog(indexed = 2)
     public void PacketAcknowledged(
             String srcNetwork,
-            String contractAddress,
+            String srcContractAddress,
             BigInteger srcSn,
             BigInteger srcHeight,
             String dstNetwork,
+            String dstContractAddress,
             byte[] data,
             byte[] signatures) {
     }

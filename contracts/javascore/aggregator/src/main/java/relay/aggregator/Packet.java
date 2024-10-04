@@ -16,7 +16,7 @@ public class Packet {
     /**
      * The contract address on the source network (chain).
      */
-    private final String contractAddress;
+    private final String srcContractAddress;
 
     /**
      * The sequence number of the packet in the source network (chain).
@@ -34,6 +34,11 @@ public class Packet {
     private final String dstNetwork;
 
     /**
+     * The contract address on the destination network (chain).
+     */
+    private final String dstContractAddress;
+
+    /**
      * The payload data associated with this packet.
      */
     private final byte[] data;
@@ -47,29 +52,33 @@ public class Packet {
      * @param dstNetwork the ID of the destination network (chain).
      * @param data       the payload data for this packet.
      * @throws IllegalArgumentException if {@code srcNetwork},
-     *                                  {@code contractAddress}, {@code srcSn},
+     *                                  {@code srcContractAddress}, {@code srcSn},
      *                                  {@code srcHeight},
-     *                                  {@code dstNetwork}, or {@code data} is
+     *                                  {@code dstNetwork},
+     *                                  {@code dstContractAddress}, or {@code data}
+     *                                  is
      *                                  {@code null}.
      */
-    public Packet(String srcNetwork, String contractAddress, BigInteger srcSn, BigInteger srcHeight, String dstNetwork,
+    public Packet(String srcNetwork, String srcContractAddress, BigInteger srcSn, BigInteger srcHeight,
+            String dstNetwork, String dstContractAddress,
             byte[] data) {
-        Boolean isIllegalArg = srcNetwork == null || contractAddress == null || contractAddress == null || srcSn == null
-                || srcHeight == null || dstNetwork == null || data == null;
+        Boolean isIllegalArg = srcNetwork == null || srcContractAddress == null || srcSn == null
+                || srcHeight == null || dstNetwork == null || dstContractAddress == null || data == null;
         Context.require(!isIllegalArg,
                 "srcNetwork, contractAddress, srcSn, srcHeight, dstNetwork, and data cannot be null");
         if (isIllegalArg) {
         }
         this.srcNetwork = srcNetwork;
-        this.contractAddress = contractAddress;
+        this.srcContractAddress = srcContractAddress;
         this.srcSn = srcSn;
         this.srcHeight = srcHeight;
         this.dstNetwork = dstNetwork;
+        this.dstContractAddress = dstContractAddress;
         this.data = data;
     }
 
     public String getId() {
-        return createId(this.srcNetwork, this.contractAddress, this.srcSn);
+        return createId(this.srcNetwork, this.srcContractAddress, this.srcSn);
     }
 
     public static String createId(String srcNetwork, String contractAddress, BigInteger srcSn) {
@@ -88,10 +97,10 @@ public class Packet {
     /**
      * Returns the contract address on the source network (chain).
      *
-     * @return the contract address.
+     * @return the source contract address.
      */
-    public String getContractAddress() {
-        return contractAddress;
+    public String getSrcContractAddress() {
+        return srcContractAddress;
     }
 
     /**
@@ -122,6 +131,15 @@ public class Packet {
     }
 
     /**
+     * Returns the contract address on the destination network (chain).
+     *
+     * @return the destination contract address.
+     */
+    public String getDstContractAddress() {
+        return dstContractAddress;
+    }
+
+    /**
      * Returns a copy of the data associated with this packet.
      *
      * @return a byte array containing the packet data.
@@ -131,12 +149,13 @@ public class Packet {
     }
 
     public static void writeObject(ObjectWriter w, Packet p) {
-        w.beginList(6);
+        w.beginList(7);
         w.write(p.srcNetwork);
-        w.write(p.contractAddress);
+        w.write(p.srcContractAddress);
         w.write(p.srcSn);
         w.write(p.srcHeight);
         w.write(p.dstNetwork);
+        w.write(p.dstContractAddress);
         w.writeNullable(p.data);
         w.end();
     }
@@ -148,6 +167,7 @@ public class Packet {
                 r.readString(),
                 r.readBigInteger(),
                 r.readBigInteger(),
+                r.readString(),
                 r.readString(),
                 r.readNullable(byte[].class));
         r.end();
