@@ -1,0 +1,20 @@
+[addresses]
+  xcall = '0xba481bcd34c4c236b1ccda9d8cb549f03a80260d794285f2b2a6798170d8375d'
+
+[dependencies]
+  [dependencies.Sui]
+    git = 'https://github.com/MystenLabs/sui.git'
+    rev = 'framework/testnet'
+    subdir = 'crates/sui-framework/packages/sui-framework'
+
+  [dependencies.sui_rlp]
+    local = '../libs/sui_rlp'
+
+[dev-addresses]
+
+[dev-dependencies]
+
+[package]
+  edition = '2024.alpha'
+  name = 'xcall'
+  published-at = '0xba481bcd34c4c236b1ccda9d8cb549f03a80260d794285f2b2a6798170d8375d'

@@ -1,16 +1,17 @@
 [workspace]
 members = [
     "contracts/cosmwasm-vm/*",
-
+    "contracts/soroban/contracts/*",
+    "contracts/soroban/libs/*"
 ]
 
 [workspace.package]
 authors = ["Icon Foundation<foo@icon.foundation>"]
 repository = "https://github.com/icon-project/ibc-integration.git"
-version="0.2.0"
+version="0.2.1"
 
 [workspace.dependencies]
-cosmwasm-std = {version="1.2.2",default-features = false,features = ["iterator", "staking"]}
+cosmwasm-std = {version="1.5.5",default-features = false,features = ["iterator", "staking"]}
 cw-storage-plus = {git="https://github.com/icon-project/cw-storage-plus.git", branch="fix-raw"}
 cosmwasm-storage = "1.2.2"
 cosmwasm-schema = "1.2.2"
@@ -36,6 +37,8 @@ cw-common={ git="https://github.com/icon-project/IBC-Integration.git", branch = 
 
 cw-mock-dapp = {path="contracts/cosmwasm-vm/cw-mock-dapp"}
 cw-mock-dapp-multi = { path="contracts/cosmwasm-vm/cw-mock-dapp-multi"}
+
+soroban-sdk = "21.6.0"
 
 [profile.release]
 opt-level = 'z'
