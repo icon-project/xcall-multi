@@ -125,6 +125,17 @@ public class RelayAggregator {
         }
     }
 
+    @External(readonly = true)
+    public boolean packetSubmitted(
+            Address relayer,
+            String srcNetwork,
+            String contractAddress,
+            BigInteger srcSn) {
+        String pktID = Packet.createId(srcNetwork, contractAddress, srcSn);
+        byte[] existingSign = signatures.at(pktID).get(relayer);
+        return existingSign != null;
+    }
+
     @External
     public void submitPacket(
             String srcNetwork,

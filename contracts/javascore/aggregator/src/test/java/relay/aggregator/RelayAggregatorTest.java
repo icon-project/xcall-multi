@@ -171,6 +171,37 @@ class RelayAggregatorTest extends TestBase {
     }
 
     @Test
+    public void testPacketSubmitted_true() throws Exception {
+        String srcNetwork = "0x2.icon";
+        String dstNetwork = "sui";
+        BigInteger srcSn = BigInteger.ONE;
+        BigInteger srcHeight = BigInteger.ONE;
+        String contractAddress = "hxjuiod";
+        byte[] data = new byte[] { 0x01, 0x02 };
+
+        byte[] dataHash = Context.hash("sha-256", data);
+        byte[] sign = relayerOne.sign(dataHash);
+
+        aggregator.invoke(relayerOneAc, "submitPacket", srcNetwork, contractAddress, srcSn, srcHeight, dstNetwork, data,
+                sign);
+
+        boolean submitted = (boolean) aggregator.call("packetSubmitted", relayerOneAc.getAddress(), srcNetwork,
+                contractAddress, srcSn);
+        assertEquals(submitted, true);
+    }
+
+    @Test
+    public void testPacketSubmitted_false() throws Exception {
+        String srcNetwork = "0x2.icon";
+        BigInteger srcSn = BigInteger.ONE;
+        String contractAddress = "hxjuiod";
+
+        boolean submitted = (boolean) aggregator.call("packetSubmitted", relayerOneAc.getAddress(), srcNetwork,
+                contractAddress, srcSn);
+        assertEquals(submitted, false);
+    }
+
+    @Test
     public void testSubmitPacket() throws Exception {
         String srcNetwork = "0x2.icon";
         String dstNetwork = "sui";
