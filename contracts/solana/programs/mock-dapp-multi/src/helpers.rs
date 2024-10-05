@@ -7,7 +7,7 @@ use xcall_lib::message::{msg_type::*, AnyMessage};
 
 use crate::{CallMessageCtx, DappError};
 
-pub fn process_message(message_type: u8, data: Vec<u8>, rollback: Vec<u8>) -> Result<AnyMessage> {
+pub fn  process_message(message_type: u8, data: Vec<u8>, rollback: Vec<u8>) -> Result<AnyMessage> {
     let msg_type: MessageType = message_type.into();
 
     let message = if msg_type == MessageType::CallMessagePersisted {
@@ -25,9 +25,7 @@ pub fn process_message(message_type: u8, data: Vec<u8>, rollback: Vec<u8>) -> Re
     Ok(message)
 }
 
-pub fn get_network_connections(
-    ctx: &Context<CallMessageCtx>,
-) -> Result<(Vec<String>, Vec<String>)> {
+pub fn  get_network_connections(ctx: &Context<CallMessageCtx>) -> Result<(Vec<String>, Vec<String>)> {
     let connections = ctx.accounts.connections_account.connections.clone();
 
     let mut sources = Vec::new();
