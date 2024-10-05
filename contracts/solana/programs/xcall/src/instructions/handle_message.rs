@@ -404,6 +404,14 @@ pub fn invoke_handle_result<'info>(
         account_infos.push(account.to_account_info());
     }
 
+    // append all accounts with lamport changes to the end of your CPI instruction accounts list
+    if ctx.accounts.pending_response.is_some() {
+        let pending_response = ctx.accounts.pending_response.as_ref().unwrap();
+
+        account_metas.push(AccountMeta::new_readonly(pending_response.key(), false));
+        account_infos.push(pending_response.to_account_info());
+    }
+
     let ix = Instruction {
         program_id: id(),
         accounts: account_metas,
