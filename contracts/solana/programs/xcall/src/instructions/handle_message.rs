@@ -57,12 +57,15 @@ pub fn handle_message<'info>(
                 .as_ref()
                 .ok_or(XcallError::CallRequestNotFound)?;
 
-            validate_source_and_pending_response(
+            let all_sources_delivered = check_sources_and_pending_response(
                 &ctx.accounts.connection,
                 rollback_account.rollback.protocols(),
                 &mut ctx.accounts.pending_response,
                 &ctx.accounts.admin,
             )?;
+            if !all_sources_delivered {
+                return Ok(());
+            }
 
             invoke_handle_result(ctx, from_nid, cs_message.payload, sequence_no)?;
         }
@@ -218,12 +221,15 @@ pub fn handle_result(ctx: Context<HandleResultCtx>, payload: &[u8]) -> Result<()
 pub fn handle_error(ctx: Context<HandleErrorCtx>, sequence_no: u128) -> Result<()> {
     let rollback_account = &mut ctx.accounts.rollback_account;
 
-    validate_source_and_pending_response(
+    let all_sources_delivered = check_sources_and_pending_response(
         &ctx.accounts.connection,
         rollback_account.rollback.protocols(),
         &mut ctx.accounts.pending_response,
         &ctx.accounts.admin,
     )?;
+    if !all_sources_delivered {
+        return Ok(());
+    }
 
     emit!(event::ResponseMessage {
         code: CSResponseType::CSResponseFailure.into(),
@@ -398,6 +404,14 @@ pub fn invoke_handle_result<'info>(
         account_infos.push(account.to_account_info());
     }
 
+    // append all accounts with lamport changes to the end of your CPI instruction accounts list
+    if ctx.accounts.pending_response.is_some() {
+        let pending_response = ctx.accounts.pending_response.as_ref().unwrap();
+
+        account_metas.push(AccountMeta::new_readonly(pending_response.key(), false));
+        account_infos.push(pending_response.to_account_info());
+    }
+
     let ix = Instruction {
         program_id: id(),
         accounts: account_metas,
@@ -427,14 +441,15 @@ pub fn invoke_handle_result<'info>(
 /// - `admin`: The admin account for closing the `PendingResponse` account.
 ///
 /// # Returns
-/// - `Result<()>`: `Ok(())` if validation is successful and pending response is handled,
-/// or an error if validation fails.
-pub fn validate_source_and_pending_response<'info>(
+/// - `Result<bool>`: `Ok(true)` if all sources are valid and the pending response is closed,
+/// or `Ok(false)` if the message is still pending (not all sources have responded). Returns
+/// an error if validation fails.
+pub fn check_sources_and_pending_response<'info>(
     sender: &Signer,
     protocols: &Vec<String>,
     pending_response: &mut Option<Account<'info, PendingResponse>>,
     admin: &AccountInfo<'info>,
-) -> Result<()> {
+) -> Result<bool> {
     let source_valid = is_valid_source(&sender, protocols)?;
     if !source_valid {
         return Err(XcallError::ProtocolMismatch.into());
@@ -449,12 +464,12 @@ pub fn validate_source_and_pending_response<'info>(
             pending_response.sources.push(sender.owner.to_owned())
         }
         if pending_response.sources.len() != protocols.len() {
-            return Ok(());
+            return Ok(false);
         }
         pending_response.close(admin.to_owned())?;
     }
 
-    Ok(())
+    Ok(true)
 }
 
 /// Checks if the given sender is a valid source for the provided protocols.
