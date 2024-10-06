@@ -270,4 +270,84 @@ module xcall::cluster_state_tests {
         state
     }
 
+    #[test]
+    fun test_get_fee(): State {
+        let mut state = xcall::cluster_state::create_state();
+        xcall::cluster_state::set_fee(&mut state, b"net1".to_string(), 100, 50, @0xadd);
+        xcall::cluster_state::set_fee(&mut state, b"net2".to_string(), 200, 100, @0xadd);
+
+        let fee_without_response = xcall::cluster_state::get_fee(&state, &b"net1".to_string(), false);
+        assert!(fee_without_response == 100);
+
+        let fee_with_response = xcall::cluster_state::get_fee(&state, &b"net1".to_string(), true);
+        assert!(fee_with_response == 150);
+
+        state
+    }
+
+    #[test]
+    fun test_update_fee(): State {
+        let mut state = xcall::cluster_state::create_state();
+        xcall::cluster_state::set_fee(&mut state, b"net1".to_string(), 200, 100, @0xadd);
+
+        let fee = xcall::cluster_state::get_fee(&state, &b"net1".to_string(), true);
+        assert!(fee == 300); // 200 message_fee + 100 response_fee
+
+        // Update the fee
+        xcall::cluster_state::set_fee(&mut state, b"net1".to_string(), 300, 200, @0xadd);
+        let updated_fee = xcall::cluster_state::get_fee(&state, &b"net1".to_string(), true);
+        assert!(updated_fee == 500); // 300 message_fee + 200 response_fee
+
+        state
+    }
+
+    #[test]
+    fun test_receipts(): State {
+        let mut state = xcall::cluster_state::create_state();
+        let sn = xcall::cluster_state::get_next_conn_sn(&mut state);
+        
+        xcall::cluster_state::check_save_receipt(&mut state, b"net1".to_string(), sn);
+        let receipt_exists = xcall::cluster_state::get_receipt(&state, b"net1".to_string(), sn);
+        assert!(receipt_exists == true);
+
+        state
+    }
+
+    #[test]
+    #[expected_failure(abort_code = 101)]
+    fun test_verify_signatures_less_than_threshold(): State {
+        let state = test_set_get_threshold();
+        
+        let msg: vector<u8> = x"6162636465666768";
+        let signatures = vector[x"00bb0a7ba4a242a4988c820b94a8df9b312e9e7cf4f8302b53ee2e046e76da86eae9c15296a421b8dddb29cafa8d50523e0b04300216e393d45c0739a0eab8e60cb9c6ee1630ef3e711144a648db06bbb2284f7274cfbee53ffcee503cc1a49200"]; 
+
+        xcall::cluster_state::verify_signatures(&state, msg, signatures);
+        state
+    }
+
+    #[test]
+    #[expected_failure(abort_code = 100)]
+    fun test_verify_signatures_invalid(): State {
+        let state = test_set_get_threshold();
+        let msg: vector<u8> = x"6162636465666768";
+        let signatures = vector[x"00bb0a7ba4a242a4988c820b94a8df9b312e9e7cf4f8302b53ee2e046e76da86eae9c15296a421b8dddb29cafa8d50523e0b04300216e393d45c0739a0eab8e60cb9c6ee1630ef3e711144a648db06bbb2284f7274cfbee53ffcee503cc1a49200",
+                                                    x"00c6d94cc625e73e036852316d228e578893aad2a7b21febc08f92a5d53978154782e4a0551ced23fb92c765b4cb4715e231de0235e2b641b81a36b9f2a3f8630d9eac9cd35a0e13d92e0d3a02472f60bd1365ee3e260a16b59286fc4266cdd5a2"
+                                                   ];
+
+        xcall::cluster_state::verify_signatures(&state, msg, signatures);
+        state
+    }
+
+    #[test]
+    fun test_verify_signatures(): State {
+        let state = test_set_get_threshold();
+        let msg: vector<u8> = x"6162636465666768";
+        let signatures = vector[x"00bb0a7ba4a242a4988c820b94a8df9b312e9e7cf4f8302b53ee2e046e76da86eae9c15296a421b8dddb29cafa8d50523e0b04300216e393d45c0739a0eab8e60cb9c6ee1630ef3e711144a648db06bbb2284f7274cfbee53ffcee503cc1a49200",
+                                                    x"00c6d94cc625e73e036852316d229e578893aad2a7b21febc08f92a5d53978154782e4a0551ced23fb92c765b4cb4715e231de0235e2b641b81a36b9f2a3f8630d9eac9cd35a0e13d92e0d3a02472f60bd1365ee3e260a16b59286fc4266cdd5a2"
+                                                   ];
+
+        xcall::cluster_state::verify_signatures(&state, msg, signatures);
+        state
+    } 
+
 }
