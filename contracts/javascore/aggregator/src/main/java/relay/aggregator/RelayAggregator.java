@@ -29,10 +29,9 @@ import score.annotation.EventLog;
 import score.annotation.External;
 import score.ObjectReader;
 import scorex.util.ArrayList;
-import scorex.util.HashMap;
 
 public class RelayAggregator {
-    private final Integer DEFAULT_SIGNATURE_THRESHOLD = 2;
+    private final Integer DEFAULT_SIGNATURE_THRESHOLD = 1;
 
     private final VarDB<Integer> signatureThreshold = Context.newVarDB("signatureThreshold", Integer.class);
 
@@ -50,12 +49,20 @@ public class RelayAggregator {
         if (admin.get() == null) {
             admin.set(_admin);
             signatureThreshold.set(DEFAULT_SIGNATURE_THRESHOLD);
+            addRelayer(_admin);
         }
     }
 
     @External
     public void setAdmin(Address _admin) {
         adminOnly();
+
+        // add new admin as relayer
+        addRelayer(_admin);
+
+        // remove old admin from relayer list
+        removeRelayer(admin.get());
+
         admin.set(_admin);
     }
 
@@ -94,8 +101,7 @@ public class RelayAggregator {
         for (Address newRelayer : newRelayers) {
             Boolean exits = relayersLookup.get(newRelayer);
             if (exits == null) {
-                relayers.add(newRelayer);
-                relayersLookup.set(newRelayer, true);
+                addRelayer(newRelayer);
             }
         }
     }
@@ -107,22 +113,9 @@ public class RelayAggregator {
         Context.require(relayersToBeRemoved != null && relayersToBeRemoved.length != 0,
                 "relayers to be removed cannot be empty");
 
-        HashMap<Address, Integer> existingRelayers = new HashMap<Address, Integer>();
-        for (int i = 0; i < relayers.size(); i++) {
-            Address relayer = relayers.get(i);
-            existingRelayers.put(relayer, i);
-        }
-
         for (Address relayerToBeRemoved : relayersToBeRemoved) {
-            if (existingRelayers.containsKey(relayerToBeRemoved)) {
-                relayersLookup.set(relayerToBeRemoved, null);
-                Address top = relayers.pop();
-                if (!top.equals(relayerToBeRemoved)) {
-                    Integer pos = existingRelayers.get(relayerToBeRemoved);
-                    relayers.set(pos, top);
-                }
-                existingRelayers.remove(relayerToBeRemoved);
-            }
+            Context.require(relayerToBeRemoved != admin.get(), "admin cannot be removed from relayers list");
+            removeRelayer(relayerToBeRemoved);
         }
     }
 
@@ -252,6 +245,22 @@ public class RelayAggregator {
         Address caller = Context.getCaller();
         Boolean isRelayer = relayersLookup.get(caller);
         Context.require(isRelayer != null && isRelayer, "Unauthorized: caller is not a registered relayer");
+    }
+
+    private void addRelayer(Address newRelayer) {
+        relayers.add(newRelayer);
+        relayersLookup.set(newRelayer, true);
+    }
+
+    private void removeRelayer(Address oldRelayer) {
+        relayersLookup.set(oldRelayer, null);
+        Address top = relayers.pop();
+        for (int i = 0; i < relayers.size(); i++) {
+            if (oldRelayer.equals(relayers.get(i))) {
+                relayers.set(i, top);
+                break;
+            }
+        }
     }
 
     private Boolean signatureThresholdReached(String pktID) {

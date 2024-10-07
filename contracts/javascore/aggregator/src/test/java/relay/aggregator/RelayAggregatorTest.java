@@ -1,6 +1,7 @@
 package relay.aggregator;
 
 import java.math.BigInteger;
+import java.util.Arrays;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -19,6 +20,7 @@ import foundation.icon.icx.KeyWallet;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.spy;
@@ -75,11 +77,21 @@ class RelayAggregatorTest extends TestBase {
 
     @Test
     public void testSetAdmin() {
+        Address oldAdmin = (Address) aggregator.call("getAdmin");
+
         Account newAdminAc = sm.createAccount();
         aggregator.invoke(adminAc, "setAdmin", newAdminAc.getAddress());
 
-        Address result = (Address) aggregator.call("getAdmin");
-        assertEquals(newAdminAc.getAddress(), result);
+        Address newAdmin = (Address) aggregator.call("getAdmin");
+        assertEquals(newAdminAc.getAddress(), newAdmin);
+
+        Address[] relayers = (Address[]) aggregator.call("getRelayers");
+
+        boolean containsNewAdmin = Arrays.asList(relayers).contains(newAdmin);
+        boolean containsOldAdmin = Arrays.asList(relayers).contains(oldAdmin);
+
+        assertTrue(containsNewAdmin);
+        assertFalse(containsOldAdmin);
     }
 
     @Test
@@ -180,6 +192,8 @@ class RelayAggregatorTest extends TestBase {
         String dstContractAddress = "hxjuiod";
         byte[] data = new byte[] { 0x01, 0x02 };
 
+        aggregator.invoke(adminAc, "setSignatureThreshold", 2);
+
         byte[] dataHash = Context.hash("sha-256", data);
         byte[] sign = relayerOne.sign(dataHash);
 
@@ -213,6 +227,8 @@ class RelayAggregatorTest extends TestBase {
         String dstContractAddress = "hxjuiod";
         byte[] data = new byte[] { 0x01, 0x02 };
 
+        aggregator.invoke(adminAc, "setSignatureThreshold", 2);
+
         byte[] dataHash = Context.hash("sha-256", data);
         byte[] sign = relayerOne.sign(dataHash);
 
@@ -235,6 +251,8 @@ class RelayAggregatorTest extends TestBase {
         String srcContractAddress = "hxjuiod";
         String dstContractAddress = "hxjuiod";
         byte[] data = new byte[] { 0x01, 0x02 };
+
+        aggregator.invoke(adminAc, "setSignatureThreshold", 2);
 
         byte[] dataHash = Context.hash("sha-256", data);
 
@@ -295,6 +313,8 @@ class RelayAggregatorTest extends TestBase {
         String srcContractAddress = "hxjuiod";
         String dstContractAddress = "hxjuiod";
         byte[] data = new byte[] { 0x01, 0x02 };
+
+        aggregator.invoke(adminAc, "setSignatureThreshold", 2);
 
         byte[] dataHash = Context.hash("sha-256", data);
         byte[] sign = relayerOne.sign(dataHash);
