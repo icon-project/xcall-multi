@@ -143,10 +143,8 @@ contract ClusterConnection is Initializable, IConnection {
                 signerCount++;
             }
         }
-
-        if (signerCount >= reqValidatorCnt) {
-            recvMessage(srcNetwork,_connSn,_msg);
-        }
+        require(signerCount >= reqValidatorCnt,"Not enough valid signatures passed");
+        recvMessage(srcNetwork,_connSn,_msg);
     }
 
     function isValidatorProcessed(address[] memory processedSigners, address signer) public pure returns (bool) {

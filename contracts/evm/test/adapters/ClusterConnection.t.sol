@@ -415,4 +415,42 @@ contract ClusterConnectionTest is Test {
         assertEq(3, adapterTarget.getRequiredValidatorCount());
         vm.stopPrank();
     }
+
+    function testRecvMessageWithMultiSignatureNotEnoughSign() public {
+        bytes memory data = bytes("test");
+        string memory iconDapp = NetworkAddress.networkAddress(
+            nidSource,
+            "0xa"
+        );
+        Types.CSMessageRequestV2 memory request = Types.CSMessageRequestV2(
+            iconDapp,
+            ParseAddress.toString(address(dappSource)),
+            1,
+            Types.CALL_MESSAGE_TYPE,
+            data,
+            new string[](0)
+        );
+        Types.CSMessage memory message = Types.CSMessage(
+            Types.CS_REQUEST,
+            request.encodeCSMessageRequestV2()
+        );
+        uint256 pk = hexStringToUint256("ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80");
+        uint256 pk2 = hexStringToUint256("47e179ec197488593b187f80a00eb0da91f1b9d0b13f8733639f19c30a34926a");
+        bytes32 hash = keccak256(RLPEncodeStruct.encodeCSMessage(message));
+        vm.startPrank(destination_relayer);
+        adapterTarget.addValidator(address(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266));
+        adapterTarget.addValidator(address(0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65));
+        adapterTarget.setRequiredValidatorCount(4);
+        vm.expectRevert("Not enough signatures passed");
+        bytes[] memory signatures = new bytes[](2) ;
+        signatures[0] = signMessage(pk,hash);
+        signatures[1] = signMessage(pk2,hash);
+        adapterTarget.recvMessageWithSignatures(
+            nidSource,
+            1,
+            RLPEncodeStruct.encodeCSMessage(message),
+            signatures
+        );
+        vm.stopPrank();
+    }
 }
