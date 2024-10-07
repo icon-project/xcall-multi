@@ -67,6 +67,7 @@ public class RelayAggregator {
     @External
     public void setSignatureThreshold(int threshold) {
         adminOnly();
+        Context.require(threshold >= 1, "invalid threshold value: should be >= 1");
         signatureThreshold.set(threshold);
     }
 
@@ -154,14 +155,17 @@ public class RelayAggregator {
 
         if (packets.get(pktID) == null) {
             packets.set(pktID, pkt);
-            PacketRegistered(
-                    pkt.getSrcNetwork(),
-                    pkt.getSrcContractAddress(),
-                    pkt.getSrcSn(),
-                    pkt.getSrcHeight(),
-                    pkt.getDstNetwork(),
-                    pkt.getDstContractAddress(),
-                    pkt.getData());
+            if (signatureThreshold.get() > 1) {
+                PacketRegistered(
+                        pkt.getSrcNetwork(),
+                        pkt.getSrcContractAddress(),
+                        pkt.getSrcSn(),
+                        pkt.getSrcHeight(),
+                        pkt.getDstNetwork(),
+                        pkt.getDstContractAddress(),
+                        pkt.getData());
+            }
+
         }
 
         byte[] existingSign = signatures.at(pktID).get(Context.getCaller());
