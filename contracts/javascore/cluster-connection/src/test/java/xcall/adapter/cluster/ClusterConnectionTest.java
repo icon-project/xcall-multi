@@ -251,6 +251,22 @@ public class ClusterConnectionTest extends TestBase {
         verifyNoInteractions(callservice.mock);
     }
 
+    @Test
+    public void testRecvMessageWithSignaturesNotEnoughValidSignatures() throws Exception{
+        byte[] data = "test".getBytes();
+        byte[] messageHash = keccak256(data);
+        KeyWallet wallet = KeyWallet.create();
+        byte[][] byteArray = new byte[2][];
+        byteArray[0] = wallet.sign(messageHash);
+        byteArray[1] = wallet.sign(messageHash);
+        connection.invoke(source_relayer, "addValidator", Address.fromString(wallet.getAddress().toString()));
+        connection.invoke(source_relayer, "setRequiredValidatorCount", BigInteger.TWO);
+        UserRevertedException e = assertThrows(UserRevertedException.class,
+                ()->connection.invoke(source_relayer, "recvMessageWithSignatures", nidSource, BigInteger.ONE, data, byteArray));
+        assertEquals("Reverted(0): Not enough valid signatures", e.getMessage());
+        verifyNoInteractions(callservice.mock);
+    }
+
 
     public static byte[] keccak256(byte[] input) {
         Keccak.Digest256 keccak256 = new Keccak.Digest256();

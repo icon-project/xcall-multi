@@ -229,9 +229,8 @@ public class ClusterConnection {
                  uniqueValidators.add(validator);
              }
          }
-         if (uniqueValidators.size() >= reqValidatorCnt.get().intValue()) {
-             recvMessage(srcNetwork, _connSn, msg);
-         }
+         Context.require(uniqueValidators.size() >= reqValidatorCnt.get().intValue(), "Not enough valid signatures");
+         recvMessage(srcNetwork, _connSn, msg);
      }
 
     private boolean validatorExists(Address _validator) {
