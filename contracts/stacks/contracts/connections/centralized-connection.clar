@@ -1,0 +1,86 @@
+(use-trait xcall-impl-trait .xcall-impl-trait.xcall-impl-trait)
+
+(define-constant ERR_UNAUTHORIZED (err u100))
+(define-constant ERR_INVALID_FEE (err u101))
+(define-constant ERR_DUPLICATE_MESSAGE (err u102))
+(define-constant ERR_XCALL_NOT_SET (err u103))
+
+(define-data-var xcall (optional principal) none)
+(define-data-var admin principal tx-sender)
+(define-data-var conn-sn uint u0)
+
+(define-map message-fees {network-id: (string-ascii 64)} uint)
+(define-map response-fees {network-id: (string-ascii 64)} uint)
+(define-map receipts {network-id: (string-ascii 64), conn-sn: uint} bool)
+
+(define-read-only (get-xcall)
+  (ok (var-get xcall)))
+
+(define-read-only (get-admin)
+  (ok (var-get admin)))
+
+(define-read-only (get-conn-sn)
+  (ok (var-get conn-sn)))
+
+(define-read-only (get-fee (to (string-ascii 64)) (response bool))
+  (let
+    ((message-fee (default-to u0 (map-get? message-fees {network-id: to}))))
+    (if response
+      (let
+        ((response-fee (default-to u0 (map-get? response-fees {network-id: to}))))
+        (ok (+ message-fee response-fee)))
+      (ok message-fee))))
+
+(define-read-only (get-receipt (src-network (string-ascii 64)) (conn-sn-in uint))
+  (ok (default-to false (map-get? receipts {network-id: src-network, conn-sn: conn-sn-in}))))
+
+(define-private (is-admin)
+  (is-eq tx-sender (var-get admin)))
+
+(define-private (is-xcall)
+  (match (var-get xcall)
+    xcall-contract (is-eq tx-sender xcall-contract)
+    false
+  ))
+
+(define-public (initialize (xcall-contract principal) (admin-address principal))
+  (begin
+    (asserts! (is-admin) ERR_UNAUTHORIZED)
+    (var-set xcall (some xcall-contract))
+    (var-set admin admin-address)
+    (ok true)))
+
+(define-public (set-fee (network-id (string-ascii 64)) (message-fee uint) (response-fee uint))
+  (begin
+    (asserts! (is-admin) ERR_UNAUTHORIZED)
+    (map-set message-fees {network-id: network-id} message-fee)
+    (map-set response-fees {network-id: network-id} response-fee)
+    (ok true)))
+
+(define-public (claim-fees)
+  (begin
+    (asserts! (is-admin) ERR_UNAUTHORIZED)
+    (as-contract (stx-transfer? (stx-get-balance (as-contract tx-sender)) tx-sender (var-get admin)))))
+
+(define-public (set-admin (new-admin principal))
+  (begin
+    (asserts! (is-admin) ERR_UNAUTHORIZED)
+    (var-set admin new-admin)
+    (ok true)))
+
+(define-public (send-message (to (string-ascii 64)) (svc (string-ascii 64)) (sn int) (msg (buff 2048)))
+  (begin
+    (asserts! (is-xcall) ERR_UNAUTHORIZED)
+    (let
+      ((fee (unwrap! (get-fee to (> sn 0)) ERR_INVALID_FEE)))
+      (asserts! (>= (stx-get-balance tx-sender) fee) ERR_INVALID_FEE)
+      (var-set conn-sn (+ (var-get conn-sn) u1))
+      (print {event: "Message", to: to, sn: (var-get conn-sn), msg: msg})
+      (ok (var-get conn-sn)))))
+
+(define-public (recv-message (src-network (string-ascii 64)) (conn-sn-in uint) (msg (buff 2048)) (implementation <xcall-impl-trait>))
+  (begin
+    (asserts! (is-eq tx-sender (var-get admin)) ERR_UNAUTHORIZED)
+    (asserts! (is-none (map-get? receipts {network-id: src-network, conn-sn: conn-sn-in})) ERR_DUPLICATE_MESSAGE)
+    (map-set receipts {network-id: src-network, conn-sn: conn-sn-in} true)
+    (contract-call? .xcall-proxy handle-message src-network msg implementation)))
