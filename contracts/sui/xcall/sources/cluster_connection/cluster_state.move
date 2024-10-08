@@ -133,24 +133,27 @@ module xcall::cluster_state {
         let threshold=self.get_validator_threshold();
         let validators=self.get_validators().map!(|validator| validator.pub_key);
         assert!(signatures.length() >= threshold, NotEnoughSignatures);
-        let mut total=0;
         let mut i = 0;
+        let mut unique_verified_pubkey = vector::empty();
         while (i < signatures.length()) {
             let signature = signatures.borrow(i);
             let pub_key = get_pubkey_from_signature(signature);
             if (validators.contains(&pub_key)) {
                 
                 if (verify_signature(&pub_key,signature,&msg)){
-                    total=total+1;
 
-                    if (total >= threshold) {
+                    if (!unique_verified_pubkey.contains(&pub_key)){
+                        unique_verified_pubkey.push_back(pub_key);
+                    };
+
+                    if (unique_verified_pubkey.length() >= threshold) {
                         return
                     };
                 };
             };
             i=i+1;
         };
-        assert!(total >= threshold, VerifiedSignaturesLessThanThreshold); 
+        assert!(unique_verified_pubkey.length() >= threshold, VerifiedSignaturesLessThanThreshold); 
     }
 
     public(package) fun get_validator_threshold(self:&State):u64{
