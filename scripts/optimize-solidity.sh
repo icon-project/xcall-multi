@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 # contracts
-CONTRACTS=("CallService" "DAppProxySample" "MultiProtocolSampleDapp" "LayerZeroAdapter" "WormholeAdapter" "CentralizedConnection")
+CONTRACTS=("CallService" "DAppProxySample" "MultiProtocolSampleDapp" "LayerZeroAdapter" "WormholeAdapter" "CentralizedConnection" "ClusterConnection")
 
 # Directory paths
 build_directory="build"
