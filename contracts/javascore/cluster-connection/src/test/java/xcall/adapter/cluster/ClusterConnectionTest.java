@@ -284,18 +284,19 @@ public class ClusterConnectionTest extends TestBase {
     @Test
     public void testAddNRemoveSigners() throws Exception{
         KeyWallet wallet = KeyWallet.create();
-        KeyWallet wallet2 = KeyWallet.create();
         KeyWallet wallet3 = KeyWallet.create();
         connection.invoke(source_relayer, "addValidator", Address.fromString(wallet.getAddress().toString()));
-        connection.invoke(source_relayer, "addValidator", Address.fromString(wallet2.getAddress().toString()));
+        connection.invoke(source_relayer, "setRequiredValidatorCount", BigInteger.TWO);
         Address[] signers = connection.call(Address[].class,"listValidators");
-        assertEquals(signers.length, 3);
+        assertEquals(signers.length, 2);
 
-        connection.invoke(source_relayer, "removeValidator", Address.fromString(wallet3.getAddress().toString()));
-        signers = connection.call(Address[].class,"listValidators");
-        assertEquals(signers.length, 3);
+        UserRevertedException e = assertThrows(UserRevertedException.class,
+                ()-> connection.invoke(source_relayer, "removeValidator", Address.fromString(wallet3.getAddress().toString())));
+        assertEquals("Reverted(0): Validator doesn't exists", e.getMessage());
 
-        connection.invoke(source_relayer, "removeValidator", Address.fromString(wallet2.getAddress().toString()));
+        UserRevertedException ex = assertThrows(UserRevertedException.class,
+                ()-> connection.invoke(source_relayer, "removeValidator", Address.fromString(wallet.getAddress().toString())));
+        assertEquals("Reverted(0): Validator size less than required count after removal", ex.getMessage());
         signers = connection.call(Address[].class,"listValidators");
         assertEquals(signers.length, 2);
     }

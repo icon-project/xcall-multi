@@ -44,6 +44,7 @@ public class ClusterConnection {
     protected final DictDB<String, BigInteger> responseFees = Context.newDictDB("responseFees", BigInteger.class);
     protected final BranchDB<String, DictDB<BigInteger, Boolean>> receipts = Context.newBranchDB("receipts",
             Boolean.class);
+    private final DictDB<Address, Boolean> validatorsLookup = Context.newDictDB("validatorsLookup", Boolean.class);
 
     public ClusterConnection(Address _relayer, Address _xCall) {
         if (xCall.get() == null) {
@@ -51,6 +52,7 @@ public class ClusterConnection {
             adminAddress.set(_relayer);
             connSn.set(BigInteger.ZERO);
             validators.add(_relayer);
+            validatorsLookup.set(_relayer,true);
             ValidatorAdded(_relayer);
         }
     }
@@ -72,28 +74,30 @@ public class ClusterConnection {
     @External
     public void addValidator(Address _validator) {
         OnlyAdmin();
-        if (!validatorExists(_validator)){
-            validators.add(_validator);
-            ValidatorAdded(_validator);
-        }
+        Context.require(validatorsLookup.get(_validator)==null,"Validator already exists");
+        validators.add(_validator);
+        validatorsLookup.set(_validator,true);
+        ValidatorAdded(_validator);
     }
 
     @External
     public void removeValidator(Address _validator) {
         OnlyAdmin();
         Context.require(_validator != adminAddress.get(),"cannot remove admin");
-        if (validatorExists(_validator)){
-            Address top = this.validators.pop();
-            if (!top.equals(_validator)) {
-                for (int i = 0; i < this.validators.size(); i++) {
-                    if (_validator.equals(this.validators.get(i))) {
-                        this.validators.set(i, top);
-                        break;
-                    }
+        Context.require(validatorsLookup.get(_validator)!=null,"Validator doesn't exists");
+        Context.require((this.validators.size() - 1) >= reqValidatorCnt.get().intValue(),"Validator size less than required count after removal");
+        Address top = this.validators.pop();
+        if (!top.equals(_validator)) {
+            for (int i = 0; i < this.validators.size(); i++) {
+                if (_validator.equals(this.validators.get(i))) {
+                    this.validators.set(i, top);
+                    break;
                 }
             }
+            validatorsLookup.set(_validator,null);
             ValidatorRemoved(_validator);
         }
+
     }
 
     @EventLog(indexed = 2)
@@ -224,7 +228,7 @@ public class ClusterConnection {
          List<Address> uniqueValidators = new ArrayList<>();
          for (byte[] signature : signatures) {
              Address validator = getValidator(msg, signature);
-             Context.require(validatorExists(validator), "Invalid signature provided");
+             Context.require(validatorsLookup.get(validator)!=null, "Invalid signature provided");
              if (!uniqueValidators.contains(validator)) {
                  uniqueValidators.add(validator);
              }
@@ -232,15 +236,6 @@ public class ClusterConnection {
          Context.require(uniqueValidators.size() >= reqValidatorCnt.get().intValue(), "Not enough valid signatures");
          recvMessage(srcNetwork, _connSn, msg);
      }
-
-    private boolean validatorExists(Address _validator) {
-        for (int i = 0; i < validators.size(); i++) {
-            if (validators.get(i).equals(_validator)) {
-                return true; 
-            }
-        }
-        return false;
-    }
 
     /**
      * Receives a message from a source network.
