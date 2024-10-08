@@ -399,13 +399,34 @@ contract ClusterConnectionTest is Test {
 
     function testRemoveValidator() public {
         vm.startPrank(destination_relayer);
+        adapterTarget.setRequiredValidatorCount(2);
         adapterTarget.addValidator(address(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266));
         adapterTarget.addValidator(address(0x976EA74026E726554dB657fA54763abd0C3a0aa9));
         assertEq(3, adapterTarget.listValidators().length);
-        adapterTarget.removeValidator(address(0xa0Ee7A142d267C1f36714E4a8F75612F20a79720));
-        assertEq(3, adapterTarget.listValidators().length);
         adapterTarget.removeValidator(address(0x976EA74026E726554dB657fA54763abd0C3a0aa9));
         assertEq(2, adapterTarget.listValidators().length);
+        vm.stopPrank();
+    }
+
+
+    function testRemoveNonExistentValidator() public {
+        vm.startPrank(destination_relayer);
+        adapterTarget.addValidator(address(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266));
+        adapterTarget.addValidator(address(0x976EA74026E726554dB657fA54763abd0C3a0aa9));
+        assertEq(3, adapterTarget.listValidators().length);
+        vm.expectRevert("Validator doesn't exist");
+        adapterTarget.removeValidator(address(0xa0Ee7A142d267C1f36714E4a8F75612F20a79720));    
+        vm.stopPrank();
+    }
+
+      function testRemoveValidatorSize() public {
+        vm.startPrank(destination_relayer);
+        adapterTarget.setRequiredValidatorCount(3);
+        adapterTarget.addValidator(address(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266));
+        adapterTarget.addValidator(address(0x976EA74026E726554dB657fA54763abd0C3a0aa9));
+        assertEq(3, adapterTarget.listValidators().length);
+        vm.expectRevert("Validator size less than required count after removal");
+        adapterTarget.removeValidator(address(0x976EA74026E726554dB657fA54763abd0C3a0aa9));    
         vm.stopPrank();
     }
 

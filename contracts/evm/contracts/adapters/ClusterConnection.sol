@@ -47,7 +47,8 @@ contract ClusterConnection is Initializable, IConnection {
     }
 
     function removeValidator(address _validator) external onlyAdmin {
-        require(_validator!=this.admin(), "cannot remove admin");
+        require(_validator!=this.admin(), "Cannot remove admin");
+        require(isValidator[_validator],"Validator doesn't exist");
         for (uint i = 0; i < validators.length; i++) {
             if (validators[i] == _validator) {
                 validators[i] = validators[validators.length - 1]; 
@@ -57,6 +58,7 @@ contract ClusterConnection is Initializable, IConnection {
             }
             emit ValidatorRemoved(_validator);
         }
+        require(validators.length>=reqValidatorCnt,"Validator size less than required count after removal");
     }
 
     /**
