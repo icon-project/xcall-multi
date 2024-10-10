@@ -108,6 +108,40 @@ describe("xcall", () => {
     );
   });
 
+  it("verifies the connection is properly initialized", () => {
+    const xcallResult = simnet.callReadOnlyFn(
+      CENTRALIZED_CONNECTION_CONTRACT_NAME,
+      "get-xcall",
+      [],
+      deployer!
+    );
+    expect(xcallResult.result).toBeOk(Cl.some(xcallProxy));
+
+    const adminResult = simnet.callReadOnlyFn(
+      CENTRALIZED_CONNECTION_CONTRACT_NAME,
+      "get-admin",
+      [],
+      deployer!
+    );
+    expect(adminResult.result).toBeOk(Cl.principal(deployer!));
+
+    const stacksFeeResult = simnet.callReadOnlyFn(
+      CENTRALIZED_CONNECTION_CONTRACT_NAME,
+      "get-fee",
+      [Cl.stringAscii(STACKS_NID), Cl.bool(true)],
+      deployer!
+    );
+    expect(stacksFeeResult.result).toBeOk(Cl.uint(750000)); // 500000 base fee + 250000 rollback fee
+
+    const iconFeeResult = simnet.callReadOnlyFn(
+      CENTRALIZED_CONNECTION_CONTRACT_NAME,
+      "get-fee",
+      [Cl.stringAscii(ICON_NID), Cl.bool(true)],
+      deployer!
+    );
+    expect(iconFeeResult.result).toBeOk(Cl.uint(1500000)); // 1000000 base fee + 500000 rollback fee
+  });
+
   it("sends and executes a call", () => {
     const data = Uint8Array.from(encode(["Hello, Destination Contract!"]));
     const expectedSn = 1;
@@ -304,14 +338,11 @@ describe("xcall", () => {
     expect(getOutgoingMessage.result).toBeNone();
   });
 
-  it("calculates fees correctly for different scenarios", () => {
-    
-    const sourceContract = accounts.get("wallet_1")!;
-  
+  it("calculates fees correctly for different scenarios", () => {        
     const feeStacksNoRollback = simnet.callPublicFn(
       XCALL_PROXY_CONTRACT_NAME,
       "get-fee",
-      [Cl.stringAscii(from), Cl.bool(false), Cl.none(), xcallImpl],
+      [Cl.stringAscii(STACKS_NID), Cl.bool(false), Cl.none(), xcallImpl],
       sourceContract
     );
     expect(feeStacksNoRollback.result).toBeOk(Cl.uint(600000)); // 500000 base fee + 100000 protocol fee
@@ -319,7 +350,7 @@ describe("xcall", () => {
     const feeStacksWithRollback = simnet.callPublicFn(
       XCALL_PROXY_CONTRACT_NAME,
       "get-fee",
-      [Cl.stringAscii(from), Cl.bool(true), Cl.none(), xcallImpl],
+      [Cl.stringAscii(STACKS_NID), Cl.bool(true), Cl.none(), xcallImpl],
       sourceContract
     );
     expect(feeStacksWithRollback.result).toBeOk(Cl.uint(850000)); // 500000 base fee + 250000 rollback fee + 100000 protocol fee
@@ -327,7 +358,7 @@ describe("xcall", () => {
     const feeIconWithRollback = simnet.callPublicFn(
       XCALL_PROXY_CONTRACT_NAME,
       "get-fee",
-      [Cl.stringAscii(to), Cl.bool(true), Cl.none(), xcallImpl],
+      [Cl.stringAscii(ICON_NID), Cl.bool(true), Cl.none(), xcallImpl],
       sourceContract
     );
     expect(feeIconWithRollback.result).toBeOk(Cl.uint(1600000)); // 1000000 base fee + 500000 rollback fee + 100000 protocol fee

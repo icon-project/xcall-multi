@@ -229,13 +229,10 @@
   )
 )
 
-(define-read-only (get-default-connection (to (string-ascii 100)))
-  (match (parse-network-address to)
-    parsed-address 
-      (match (map-get? default-connections { nid: (get net parsed-address) })
-        connection (ok (some connection))
-        ERR_NO_DEFAULT_CONNECTION)
-    error ERR_INVALID_NETWORK_ADDRESS)
+(define-read-only (get-default-connection (nid (string-ascii 64)))
+  (match (map-get? default-connections { nid: nid })
+    connection (ok (some connection))
+    ERR_NO_DEFAULT_CONNECTION)
 )
 
 (define-public (send-call 
@@ -261,7 +258,7 @@
       (next-sn (unwrap-panic (get-next-sn)))
       (parsed-address (try! (parse-network-address to)))
       (dst (get net parsed-address))
-      (connection-result (unwrap-panic (get-default-connection to)))
+      (connection-result (unwrap-panic (get-default-connection dst)))
     )
     (asserts! (is-some connection-result) ERR_INVALID_NETWORK_ADDRESS)
     (emit-call-message-sent-event tx-sender to next-sn)
