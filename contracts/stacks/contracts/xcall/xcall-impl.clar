@@ -97,6 +97,10 @@
   )
 )
 
+(define-read-only (get-outgoing-message (sn uint))
+  (map-get? outgoing-messages { sn: sn })
+)
+
 (define-read-only (is-reply (net-id (string-ascii 64)) (sources (optional (list 100 (string-ascii 64)))))
   (match (var-get reply-state)
     state (and 
@@ -122,7 +126,7 @@
     (current-id (var-get req-id-counter))
   )
     (var-set req-id-counter (+ current-id u1))
-    current-id
+    (ok (+ current-id u1))
   )
 )
 
@@ -289,7 +293,6 @@
     (msg-type (get type cs-message))
     (msg-data (get data cs-message))
   )
-    (print cs-message)
     (if (is-eq msg-type CS_MESSAGE_TYPE_REQUEST)
       (handle-request from msg-data)
       (if (is-eq msg-type CS_MESSAGE_TYPE_RESULT)
@@ -305,19 +308,16 @@
     (msg-req (unwrap-panic (parse-cs-message-request data)))
     (hash (sha256 data))
   )
-    (print msg-req)
-    (print (get from msg-req))
-    (ok true)
-    ;; (asserts! (is-eq (get net (unwrap-panic (parse-network-address (get from msg-req)))) from) ERR_INVALID_NETWORK_ADDRESS)
+    (asserts! (is-eq (get net (unwrap-panic (parse-network-address (get from msg-req)))) from) ERR_INVALID_NETWORK_ADDRESS)
     ;; (asserts! (verify-protocols from (get protocols msg-req) hash) ERR_UNAUTHORIZED)
     
-    ;; (let (
-    ;;   (req-id (get-next-req-id))
-    ;; )
-    ;;   (emit-call-message-received-event (get from msg-req) (get to msg-req) (get sn msg-req) req-id (get data msg-req))
-    ;;   (map-set incoming-messages { req-id: req-id } { from: (get from msg-req), data: (get data msg-req) })
-    ;;   (ok true)
-    ;; )
+    (let (
+      (req-id (unwrap-panic (get-next-req-id)))
+    )
+      (emit-call-message-received-event (get from msg-req) (get to msg-req) (get sn msg-req) req-id (get data msg-req))
+      (map-set incoming-messages { req-id: req-id } { from: (get from msg-req), data: (get data msg-req) })
+      (ok true)
+    )
   )
 )
 
@@ -368,8 +368,13 @@
 (begin 
   (map-delete outgoing-messages { sn: sn })
   (map-set successful-responses { sn: sn } { value: true })
-  (match (get msg msg-res)
-    reply-data (handle-reply rollback (unwrap-panic (parse-cs-message-request reply-data)))
+  (if (is-some (get msg msg-res))
+    (let (
+      (reply-data (unwrap-panic (get msg msg-res)))
+      (parsed-reply-data (unwrap-panic (parse-cs-message-request reply-data)))
+    )
+      (handle-reply rollback parsed-reply-data)
+    )
     (ok true)
   )
 )
@@ -385,7 +390,7 @@
     
     (let (
       (updated-reply (merge reply { protocols: (default-to (list) (get sources rollback)) }))
-      (req-id (get-next-req-id))
+      (req-id (unwrap-panic (get-next-req-id)))
     )
       (emit-call-message-received-event (get from updated-reply) (get to updated-reply) (get sn updated-reply) req-id (get data updated-reply))
       
@@ -414,7 +419,7 @@
   (let (
     (decoded (contract-call? .rlp-decode rlp-to-list msg))
     (type (contract-call? .rlp-decode rlp-decode-uint decoded u0))
-    (data (contract-call? .rlp-decode rlp-decode-buff decoded u1))
+    (data (unwrap-panic (element-at decoded u1)))
   )
     (ok {
       type: type,
@@ -474,13 +479,13 @@
 (define-public (execute-call (req-id uint) (data (buff 2048)))
   (let 
     (
-        (message (map-get? incoming-messages { req-id: req-id }))
-        (stored-data (get data (unwrap! message ERR_MESSAGE_NOT_FOUND)))
+      (message (map-get? incoming-messages { req-id: req-id }))
+      (stored-data (get data (unwrap! message ERR_MESSAGE_NOT_FOUND)))
     )
-    (asserts! (is-eq (keccak256 data) (keccak256 stored-data)) ERR_MESSAGE_NOT_FOUND)
-    (emit-call-executed-event req-id CS_MESSAGE_RESULT_SUCCESS "")
-    (map-delete incoming-messages { req-id: req-id })
-    (ok true)
+      (asserts! (is-eq (keccak256 data) (keccak256 stored-data)) ERR_MESSAGE_NOT_FOUND)
+      (emit-call-executed-event req-id CS_MESSAGE_RESULT_SUCCESS "")
+      (map-delete incoming-messages { req-id: req-id })
+      (ok true)
   )
 )
 
@@ -572,19 +577,9 @@
   (unwrap-panic (contract-call? .centralized-connection get-fee (var-get current-net) (var-get current-rollback)))
 )
 
-
-
-
-;; Add these helper functions to your xcall-impl contract
-
-(define-read-only (test-get-net (address (string-ascii 128)))
-  (ok (get net (unwrap-panic (parse-network-address address))))
-)
-
-(define-read-only (test-get-from (msg-req { from: (string-ascii 128), to: (string-ascii 128), sn: uint, type: uint, data: (buff 2048), protocols: (list 10 (string-ascii 64)) }))
-  (ok (get from msg-req))
-)
-
-(define-read-only (test-is-eq-network (address (string-ascii 128)) (network (string-ascii 64)))
-  (ok (is-eq (get net (unwrap-panic (parse-network-address address))) network))
+(define-read-only (get-incoming-message (req-id uint))
+  (match (map-get? incoming-messages { req-id: req-id })
+    message (ok message)
+    (err ERR_MESSAGE_NOT_FOUND)
+  )
 )
