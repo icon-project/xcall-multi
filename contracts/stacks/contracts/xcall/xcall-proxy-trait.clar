@@ -7,9 +7,9 @@
     
     (is-current-implementation (principal) (response bool uint))
 
-    (send-call ((string-ascii 64) (buff 2048) <xcall-impl-trait>) (response uint uint))
+    (send-call ((string-ascii 128) (buff 2048) <xcall-impl-trait>) (response uint uint))
 
-    (send-call-message ((string-ascii 64) (buff 2048) (optional (buff 1024)) (optional (list 10 (string-ascii 64))) (optional (list 10 (string-ascii 64))) <xcall-impl-trait>) (response uint uint))
+    (send-call-message ((string-ascii 128) (buff 2048) (optional (buff 1024)) (optional (list 10 (string-ascii 128))) (optional (list 10 (string-ascii 128))) <xcall-impl-trait>) (response uint uint))
 
     (execute-call (uint (buff 2048) <xcall-impl-trait>) (response bool uint))
 
@@ -17,7 +17,7 @@
 
     (verify-success (uint <xcall-impl-trait>) (response bool uint))
 
-    (handle-message ((string-ascii 64) (buff 2048) <xcall-impl-trait>) (response bool uint))
+    (handle-message ((string-ascii 128) (buff 2048) <xcall-impl-trait>) (response bool uint))
 
     (handle-error (uint <xcall-impl-trait>) (response bool uint))
 
@@ -27,14 +27,16 @@
 
     (set-protocol-fee (uint <xcall-impl-trait>) (response bool uint))
 
-    (set-default-connection ((string-ascii 64) (string-ascii 64) <xcall-impl-trait>) (response bool uint))
+    (set-default-connection ((string-ascii 128) (string-ascii 128) <xcall-impl-trait>) (response bool uint))
 
-    (get-network-address (<xcall-impl-trait>) (response (string-ascii 129) uint))
+    (set-trusted-protocols ((string-ascii 128) (list 10 (string-ascii 128)) <xcall-impl-trait>) (response bool uint))
 
-    (get-network-id (<xcall-impl-trait>) (response (string-ascii 64) uint))
+    (get-network-address (<xcall-impl-trait>) (response (string-ascii 257) uint))
+
+    (get-network-id (<xcall-impl-trait>) (response (string-ascii 128) uint))
 
     (get-protocol-fee (<xcall-impl-trait>) (response uint uint))
 
-    (get-fee ((string-ascii 64) bool (optional (list 10 (string-ascii 64))) <xcall-impl-trait>) (response uint uint))
+    (get-fee ((string-ascii 128) bool (optional (list 10 (string-ascii 128))) <xcall-impl-trait>) (response uint uint))
   )
 )

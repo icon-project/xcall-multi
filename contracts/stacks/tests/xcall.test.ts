@@ -80,6 +80,28 @@ describe("xcall", () => {
 
     simnet.callPublicFn(
       XCALL_PROXY_CONTRACT_NAME,
+      "set-trusted-protocols",
+      [
+        Cl.stringAscii(STACKS_NID),
+        Cl.list([Cl.stringAscii(deployer! + "." + CENTRALIZED_CONNECTION_CONTRACT_NAME)]),
+        xcallImpl
+      ],
+      deployer!
+    );
+
+    simnet.callPublicFn(
+      XCALL_PROXY_CONTRACT_NAME,
+      "set-trusted-protocols",
+      [
+        Cl.stringAscii(ICON_NID),
+        Cl.list([Cl.stringAscii(deployer! + "." + CENTRALIZED_CONNECTION_CONTRACT_NAME)]),
+        xcallImpl
+      ],
+      deployer!
+    );
+
+    simnet.callPublicFn(
+      XCALL_PROXY_CONTRACT_NAME,
       "set-protocol-fee-handler",
       [centralizedConnection, xcallImpl],
       deployer!
@@ -425,5 +447,62 @@ describe("xcall", () => {
     expect(parsedResult2.protocols).toStrictEqual(
       Cl.list(protocols.map((p) => Cl.stringAscii(p)))
     );
+  });
+
+  it("verifies protocols correctly", () => {
+    // Test with no protocols (should use default connection)
+    const verifyNoProtocolResult = simnet.callPrivateFn(
+      XCALL_IMPL_CONTRACT_NAME,
+      "verify-protocols",
+      [
+        Cl.stringAscii(STACKS_NID),
+        Cl.list([]),
+        Cl.buffer(Buffer.from("test data")),
+      ],
+      deployer!
+    );
+    expect(verifyNoProtocolResult.result).toBeOk(Cl.bool(true));
+  
+    // Test with a single trusted protocol
+    const verifyTrustedProtocolResult = simnet.callPrivateFn(
+      XCALL_IMPL_CONTRACT_NAME,
+      "verify-protocols",
+      [
+        Cl.stringAscii(STACKS_NID),
+        Cl.list([Cl.stringAscii(deployer! + "." + CENTRALIZED_CONNECTION_CONTRACT_NAME)]),
+        Cl.buffer(Buffer.from("test data")),
+      ],
+      deployer!
+    );
+    expect(verifyTrustedProtocolResult.result).toBeOk(Cl.bool(true));
+  
+    // Test with an untrusted protocol
+    const verifyUntrustedProtocolResult = simnet.callPrivateFn(
+      XCALL_IMPL_CONTRACT_NAME,
+      "verify-protocols",
+      [
+        Cl.stringAscii(STACKS_NID),
+        Cl.list([Cl.stringAscii("untrusted.protocol")]),
+        Cl.buffer(Buffer.from("test data")),
+      ],
+      deployer!
+    );
+    expect(verifyUntrustedProtocolResult.result).toBeOk(Cl.bool(false));
+  
+    // Test with multiple protocols (including both trusted and untrusted)
+    const verifyMultipleProtocolsResult = simnet.callPrivateFn(
+      XCALL_IMPL_CONTRACT_NAME,
+      "verify-protocols",
+      [
+        Cl.stringAscii(STACKS_NID),
+        Cl.list([
+          Cl.stringAscii(deployer! + "." + CENTRALIZED_CONNECTION_CONTRACT_NAME),
+          Cl.stringAscii("untrusted.protocol"),
+        ]),
+        Cl.buffer(Buffer.from("test data")),
+      ],
+      deployer!
+    );
+    expect(verifyMultipleProtocolsResult.result).toBeOk(Cl.bool(false));
   });
 });

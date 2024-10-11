@@ -14,6 +14,7 @@
 (define-constant ERR_NO_ROLLBACK_DATA (err u109))
 (define-constant ERR_INVALID_REPLY (err u110))
 (define-constant ERR_NO_DEFAULT_CONNECTION (err u111))
+(define-constant ERR_UNVERIFIED_PROTOCOL (err u112))
 
 (define-constant CS_MESSAGE_RESULT_FAILURE u0)
 (define-constant CS_MESSAGE_RESULT_SUCCESS u1)
@@ -23,24 +24,34 @@
 (define-data-var admin principal tx-sender)
 (define-data-var protocol-fee uint u0)
 (define-data-var protocol-fee-handler principal tx-sender)
-(define-data-var current-net (string-ascii 64) "")
+(define-data-var current-net (string-ascii 128) "")
 (define-data-var current-rollback bool false)
 (define-data-var sn-counter uint u0)
 (define-data-var req-id-counter uint u0)
 (define-data-var reply-state
   (optional {
-    from-nid: (string-ascii 64),
-    protocols: (list 10 (string-ascii 64))
+    from-nid: (string-ascii 128),
+    protocols: (list 10 (string-ascii 128))
   })
   none
 )
 (define-data-var call-reply (optional (buff 2048)) none)
-(define-data-var network-id (optional (string-ascii 64)) none)
-(define-data-var contract-address (optional (string-ascii 64)) none)
+(define-data-var network-id (optional (string-ascii 128)) none)
+(define-data-var contract-address (optional (string-ascii 128)) none)
 
 (define-map default-connections 
-  { nid: (string-ascii 64) } 
-  { address: (string-ascii 64) }
+  { nid: (string-ascii 128) } 
+  { address: (string-ascii 128) }
+)
+
+(define-map trusted-protocols
+  { nid: (string-ascii 128) }
+  { protocols: (list 10 (string-ascii 128)) }
+)
+
+(define-map pending-messages 
+  { msg-hash: (buff 32), protocol: principal }
+  { confirmed: bool }
 )
 
 (define-map outgoing-messages 
@@ -67,7 +78,7 @@
   { value: bool }
 )
 
-(define-public (init (nid (string-ascii 64)) (addr (string-ascii 64)))
+(define-public (init (nid (string-ascii 128)) (addr (string-ascii 128)))
   (begin
     (asserts! (is-none (var-get network-id)) ERR_ALREADY_INITIALIZED)
     (asserts! (is-eq (var-get admin) tx-sender) ERR_NOT_ADMIN)
@@ -101,7 +112,7 @@
   (map-get? outgoing-messages { sn: sn })
 )
 
-(define-read-only (is-reply (net-id (string-ascii 64)) (sources (optional (list 100 (string-ascii 64)))))
+(define-read-only (is-reply (net-id (string-ascii 128)) (sources (optional (list 10 (string-ascii 128)))))
   (match (var-get reply-state)
     state (and 
             (is-eq (get from-nid state) net-id)
@@ -155,7 +166,7 @@
       index 
         (let 
           (
-            (net (unwrap-panic (as-max-len? (unwrap-panic (slice? address u0 index)) u64)))
+            (net (unwrap-panic (as-max-len? (unwrap-panic (slice? address u0 index)) u128)))
             (account (unwrap-panic (slice? address (+ index u1) (len address))))
           )
           (ok {net: net, account: account})
@@ -163,6 +174,13 @@
       ERR_INVALID_NETWORK_ADDRESS
     )
     ERR_INVALID_NETWORK_ADDRESS
+  )
+)
+
+(define-public (set-trusted-protocols (nid (string-ascii 128)) (protocols (list 10 (string-ascii 128))))
+  (begin
+    (asserts! (is-admin) ERR_NOT_ADMIN)
+    (ok (map-set trusted-protocols { nid: nid } { protocols: protocols }))
   )
 )
 
@@ -179,7 +197,7 @@
   )
 )
 
-(define-private (emit-call-executed-event (req-id uint) (code uint) (message (string-ascii 100)))
+(define-private (emit-call-executed-event (req-id uint) (code uint) (message (string-ascii 128)))
   (print 
     {
       event: "CallExecuted",
@@ -190,7 +208,7 @@
   )
 )
 
-(define-private (emit-call-message-sent-event (from principal) (to (string-ascii 100)) (sn uint))
+(define-private (emit-call-message-sent-event (from principal) (to (string-ascii 128)) (sn uint))
   (print
     {
       event: "CallMessageSent",
@@ -229,14 +247,14 @@
   )
 )
 
-(define-read-only (get-default-connection (nid (string-ascii 64)))
+(define-read-only (get-default-connection (nid (string-ascii 128)))
   (match (map-get? default-connections { nid: nid })
     connection (ok (some connection))
     ERR_NO_DEFAULT_CONNECTION)
 )
 
 (define-public (send-call 
-  (to (string-ascii 100)) 
+  (to (string-ascii 128)) 
   (data (buff 2048))
 )
   (begin
@@ -245,11 +263,11 @@
 )
 
 (define-public (send-call-message 
-  (to (string-ascii 100)) 
+  (to (string-ascii 128)) 
   (data (buff 2048)) 
   (rollback (optional (buff 1024))) 
-  (sources (optional (list 10 (string-ascii 64)))) 
-  (destinations (optional (list 10 (string-ascii 64))))
+  (sources (optional (list 10 (string-ascii 128)))) 
+  (destinations (optional (list 10 (string-ascii 128))))
 )
   (let
     (
@@ -284,7 +302,7 @@
   )
 )
 
-(define-public (handle-message (from (string-ascii 64)) (msg (buff 2048)))
+(define-public (handle-message (from (string-ascii 128)) (msg (buff 2048)))
   (let (
     (cs-message (unwrap-panic (parse-cs-message msg)))
     (msg-type (get type cs-message))
@@ -300,13 +318,13 @@
   )
 )
 
-(define-private (handle-request (from (string-ascii 64)) (data (buff 2048)))
+(define-private (handle-request (from (string-ascii 128)) (data (buff 2048)))
   (let (
     (msg-req (unwrap-panic (parse-cs-message-request data)))
     (hash (sha256 data))
   )
     (asserts! (is-eq (get net (unwrap-panic (parse-network-address (get from msg-req)))) from) ERR_INVALID_NETWORK_ADDRESS)
-    ;; (asserts! (verify-protocols from (get protocols msg-req) hash) ERR_UNAUTHORIZED)
+    (asserts! (verify-protocols from (get protocols msg-req) hash) ERR_UNVERIFIED_PROTOCOL)
     
     (let (
       (req-id (unwrap-panic (get-next-req-id)))
@@ -325,7 +343,7 @@
     (rollback (unwrap! (map-get? outgoing-messages { sn: res-sn }) ERR_MESSAGE_NOT_FOUND))
     (code (get code msg-res))
   )
-    ;; (asserts! (verify-protocols (get to rollback) (default-to (list) (get sources rollback)) (sha256 data)) ERR_UNAUTHORIZED)
+    (asserts! (verify-protocols (get to rollback) (default-to (list) (get sources rollback)) (sha256 data)) ERR_UNVERIFIED_PROTOCOL)
     
     (emit-response-message-event res-sn (get code msg-res))
     (if (is-eq code CS_MESSAGE_RESULT_SUCCESS)
@@ -362,7 +380,7 @@
 )
 
 (define-private (handle-success (sn uint) (msg-res { sn: uint, code: uint, msg: (optional (buff 2048)) }) (rollback { to: (string-ascii 128), data: (buff 2048), rollback: (optional (buff 1024)), sources: (optional (list 10 (string-ascii 128))), destinations: (optional (list 10 (string-ascii 128))) }))
-(begin 
+(begin
   (map-delete outgoing-messages { sn: sn })
   (map-set successful-responses { sn: sn } { value: true })
   (if (is-some (get msg msg-res))
@@ -378,7 +396,7 @@
 )
 
 (define-private (handle-reply (rollback { to: (string-ascii 128), data: (buff 2048), rollback: (optional (buff 1024)), sources: (optional (list 10 (string-ascii 128))), destinations: (optional (list 10 (string-ascii 128))) })
-                               (reply { from: (string-ascii 128), to: (string-ascii 128), sn: uint, type: uint, data: (buff 2048), protocols: (list 50 (string-ascii 128)) }))
+                               (reply { from: (string-ascii 128), to: (string-ascii 128), sn: uint, type: uint, data: (buff 2048), protocols: (list 10 (string-ascii 128)) }))
   (let (
     (rollback-to (try! (parse-network-address (get to rollback))))
     (reply-from (try! (parse-network-address (get from reply))))
@@ -522,7 +540,7 @@
   )
 )
 
-(define-public (set-default-connection (nid (string-ascii 64)) (connection (string-ascii 64)))
+(define-public (set-default-connection (nid (string-ascii 128)) (connection (string-ascii 128)))
   (begin
     (asserts! (is-admin) ERR_NOT_ADMIN)
     (map-set default-connections 
@@ -537,7 +555,7 @@
   (ok (var-get protocol-fee))
 )
 
-(define-public (get-fee (net (string-ascii 64)) (rollback bool) (sources (optional (list 100 (string-ascii 64)))))
+(define-public (get-fee (net (string-ascii 128)) (rollback bool) (sources (optional (list 10 (string-ascii 128)))))
   (let
     (
       (cumulative-fee (var-get protocol-fee))
@@ -551,11 +569,11 @@
   )
 )
 
-(define-private (sum-fees (source (string-ascii 64)) (acc uint))
+(define-private (sum-fees (source (string-ascii 128)) (acc uint))
   (+ acc (get-fee-from-source source))
 )
 
-(define-private (get-connection-fee (net (string-ascii 64)) (rollback bool) (sources (optional (list 100 (string-ascii 64)))))
+(define-private (get-connection-fee (net (string-ascii 128)) (rollback bool) (sources (optional (list 10 (string-ascii 128)))))
   (match sources
     some-sources (fold sum-fees some-sources u0)
     (let
@@ -570,7 +588,7 @@
   )
 )
 
-(define-private (get-fee-from-source (source (string-ascii 64)))
+(define-private (get-fee-from-source (source (string-ascii 128)))
   (unwrap-panic (contract-call? .centralized-connection get-fee (var-get current-net) (var-get current-rollback)))
 )
 
@@ -578,5 +596,65 @@
   (match (map-get? incoming-messages { req-id: req-id })
     message (ok message)
     (err ERR_MESSAGE_NOT_FOUND)
+  )
+)
+
+(define-private (verify-protocols (src-net (string-ascii 128)) (protocols (list 10 (string-ascii 128))) (data (buff 2048)))
+  (let 
+    (
+      (source tx-sender)
+      (msg-hash (sha256 data))
+    )
+    (if (> (len protocols) u0)
+      (if (> (len protocols) u1)
+        (let
+          (
+            (set-confirmation (map-set pending-messages { msg-hash: msg-hash, protocol: source } { confirmed: true }))
+            (all-confirmed (fold check-protocol protocols { msg-hash: msg-hash, all-valid: true }))
+          )
+          (and 
+            (get all-valid all-confirmed)
+            (begin 
+              (map clear-pending-message msg-hash protocols)
+              true
+            )
+          )
+        )
+        (is-eq source (unwrap! (contract-call? .util address-string-to-principal (unwrap-panic (element-at protocols u0))) false))
+      )
+      (match (map-get? default-connections { nid: src-net })
+        default-connection 
+          (is-eq
+            source
+            (unwrap! (contract-call? .util address-string-to-principal (get address default-connection)) false)
+          )
+        false
+      )
+    )
+  )
+)
+
+(define-private (check-protocol (protocol (string-ascii 128)) (accumulator { msg-hash: (buff 32), all-valid: bool }))
+  (let
+    (
+      (protocol-principal (unwrap! (contract-call? .util address-string-to-principal protocol) accumulator))
+      (is-confirmed (default-to false (get confirmed (map-get? pending-messages { msg-hash: (get msg-hash accumulator), protocol: protocol-principal }))))
+    )
+    {
+      msg-hash: (get msg-hash accumulator),
+      all-valid: (and (get all-valid accumulator) is-confirmed)
+    }
+  )
+)
+
+(define-private (clear-pending-message (msg-hash (buff 32)) (protocol (string-ascii 128)))
+  (let
+    (
+      (protocol-principal (unwrap! (contract-call? .util address-string-to-principal protocol) false))
+    )
+    (map-delete pending-messages { 
+      msg-hash: msg-hash, 
+      protocol: protocol-principal
+    })
   )
 )

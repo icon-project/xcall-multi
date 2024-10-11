@@ -9,9 +9,9 @@
 (define-data-var admin principal tx-sender)
 (define-data-var conn-sn uint u0)
 
-(define-map message-fees {network-id: (string-ascii 64)} uint)
-(define-map response-fees {network-id: (string-ascii 64)} uint)
-(define-map receipts {network-id: (string-ascii 64), conn-sn: uint} bool)
+(define-map message-fees {network-id: (string-ascii 128)} uint)
+(define-map response-fees {network-id: (string-ascii 128)} uint)
+(define-map receipts {network-id: (string-ascii 128), conn-sn: uint} bool)
 
 (define-read-only (get-xcall)
   (ok (var-get xcall)))
@@ -22,7 +22,7 @@
 (define-read-only (get-conn-sn)
   (ok (var-get conn-sn)))
 
-(define-read-only (get-fee (to (string-ascii 64)) (response bool))
+(define-read-only (get-fee (to (string-ascii 128)) (response bool))
   (let
     ((message-fee (default-to u0 (map-get? message-fees {network-id: to}))))
     (if response
@@ -31,7 +31,7 @@
         (ok (+ message-fee response-fee)))
       (ok message-fee))))
 
-(define-read-only (get-receipt (src-network (string-ascii 64)) (conn-sn-in uint))
+(define-read-only (get-receipt (src-network (string-ascii 128)) (conn-sn-in uint))
   (ok (default-to false (map-get? receipts {network-id: src-network, conn-sn: conn-sn-in}))))
 
 (define-private (is-admin)
@@ -50,7 +50,7 @@
     (var-set admin admin-address)
     (ok true)))
 
-(define-public (set-fee (network-id (string-ascii 64)) (message-fee uint) (response-fee uint))
+(define-public (set-fee (network-id (string-ascii 128)) (message-fee uint) (response-fee uint))
   (begin
     (asserts! (is-admin) ERR_UNAUTHORIZED)
     (map-set message-fees {network-id: network-id} message-fee)
@@ -68,7 +68,7 @@
     (var-set admin new-admin)
     (ok true)))
 
-(define-public (send-message (to (string-ascii 64)) (svc (string-ascii 64)) (sn int) (msg (buff 2048)))
+(define-public (send-message (to (string-ascii 128)) (svc (string-ascii 128)) (sn int) (msg (buff 2048)))
   (begin
     (asserts! (is-xcall) ERR_UNAUTHORIZED)
     (let
@@ -78,7 +78,7 @@
       (print {event: "Message", to: to, sn: (var-get conn-sn), msg: msg})
       (ok (var-get conn-sn)))))
 
-(define-public (recv-message (src-network (string-ascii 64)) (conn-sn-in uint) (msg (buff 2048)) (implementation <xcall-impl-trait>))
+(define-public (recv-message (src-network (string-ascii 128)) (conn-sn-in uint) (msg (buff 2048)) (implementation <xcall-impl-trait>))
   (begin
     (asserts! (is-eq tx-sender (var-get admin)) ERR_UNAUTHORIZED)
     (asserts! (is-none (map-get? receipts {network-id: src-network, conn-sn: conn-sn-in})) ERR_DUPLICATE_MESSAGE)

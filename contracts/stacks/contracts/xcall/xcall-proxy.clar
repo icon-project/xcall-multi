@@ -26,14 +26,21 @@
     (ok (is-eq implementation (var-get current-logic-implementation)))
 )
 
-(define-public (send-call (to (string-ascii 64)) (data (buff 2048)) (implementation <xcall-impl-trait>))
+(define-public (set-trusted-protocols (nid (string-ascii 128)) (protocols (list 10 (string-ascii 128))) (implementation <xcall-impl-trait>))
+    (begin
+        (asserts! (is-eq (contract-of implementation) (var-get current-logic-implementation)) err-not-current-implementation)
+        (contract-call? implementation set-trusted-protocols nid protocols)
+    )
+)
+
+(define-public (send-call (to (string-ascii 128)) (data (buff 2048)) (implementation <xcall-impl-trait>))
     (begin
         (asserts! (is-eq (contract-of implementation) (var-get current-logic-implementation)) err-not-current-implementation)
         (contract-call? implementation send-call to data)
     )
 )
 
-(define-public (send-call-message (to (string-ascii 64)) (data (buff 2048)) (rollback (optional (buff 1024))) (sources (optional (list 10 (string-ascii 64)))) (destinations (optional (list 10 (string-ascii 64)))) (implementation <xcall-impl-trait>))
+(define-public (send-call-message (to (string-ascii 128)) (data (buff 2048)) (rollback (optional (buff 1024))) (sources (optional (list 10 (string-ascii 128)))) (destinations (optional (list 10 (string-ascii 128)))) (implementation <xcall-impl-trait>))
     (begin
         (asserts! (is-eq (contract-of implementation) (var-get current-logic-implementation)) err-not-current-implementation)
         (contract-call? implementation send-call-message to data rollback sources destinations)
@@ -61,7 +68,7 @@
     )
 )
 
-(define-public (handle-message (source-network (string-ascii 64)) (message (buff 2048)) (implementation <xcall-impl-trait>))
+(define-public (handle-message (source-network (string-ascii 128)) (message (buff 2048)) (implementation <xcall-impl-trait>))
     (begin
         (asserts! (is-eq (contract-of implementation) (var-get current-logic-implementation)) err-not-current-implementation)
         (contract-call? implementation handle-message source-network message)
@@ -98,7 +105,7 @@
     )
 )
 
-(define-public (set-default-connection (nid (string-ascii 64)) (connection (string-ascii 64)) (implementation <xcall-impl-trait>))
+(define-public (set-default-connection (nid (string-ascii 128)) (connection (string-ascii 128)) (implementation <xcall-impl-trait>))
     (begin
         (asserts! (is-eq (contract-of implementation) (var-get current-logic-implementation)) err-not-current-implementation)
         (contract-call? implementation set-default-connection nid connection)
@@ -128,7 +135,7 @@
     )
 )
 
-(define-public (get-fee (net (string-ascii 64)) (rollback bool) (sources (optional (list 10 (string-ascii 64)))) (implementation <xcall-impl-trait>))
+(define-public (get-fee (net (string-ascii 128)) (rollback bool) (sources (optional (list 10 (string-ascii 128)))) (implementation <xcall-impl-trait>))
     (begin
         (asserts! (is-eq (contract-of implementation) (var-get current-logic-implementation)) err-not-current-implementation)
         (contract-call? implementation get-fee net rollback sources)
