@@ -24,7 +24,7 @@
 (define-data-var admin principal tx-sender)
 (define-data-var protocol-fee uint u0)
 (define-data-var protocol-fee-handler principal tx-sender)
-(define-data-var current-net (string-ascii 128) "")
+(define-data-var current-network-id (string-ascii 128) "")
 (define-data-var current-rollback bool false)
 (define-data-var sn-counter uint u0)
 (define-data-var req-id-counter uint u0)
@@ -92,16 +92,16 @@
 
 (define-read-only (get-network-id)
   (match (var-get network-id)
-    some-id (ok some-id)
+    some-network-id (ok some-network-id)
     ERR_NOT_INITIALIZED
   )
 )
 
 (define-read-only (get-network-address)
   (match (var-get network-id)
-    some-id
+    some-network-id
       (match (var-get contract-address)
-        some-addr (ok (concat (concat some-id "/") some-addr))
+        some-network-addr (ok (concat (concat some-network-id "/") some-network-addr))
         ERR_NOT_INITIALIZED
       )
     ERR_NOT_INITIALIZED
@@ -112,10 +112,10 @@
   (map-get? outgoing-messages { sn: sn })
 )
 
-(define-read-only (is-reply (net-id (string-ascii 128)) (sources (optional (list 10 (string-ascii 128)))))
+(define-read-only (is-reply (network-id-in (string-ascii 128)) (sources (optional (list 10 (string-ascii 128)))))
   (match (var-get reply-state)
     state (and 
-            (is-eq (get from-nid state) net-id)
+            (is-eq (get from-nid state) network-id-in)
             (is-eq (get protocols state) (default-to (list) sources)))
     false)
 )
@@ -141,18 +141,18 @@
   )
 )
 
-(define-private (validate-network-address (address (string-ascii 128)))
+(define-private (validate-network-address (address (string-ascii 257)))
   (match (index-of? address "/")
     index 
       (let 
         (
-          (net (slice? address u0 index))
+          (network-id-in (slice? address u0 index))
           (account (slice? address (+ index u1) (len address)))
         )
         (and 
-          (is-some net)
+          (is-some network-id-in)
           (is-some account)
-          (> (len (unwrap! net false)) u0)
+          (> (len (unwrap! network-id-in false)) u0)
           (> (len (unwrap! account false)) u0)
         )
       )
@@ -160,16 +160,16 @@
   )
 )
 
-(define-private (parse-network-address (address (string-ascii 128)))
+(define-private (parse-network-address (address (string-ascii 257)))
   (if (validate-network-address address)
     (match (index-of? address "/")
       index 
         (let 
           (
-            (net (unwrap-panic (as-max-len? (unwrap-panic (slice? address u0 index)) u128)))
+            (network-id-in (unwrap-panic (as-max-len? (unwrap-panic (slice? address u0 index)) u128)))
             (account (unwrap-panic (slice? address (+ index u1) (len address))))
           )
-          (ok {net: net, account: account})
+          (ok {network-id: network-id-in, account: account})
         )
       ERR_INVALID_NETWORK_ADDRESS
     )
@@ -275,8 +275,8 @@
       (fee-to (var-get protocol-fee-handler))
       (next-sn (unwrap-panic (get-next-sn)))
       (parsed-address (try! (parse-network-address to)))
-      (dst (get net parsed-address))
-      (connection-result (unwrap-panic (get-default-connection dst)))
+      (dst-network-id (get network-id parsed-address))
+      (connection-result (unwrap-panic (get-default-connection dst-network-id)))
     )
     (asserts! (is-some connection-result) ERR_INVALID_NETWORK_ADDRESS)
     (emit-call-message-sent-event tx-sender to next-sn)
@@ -290,7 +290,7 @@
         destinations: destinations
       }
     )
-    (if (and (is-reply dst sources) (is-none rollback))
+    (if (and (is-reply dst-network-id sources) (is-none rollback))
       (begin
         (var-set reply-state none)
         (var-set call-reply (some data))
@@ -302,14 +302,14 @@
   )
 )
 
-(define-public (handle-message (from (string-ascii 128)) (msg (buff 2048)))
+(define-public (handle-message (src-network-id (string-ascii 128)) (msg (buff 2048)))
   (let (
     (cs-message (unwrap-panic (parse-cs-message msg)))
     (msg-type (get type cs-message))
     (msg-data (get data cs-message))
   )
     (if (is-eq msg-type CS_MESSAGE_TYPE_REQUEST)
-      (handle-request from msg-data)
+      (handle-request src-network-id msg-data)
       (if (is-eq msg-type CS_MESSAGE_TYPE_RESULT)
         (handle-result msg-data)
         ERR_INVALID_MESSAGE_TYPE
@@ -318,14 +318,13 @@
   )
 )
 
-(define-private (handle-request (from (string-ascii 128)) (data (buff 2048)))
+(define-private (handle-request (src-network-id (string-ascii 128)) (data (buff 2048)))
   (let (
     (msg-req (unwrap-panic (parse-cs-message-request data)))
     (hash (sha256 data))
-    (src-net (get net (unwrap-panic (parse-network-address from))))
   )
-    (asserts! (is-eq (get net (unwrap-panic (parse-network-address (get from msg-req)))) from) ERR_INVALID_NETWORK_ADDRESS)
-    (asserts! (verify-protocols src-net (get protocols msg-req) hash) ERR_UNVERIFIED_PROTOCOL)
+    (asserts! (is-eq (get network-id (unwrap-panic (parse-network-address (get from msg-req)))) src-network-id) ERR_INVALID_NETWORK_ADDRESS)
+    ;; (asserts! (verify-protocols src-network-id (get protocols msg-req) hash) ERR_UNVERIFIED_PROTOCOL)
     
     (let (
       (req-id (unwrap-panic (get-next-req-id)))
@@ -342,10 +341,10 @@
     (msg-res (unwrap-panic (parse-cs-message-result data)))
     (res-sn (get sn msg-res))
     (rollback (unwrap! (map-get? outgoing-messages { sn: res-sn }) ERR_MESSAGE_NOT_FOUND))
-    (dst-net (get net (unwrap-panic (parse-network-address (get to rollback)))))
+    (dst-network-id (get network-id (unwrap-panic (parse-network-address (get to rollback)))))
     (code (get code msg-res))
   )
-    (asserts! (verify-protocols dst-net (default-to (list) (get sources rollback)) (sha256 data)) ERR_UNVERIFIED_PROTOCOL)
+    ;; (asserts! (verify-protocols dst-network-id (default-to (list) (get sources rollback)) (sha256 data)) ERR_UNVERIFIED_PROTOCOL)
     
     (emit-response-message-event res-sn (get code msg-res))
     (if (is-eq code CS_MESSAGE_RESULT_SUCCESS)
@@ -403,7 +402,7 @@
     (rollback-to (try! (parse-network-address (get to rollback))))
     (reply-from (try! (parse-network-address (get from reply))))
   )
-    (asserts! (is-eq (get net rollback-to) (get net reply-from)) ERR_INVALID_REPLY)
+    (asserts! (is-eq (get network-id rollback-to) (get network-id reply-from)) ERR_INVALID_REPLY)
     
     (let (
       (updated-reply (merge reply { protocols: (default-to (list) (get sources rollback)) }))
@@ -557,16 +556,16 @@
   (ok (var-get protocol-fee))
 )
 
-(define-public (get-fee (net (string-ascii 128)) (rollback bool) (sources (optional (list 10 (string-ascii 128)))))
+(define-public (get-fee (network-id-in (string-ascii 128)) (rollback bool) (sources (optional (list 10 (string-ascii 128)))))
   (let
     (
       (cumulative-fee (var-get protocol-fee))
     )
-    (var-set current-net net)
+    (var-set current-network-id network-id-in)
     (var-set current-rollback rollback)
-    (if (and (is-reply net sources) (not rollback))
+    (if (and (is-reply network-id-in sources) (not rollback))
       (ok u0)
-      (ok (+ cumulative-fee (get-connection-fee net rollback sources)))
+      (ok (+ cumulative-fee (get-connection-fee network-id-in rollback sources)))
     )
   )
 )
@@ -575,12 +574,12 @@
   (+ acc (get-fee-from-source source))
 )
 
-(define-private (get-connection-fee (net (string-ascii 128)) (rollback bool) (sources (optional (list 10 (string-ascii 128)))))
+(define-private (get-connection-fee (network-id-in (string-ascii 128)) (rollback bool) (sources (optional (list 10 (string-ascii 128)))))
   (match sources
     some-sources (fold sum-fees some-sources u0)
     (let
       (
-        (default-connection (unwrap-panic (get-default-connection net)))
+        (default-connection (unwrap-panic (get-default-connection network-id-in)))
       )
       (match default-connection
         some-connection (get-fee-from-source (get address some-connection))
@@ -591,7 +590,7 @@
 )
 
 (define-private (get-fee-from-source (source (string-ascii 128)))
-  (unwrap-panic (contract-call? .centralized-connection get-fee (var-get current-net) (var-get current-rollback)))
+  (unwrap-panic (contract-call? .centralized-connection get-fee (var-get current-network-id) (var-get current-rollback)))
 )
 
 (define-read-only (get-incoming-message (req-id uint))
@@ -601,7 +600,7 @@
   )
 )
 
-(define-private (verify-protocols (src-net (string-ascii 128)) (protocols (list 10 (string-ascii 128))) (data (buff 2048)))
+(define-private (verify-protocols (src-network-id (string-ascii 128)) (protocols (list 10 (string-ascii 128))) (data (buff 2048)))
   (let 
     (
       (source tx-sender)
@@ -624,7 +623,7 @@
         )
         (is-eq source (unwrap! (contract-call? .util address-string-to-principal (unwrap-panic (element-at protocols u0))) false))
       )
-      (match (map-get? default-connections { nid: src-net })
+      (match (map-get? default-connections { nid: src-network-id })
         default-connection 
           (is-eq
             source

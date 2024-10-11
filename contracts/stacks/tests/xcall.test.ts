@@ -206,16 +206,21 @@ describe("xcall", () => {
       messageData
     ]);
 
-    const handleMessageResult = simnet.callPublicFn(
-      XCALL_PROXY_CONTRACT_NAME,
-      "handle-message",
-      [Cl.stringAscii(STACKS_NID), Cl.buffer(csMessageRequest), xcallImpl],
+    const recvMessageResult = simnet.callPublicFn(
+      CENTRALIZED_CONNECTION_CONTRACT_NAME,
+      "recv-message",
+      [
+        Cl.stringAscii(STACKS_NID),
+        Cl.int(expectedSn),
+        Cl.buffer(csMessageRequest),
+        xcallImpl
+      ],
       deployer!
     );
-    
-    expect(handleMessageResult.result).toBeOk(Cl.bool(true));
+  
+    expect(recvMessageResult.result).toBeOk(Cl.bool(true));
 
-    const callMessageEvent = handleMessageResult.events.find(e => 
+    const callMessageEvent = recvMessageResult.events.find(e => 
       e.event === 'print_event' &&
       // @ts-ignore: Property 'data' does not exist on type 'ClarityValue'. Property 'data' does not exist on type 'ContractPrincipalCV'.
       e.data.value!.data.event.data === 'CallMessage'
@@ -260,13 +265,18 @@ describe("xcall", () => {
     ]);
 
     const handleResponseResult = simnet.callPublicFn(
-      XCALL_PROXY_CONTRACT_NAME,
-      "handle-message",
-      [Cl.stringAscii(STACKS_NID), Cl.buffer(csMessageResponse), xcallImpl],
+      CENTRALIZED_CONNECTION_CONTRACT_NAME,
+      "recv-message",
+      [
+        Cl.stringAscii(ICON_NID),
+        Cl.int(-expectedSn),
+        Cl.buffer(csMessageResponse),
+        xcallImpl
+      ],
       deployer!
     );
     
-    expect(handleResponseResult.result).toBeOk(Cl.bool(true));    
+    expect(handleResponseResult.result).toBeOk(Cl.bool(true));
 
     const verifySuccessResult = simnet.callPublicFn(
       XCALL_PROXY_CONTRACT_NAME,
@@ -289,7 +299,7 @@ describe("xcall", () => {
       [Cl.stringAscii(to), Cl.buffer(data), Cl.some(Cl.buffer(rollbackData)), Cl.none(), Cl.none(), xcallImpl],
       sourceContract
     );
-    expect(sendCallResult.result).toBeOk(Cl.uint(1));
+    expect(sendCallResult.result).toBeOk(Cl.uint(expectedSn));
 
     const messageData = encode([
       from,
@@ -305,12 +315,54 @@ describe("xcall", () => {
       messageData
     ]);
 
-    simnet.callPublicFn(
-      XCALL_PROXY_CONTRACT_NAME,
-      "handle-message",
-      [Cl.stringAscii(ICON_NID), Cl.buffer(csMessageRequest), xcallImpl],
+    const recvMessageResult = simnet.callPublicFn(
+      CENTRALIZED_CONNECTION_CONTRACT_NAME,
+      "recv-message",
+      [
+        Cl.stringAscii(STACKS_NID),
+        Cl.int(expectedSn),
+        Cl.buffer(csMessageRequest),
+        xcallImpl
+      ],
       deployer!
     );
+  
+    expect(recvMessageResult.result).toBeOk(Cl.bool(true));
+
+    const callMessageEvent = recvMessageResult.events.find(e =>
+      // @ts-ignore: Property 'data' does not exist on type 'ClarityValue'. Property 'data' does not exist on type 'ContractPrincipalCV'.
+      e.event === 'print_event' && e.data.value!.data.event.data === 'CallMessage'
+    );
+    expect(callMessageEvent).toBeDefined();
+    console.log(callMessageEvent!.data.value!)
+
+    // @ts-ignore: Property 'data' does not exist on type 'ClarityValue'. Property 'data' does not exist on type 'ContractPrincipalCV'.
+    const callMessageData = callMessageEvent!.data.value!.data;
+    expect(callMessageData.from.data).toBe(from);
+    expect(callMessageData.to.data).toBe(to);
+    expect(Number(callMessageData.sn.value)).toBe(expectedSn);
+    expect(Number(callMessageData['req-id'].value)).toBe(expectedReqId);
+
+    const slicedData = data.slice(1); // rlp decode drops length byte
+    const executeCallResult = simnet.callPublicFn(
+      XCALL_PROXY_CONTRACT_NAME,
+      "execute-call",
+      [Cl.uint(expectedReqId), Cl.buffer(slicedData), xcallImpl],
+      destinationContract
+    );
+    expect(executeCallResult.result).toBeOk(Cl.bool(true));
+
+    const callExecutedEvent = executeCallResult.events.find(e => 
+      e.event === 'print_event' &&
+      // @ts-ignore: Property 'data' does not exist on type 'ClarityValue'. Property 'data' does not exist on type 'ContractPrincipalCV'.
+      e.data.value!.data.event.data === 'CallExecuted'
+    );
+    expect(callExecutedEvent).toBeDefined();
+    // @ts-ignore: Property 'data' does not exist on type 'ClarityValue'. Property 'data' does not exist on type 'ContractPrincipalCV'.
+    const callExecutedData = callExecutedEvent!.data.value!.data;
+    expect(Number(callExecutedData.code.value)).toBe(CS_MESSAGE_RESULT_SUCCESS);
+    expect(Number(callExecutedData['req-id'].value)).toBe(expectedReqId);
+    expect(callExecutedData.msg.data).toBe("");
 
     const failureResponseData = encode([expectedSn, CS_MESSAGE_RESULT_FAILURE]);
     const csMessageResponse = encode([CS_MESSAGE_TYPE_RESULT, failureResponseData]);

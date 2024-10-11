@@ -7,11 +7,11 @@
 
 (define-data-var xcall (optional principal) none)
 (define-data-var admin principal tx-sender)
-(define-data-var conn-sn uint u0)
+(define-data-var conn-sn int 0)
 
 (define-map message-fees {network-id: (string-ascii 128)} uint)
 (define-map response-fees {network-id: (string-ascii 128)} uint)
-(define-map receipts {network-id: (string-ascii 128), conn-sn: uint} bool)
+(define-map receipts {network-id: (string-ascii 128), conn-sn: int} bool)
 
 (define-read-only (get-xcall)
   (ok (var-get xcall)))
@@ -31,7 +31,7 @@
         (ok (+ message-fee response-fee)))
       (ok message-fee))))
 
-(define-read-only (get-receipt (src-network (string-ascii 128)) (conn-sn-in uint))
+(define-read-only (get-receipt (src-network (string-ascii 128)) (conn-sn-in int))
   (ok (default-to false (map-get? receipts {network-id: src-network, conn-sn: conn-sn-in}))))
 
 (define-private (is-admin)
@@ -68,19 +68,31 @@
     (var-set admin new-admin)
     (ok true)))
 
-(define-public (send-message (to (string-ascii 128)) (svc (string-ascii 128)) (sn int) (msg (buff 2048)))
+(define-private (emit-message-event (to (string-ascii 128)) (sn int) (msg (buff 2048)))
+  (print 
+    {
+      event: "Message",
+      to: to,
+      sn: sn,
+      msg: msg
+    }
+  )
+)
+
+(define-public (send-message (to (string-ascii 128)) (svc (string-ascii 128)) (sn int) (msg (buff 2048)) (implementation <xcall-impl-trait>))
   (begin
     (asserts! (is-xcall) ERR_UNAUTHORIZED)
     (let
       ((fee (unwrap! (get-fee to (> sn 0)) ERR_INVALID_FEE)))
       (asserts! (>= (stx-get-balance tx-sender) fee) ERR_INVALID_FEE)
-      (var-set conn-sn (+ (var-get conn-sn) u1))
-      (print {event: "Message", to: to, sn: (var-get conn-sn), msg: msg})
+      (var-set conn-sn (+ (var-get conn-sn) 1))
+      (unwrap-panic (contract-call? .xcall-proxy handle-message to msg implementation))
+      (emit-message-event to (var-get conn-sn) msg)
       (ok (var-get conn-sn)))))
 
-(define-public (recv-message (src-network (string-ascii 128)) (conn-sn-in uint) (msg (buff 2048)) (implementation <xcall-impl-trait>))
+(define-public (recv-message (src-network-id (string-ascii 128)) (conn-sn-in int) (msg (buff 2048)) (implementation <xcall-impl-trait>))
   (begin
     (asserts! (is-eq tx-sender (var-get admin)) ERR_UNAUTHORIZED)
-    (asserts! (is-none (map-get? receipts {network-id: src-network, conn-sn: conn-sn-in})) ERR_DUPLICATE_MESSAGE)
-    (map-set receipts {network-id: src-network, conn-sn: conn-sn-in} true)
-    (contract-call? .xcall-proxy handle-message src-network msg implementation)))
+    (asserts! (is-none (map-get? receipts {network-id: src-network-id, conn-sn: conn-sn-in})) ERR_DUPLICATE_MESSAGE)
+    (map-set receipts {network-id: src-network-id, conn-sn: conn-sn-in} true)
+    (contract-call? .xcall-proxy handle-message src-network-id msg implementation)))
