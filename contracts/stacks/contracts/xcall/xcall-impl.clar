@@ -324,7 +324,7 @@
     (hash (sha256 data))
   )
     (asserts! (is-eq (get network-id (unwrap-panic (parse-network-address (get from msg-req)))) src-network-id) ERR_INVALID_NETWORK_ADDRESS)
-    ;; (asserts! (verify-protocols src-network-id (get protocols msg-req) hash) ERR_UNVERIFIED_PROTOCOL)
+    (asserts! (verify-protocols src-network-id (get protocols msg-req) hash) ERR_UNVERIFIED_PROTOCOL)
     
     (let (
       (req-id (unwrap-panic (get-next-req-id)))
@@ -344,7 +344,7 @@
     (dst-network-id (get network-id (unwrap-panic (parse-network-address (get to rollback)))))
     (code (get code msg-res))
   )
-    ;; (asserts! (verify-protocols dst-network-id (default-to (list) (get sources rollback)) (sha256 data)) ERR_UNVERIFIED_PROTOCOL)
+    (asserts! (verify-protocols dst-network-id (default-to (list) (get sources rollback)) (sha256 data)) ERR_UNVERIFIED_PROTOCOL)
     
     (emit-response-message-event res-sn (get code msg-res))
     (if (is-eq code CS_MESSAGE_RESULT_SUCCESS)

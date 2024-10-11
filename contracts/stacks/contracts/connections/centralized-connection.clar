@@ -86,7 +86,7 @@
       ((fee (unwrap! (get-fee to (> sn 0)) ERR_INVALID_FEE)))
       (asserts! (>= (stx-get-balance tx-sender) fee) ERR_INVALID_FEE)
       (var-set conn-sn (+ (var-get conn-sn) 1))
-      (unwrap-panic (contract-call? .xcall-proxy handle-message to msg implementation))
+      (as-contract (unwrap-panic (contract-call? .xcall-proxy handle-message to msg implementation)))
       (emit-message-event to (var-get conn-sn) msg)
       (ok (var-get conn-sn)))))
 
@@ -95,4 +95,4 @@
     (asserts! (is-eq tx-sender (var-get admin)) ERR_UNAUTHORIZED)
     (asserts! (is-none (map-get? receipts {network-id: src-network-id, conn-sn: conn-sn-in})) ERR_DUPLICATE_MESSAGE)
     (map-set receipts {network-id: src-network-id, conn-sn: conn-sn-in} true)
-    (contract-call? .xcall-proxy handle-message src-network-id msg implementation)))
+    (as-contract (contract-call? .xcall-proxy handle-message src-network-id msg implementation))))
