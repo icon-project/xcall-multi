@@ -48,35 +48,10 @@ genesis:
 plan:
   batches:
     - id: 0
-      transactions:
-        - emulated-contract-publish:
-            contract-name: sip-010-trait-ft-standard
-            emulated-sender: SP3FBR2AGK5H9QBDH3EEN6DF8EK8JY7RX8QJ5SVTE
-            path: "./.cache/requirements/SP3FBR2AGK5H9QBDH3EEN6DF8EK8JY7RX8QJ5SVTE.sip-010-trait-ft-standard.clar"
-            clarity-version: 1
+      transactions: []
       epoch: "2.1"
     - id: 1
       transactions:
-        - emulated-contract-publish:
-            contract-name: asset-manager
-            emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
-            path: lib/balanced/asset-manager/asset-manager.clar
-            clarity-version: 2
-        - emulated-contract-publish:
-            contract-name: rlp-decode
-            emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
-            path: lib/rlp/rlp-decode.clar
-            clarity-version: 2
-        - emulated-contract-publish:
-            contract-name: rlp-encode
-            emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
-            path: lib/rlp/rlp-encode.clar
-            clarity-version: 2
-        - emulated-contract-publish:
-            contract-name: asset-manager-messages
-            emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
-            path: lib/balanced/asset-manager/messages.clar
-            clarity-version: 2
         - emulated-contract-publish:
             contract-name: xcall-common-trait
             emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
@@ -108,9 +83,9 @@ plan:
             path: contracts/connections/centralized-connection.clar
             clarity-version: 2
         - emulated-contract-publish:
-            contract-name: clarity-bitcoin-mini
+            contract-name: rlp-decode
             emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
-            path: lib/tokens/sbtc/clarity-bitcoin-mini.clar
+            path: lib/rlp/rlp-decode.clar
             clarity-version: 2
         - emulated-contract-publish:
             contract-name: mock-dapp
@@ -118,14 +93,9 @@ plan:
             path: tests/mocks/mock-dapp.clar
             clarity-version: 2
         - emulated-contract-publish:
-            contract-name: sbtc
+            contract-name: rlp-encode
             emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
-            path: lib/tokens/sbtc/sbtc.clar
-            clarity-version: 2
-        - emulated-contract-publish:
-            contract-name: sip-010-trait
-            emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
-            path: lib/sips/sip-010-trait.clar
+            path: lib/rlp/rlp-encode.clar
             clarity-version: 2
         - emulated-contract-publish:
             contract-name: util
@@ -139,5 +109,8 @@ plan:
             clarity-version: 2
       epoch: "2.5"
     - id: 2
+      transactions: []
+      epoch: "2.5"
+    - id: 3
       transactions: []
       epoch: "2.5"

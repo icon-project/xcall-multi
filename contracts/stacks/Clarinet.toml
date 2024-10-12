@@ -5,25 +5,8 @@ authors = []
 telemetry = true
 cache_dir = './.cache'
 
-[[project.requirements]]
-contract_id = 'SP3FBR2AGK5H9QBDH3EEN6DF8EK8JY7RX8QJ5SVTE.sip-010-trait-ft-standard'
-[contracts.asset-manager]
-path = 'lib/balanced/asset-manager/asset-manager.clar'
-clarity_version = 2
-epoch = 2.5
-
-[contracts.asset-manager-messages]
-path = 'lib/balanced/asset-manager/messages.clar'
-clarity_version = 2
-epoch = 2.5
-
 [contracts.centralized-connection]
 path = 'contracts/connections/centralized-connection.clar'
-clarity_version = 2
-epoch = 2.5
-
-[contracts.clarity-bitcoin-mini]
-path = 'lib/tokens/sbtc/clarity-bitcoin-mini.clar'
 clarity_version = 2
 epoch = 2.5
 
@@ -39,16 +22,6 @@ epoch = 2.5
 
 [contracts.rlp-encode]
 path = 'lib/rlp/rlp-encode.clar'
-clarity_version = 2
-epoch = 2.5
-
-[contracts.sbtc]
-path = 'lib/tokens/sbtc/sbtc.clar'
-clarity_version = 2
-epoch = 2.5
-
-[contracts.sip-010-trait]
-path = 'lib/sips/sip-010-trait.clar'
 clarity_version = 2
 epoch = 2.5
 
