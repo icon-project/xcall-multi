@@ -59,7 +59,7 @@
 (define-public (execute-rollback (sn uint) (receiver <xcall-receiver-trait>) (common <xcall-common-trait>) (implementation <xcall-impl-trait>))
     (begin
         (asserts! (is-eq (contract-of implementation) (var-get current-logic-implementation)) err-not-current-implementation)
-        (contract-call? implementation execute-rollback sn receiver common)
+        (as-contract (contract-call? implementation execute-rollback sn receiver common))
     )
 )
 

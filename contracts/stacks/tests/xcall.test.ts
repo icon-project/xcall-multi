@@ -286,14 +286,13 @@ describe("xcall", () => {
       [
         Cl.uint(reqId), 
         Cl.buffer(slicedData),
-        Cl.contractPrincipal(deployer!, MOCK_DAPP_CONTRACT_NAME),
+        mockDapp,
         xcallImpl,
         xcallImpl
       ],
       deployer!
     );
     expect(executeCallResult.result).toBeOk(Cl.bool(true));
-    console.log(executeCallResult.events[0].data.value)
 
     const callExecutedEvent = executeCallResult.events.find(e => 
       e.event === 'print_event' &&
@@ -306,6 +305,17 @@ describe("xcall", () => {
     expect(Number(callExecutedData.code.value)).toBe(CS_MESSAGE_RESULT_SUCCESS);
     expect(Number(callExecutedData['req-id'].value)).toBe(expectedReqId);
     expect(callExecutedData.msg.data).toBe("");
+
+    const messageReceivedEvent = executeCallResult.events.find(e => 
+      e.event === 'print_event' &&
+      // @ts-ignore: Property 'data' does not exist on type 'ClarityValue'. Property 'data' does not exist on type 'ContractPrincipalCV'.
+      e.data.value!.data.event.data === 'MessageReceived'
+    );
+    expect(messageReceivedEvent).toBeDefined();
+    // @ts-ignore: Property 'data' does not exist on type 'ClarityValue'. Property 'data' does not exist on type 'ContractPrincipalCV'.
+    const messageReceivedData = messageReceivedEvent!.data.value!.data;
+    expect(messageReceivedData.data).toStrictEqual(Cl.stringAscii("Hello, Destination Contract!"));
+    expect(messageReceivedData.from).toStrictEqual(Cl.stringAscii(from));
 
     const responseData = encode([
       expectedSn,
@@ -390,16 +400,23 @@ describe("xcall", () => {
 
     // @ts-ignore: Property 'data' does not exist on type 'ClarityValue'. Property 'data' does not exist on type 'ContractPrincipalCV'.
     const callMessageData = callMessageEvent!.data.value!.data;
+    const reqId = callMessageData['req-id'].value;
     expect(callMessageData.from.data).toBe(from);
     expect(callMessageData.to.data).toBe(to);
     expect(Number(callMessageData.sn.value)).toBe(expectedSn);
-    expect(Number(callMessageData['req-id'].value)).toBe(expectedReqId);
+    expect(Number(reqId)).toBe(expectedReqId);
 
     const slicedData = data.slice(1); // rlp decode drops length byte
     const executeCallResult = simnet.callPublicFn(
       XCALL_PROXY_CONTRACT_NAME,
       "execute-call",
-      [Cl.uint(expectedReqId), Cl.buffer(slicedData), xcallImpl],
+      [
+        Cl.uint(reqId), 
+        Cl.buffer(slicedData),
+        mockDapp,
+        xcallImpl,
+        xcallImpl
+      ],
       deployer!
     );
     expect(executeCallResult.result).toBeOk(Cl.bool(true));
@@ -415,6 +432,17 @@ describe("xcall", () => {
     expect(Number(callExecutedData.code.value)).toBe(CS_MESSAGE_RESULT_SUCCESS);
     expect(Number(callExecutedData['req-id'].value)).toBe(expectedReqId);
     expect(callExecutedData.msg.data).toBe("");
+
+    const messageReceivedEvent = executeCallResult.events.find(e => 
+      e.event === 'print_event' &&
+      // @ts-ignore: Property 'data' does not exist on type 'ClarityValue'. Property 'data' does not exist on type 'ContractPrincipalCV'.
+      e.data.value!.data.event.data === 'MessageReceived'
+    );
+    expect(messageReceivedEvent).toBeDefined();
+    // @ts-ignore: Property 'data' does not exist on type 'ClarityValue'. Property 'data' does not exist on type 'ContractPrincipalCV'.
+    const messageReceivedData = messageReceivedEvent!.data.value!.data;
+    expect(messageReceivedData.data).toStrictEqual(Cl.stringAscii("Hello, Destination Contract!"));
+    expect(messageReceivedData.from).toStrictEqual(Cl.stringAscii(from));
 
     const failureResponseData = encode([expectedSn, CS_MESSAGE_RESULT_FAILURE]);
     const csMessageResponse = encode([CS_MESSAGE_TYPE_RESULT, failureResponseData]);
@@ -449,10 +477,15 @@ describe("xcall", () => {
     const executeRollbackResult = simnet.callPublicFn(
       XCALL_PROXY_CONTRACT_NAME,
       "execute-rollback",
-      [Cl.uint(expectedSn), xcallImpl],
-      sourceContract
+      [
+        Cl.uint(expectedSn),
+        mockDapp,
+        xcallImpl,
+        xcallImpl],
+      deployer!
     );
     expect(executeRollbackResult.result).toBeOk(Cl.bool(true));
+    console.log(executeRollbackResult.events[0].data.value)
 
     const rollbackExecutedEvent = executeRollbackResult.events.find(e =>
       // @ts-ignore: Property 'data' does not exist on type 'ClarityValue'. Property 'data' does not exist on type 'ContractPrincipalCV'.

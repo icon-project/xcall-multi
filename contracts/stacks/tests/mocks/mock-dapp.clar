@@ -45,8 +45,7 @@
 (define-private (decode-rlp-message (data (buff 2048)))
   (let
     (
-      (decoded-list (contract-call? .rlp-decode rlp-to-list data))
-      (message (unwrap! (element-at? decoded-list u0) ERR_RLP_DECODE))
+      (message (unwrap-panic (as-max-len? (unwrap-panic (slice? data u1 (len data))) u2048))) ;; Drop RLP prefix byte
     )
     (ok (contract-call? .rlp-decode decode-string message))))
 
