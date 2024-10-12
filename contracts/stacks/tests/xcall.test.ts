@@ -37,7 +37,7 @@ describe("xcall", () => {
     simnet.callPublicFn(
       XCALL_IMPL_CONTRACT_NAME,
       "init",
-      [Cl.stringAscii(STACKS_NID), Cl.stringAscii(XCALL_IMPL_CONTRACT_NAME)],
+      [Cl.stringAscii(STACKS_NID), Cl.stringAscii(deployer! + '.' + XCALL_IMPL_CONTRACT_NAME)],
       deployer!
     );
 
@@ -354,7 +354,7 @@ describe("xcall", () => {
     const expectedSn = 1;
     const expectedReqId = 1;
     const data = Uint8Array.from(encode(["Hello, Destination Contract!"]));
-    const rollbackData = Uint8Array.from(encode(["Rollback data"]));
+    const rollbackData = Uint8Array.from(encode(["Rollback data"])).slice(1);;
 
     const sendCallResult = simnet.callPublicFn(
       XCALL_PROXY_CONTRACT_NAME,
@@ -485,13 +485,18 @@ describe("xcall", () => {
       deployer!
     );
     expect(executeRollbackResult.result).toBeOk(Cl.bool(true));
-    console.log(executeRollbackResult.events[0].data.value)
 
     const rollbackExecutedEvent = executeRollbackResult.events.find(e =>
       // @ts-ignore: Property 'data' does not exist on type 'ClarityValue'. Property 'data' does not exist on type 'ContractPrincipalCV'.
-      e.event === 'print_event' && e.data.value!.data.event.data === 'RollbackExecuted'
+      e.event === 'print_event' && e.data.value!.data.event.data === 'RollbackReceived'
     );
     expect(rollbackExecutedEvent).toBeDefined();
+
+    // @ts-ignore: Property 'data' does not exist on type 'ClarityValue'. Property 'data' does not exist on type 'ContractPrincipalCV'.
+    const rollbackExecutedData = rollbackExecutedEvent!.data.value!.data;
+    expect(rollbackExecutedData.from).toStrictEqual(Cl.stringAscii(STACKS_NID + '/' + deployer! + '.' + XCALL_IMPL_CONTRACT_NAME));
+    expect(rollbackExecutedData.data).toStrictEqual(Cl.stringAscii("Rollback data"));
+
 
     const getOutgoingMessage = simnet.callReadOnlyFn(
       XCALL_IMPL_CONTRACT_NAME,
