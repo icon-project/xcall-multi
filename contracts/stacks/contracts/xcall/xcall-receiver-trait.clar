@@ -1,5 +1,7 @@
+(use-trait xcall-common-trait .xcall-common-trait.xcall-common-trait)
+
 (define-trait xcall-receiver-trait
   (
-    (handle-call-message ((string-ascii 150) (buff 1024) (list 50 (string-ascii 150))) (response bool uint))
+    (handle-call-message ((string-ascii 128) (buff 2048) (list 10 (string-ascii 128)) <xcall-common-trait>) (response bool uint))
   )
 )

@@ -123,7 +123,7 @@
 ;;
 
 ;; read only functions
-(define-read-only (get-method (data (buff 1024)))
+(define-read-only (get-method (data (buff 2048)))
   (let (
     (rlp-list (contract-call? .rlp-decode rlp-to-list data))
     (method-bytes (contract-call? .rlp-decode rlp-decode-string rlp-list u0))
@@ -160,7 +160,7 @@
   WITHDRAW_NATIVE_TO_NAME
 )
 
-(define-read-only (decode-withdraw-to (data (buff 1024)))
+(define-read-only (decode-withdraw-to (data (buff 2048)))
   (let (
     (rlp-list (contract-call? .rlp-decode rlp-to-list data))
     (token-address (contract-call? .rlp-decode rlp-decode-string rlp-list u1))
@@ -171,7 +171,7 @@
   )
 )
 
-(define-read-only (decode-deposit-revert (data (buff 1024)))
+(define-read-only (decode-deposit-revert (data (buff 2048)))
   (let (
     (rlp-list (contract-call? .rlp-decode rlp-to-list data))
     (token-address (contract-call? .rlp-decode rlp-decode-string rlp-list u1))

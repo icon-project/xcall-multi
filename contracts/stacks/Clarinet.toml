@@ -7,7 +7,6 @@ cache_dir = './.cache'
 
 [[project.requirements]]
 contract_id = 'SP3FBR2AGK5H9QBDH3EEN6DF8EK8JY7RX8QJ5SVTE.sip-010-trait-ft-standard'
-
 [contracts.asset-manager]
 path = 'lib/balanced/asset-manager/asset-manager.clar'
 clarity_version = 2
@@ -25,6 +24,11 @@ epoch = 2.5
 
 [contracts.clarity-bitcoin-mini]
 path = 'lib/tokens/sbtc/clarity-bitcoin-mini.clar'
+clarity_version = 2
+epoch = 2.5
+
+[contracts.mock-dapp]
+path = 'tests/mocks/mock-dapp.clar'
 clarity_version = 2
 epoch = 2.5
 
@@ -50,6 +54,11 @@ epoch = 2.5
 
 [contracts.util]
 path = 'contracts/util.clar'
+clarity_version = 2
+epoch = 2.5
+
+[contracts.xcall-common-trait]
+path = 'contracts/xcall/xcall-common-trait.clar'
 clarity_version = 2
 epoch = 2.5
 

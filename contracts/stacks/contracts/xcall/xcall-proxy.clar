@@ -1,5 +1,7 @@
 (impl-trait .xcall-proxy-trait.xcall-proxy-trait)
 (use-trait xcall-impl-trait .xcall-impl-trait.xcall-impl-trait)
+(use-trait xcall-common-trait .xcall-common-trait.xcall-common-trait)
+(use-trait xcall-receiver-trait .xcall-receiver-trait.xcall-receiver-trait)
 
 (define-constant CONTRACT_NAME "xcall-proxy")
 
@@ -40,24 +42,24 @@
     )
 )
 
-(define-public (send-call-message (to (string-ascii 128)) (data (buff 2048)) (rollback (optional (buff 1024))) (sources (optional (list 10 (string-ascii 128)))) (destinations (optional (list 10 (string-ascii 128)))) (implementation <xcall-impl-trait>))
+(define-public (send-call-message (to (string-ascii 128)) (data (buff 2048)) (rollback (optional (buff 1024))) (sources (optional (list 10 (string-ascii 128)))) (destinations (optional (list 10 (string-ascii 128)))) (implementation <xcall-common-trait>))
     (begin
         (asserts! (is-eq (contract-of implementation) (var-get current-logic-implementation)) err-not-current-implementation)
         (contract-call? implementation send-call-message to data rollback sources destinations)
     )
 )
 
-(define-public (execute-call (req-id uint) (data (buff 2048)) (implementation <xcall-impl-trait>))
+(define-public (execute-call (req-id uint) (data (buff 2048)) (receiver <xcall-receiver-trait>) (common <xcall-common-trait>) (implementation <xcall-impl-trait>))
     (begin
         (asserts! (is-eq (contract-of implementation) (var-get current-logic-implementation)) err-not-current-implementation)
-        (contract-call? implementation execute-call req-id data)
+        (as-contract (contract-call? implementation execute-call req-id data receiver common))
     )
 )
 
-(define-public (execute-rollback (sn uint) (implementation <xcall-impl-trait>))
+(define-public (execute-rollback (sn uint) (receiver <xcall-receiver-trait>) (common <xcall-common-trait>) (implementation <xcall-impl-trait>))
     (begin
         (asserts! (is-eq (contract-of implementation) (var-get current-logic-implementation)) err-not-current-implementation)
-        (contract-call? implementation execute-rollback sn)
+        (contract-call? implementation execute-rollback sn receiver common)
     )
 )
 
@@ -114,7 +116,7 @@
 
 ;; Read-only methods
 
-(define-public (get-network-address (implementation <xcall-impl-trait>))
+(define-public (get-network-address (implementation <xcall-common-trait>))
     (begin
         (asserts! (is-eq (contract-of implementation) (var-get current-logic-implementation)) err-not-current-implementation)
         (contract-call? implementation get-network-address)

@@ -1,6 +1,8 @@
 (define-constant CONTRACT_NAME "xcall-impl")
 
 (impl-trait .xcall-impl-trait.xcall-impl-trait)
+(use-trait xcall-common-trait .xcall-common-trait.xcall-common-trait)
+(use-trait xcall-receiver-trait .xcall-receiver-trait.xcall-receiver-trait)
 
 (define-constant ERR_INVALID_NETWORK_ADDRESS (err u100))
 (define-constant ERR_INVALID_NETWORK_ID (err u101))
@@ -15,6 +17,9 @@
 (define-constant ERR_INVALID_REPLY (err u110))
 (define-constant ERR_NO_DEFAULT_CONNECTION (err u111))
 (define-constant ERR_UNVERIFIED_PROTOCOL (err u112))
+(define-constant ERR_INVALID_MESSAGE (err u113))
+(define-constant ERR_INVALID_RECEIVER (err u114))
+(define-constant ERR_ADDRESS_TO_PRINCIPAL_FAILED (err u115))
 
 (define-constant CS_MESSAGE_RESULT_FAILURE u0)
 (define-constant CS_MESSAGE_RESULT_SUCCESS u1)
@@ -69,7 +74,11 @@
   { req-id: uint }
   {
     from: (string-ascii 128),
-    data: (buff 2048),
+    to: (string-ascii 128),
+    sn: uint,
+    type: uint,
+    data-hash: (buff 32),
+    protocols: (list 10 (string-ascii 128))
   }
 )
 
@@ -185,20 +194,20 @@
 )
 
 (define-private (emit-call-message-received-event (from (string-ascii 128)) (to (string-ascii 128)) (sn uint) (req-id uint) (data (buff 2048)))
-  (print 
+  (print
     {
       event: "CallMessage",
       from: from,
       to: to,
       sn: sn,
       req-id: req-id,
-      data: data
+      data: data,
     }
   )
 )
 
 (define-private (emit-call-executed-event (req-id uint) (code uint) (message (string-ascii 128)))
-  (print 
+  (print
     {
       event: "CallExecuted",
       req-id: req-id,
@@ -229,11 +238,11 @@
   )
 )
 
-(define-private (emit-rollback-message-event (sn uint))
+(define-private (emit-rollback-message-received-event (sn uint))
   (print 
     {
       event: "RollbackMessage",
-      sn: sn
+      sn: sn,
     }
   )
 )
@@ -321,16 +330,27 @@
 (define-private (handle-request (src-network-id (string-ascii 128)) (data (buff 2048)))
   (let (
     (msg-req (unwrap-panic (parse-cs-message-request data)))
-    (hash (sha256 data))
+    (hash (keccak256 data))
   )
     (asserts! (is-eq (get network-id (unwrap-panic (parse-network-address (get from msg-req)))) src-network-id) ERR_INVALID_NETWORK_ADDRESS)
     (asserts! (verify-protocols src-network-id (get protocols msg-req) hash) ERR_UNVERIFIED_PROTOCOL)
     
     (let (
       (req-id (unwrap-panic (get-next-req-id)))
+      (data-hash (keccak256 (get data msg-req)))
     )
       (emit-call-message-received-event (get from msg-req) (get to msg-req) (get sn msg-req) req-id (get data msg-req))
-      (map-set incoming-messages { req-id: req-id } { from: (get from msg-req), data: (get data msg-req) })
+      (map-set incoming-messages
+        { req-id: req-id }
+        {
+          from: (get from msg-req),
+          to: (get to msg-req),
+          sn: (get sn msg-req),
+          type: (get type msg-req),
+          data-hash: data-hash,
+          protocols: (get protocols msg-req)
+        }
+      )
       (ok true)
     )
   )
@@ -344,7 +364,7 @@
     (dst-network-id (get network-id (unwrap-panic (parse-network-address (get to rollback)))))
     (code (get code msg-res))
   )
-    (asserts! (verify-protocols dst-network-id (default-to (list) (get sources rollback)) (sha256 data)) ERR_UNVERIFIED_PROTOCOL)
+    (asserts! (verify-protocols dst-network-id (default-to (list) (get sources rollback)) (keccak256 data)) ERR_UNVERIFIED_PROTOCOL)
     
     (emit-response-message-event res-sn (get code msg-res))
     (if (is-eq code CS_MESSAGE_RESULT_SUCCESS)
@@ -407,14 +427,21 @@
     (let (
       (updated-reply (merge reply { protocols: (default-to (list) (get sources rollback)) }))
       (req-id (unwrap-panic (get-next-req-id)))
+      (data-hash (keccak256 (get data updated-reply)))
     )
       (emit-call-message-received-event (get from updated-reply) (get to updated-reply) (get sn updated-reply) req-id (get data updated-reply))
       
       (map-set incoming-messages
         { req-id: req-id }
-        { from: (get from updated-reply), data: (sha256 (get data updated-reply)) }
+        {
+          from: (get from updated-reply),
+          to: (get to updated-reply),
+          sn: (get sn updated-reply),
+          type: (get type updated-reply),
+          data-hash: data-hash,
+          protocols: (get protocols updated-reply)
+        }
       )
-      
       (ok true)
     )
   )
@@ -424,7 +451,7 @@
   (match (get rollback rollback)
     rollback-data (begin
       (map-set outgoing-messages { sn: sn } (merge rollback { data: rollback-data }))
-      (emit-rollback-message-event sn)
+      (emit-rollback-message-received-event sn)
       (ok true)
     )
     ERR_NO_ROLLBACK_DATA
@@ -492,25 +519,44 @@
   )
 )
 
-(define-public (execute-call (req-id uint) (data (buff 2048)))
+(define-public (execute-call (req-id uint) (data (buff 2048)) (receiver <xcall-receiver-trait>) (common <xcall-common-trait>))
   (let 
     (
-      (message (map-get? incoming-messages { req-id: req-id }))
-      (stored-data (get data (unwrap! message ERR_MESSAGE_NOT_FOUND)))
+      (req (unwrap! (map-get? incoming-messages { req-id: req-id }) ERR_MESSAGE_NOT_FOUND))
+      (from (get from req))
+      (to (get to req))
+      (sn (get sn req))
+      (msg-type (get type req))
+      (stored-data-hash (get data-hash req))
+      (protocols (get protocols req))
+      (parsed-to (unwrap! (parse-network-address to) ERR_INVALID_NETWORK_ADDRESS))
+      (to-account (unwrap! (as-max-len? (get account parsed-to) u128) ERR_INVALID_ACCOUNT))
+      (to-principal (unwrap! (contract-call? .util address-string-to-principal to-account) ERR_ADDRESS_TO_PRINCIPAL_FAILED))
+      (receiver-principal (contract-of receiver))
     )
-      (asserts! (is-eq (keccak256 data) (keccak256 stored-data)) ERR_MESSAGE_NOT_FOUND)
+      (asserts! (is-eq (keccak256 data) stored-data-hash) ERR_MESSAGE_NOT_FOUND)
+      (asserts! (is-eq to-principal receiver-principal) ERR_INVALID_RECEIVER)
+      (try! (contract-call? receiver handle-call-message from data protocols common))
       (emit-call-executed-event req-id CS_MESSAGE_RESULT_SUCCESS "")
       (map-delete incoming-messages { req-id: req-id })
       (ok true)
   )
 )
 
-(define-public (execute-rollback (sn uint))
+(define-public (execute-rollback (sn uint) (receiver <xcall-receiver-trait>) (common <xcall-common-trait>))
   (let 
     (
         (message (map-get? outgoing-messages { sn: sn }))
+        (to-address (unwrap-panic (get to message)))
+        (to-principal (unwrap-panic (contract-call? .util address-string-to-principal to-address)))
+        (receiver-principal (contract-of receiver))
+        (from (unwrap-panic (var-get contract-address)))
+        (protocols (unwrap-panic (unwrap-panic (get sources message))))
+        (rollback (unwrap! (unwrap! (get rollback message) ERR_NO_ROLLBACK_DATA) ERR_NO_ROLLBACK_DATA))
     )
     (asserts! (is-some message) ERR_MESSAGE_NOT_FOUND)
+    (asserts! (is-eq to-principal receiver-principal) ERR_INVALID_RECEIVER)
+    (unwrap-panic (contract-call? receiver handle-call-message from rollback protocols common))
     (emit-rollback-executed-event sn)
     (map-delete outgoing-messages { sn: sn })
     (ok true)
@@ -604,7 +650,7 @@
   (let 
     (
       (source tx-sender)
-      (msg-hash (sha256 data))
+      (msg-hash (keccak256 data))
     )
     (if (> (len protocols) u0)
       (if (> (len protocols) u1)

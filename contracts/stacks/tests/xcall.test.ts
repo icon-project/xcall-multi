@@ -4,25 +4,33 @@ import { Cl } from "@stacks/transactions";
 
 const accounts = simnet.getAccounts();
 const deployer = accounts.get("deployer");
-const sourceContract = accounts.get("wallet_1")!;
-const destinationContract = accounts.get("wallet_2")!;
+
 const XCALL_IMPL_CONTRACT_NAME = "xcall-impl";
 const XCALL_PROXY_CONTRACT_NAME = "xcall-proxy";
 const CENTRALIZED_CONNECTION_CONTRACT_NAME = "centralized-connection";
+const MOCK_DAPP_CONTRACT_NAME = "mock-dapp";
+
 const STACKS_NID = "stacks";
 const ICON_NID = "icon";
+
+const sourceContract = accounts.get("wallet_1")!;
+const destinationContract = deployer! + '.' + MOCK_DAPP_CONTRACT_NAME;
+
 const from = `${STACKS_NID}/${sourceContract}`;
 const to = `${ICON_NID}/${destinationContract}`;
+
 const CS_MESSAGE_TYPE_REQUEST = 1;
 const CS_MESSAGE_TYPE_RESULT = 2;
 const CS_MESSAGE_RESULT_SUCCESS = 1;
 const CS_MESSAGE_RESULT_FAILURE = 0;
+
 const xcallImpl = Cl.contractPrincipal(deployer!, XCALL_IMPL_CONTRACT_NAME);
 const xcallProxy = Cl.contractPrincipal(deployer!, XCALL_PROXY_CONTRACT_NAME);
 const centralizedConnection = Cl.contractPrincipal(
   deployer!,
   CENTRALIZED_CONNECTION_CONTRACT_NAME
 );
+const mockDapp = Cl.contractPrincipal(deployer!, MOCK_DAPP_CONTRACT_NAME);
 
 describe("xcall", () => {
   beforeEach(() => {
@@ -128,6 +136,35 @@ describe("xcall", () => {
       [Cl.uint(protocolFee), xcallImpl],
       deployer!
     );
+
+    simnet.callPublicFn(
+      MOCK_DAPP_CONTRACT_NAME,
+      "initialize",
+      [xcallProxy],
+      deployer!
+    );
+
+    simnet.callPublicFn(
+      MOCK_DAPP_CONTRACT_NAME,
+      "add-connection",
+      [
+        Cl.stringAscii(STACKS_NID),
+        Cl.stringAscii(deployer! + "." + CENTRALIZED_CONNECTION_CONTRACT_NAME),
+        Cl.stringAscii(deployer! + "." + CENTRALIZED_CONNECTION_CONTRACT_NAME)
+      ],
+      deployer!
+    );
+
+    simnet.callPublicFn(
+      MOCK_DAPP_CONTRACT_NAME,
+      "add-connection",
+      [
+        Cl.stringAscii(ICON_NID),
+        Cl.stringAscii(deployer! + "." + CENTRALIZED_CONNECTION_CONTRACT_NAME),
+        Cl.stringAscii(deployer! + "." + CENTRALIZED_CONNECTION_CONTRACT_NAME)
+      ],
+      deployer!
+    );
   });
 
   it("verifies the connection is properly initialized", () => {
@@ -162,6 +199,14 @@ describe("xcall", () => {
       deployer!
     );
     expect(iconFeeResult.result).toBeOk(Cl.uint(1500000)); // 1000000 base fee + 500000 rollback fee
+
+    const dappResult = simnet.callReadOnlyFn(
+      MOCK_DAPP_CONTRACT_NAME,
+      "get-sources",
+      [Cl.stringAscii(STACKS_NID)],
+      deployer!
+    );
+    expect(dappResult.result).toStrictEqual(Cl.list([Cl.stringAscii(deployer! + "." + CENTRALIZED_CONNECTION_CONTRACT_NAME)]));
   });
 
   it("sends and executes a call", () => {
@@ -230,6 +275,7 @@ describe("xcall", () => {
     const callMessageData = callMessageEvent!.data.value!.data;
     expect(callMessageData.from.data).toBe(from);
     expect(callMessageData.to.data).toBe(to);
+    const reqId = callMessageData['req-id'].value;
     expect(Number(callMessageData.sn.value)).toBe(expectedSn);
     expect(Number(callMessageData['req-id'].value)).toBe(expectedReqId);
 
@@ -237,10 +283,17 @@ describe("xcall", () => {
     const executeCallResult = simnet.callPublicFn(
       XCALL_PROXY_CONTRACT_NAME,
       "execute-call",
-      [Cl.uint(expectedReqId), Cl.buffer(slicedData), xcallImpl],
-      destinationContract
+      [
+        Cl.uint(reqId), 
+        Cl.buffer(slicedData),
+        Cl.contractPrincipal(deployer!, MOCK_DAPP_CONTRACT_NAME),
+        xcallImpl,
+        xcallImpl
+      ],
+      deployer!
     );
     expect(executeCallResult.result).toBeOk(Cl.bool(true));
+    console.log(executeCallResult.events[0].data.value)
 
     const callExecutedEvent = executeCallResult.events.find(e => 
       e.event === 'print_event' &&
@@ -297,7 +350,7 @@ describe("xcall", () => {
       XCALL_PROXY_CONTRACT_NAME,
       "send-call-message",
       [Cl.stringAscii(to), Cl.buffer(data), Cl.some(Cl.buffer(rollbackData)), Cl.none(), Cl.none(), xcallImpl],
-      sourceContract
+      deployer!
     );
     expect(sendCallResult.result).toBeOk(Cl.uint(expectedSn));
 
@@ -334,7 +387,6 @@ describe("xcall", () => {
       e.event === 'print_event' && e.data.value!.data.event.data === 'CallMessage'
     );
     expect(callMessageEvent).toBeDefined();
-    console.log(callMessageEvent!.data.value!)
 
     // @ts-ignore: Property 'data' does not exist on type 'ClarityValue'. Property 'data' does not exist on type 'ContractPrincipalCV'.
     const callMessageData = callMessageEvent!.data.value!.data;
@@ -348,7 +400,7 @@ describe("xcall", () => {
       XCALL_PROXY_CONTRACT_NAME,
       "execute-call",
       [Cl.uint(expectedReqId), Cl.buffer(slicedData), xcallImpl],
-      destinationContract
+      deployer!
     );
     expect(executeCallResult.result).toBeOk(Cl.bool(true));
 

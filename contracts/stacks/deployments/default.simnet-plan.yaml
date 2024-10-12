@@ -58,6 +58,11 @@ plan:
     - id: 1
       transactions:
         - emulated-contract-publish:
+            contract-name: asset-manager
+            emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
+            path: lib/balanced/asset-manager/asset-manager.clar
+            clarity-version: 2
+        - emulated-contract-publish:
             contract-name: rlp-decode
             emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
             path: lib/rlp/rlp-decode.clar
@@ -73,34 +78,14 @@ plan:
             path: lib/balanced/asset-manager/messages.clar
             clarity-version: 2
         - emulated-contract-publish:
-            contract-name: clarity-bitcoin-mini
+            contract-name: xcall-common-trait
             emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
-            path: lib/tokens/sbtc/clarity-bitcoin-mini.clar
-            clarity-version: 2
-        - emulated-contract-publish:
-            contract-name: sbtc
-            emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
-            path: lib/tokens/sbtc/sbtc.clar
-            clarity-version: 2
-        - emulated-contract-publish:
-            contract-name: sip-010-trait
-            emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
-            path: lib/sips/sip-010-trait.clar
-            clarity-version: 2
-        - emulated-contract-publish:
-            contract-name: util
-            emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
-            path: contracts/util.clar
+            path: contracts/xcall/xcall-common-trait.clar
             clarity-version: 2
         - emulated-contract-publish:
             contract-name: xcall-receiver-trait
             emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
             path: contracts/xcall/xcall-receiver-trait.clar
-            clarity-version: 2
-        - emulated-contract-publish:
-            contract-name: asset-manager
-            emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
-            path: lib/balanced/asset-manager/asset-manager.clar
             clarity-version: 2
         - emulated-contract-publish:
             contract-name: xcall-impl-trait
@@ -121,6 +106,31 @@ plan:
             contract-name: centralized-connection
             emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
             path: contracts/connections/centralized-connection.clar
+            clarity-version: 2
+        - emulated-contract-publish:
+            contract-name: clarity-bitcoin-mini
+            emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
+            path: lib/tokens/sbtc/clarity-bitcoin-mini.clar
+            clarity-version: 2
+        - emulated-contract-publish:
+            contract-name: mock-dapp
+            emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
+            path: tests/mocks/mock-dapp.clar
+            clarity-version: 2
+        - emulated-contract-publish:
+            contract-name: sbtc
+            emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
+            path: lib/tokens/sbtc/sbtc.clar
+            clarity-version: 2
+        - emulated-contract-publish:
+            contract-name: sip-010-trait
+            emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
+            path: lib/sips/sip-010-trait.clar
+            clarity-version: 2
+        - emulated-contract-publish:
+            contract-name: util
+            emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
+            path: contracts/util.clar
             clarity-version: 2
         - emulated-contract-publish:
             contract-name: xcall-impl

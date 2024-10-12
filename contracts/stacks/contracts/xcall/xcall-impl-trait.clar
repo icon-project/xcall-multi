@@ -1,10 +1,12 @@
+(use-trait xcall-receiver-trait .xcall-receiver-trait.xcall-receiver-trait)
+(use-trait xcall-common-trait .xcall-common-trait.xcall-common-trait)
+
 (define-trait xcall-impl-trait
   (
     (send-call ((string-ascii 128) (buff 2048)) (response uint uint))
-    (send-call-message ((string-ascii 128) (buff 2048) (optional (buff 1024)) (optional (list 10 (string-ascii 128))) (optional (list 10 (string-ascii 128)))) (response uint uint))
   
-    (execute-call (uint (buff 2048)) (response bool uint))
-    (execute-rollback (uint) (response bool uint))
+    (execute-call (uint (buff 2048) <xcall-receiver-trait> <xcall-common-trait>) (response bool uint))
+    (execute-rollback (uint <xcall-receiver-trait> <xcall-common-trait>) (response bool uint))
     
     (verify-success (uint) (response bool uint))
 
