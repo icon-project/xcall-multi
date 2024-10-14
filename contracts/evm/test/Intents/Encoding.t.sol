@@ -23,7 +23,7 @@ contract EncodingTest is Test {
             token: "0x14355340e857912188b7f202d550222487",
             amount: 1000,
             toToken:"0x91a4728b517484f0f610de7b",
-            minReceive: 900,
+            toAmount: 900,
             data: ""
         });
 
@@ -39,7 +39,7 @@ contract EncodingTest is Test {
                 token: "0x14355340e857912188b7f202d550222487",
                 amount: 100000*10**22,
                 toToken:"0x91a4728b517484f0f610de7b",
-                minReceive: 900*10**7,
+                toAmount: 900*10**7,
                 data: hex"6c449988e2f33302803c93f8287dc1d8cb33848a"
             });
         expectedBytes = hex"f8c701963078626536343532643464366336316365653937643388457468657265756d87506f6c79676f6e983078336533366564646436356532333932323265376536379c30786432633632313862383735343537613431623666623739363465a43078313433353533343065383537393132313838623766323032643535303232323438378c033b2e3c9fd0803ce80000009a3078393161343732386235313734383466306636313064653762850218711a00946c449988e2f33302803c93f8287dc1d8cb33848a";
@@ -70,23 +70,19 @@ contract EncodingTest is Test {
         Types.OrderFill memory fill1 = Types.OrderFill({
             id: 1,
             orderBytes: hex"6c449988e2f33302803c93f8287dc1d8cb33848a",
-            solver: "0xcb0a6bbccfccde6be9f10ae781b9d9b00d6e63",
-            amount: 500,
-            closeOrder: true
+            solver: "0xcb0a6bbccfccde6be9f10ae781b9d9b00d6e63"
         });
 
-        bytes memory expectedBytes = hex"f84301946c449988e2f33302803c93f8287dc1d8cb33848aa8307863623061366262636366636364653662653966313061653738316239643962303064366536338201f401";
+        bytes memory expectedBytes = hex"f83f01946c449988e2f33302803c93f8287dc1d8cb33848aa830786362306136626263636663636465366265396631306165373831623964396230306436653633";
         assertEq(fill1.encode(), expectedBytes);
 
         Types.OrderFill memory fill2 = Types.OrderFill({
             id: 2,
             orderBytes: hex"cb0a6bbccfccde6be9f10ae781b9d9b00d6e63",
-            solver: "0x6c449988e2f33302803c93f8287dc1d8cb33848a",
-            amount: 750*10**18,
-            closeOrder: false
+            solver: "0x6c449988e2f33302803c93f8287dc1d8cb33848a"
         });
 
-        expectedBytes = hex"f84b0293cb0a6bbccfccde6be9f10ae781b9d9b00d6e63aa3078366334343939383865326633333330323830336339336638323837646331643863623333383438618928a857425466f8000000";
+        expectedBytes = hex"f8400293cb0a6bbccfccde6be9f10ae781b9d9b00d6e63aa307836633434393938386532663333333032383033633933663832383764633164386362333338343861";
         assertEq(fill2.encode(), expectedBytes);
     }
 

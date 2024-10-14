@@ -25,7 +25,7 @@ library Encoding {
                 string(ls[6].toBytes()), // token
                 ls[7].toUint(), // amount
                 string(ls[8].toBytes()), // toToken
-                ls[9].toUint(), // minReceive
+                ls[9].toUint(), // toAmount
                 ls[10].toBytes() // data
             );
     }
@@ -49,9 +49,7 @@ library Encoding {
             Types.OrderFill(
                 ls[0].toUint(), // id
                 ls[1].toBytes(), // orderBytes
-                string(ls[2].toBytes()), // solver
-                ls[3].toUint(), // amount
-                ls[4].toBoolean() // close
+                string(ls[2].toBytes()) // solver
             );
     }
 
@@ -98,7 +96,7 @@ library Encoding {
             order.token.encodeString(),
             order.amount.encodeUint(),
             order.toToken.encodeString(),
-            order.minReceive.encodeUint(),
+            order.toAmount.encodeUint(),
             order.data.encodeBytes()
         );
         return encoded;
@@ -122,9 +120,7 @@ library Encoding {
         bytes memory encoded = abi.encodePacked(
             fill.id.encodeUint(),
             fill.orderBytes.encodeBytes(),
-            fill.solver.encodeString(),
-            fill.amount.encodeUint(),
-            fill.closeOrder.encodeBool()
+            fill.solver.encodeString()
         );
         return encoded.encodeList();
     }

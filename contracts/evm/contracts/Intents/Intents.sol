@@ -9,6 +9,7 @@ import "@iconfoundation/xcall-solidity-library/utils/ParseAddress.sol";
 import "./Types.sol";
 import "./Encoding.sol";
 import "./GeneralizedConnection.sol";
+import "./Permit2OrderLib.sol";
 
 import {console} from "forge-std/console.sol";
 
@@ -26,9 +27,9 @@ contract Intents is GeneralizedConnection {
     uint16 public protocolFee; //  ProtocolFee in basis points taken on outgoing transfersr
     address public feeHandler;  // Receiver of protocol fees
     address public constant NATIVE_ADDRESS = address(0);
+    IPermit2 public immutable permit2;
 
     mapping(uint256 => Types.SwapOrder) public orders; // Mapping of deposit ID to SwapOrder
-    mapping(bytes32 => uint256) public pendingFills; // Mapping of order hash to pending amount to fill
     mapping(bytes32 => bool) public finishedOrders; // Mapping of order hash to bool, for all finished orders
 
     /// @dev Emitted when a new swap intent is created.
@@ -41,7 +42,7 @@ contract Intents is GeneralizedConnection {
     /// @param token The address of the token being swapped.
     /// @param amount The amount of tokens being swapped.
     /// @param toToken The token to be received after the swap (if applicable).
-    /// @param minReceive The minimum amount of tokens to receive after the swap.
+    /// @param toAmount The minimum amount of tokens to receive after the swap.
     /// @param data Additional arbitrary data for the swap.
     event SwapIntent(
         uint256 indexed id,
@@ -53,62 +54,57 @@ contract Intents is GeneralizedConnection {
         string token,
         uint256 amount,
         string toToken,
-        uint256 minReceive,
+        uint256 toAmount,
         bytes data
     );
 
-    event OrderFilled(uint256 indexed  id, string indexed srcNID, bytes32 indexed orderHash, string solverAddres, uint256 fillAmount, uint256 fee, uint256 solverPayout, uint256 remaningAmount);
-    event OrderCancelled(uint256 indexed id, string indexed srcNID, bytes32 indexed orderHash, uint256 userReturn);
+    event OrderFilled(uint256 indexed  id, string indexed srcNID);
+    event OrderCancelled(uint256 indexed  id, string indexed srcNID);
     event OrderClosed(uint256 indexed id);
 
-    constructor(string memory _nid, uint16 _protocolFee, address _feeHandler, address _relayer) {
+    constructor(string memory _nid, uint16 _protocolFee, address _feeHandler, address _relayer, address _premit2) {
         nid = _nid;
         relayAdress = _relayer;
         protocolFee = _protocolFee;
         feeHandler = _feeHandler;
+        permit2 = IPermit2(_premit2);
     }
 
-    /// @notice Initiates a swap by escrowing the tokens and emitting a SwapIntent event.
-    /// @param to The destination network identifier.
-    /// @param token The address of the token to swap.
-    /// @param amount The amount of the token to swap.
-    /// @param toToken The token to receive on the destination network.
-    /// @param toAddress The receiving address on the destination network.
-    /// @param minReceive The minimum amount of toToken to receive.
-    /// @param data Additional data for future parameters.
+
     function swap(
-        string memory to,
-        address token,
-        uint256 amount,
-        string memory toToken,
-        string memory toAddress,
-        uint256 minReceive,
-        bytes memory data
+        Types.SwapOrder memory order
     ) public payable {
         // Escrows amount from user
+        address token = order.token.parseAddress("IllegalArgument");
         if (token == NATIVE_ADDRESS) {
-            require(msg.value == amount, "Deposit amount not equal to order amount");
+            require(msg.value == order.amount, "Deposit amount not equal to order amount");
         } else {
-            IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
+            IERC20(token).safeTransferFrom(msg.sender, address(this), order.amount);
         }
 
+        require(msg.sender == order.creator.parseAddress("IllegalArgument"), "Creator must be sender");
+
+        _swap(order);
+    }
+
+    function swapPermit2(
+        Types.SwapOrder memory order,
+        bytes memory signature,
+        uint32 deadline
+    ) public {
+        order.id = 0;
+        Permit2OrderLib._processPermit2Order(permit2, order, signature, deadline);
+         _swap(order);
+    }
+
+    function _swap(
+        Types.SwapOrder memory order
+    ) private {
         // Create unique deposit ID
         uint256 id = depositId++;
-
-        Types.SwapOrder memory order = Types.SwapOrder({
-            id: id,
-            emitter: address(this).toString(),
-            srcNID: nid,
-            dstNID: to,
-            creator: msg.sender.toString(),
-            destinationAddress: toAddress,
-            token: token.toString(),
-            amount: amount,
-            toToken: toToken,
-            minReceive: minReceive,
-            data: data
-        });
-
+        order.id = id;
+        require(order.srcNID.equal(nid), "NID is misconfigured");
+        require(order.emitter.equal(address(this).toString()), "Emitter specified is not this");
         orders[id] = order;
         emit SwapIntent(
             order.id,
@@ -120,18 +116,16 @@ contract Intents is GeneralizedConnection {
             order.token,
             order.amount,
             order.toToken,
-            order.minReceive,
+            order.toAmount,
             order.data
         );
     }
 
     /// @notice Fills an order for a cross-chain swap.
     /// @param order The SwapOrder object.
-    /// @param amount The amount to fill.
     /// @param solverAddress The address of the solver filling the order.
     function fill(
         Types.SwapOrder memory order,
-        uint256 amount,
         string memory solverAddress
     ) external payable {
         // Compute the hash of the order
@@ -140,46 +134,18 @@ contract Intents is GeneralizedConnection {
 
         // Check if the order has been finished
         require(!finishedOrders[orderHash], "Order has already been filled");
-
-        // Load the pending amount if available
-        uint256 remaningAmount = pendingFills[orderHash];
-        if (remaningAmount == 0) {
-            remaningAmount = order.amount;
-        }
-
-        // Calculate the payout
-        uint256 payout = (order.amount * amount) / order.minReceive;
-        // Ensure the amount to fill is valid
-        require(
-            payout <= remaningAmount,
-            "Cannot fill more than remaining ask"
-        );
-
-        remaningAmount -= payout;
-
-        // Update order state
-        bool closeOrder = false;
-        if (remaningAmount == 0) {
-            // Finalize the order if fully filled
-            delete pendingFills[orderHash];
-            finishedOrders[orderHash] = true;
-            closeOrder = true;
-        } else {
-            pendingFills[orderHash] = remaningAmount;
-        }
+        finishedOrders[orderHash] = true;
 
         // Transfer tokens
-        uint256 fee = (amount * protocolFee) / 10_000;
-        amount -= fee;
-        _transferResult(order.destinationAddress, order.toToken, amount, fee);
+        uint256 fee = (order.toAmount * protocolFee) / 10_000;
+        uint256 toAmount = order.toAmount -fee;
+        _transferResult(order.destinationAddress, order.toToken, toAmount, fee);
 
         // Create and send the order message
         Types.OrderFill memory orderFill = Types.OrderFill({
             id: order.id,
             orderBytes: orderBytes,
-            solver: solverAddress,
-            amount: payout,
-            closeOrder: closeOrder
+            solver: solverAddress
         });
 
         if (order.srcNID.equal(order.dstNID)) {
@@ -193,7 +159,7 @@ contract Intents is GeneralizedConnection {
         });
 
         _sendMessage(order.srcNID, orderMessage.encode());
-        emit OrderFilled(order.id, order.srcNID, orderHash, solverAddress, amount, fee, payout, remaningAmount);
+        emit OrderFilled(order.id, order.srcNID);
     }
 
     function _transferResult(string memory _toAddress, string memory _toToken, uint256 amount, uint256 fee) internal {
@@ -223,7 +189,7 @@ contract Intents is GeneralizedConnection {
         Types.SwapOrder storage order = orders[id];
         require(
             order.creator.parseAddress("IllegalArgument") == msg.sender,
-            "Cannot cancel this order"
+            "Only creator cancel this order"
         );
 
         if (order.srcNID.equal(order.dstNID)) {
@@ -278,21 +244,19 @@ contract Intents is GeneralizedConnection {
 
         require(
             order.dstNID.equal(srcNetwork),
-            "Mismatched order"
+            "Invalid network"
         );
 
-        if (_fill.closeOrder) {
-            delete orders[_fill.id];
-            emit OrderClosed(_fill.id);
-        }
+        delete orders[_fill.id];
+        emit OrderClosed(_fill.id);
 
         address tokenAddress = order.token.parseAddress("IllegalArgument");
         if (tokenAddress == NATIVE_ADDRESS) {
-            _nativeTransfer(_fill.solver.parseAddress("IllegalArgument"), _fill.amount);
+            _nativeTransfer(_fill.solver.parseAddress("IllegalArgument"), order.amount);
         } else {
             IERC20(tokenAddress).safeTransfer(
                 _fill.solver.parseAddress("IllegalArgument"),
-                _fill.amount
+                order.amount
             );
         }
     }
@@ -307,25 +271,16 @@ contract Intents is GeneralizedConnection {
 
         require(
             order.srcNID.equal(srcNetwork),
-            "Mismatched order"
+            "Invalid network"
         );
 
         // Load the pending amount if available
-        uint256 remaningAmount = pendingFills[orderHash];
-        if (remaningAmount == 0) {
-            remaningAmount = order.amount;
-        } else {
-            delete pendingFills[orderHash];
-        }
-
         finishedOrders[orderHash] = true;
 
         Types.OrderFill memory _fill = Types.OrderFill({
             id: order.id,
             orderBytes: orderBytes,
-            solver: order.creator,
-            amount: remaningAmount,
-            closeOrder: true
+            solver: order.creator
         });
 
         Types.OrderMessage memory _msg = Types.OrderMessage({
@@ -334,7 +289,7 @@ contract Intents is GeneralizedConnection {
         });
 
         _sendMessage(order.srcNID, _msg.encode());
-        emit OrderCancelled(order.id, order.srcNID, orderHash, remaningAmount);
+        emit OrderCancelled(order.id, order.srcNID);
     }
 
     function _nativeTransfer(address to, uint256 amount) internal {

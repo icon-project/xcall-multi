@@ -15,7 +15,7 @@ library Types {
         string token; // Token to be swapped
         uint256 amount; // Amount of the token to be swapped
         string toToken; // Token to receive on the destination network
-        uint256 minReceive; // Minimum amount of the toToken to receive
+        uint256 toAmount; // Minimum amount of the toToken to receive
         bytes data; // Additional data (if any) for future use
     }
 
@@ -33,8 +33,6 @@ library Types {
         uint256 id; // ID of the order being filled
         bytes orderBytes; // rlp of the order
         string solver; // Address of the solver that fills the order
-        uint256 amount; // Amount filled by the solver
-        bool closeOrder; // If order can be closed
     }
 
     /// @title Cancel type

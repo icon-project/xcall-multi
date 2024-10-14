@@ -12,8 +12,8 @@
   },
   "files": {
     "contracts/Intents/Encoding.sol": {
-      "lastModificationDate": 1727089503333,
-      "contentHash": "55055e724ba6a125d9789bcf2ed74a49",
+      "lastModificationDate": 1728889019291,
+      "contentHash": "0ff8011a951a55fc8e5b125a49af51d0",
       "sourceName": "contracts/Intents/Encoding.sol",
       "solcConfig": {
         "settings": {
@@ -99,9 +99,51 @@
         }
       }
     },
+    "contracts/Intents/IPermit2.sol": {
+      "lastModificationDate": 1728890674965,
+      "contentHash": "70807ebb7ed3c09f2c7740b300e820ce",
+      "sourceName": "contracts/Intents/IPermit2.sol",
+      "solcConfig": {
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "metadata": {
+            "useLiteralContent": false,
+            "bytecodeHash": "ipfs",
+            "appendCBOR": true
+          },
+          "outputSelection": {
+            "*": {
+              "": [
+                "ast"
+              ],
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "storageLayout"
+              ]
+            }
+          },
+          "evmVersion": "paris",
+          "libraries": {}
+        }
+      },
+      "imports": [],
+      "versionRequirement": "^0.8.0",
+      "artifacts": {
+        "IPermit2": {
+          "0.8.22+commit.4fc1097e.Linux.gcc": "IPermit2.sol/IPermit2.json"
+        }
+      }
+    },
     "contracts/Intents/Intents.sol": {
-      "lastModificationDate": 1727089779904,
-      "contentHash": "1480c21702e0e05c3a7aa6bbda2b2ac9",
+      "lastModificationDate": 1728979257702,
+      "contentHash": "b0fb997908792796f7c9e8c018d2b489",
       "sourceName": "contracts/Intents/Intents.sol",
       "solcConfig": {
         "settings": {
@@ -136,6 +178,8 @@
       "imports": [
         "contracts/Intents/Encoding.sol",
         "contracts/Intents/GeneralizedConnection.sol",
+        "contracts/Intents/IPermit2.sol",
+        "contracts/Intents/Permit2OrderLib.sol",
         "contracts/Intents/Types.sol",
         "lib/forge-std/src/console.sol",
         "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol",
@@ -156,9 +200,55 @@
         }
       }
     },
+    "contracts/Intents/Permit2OrderLib.sol": {
+      "lastModificationDate": 1728890828242,
+      "contentHash": "517027146c58f4dc2de04d1abd052923",
+      "sourceName": "contracts/Intents/Permit2OrderLib.sol",
+      "solcConfig": {
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "metadata": {
+            "useLiteralContent": false,
+            "bytecodeHash": "ipfs",
+            "appendCBOR": true
+          },
+          "outputSelection": {
+            "*": {
+              "": [
+                "ast"
+              ],
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "storageLayout"
+              ]
+            }
+          },
+          "evmVersion": "paris",
+          "libraries": {}
+        }
+      },
+      "imports": [
+        "contracts/Intents/IPermit2.sol",
+        "contracts/Intents/Types.sol",
+        "library/xcall/utils/ParseAddress.sol"
+      ],
+      "versionRequirement": "^0.8.0",
+      "artifacts": {
+        "Permit2OrderLib": {
+          "0.8.22+commit.4fc1097e.Linux.gcc": "Permit2OrderLib.sol/Permit2OrderLib.json"
+        }
+      }
+    },
     "contracts/Intents/Types.sol": {
-      "lastModificationDate": 1727089503335,
-      "contentHash": "8a27cc251e8a880b540b40bb82517c2b",
+      "lastModificationDate": 1728889000886,
+      "contentHash": "3f3f2108ef4b72b9058e3377433e417b",
       "sourceName": "contracts/Intents/Types.sol",
       "solcConfig": {
         "settings": {
@@ -1778,8 +1868,8 @@
       }
     },
     "test/Intents/Encoding.t.sol": {
-      "lastModificationDate": 1727089521627,
-      "contentHash": "7ea03d0aca8aa3a6b68b59e7e8ebc732",
+      "lastModificationDate": 1728896024004,
+      "contentHash": "e186970f82c8c5dfb9a2eebdf346ba3e",
       "sourceName": "test/Intents/Encoding.t.sol",
       "solcConfig": {
         "settings": {
@@ -1814,7 +1904,9 @@
       "imports": [
         "contracts/Intents/Encoding.sol",
         "contracts/Intents/GeneralizedConnection.sol",
+        "contracts/Intents/IPermit2.sol",
         "contracts/Intents/Intents.sol",
+        "contracts/Intents/Permit2OrderLib.sol",
         "contracts/Intents/Types.sol",
         "lib/forge-std/lib/ds-test/src/test.sol",
         "lib/forge-std/src/Base.sol",
@@ -1853,8 +1945,8 @@
       }
     },
     "test/Intents/Intents.t.sol": {
-      "lastModificationDate": 1727089521627,
-      "contentHash": "ff0b5e5346522ed54cf01cf130daa873",
+      "lastModificationDate": 1728980292545,
+      "contentHash": "c3632693161dec944ef3d3458aafee63",
       "sourceName": "test/Intents/Intents.t.sol",
       "solcConfig": {
         "settings": {
@@ -1889,7 +1981,9 @@
       "imports": [
         "contracts/Intents/Encoding.sol",
         "contracts/Intents/GeneralizedConnection.sol",
+        "contracts/Intents/IPermit2.sol",
         "contracts/Intents/Intents.sol",
+        "contracts/Intents/Permit2OrderLib.sol",
         "contracts/Intents/Types.sol",
         "lib/forge-std/lib/ds-test/src/test.sol",
         "lib/forge-std/src/Base.sol",
