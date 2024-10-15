@@ -18,7 +18,8 @@ impl<'a> ClusterConnection<'a> {
         set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
 
         let relayer = deps.api.addr_validate(&msg.relayer)?;
-        self.store_admin(deps.storage, relayer)?;
+        self.store_admin(deps.storage, relayer.clone())?;
+        self.store_relayer(deps.storage, relayer.clone())?;
 
         let xcall_address = deps.api.addr_validate(&msg.xcall_address)?;
         self.store_xcall(deps.storage, xcall_address)?;
@@ -91,6 +92,26 @@ impl<'a> ClusterConnection<'a> {
         Ok(Response::new().add_submessage(xcall_submessage))
     }
 
+    pub fn set_relayers(
+        &mut self,
+        deps: DepsMut,
+        info: MessageInfo,
+        relayers: Vec<Addr>,
+    ) -> Result<Response, ContractError> {
+        self.ensure_admin(deps.storage, info.sender)?;
+
+        self.clear_relayers(deps.storage)?;
+
+        let admin = self.query_admin(deps.storage)?;
+        self.store_relayer(deps.storage, admin)?;
+
+        for rlr in relayers {
+            self.store_relayer(deps.storage, rlr)?;
+        }
+
+        Ok(Response::new().add_attribute("action", "set_relayers"))
+    }
+
     pub fn recv_message_with_signatures(
         &mut self,
         deps: DepsMut,
@@ -98,14 +119,27 @@ impl<'a> ClusterConnection<'a> {
         src_network: NetId,
         conn_sn: u128,
         msg: String,
+        account_prefix: String,
         signatures: Vec<Vec<u8>>,
     ) -> Result<Response, ContractError> {
         self.ensure_admin(deps.storage, info.sender)?;
 
         let hex_string_trimmed = msg.trim_start_matches("0x");
         let bytes = hex::decode(hex_string_trimmed).expect("Failed to decode to vec<u8>");
-
         let vec_msg: Vec<u8> = Binary(bytes).into();
+
+        let threshold = self.get_signature_threshold(deps.storage);
+        let relayers = self.get_relayers(deps.storage)?;
+
+        self.verify_signatures(
+            deps.as_ref(),
+            threshold,
+            relayers,
+            account_prefix.as_str(),
+            vec_msg.clone(),
+            signatures,
+        )?;
+
         if self.get_receipt(deps.as_ref().storage, src_network.clone(), conn_sn) {
             return Err(ContractError::DuplicateMessage);
         }
@@ -153,6 +187,10 @@ impl<'a> ClusterConnection<'a> {
         address: Addr,
     ) -> Result<Response, ContractError> {
         self.ensure_admin(deps.storage, info.sender)?;
+
+        let old_admin = self.query_admin(deps.storage)?;
+        self.remove_relayer(deps.storage, old_admin)?;
+
         let admin = deps.api.addr_validate(address.as_str())?;
         let _ = self.store_admin(deps.storage, admin);
         Ok(Response::new().add_attribute("action", "set_admin"))

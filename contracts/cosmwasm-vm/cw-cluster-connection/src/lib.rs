@@ -47,6 +47,21 @@ pub fn execute(
             conn_sn,
             msg,
         } => conn.recv_message(deps, info, src_network, conn_sn, msg),
+        ExecuteMsg::RecvMessageWithSignatures {
+            src_network,
+            conn_sn,
+            msg,
+            account_prefix,
+            signatures,
+        } => conn.recv_message_with_signatures(
+            deps,
+            info,
+            src_network,
+            conn_sn,
+            msg,
+            account_prefix,
+            signatures,
+        ),
         ExecuteMsg::ClaimFees {} => conn.claim_fees(deps, env, info),
         ExecuteMsg::RevertMessage { sn } => conn.revert_message(deps, info, sn),
         ExecuteMsg::SetAdmin { address } => conn.set_admin(deps, info, address),
@@ -55,6 +70,8 @@ pub fn execute(
             message_fee,
             response_fee,
         } => conn.set_fee(deps, info, network_id, message_fee, response_fee),
+
+        ExecuteMsg::SetRelayers { relayers } => conn.set_relayers(deps, info, relayers),
     }
 }
 
@@ -72,6 +89,12 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
         } => to_json_binary(&conn.get_receipt(deps.storage, src_network, conn_sn)),
 
         QueryMsg::Admin {} => to_json_binary(&conn.admin().load(deps.storage).unwrap()),
+
+        QueryMsg::GetRelayers {} => {
+            let relayers = conn.get_relayers(deps.storage)?;
+            let relayers_str: Vec<String> = relayers.iter().map(|addr| addr.to_string()).collect();
+            to_json_binary(&relayers_str)
+        }
     }
 }
 

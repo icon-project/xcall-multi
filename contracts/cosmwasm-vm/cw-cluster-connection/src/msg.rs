@@ -21,6 +21,18 @@ pub enum ExecuteMsg {
         msg: String,
     },
 
+    RecvMessageWithSignatures {
+        src_network: NetId,
+        conn_sn: u128,
+        msg: String,
+        account_prefix: String,
+        signatures: Vec<Vec<u8>>,
+    },
+
+    SetRelayers {
+        relayers: Vec<Addr>,
+    },
+
     ClaimFees {},
     RevertMessage {
         sn: u128,
@@ -43,6 +55,9 @@ pub enum QueryMsg {
     //return address of admin
     #[returns(Addr)]
     Admin {},
+
+    #[returns(Vec<Addr>)]
+    GetRelayers {},
 }
 
 #[cw_serde]

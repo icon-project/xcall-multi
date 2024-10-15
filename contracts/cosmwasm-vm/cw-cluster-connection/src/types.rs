@@ -17,6 +17,7 @@ pub enum StorageKey {
     ConnSn,
     Denom,
     SignatureThreshold,
+    Relayers,
 }
 
 impl StorageKey {
@@ -30,6 +31,7 @@ impl StorageKey {
             StorageKey::ConnSn => "conn_sn",
             StorageKey::Denom => "denom",
             StorageKey::SignatureThreshold => "signature_threshold",
+            StorageKey::Relayers => "relayers",
         }
     }
 }

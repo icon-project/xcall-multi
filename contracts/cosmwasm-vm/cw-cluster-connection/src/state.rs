@@ -1,5 +1,3 @@
-use std::ops::Add;
-
 use cosmwasm_std::Addr;
 use cw_xcall_lib::network_address::NetId;
 
@@ -16,7 +14,7 @@ pub struct ClusterConnection<'a> {
     xcall: Item<'a, Addr>,
     denom: Item<'a, String>,
     signature_threshold: Item<'a, u16>,
-    relayers: Vec<Addr>,
+    relayers: Map<'a, Addr, bool>,
 }
 
 impl<'a> Default for ClusterConnection<'a> {
@@ -36,7 +34,7 @@ impl<'a> ClusterConnection<'a> {
             xcall: Item::new(StorageKey::XCall.as_str()),
             denom: Item::new(StorageKey::Denom.as_str()),
             signature_threshold: Item::new(StorageKey::SignatureThreshold.as_str()),
-            relayers: Vec::new(),
+            relayers: Map::new(StorageKey::Relayers.as_str()),
         }
     }
 
@@ -116,6 +114,47 @@ impl<'a> ClusterConnection<'a> {
     pub fn admin(&self) -> &Item<'a, Addr> {
         &self.admin
     }
+
+    pub fn store_relayer(&mut self, store: &mut dyn Storage, relayer: Addr) -> StdResult<()> {
+        self.relayers.save(store, relayer, &true)?;
+        Ok(())
+    }
+
+    pub fn remove_relayer(&mut self, store: &mut dyn Storage, relayer: Addr) -> StdResult<()> {
+        self.relayers.remove(store, relayer);
+        Ok(())
+    }
+
+    pub fn clear_relayers(&mut self, store: &mut dyn Storage) -> StdResult<()> {
+        self.relayers.clear(store);
+        Ok(())
+    }
+
+    pub fn get_relayers(&self, store: &dyn Storage) -> StdResult<Vec<Addr>> {
+        let mut relayers_list: Vec<Addr> = Vec::new();
+        let relayers_iter = self
+            .relayers
+            .range(store, None, None, cosmwasm_std::Order::Ascending);
+
+        for item in relayers_iter {
+            let (relayer_addr, is_active) = item?;
+            if is_active {
+                relayers_list.push(relayer_addr);
+            }
+        }
+
+        Ok(relayers_list)
+    }
+
+    pub fn store_signature_threshold(
+        &mut self,
+        store: &mut dyn Storage,
+        threshold: u16,
+    ) -> StdResult<()> {
+        self.signature_threshold.save(store, &threshold)?;
+        Ok(())
+    }
+
     pub fn get_signature_threshold(&self, store: &dyn Storage) -> u16 {
         self.signature_threshold.load(store).unwrap()
     }
