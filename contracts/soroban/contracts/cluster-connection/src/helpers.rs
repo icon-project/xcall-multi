@@ -1,7 +1,6 @@
 use core::panic;
 
 use soroban_sdk::{token, Address, Bytes, BytesN, Env, FromVal, Map, String, Vec};
-use ed25519_dalek::{PublicKey, Signature, Verifier};
 use crate::{errors::ContractError, interfaces::interface_xcall::XcallClient, storage};
 
 pub fn ensure_admin(e: &Env) -> Result<Address, ContractError> {
@@ -51,9 +50,29 @@ pub fn transfer_token(
     Ok(())
 }
 
+pub fn compress_public_keys(e: &Env, uncompressed_public_key: BytesN<65>) -> Bytes {
+    let uncompressed_pub_key_array = uncompressed_public_key.to_array();
+    if uncompressed_pub_key_array[0] != 0x04 {
+        //return empty bytessize(33);
+        return Bytes::from_array(e, &[0u8; 33]);
+    }
+
+    let x = &uncompressed_pub_key_array[1..33];
+    let y = &uncompressed_pub_key_array[33..65];
+
+    let prefix = if y[31] % 2 == 0 { 0x02 } else { 0x03 };
+
+    let mut compressed_pub_key_array = [0u8; 33];
+    compressed_pub_key_array[0] = prefix;
+    compressed_pub_key_array[1..].copy_from_slice(x);
+    let compressed_pub_key = Bytes::from_array(e, &compressed_pub_key_array);
+
+    compressed_pub_key
+}
+
 pub fn verify_signatures(
     e: &Env,
-    signatures: Vec<BytesN<64>>,
+    signatures: Vec<BytesN<65>>,
     message: Bytes,
 ) -> bool {
     let validators = storage::get_validators(e).unwrap();
@@ -67,19 +86,26 @@ pub fn verify_signatures(
      let mut count = 0;
      
 
-      for signature in signatures.iter() {
-        if let Ok(sig) = convert_signature_to_dalek(&signature) {
-            for validator in validators.iter() {
-                if let Ok(public_key) = convert_address_to_public_key(e, &validator) {
-                    if public_key.verify(&message_hash.to_array(), &sig).is_ok() {
-                        if !unique_validators.contains_key(validator.clone()) {
-                            unique_validators.set(validator, count);
-                            count += 1;
-                        }
-                        break;
-                    }
-                }
-            }
+      for sig in signatures.iter() {
+        let r_s_v = sig.to_array();
+
+        // Separate signature (r + s) and recovery ID
+        let signature_array: [u8; 64] = r_s_v[..64].try_into().unwrap(); // r + s part
+        let recovery_id = r_s_v[64] as u32; // recovery ID
+
+        let signature = BytesN::<64>::from_array(e, &signature_array);
+
+        let uncompressed_public_key = e.crypto().secp256k1_recover(&message_hash, &signature, recovery_id);
+
+        let compressed_pub_key = compress_public_keys(e, uncompressed_public_key);
+
+        let stellar_address = Address::from_string_bytes(&compressed_pub_key);
+
+        if validators.contains(&stellar_address) {   
+            if !unique_validators.contains_key(stellar_address.clone()) {
+                unique_validators.set(stellar_address, count);
+                count += 1;
+            }    
         }
     }
     (unique_validators.len() as u32) >= threshold
@@ -101,14 +127,4 @@ pub fn call_xcall_handle_error(e: &Env, sn: u128) -> Result<(), ContractError> {
     client.handle_error(&e.current_contract_address(), &sn);
 
     Ok(())
-}
-
-fn convert_address_to_public_key(e: &Env, address: &Address) -> Result<PublicKey, ed25519_dalek::SignatureError> {
-    let bytes: BytesN<32> = BytesN::from_val(e, &address.to_val());
-    PublicKey::from_bytes(&bytes.to_array())
-}
-
-// Helper function to convert a BytesN<64> to ed25519_dalek::Signature
-fn convert_signature_to_dalek(signature: &BytesN<64>) -> Result<Signature, ed25519_dalek::SignatureError> {
-    Signature::from_bytes(&signature.to_array())
 }

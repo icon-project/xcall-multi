@@ -15,7 +15,7 @@ use crate::{
 use soroban_sdk::{
     symbol_short,
     testutils::{Address as _, AuthorizedFunction, AuthorizedInvocation, Events},
-    token, vec, Address, Bytes, Env, IntoVal, String, Symbol,
+    token, vec, Address, Bytes, Env, IntoVal, String, Symbol, Vec,
 };
 
 pub struct TestContext {
@@ -342,4 +342,118 @@ fn test_get_receipt_returns_false() {
 
     let receipt = client.get_receipt(&ctx.nid, &sequence_no);
     assert_eq!(receipt, true)
+}
+
+#[test]
+fn test_add_validator() {
+    let ctx = TestContext::default();
+    let client = ClusterConnectionClient::new(&ctx.env, &ctx.contract);
+
+    ctx.init_context(&client);
+
+    let validator = Address::generate(&ctx.env);
+    client.add_validator(&validator.clone());
+
+    let mut validators = Vec::new(&ctx.env);
+    validators.push_back(validator.clone());
+
+    assert_eq!(
+        ctx.env.auths(),
+        std::vec![(
+            ctx.relayer,
+            AuthorizedInvocation {
+                function: AuthorizedFunction::Contract((
+                    client.address.clone(),
+                    Symbol::new(&ctx.env, "add_validator"),
+                    (validator.clone(),).into_val(&ctx.env)
+                )),
+                sub_invocations: std::vec![]
+            }
+        )]
+    );
+
+    let validator = Address::generate(&ctx.env);
+    client.add_validator(&validator.clone());
+    validators.push_back(validator.clone());
+
+
+    assert_eq!(
+        client.get_validators(),
+        validators
+    );
+}
+
+#[test]
+fn test_remove_validator() {
+    let ctx = TestContext::default();
+    let client = ClusterConnectionClient::new(&ctx.env, &ctx.contract);
+
+    ctx.init_context(&client);
+
+    let validator1 = Address::generate(&ctx.env);
+    let validator2 = Address::generate(&ctx.env);
+    let validator3 = Address::generate(&ctx.env);
+
+    client.add_validator(&validator1.clone());
+    client.add_validator(&validator2.clone());
+    client.add_validator(&validator3.clone());
+
+    let mut validators = Vec::new(&ctx.env);
+    validators.push_back(validator1.clone());
+    validators.push_back(validator2.clone());
+    validators.push_back(validator3.clone());
+
+    assert_eq!(
+        client.get_validators(),
+        validators
+    );
+
+    assert_eq!(
+        client.get_validators().len(),
+        3
+    );
+
+    client.remove_validator(&validator2.clone());
+
+    assert_eq!(
+        client.get_validators().len(),
+        2
+    );
+    validators.remove(1);
+
+    assert_eq!(
+        client.get_validators(),
+        validators
+    );
+}
+
+#[test]
+fn test_set_threshold() {
+    let ctx = TestContext::default();
+    let client = ClusterConnectionClient::new(&ctx.env, &ctx.contract);
+
+    ctx.init_context(&client);
+
+    let threshold: u32 = 2_u32;
+    client.set_validators_threshold(&threshold);
+
+    assert_eq!(
+        ctx.env.auths(),
+        std::vec![(
+            ctx.relayer,
+            AuthorizedInvocation {
+                function: AuthorizedFunction::Contract((
+                    client.address.clone(),
+                    Symbol::new(&ctx.env, "set_validators_threshold"),
+                    (threshold,).into_val(&ctx.env)
+                )),
+                sub_invocations: std::vec![]
+            }
+        )]
+    );
+    assert_eq!(client.get_validators_threshold(), threshold);
+
+    let threshold: u32 = 3_u32;
+    client.set_validators_threshold(&threshold);
+    assert_eq!(client.get_validators_threshold(), threshold);
 }

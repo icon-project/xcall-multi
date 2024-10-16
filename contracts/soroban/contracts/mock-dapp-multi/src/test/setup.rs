@@ -72,6 +72,7 @@ impl TestContext {
             native_token: self.native_token.clone(),
             network_id: self.nid.clone(),
             sender: Address::generate(&self.env),
+            upgrade_authority: Address::generate(&self.env),
         };
         xcall_client.initialize(&initialize_msg);
 
@@ -86,6 +87,7 @@ impl TestContext {
             native_token: self.native_token.clone(),
             relayer: Address::generate(&self.env),
             xcall_address: self.xcall.clone(),
+            upgrade_authority: Address::generate(&self.env),
         };
         connection_client.initialize(&initialize_msg);
 

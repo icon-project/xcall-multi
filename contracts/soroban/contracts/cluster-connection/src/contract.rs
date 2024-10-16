@@ -15,6 +15,8 @@ impl ClusterConnection {
         storage::store_admin(&env, msg.relayer);
         storage::store_xcall(&env, msg.xcall_address);
         storage::store_upgrade_authority(&env, msg.upgrade_authority);
+        storage::store_validator_threshold(&env, 0);
+        storage::store_validators(&env, Vec::new(&env));
 
         Ok(())
     }
@@ -95,7 +97,7 @@ impl ClusterConnection {
         src_network: String,
         conn_sn: u128,
         msg: Bytes,
-        signatures: Vec<BytesN<64>>,
+        signatures: Vec<BytesN<65>>,
     ) -> Result<(), ContractError> {
         helpers::ensure_admin(&env)?;
 
@@ -142,6 +144,17 @@ impl ClusterConnection {
             return Err(ContractError::ValidatorAlreadyAdded);
         }
         storage::add_validator(&env, address);
+        Ok(())
+    }
+
+    pub fn get_validators_threshold(env: Env) -> Result<u32, ContractError> {
+        let threshold = storage::get_validators_threshold(&env).unwrap();
+        Ok(threshold)
+    }
+
+    pub fn set_validators_threshold(env: Env, threshold: u32) -> Result<(), ContractError> {
+        helpers::ensure_admin(&env)?;
+        storage::store_validator_threshold(&env, threshold);
         Ok(())
     }
 

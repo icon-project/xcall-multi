@@ -10,8 +10,6 @@ doctest = false
 
 [dependencies]
 soroban-sdk = { workspace = true, features = ["alloc"] }
-ed25519-dalek = { version = "1.0.1", default-features = false, features = ["alloc"] }
-curve25519-dalek = { version = "1", default-features = false, features = ["alloc"] }
 
 [dev-dependencies]
 soroban-sdk = { workspace = true, features = ["testutils"] }
