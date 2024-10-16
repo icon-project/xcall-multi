@@ -8,20 +8,15 @@ module intents_v1::order_fill {
         id:u128,                      // ID of the order being filled
         order_bytes:vector<u8>,                 // Hash of the order
         solver:String,                    // Address of the solver that fills the order
-        amount:u128,                 // Amount filled by the solver
-        close_order:bool,
     }
 
     public fun new( id:u128,                      // ID of the order being filled
         order_bytes:vector<u8>,                 // Hash of the order
-        solver:String,                    // Address of the solver that fills the order
-        amount:u128, close_order:bool):OrderFill{
+        solver:String):OrderFill{
             OrderFill {
                 id,
                 order_bytes,
                 solver,
-                amount,
-                close_order
             }
         }
 
@@ -34,21 +29,12 @@ module intents_v1::order_fill {
     public fun get_solver(self:&OrderFill):String{
         self.solver
     }
-    public fun get_amount(self:&OrderFill):u128{
-        self.amount
-    }
-
-    public fun get_close_order(self:&OrderFill):bool {
-        self.close_order
-    }
 
     public fun encode(self:&OrderFill):vector<u8>{
         let mut list=vector::empty<vector<u8>>();
         vector::push_back(&mut list,encoder::encode_u128(self.id));
         vector::push_back(&mut list,encoder::encode(&self.order_bytes));
         vector::push_back(&mut list,encoder::encode_string(&self.solver));
-        vector::push_back(&mut list,encoder::encode_u128(self.amount));
-         vector::push_back(&mut list,encoder::encode_bool(self.close_order));
 
 
         let encoded=encoder::encode_list(&list,false);
@@ -60,15 +46,11 @@ module intents_v1::order_fill {
         let id= decoder::decode_u128(vector::borrow(&decoded,0));
         let order_bytes=  *vector::borrow(&decoded,1);
         let solver=  decoder::decode_string(vector::borrow(&decoded,2));
-        let amount= decoder::decode_u128(vector::borrow(&decoded,3));
-         let close_order= decoder::decode_bool(vector::borrow(&decoded,4));
 
         OrderFill {
         id,
         order_bytes,
         solver,
-        amount,
-        close_order,
         }
 
     }
@@ -79,13 +61,12 @@ module intents_v1::order_fill {
       id: 1,
     order_bytes: x"6c449988e2f33302803c93f8287dc1d8cb33848a",
     solver: string::utf8(b"0xcb0a6bbccfccde6be9f10ae781b9d9b00d6e63"),
-    amount: 500,
-    close_order: true
+    
     };
 
     let encoded= swap_order.encode();
     std::debug::print(&encoded);
-    assert!(encoded==x"f84301946c449988e2f33302803c93f8287dc1d8cb33848aa8307863623061366262636366636364653662653966313061653738316239643962303064366536338201f401")
+    assert!(encoded==x"f83f01946c449988e2f33302803c93f8287dc1d8cb33848aa830786362306136626263636663636465366265396631306165373831623964396230306436653633")
 
  }
 
@@ -97,13 +78,12 @@ module intents_v1::order_fill {
       id: 2,
     order_bytes: x"cb0a6bbccfccde6be9f10ae781b9d9b00d6e63",
     solver: string::utf8(b"0x6c449988e2f33302803c93f8287dc1d8cb33848a"),
-    amount: 750 * 1000000000000000000,
-    close_order: false
+   
     };
 
     let encoded= swap_order.encode();
     std::debug::print(&encoded);
-    assert!(encoded==x"f84b0293cb0a6bbccfccde6be9f10ae781b9d9b00d6e63aa3078366334343939383865326633333330323830336339336638323837646331643863623333383438618928a857425466f8000000")
+    assert!(encoded==x"f8400293cb0a6bbccfccde6be9f10ae781b9d9b00d6e63aa307836633434393938386532663333333032383033633933663832383764633164386362333338343861")
 
  }
 

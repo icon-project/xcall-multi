@@ -42,7 +42,7 @@ module intents_v1::main {
         nid: String, // Network Identifier
         connection: ConnectionState,
         orders: Table<u128, SwapOrder>, // Mapping of deposit ID to SwapOrder
-        pending_fills: Table<vector<u8>, u128>, // Mapping of order hash to pending payment
+     //   pending_fills: Table<vector<u8>, u128>, // Mapping of order hash to pending payment
         finished_orders: Table<vector<u8>, bool>,
         fee: u8,
         fee_handler: address,
@@ -53,19 +53,15 @@ module intents_v1::main {
     public struct OrderFilled has copy,drop{
         id:u128,
         src_nid:String,
-        order_hash:vector<u8>,
-        fill_amount:u128,
         fee:u128,
-        solver_payout:u128,
-        remaning_amount:u128,
+        to_amount:u128,
         solver:String,
     }
 
     public struct OrderCancelled has copy,drop{
         id:u128, 
         src_nid:String,
-        order_hash:vector<u8>,
-        user_return:u128,
+        order_bytes:vector<u8>,
     }
     public struct OrderClosed  has copy,drop{
         id:u128,
@@ -85,7 +81,6 @@ module intents_v1::main {
             nid: string::utf8(b"sui"),
             connection: cluster_connection::new(ctx.sender(), ctx),
             orders: table::new(ctx),
-            pending_fills: table::new(ctx),
             finished_orders: table::new(ctx),
             fee: 1,
             fee_handler: ctx.sender(),
@@ -122,27 +117,13 @@ module intents_v1::main {
         fill: &OrderFill,
         ctx: &mut TxContext
     ) {
-       let take= {
-         let order = self.orders.borrow<u128, SwapOrder>(fill.get_id());
+       
+        let order = self.orders.remove<u128, SwapOrder>(fill.get_id());
 
         assert!(keccak256(&order.encode()) == keccak256(&fill.get_order_bytes()));
         assert!(order.get_dst_nid() == srcNid);
-
-        let take= {
-            let fund= self.funds.borrow_mut<u128,Coin<T>>(fill.get_id());
-            assert!(fund.value() >= (fill.get_amount() as u64));
-            let take = fund.split((fill.get_amount() as u64), ctx);
-            take
-        };
-        take
-       };
-
-        if (fill.get_close_order() == true) {
-            let removed= self.orders.remove<u128, SwapOrder>(fill.get_id());
-            coin::destroy_zero(self.funds.remove<u128,Coin<T>>(fill.get_id()));
-            event::emit(OrderClosed { id:removed.get_id() })
-        };
-
+        let take= self.funds.remove<u128,Coin<T>>(fill.get_id());
+        event::emit(OrderClosed { id:fill.get_id() });
         let solver = utils::address_from_str(&fill.get_solver());
         transfer::public_transfer(take, solver);
     }
@@ -166,26 +147,19 @@ module intents_v1::main {
         if (self.finished_orders.contains(order_hash)) {
             abort EAlreadyFinished
         };
-        if(!self.pending_fills.contains<vector<u8>,u128>(order_hash)){
-           self.pending_fills.add<vector<u8>,u128>(order_hash,order.get_amount());
-        };
-
-        let pending_fill = self.pending_fills.remove<vector<u8>, u128>(order_hash);
+       
         self.finished_orders.add<vector<u8>, bool>(order_hash, true);
 
         let orderFill = order_fill::new(
             order.get_id(),
             order_bytes,
             order.get_creator(),
-            pending_fill,
-            true
         );
 
         event::emit(OrderCancelled {
             id:order.get_id(),
             src_nid:order.get_src_nid(),
-            order_hash,
-            user_return:pending_fill,
+            order_bytes,
         });
 
         let msg = order_message::new(FILL, orderFill.encode());
@@ -311,23 +285,9 @@ module intents_v1::main {
 
         // make sure user is filling token wanted by order
         assert!(string::from_ascii(type_name::get<F>().into_string())== order.get_to_token(),EInvalidFillToken);
-
-        // insert order if its first occurrence
-        if (!self.pending_fills.contains(order_hash)) {
-            self.pending_fills.add<vector<u8>,u128>(order_hash, order.get_amount());
-        };
-
-        let payout = (order.get_amount() * (fill_token.value() as u128)) / order.get_min_receive();
-        let mut pending = self.pending_fills.remove<vector<u8>, u128>(order_hash);
-        assert!(pending >= payout,EInvalidPayoutAmount);
-        pending = pending - payout;
-
-        if (pending == 0) {
-            self.finished_orders.add(order_hash, true);
-        }else{
-            self.pending_fills.add(order_hash, pending);
-        };
-
+        assert!((fill_token.value() as u128)==order.get_to_amount(),EInvalidPayoutAmount);
+        self.finished_orders.add(order_hash, true);
+       
 
 
         let fee = (fill_token.value() * (self.fee as u64)) / 10000;
@@ -337,8 +297,6 @@ module intents_v1::main {
             id,
             order.encode(),
             solveraddress,
-            payout,
-            self.finished_orders.contains(order_hash)
         );
         let msg = order_message::new(FILL, fill.encode());
 
@@ -347,11 +305,8 @@ module intents_v1::main {
         event::emit(OrderFilled {
             id:order.get_id(),
             src_nid:order.get_src_nid(),
-            order_hash:order_hash,
-            fill_amount:fill_token.value() as u128,
             fee:fee as u128,
-            solver_payout:payout,
-            remaning_amount:pending,
+            to_amount:fill_token.value() as u128,
             solver:solveraddress,
         });
 
@@ -630,8 +585,7 @@ module intents_v1::main_tests {
                 1,
                 swap_order::encode(&order),
                 (@0x3).to_string(),
-                1000,
-                true
+               
             );
 
             let msg = order_message::new(1, order_fill::encode(&fill));
@@ -653,7 +607,7 @@ module intents_v1::main_tests {
     }
 
 
-  //  #[test]
+    #[test]
     fun test_recv_message_encoding() {
         let admin=@0x1;
         let mut scenario = setup_test(admin);
@@ -799,8 +753,7 @@ module intents_v1::main_tests {
                 1,
                 swap_order::encode(&order),
                 (@0x3).to_string(),
-                1000,
-                true
+               
             );
 
             let msg = order_message::new(1, order_fill::encode(&fill));
@@ -874,7 +827,7 @@ module intents_v1::main_tests {
                 order.get_token(),
                 order.get_amount(),
                 order.get_to_token(),
-                order.get_min_receive(),
+                order.get_to_amount(),
                 *order.get_data(),
                 fill_coin,
                 (@0x3).to_string(),
@@ -890,6 +843,7 @@ module intents_v1::main_tests {
 
 
     #[test]
+    #[expected_failure(abort_code = 3)]
     fun test_partial_fill() {
         let admin=@0x1;
         let mut scenario = setup_test(admin);
@@ -936,7 +890,7 @@ module intents_v1::main_tests {
                 order.get_token(),
                 order.get_amount(),
                 order.get_to_token(),
-                order.get_min_receive(),
+                order.get_to_amount(),
                 *order.get_data(),
                 fill_coin,
                 (@0x3).to_string(),
@@ -1002,7 +956,7 @@ module intents_v1::main_tests {
                 order.get_token(),
                 order.get_amount(),
                 order.get_to_token(),
-                order.get_min_receive(),
+                order.get_to_amount(),
                 *order.get_data(),
                 fill_coin1,
                 @0x3.to_string(),
@@ -1022,7 +976,7 @@ module intents_v1::main_tests {
                 order.get_token(),
                 order.get_amount(),
                 order.get_to_token(),
-                order.get_min_receive(),
+                order.get_to_amount(),
                 *order.get_data(),
                 fill_coin2,
                 @0x3.to_string(),
@@ -1082,7 +1036,7 @@ module intents_v1::main_tests {
                 order.get_token(),
                 order.get_amount(),
                 order.get_to_token(),
-                order.get_min_receive(),
+                order.get_to_amount(),
                 *order.get_data(),
                 fill_coin1,
                 @0x3.to_string(),
@@ -1142,7 +1096,7 @@ module intents_v1::main_tests {
                 order.get_token(),
                 order.get_amount(),
                 order.get_to_token(),
-                order.get_min_receive(),
+                order.get_to_amount(),
                 *order.get_data(),
                 fill_coin1,
                 @0x3.to_string(),

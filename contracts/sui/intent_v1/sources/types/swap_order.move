@@ -14,7 +14,7 @@ module intents_v1::swap_order {
         token:String,                
         amount:u128,                 
         to_token:String,                 
-        min_receive:u128,             
+        to_amount:u128,             
         data:vector<u8>,
 }
 
@@ -27,7 +27,7 @@ public fun new( id:u128,
     token:String,                  
     amount:u128,                 
     to_token:String,                 
-    min_receive:u128,             
+    to_amount:u128,             
     data:vector<u8>):SwapOrder{
         SwapOrder {
             id,
@@ -39,7 +39,7 @@ public fun new( id:u128,
             token,
             amount,
             to_token,
-            min_receive,
+            to_amount,
             data,
         }
     }
@@ -69,8 +69,8 @@ public fun get_destination_address(self:&SwapOrder):String{
 public fun get_to_token(self:&SwapOrder):String {
     self.to_token
 }
-public fun get_min_receive(self:&SwapOrder):u128 {
-    self.min_receive
+public fun get_to_amount(self:&SwapOrder):u128 {
+    self.to_amount
 }
 public fun get_data(self:&SwapOrder):&vector<u8> {
     &self.data
@@ -86,8 +86,8 @@ public(package) fun emit(self:SwapOrder){
     event::emit(self)
 }
 
-public(package) fun deduct_min_receive(self:&mut SwapOrder,amount:u128){
-    self.min_receive=self.min_receive-amount
+public(package) fun deduct_to_amount(self:&mut SwapOrder,amount:u128){
+    self.to_amount=self.to_amount-amount
 
 }
 
@@ -107,7 +107,7 @@ public fun encode(self:&SwapOrder):vector<u8>{
            vector::push_back(&mut list,encoder::encode_string(&self.get_token()));
            vector::push_back(&mut list,encoder::encode_u128(self.get_amount()));
          vector::push_back(&mut list,encoder::encode_string(&self.get_to_token()));
-           vector::push_back(&mut list,encoder::encode_u128(self.get_min_receive()));
+           vector::push_back(&mut list,encoder::encode_u128(self.get_to_amount()));
             vector::push_back(&mut list,encoder::encode(self.get_data()));
 
           let encoded=encoder::encode_list(&list,false);
@@ -126,7 +126,7 @@ public fun decode(bytes:&vector<u8>):SwapOrder{
          let token= decoder::decode_string(decoded.borrow(6));
          let amount= decoder::decode_u128(decoded.borrow(7));
          let to_token=decoder::decode_string(decoded.borrow(8));
-         let min_receive= decoder::decode_u128(decoded.borrow(9));
+         let to_amount= decoder::decode_u128(decoded.borrow(9));
          let data= *decoded.borrow(10);
          SwapOrder {
             id,
@@ -138,7 +138,7 @@ public fun decode(bytes:&vector<u8>):SwapOrder{
             token,
             amount,
             to_token,
-            min_receive,
+            to_amount,
             data,
          }
 
@@ -178,7 +178,7 @@ Types.SwapOrder memory orderEncodingTest = Types.SwapOrder({
         token:string::utf8(b"0x14355340e857912188b7f202d550222487"),
         amount:1000,
         to_token:string::utf8(b"0x91a4728b517484f0f610de7b"),
-        min_receive:900,
+        to_amount:900,
         data:x"",
     };
 
@@ -199,7 +199,7 @@ Types.SwapOrder memory orderEncodingTest = Types.SwapOrder({
         token:string::utf8(b"0x14355340e857912188b7f202d550222487"),
         amount:100000*10000000000000000000000,
         to_token:string::utf8(b"0x91a4728b517484f0f610de7b"),
-        min_receive:900*10000000,
+        to_amount:900*10000000,
         data:x"6c449988e2f33302803c93f8287dc1d8cb33848a",
     };
 
