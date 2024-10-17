@@ -4,11 +4,30 @@ use cw_xcall_lib::network_address::NetId;
 
 #[cw_serde]
 pub enum ExecuteMsg {
+    SetAdmin {
+        address: Addr,
+    },
+
+    SetRelayer {
+        address: Addr,
+    },
+
+    SetValidators {
+        validators: Vec<String>,
+    },
+
+    SetSignatureThreshold {
+        threshold: u8,
+    },
+
     SetFee {
         network_id: NetId,
         message_fee: u128,
         response_fee: u128,
     },
+
+    ClaimFees {},
+
     SendMessage {
         to: NetId,
         sn: i64,
@@ -25,39 +44,30 @@ pub enum ExecuteMsg {
         src_network: NetId,
         conn_sn: u128,
         msg: String,
-        account_prefix: String,
         signatures: Vec<Vec<u8>>,
-    },
-
-    SetRelayers {
-        relayers: Vec<Addr>,
-    },
-
-    ClaimFees {},
-    RevertMessage {
-        sn: u128,
-    },
-    SetAdmin {
-        address: Addr,
     },
 }
 
 #[cw_serde]
 #[derive(QueryResponses)]
-/// This is a Rust enum representing different types of queries that can be made to the contract. Each
-/// variant of the enum corresponds to a specific query and has a return type specified using the
-/// `#[returns]` attribute.
 pub enum QueryMsg {
     #[returns(u64)]
     GetFee { nid: NetId, response: bool },
+
     #[returns(bool)]
     GetReceipt { src_network: NetId, conn_sn: u128 },
-    //return address of admin
-    #[returns(Addr)]
-    Admin {},
 
-    #[returns(Vec<Addr>)]
-    GetRelayers {},
+    #[returns(Addr)]
+    GetAdmin {},
+
+    #[returns(Addr)]
+    GetRelayer {},
+
+    #[returns(Vec<String>)]
+    GetValidators {},
+
+    #[returns(u16)]
+    GetSignatureThreshold {},
 }
 
 #[cw_serde]

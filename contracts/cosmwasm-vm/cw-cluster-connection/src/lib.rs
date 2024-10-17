@@ -41,37 +41,38 @@ pub fn execute(
 ) -> Result<Response, ContractError> {
     let mut conn = ClusterConnection::default();
     match msg {
-        ExecuteMsg::SendMessage { to, sn, msg } => conn.send_message(deps, info, to, sn, msg),
-        ExecuteMsg::RecvMessage {
-            src_network,
-            conn_sn,
-            msg,
-        } => conn.recv_message(deps, info, src_network, conn_sn, msg),
-        ExecuteMsg::RecvMessageWithSignatures {
-            src_network,
-            conn_sn,
-            msg,
-            account_prefix,
-            signatures,
-        } => conn.recv_message_with_signatures(
-            deps,
-            info,
-            src_network,
-            conn_sn,
-            msg,
-            account_prefix,
-            signatures,
-        ),
-        ExecuteMsg::ClaimFees {} => conn.claim_fees(deps, env, info),
-        ExecuteMsg::RevertMessage { sn } => conn.revert_message(deps, info, sn),
         ExecuteMsg::SetAdmin { address } => conn.set_admin(deps, info, address),
+
+        ExecuteMsg::SetRelayer { address } => conn.set_relayer(deps, info, address),
+
+        ExecuteMsg::SetValidators { validators } => conn.set_validators(deps, info, validators),
+
+        ExecuteMsg::SetSignatureThreshold { threshold } => {
+            conn.set_signature_threshold(deps, info, threshold)
+        }
+
         ExecuteMsg::SetFee {
             network_id,
             message_fee,
             response_fee,
         } => conn.set_fee(deps, info, network_id, message_fee, response_fee),
 
-        ExecuteMsg::SetRelayers { relayers } => conn.set_relayers(deps, info, relayers),
+        ExecuteMsg::ClaimFees {} => conn.claim_fees(deps, env, info),
+
+        ExecuteMsg::SendMessage { to, sn, msg } => conn.send_message(deps, info, to, sn, msg),
+
+        ExecuteMsg::RecvMessage {
+            src_network,
+            conn_sn,
+            msg,
+        } => conn.recv_message(deps, info, src_network, conn_sn, msg),
+
+        ExecuteMsg::RecvMessageWithSignatures {
+            src_network,
+            conn_sn,
+            msg,
+            signatures,
+        } => conn.recv_message_with_signatures(deps, info, src_network, conn_sn, msg, signatures),
     }
 }
 
@@ -88,12 +89,26 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
             conn_sn,
         } => to_json_binary(&conn.get_receipt(deps.storage, src_network, conn_sn)),
 
-        QueryMsg::Admin {} => to_json_binary(&conn.admin().load(deps.storage).unwrap()),
+        QueryMsg::GetAdmin {} => {
+            let admin = conn.get_admin(deps.storage).unwrap();
+            to_json_binary(&admin)
+        }
 
-        QueryMsg::GetRelayers {} => {
-            let relayers = conn.get_relayers(deps.storage)?;
-            let relayers_str: Vec<String> = relayers.iter().map(|addr| addr.to_string()).collect();
-            to_json_binary(&relayers_str)
+        QueryMsg::GetRelayer {} => {
+            let relayer = conn.get_relayer(deps.storage).unwrap();
+            to_json_binary(&relayer)
+        }
+
+        QueryMsg::GetValidators {} => {
+            let validators = conn.get_validators(deps.storage)?;
+            let validators_str: Vec<String> =
+                validators.iter().map(|addr| addr.to_string()).collect();
+            to_json_binary(&validators_str)
+        }
+
+        QueryMsg::GetSignatureThreshold {} => {
+            let threshold = conn.get_signature_threshold(deps.storage);
+            to_json_binary(&threshold)
         }
     }
 }

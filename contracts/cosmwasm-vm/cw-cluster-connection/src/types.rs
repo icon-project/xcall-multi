@@ -9,29 +9,37 @@ pub struct InstantiateMsg {
 
 #[cw_serde]
 pub enum StorageKey {
-    MessageFee,
-    ResponseFee,
-    Receipts,
     XCall,
     Admin,
-    ConnSn,
-    Denom,
+    Relayer,
+    Validators,
     SignatureThreshold,
-    Relayers,
+
+    MessageFee,
+    ResponseFee,
+
+    ConnSn,
+    Receipts,
+
+    Denom,
 }
 
 impl StorageKey {
     pub fn as_str(&self) -> &'static str {
         match self {
-            StorageKey::MessageFee => "message_fee",
-            StorageKey::ResponseFee => "response_fee",
-            StorageKey::Receipts => "receipts",
             StorageKey::XCall => "xcall",
             StorageKey::Admin => "admin",
-            StorageKey::ConnSn => "conn_sn",
-            StorageKey::Denom => "denom",
+            StorageKey::Relayer => "relayer",
+            StorageKey::Validators => "validators",
             StorageKey::SignatureThreshold => "signature_threshold",
-            StorageKey::Relayers => "relayers",
+
+            StorageKey::MessageFee => "message_fee",
+            StorageKey::ResponseFee => "response_fee",
+
+            StorageKey::ConnSn => "conn_sn",
+            StorageKey::Receipts => "receipts",
+
+            StorageKey::Denom => "denom",
         }
     }
 }

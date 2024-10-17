@@ -8,8 +8,10 @@ pub enum ContractError {
     Unauthorized {},
     #[error("Invalid Address {address}")]
     InvalidAddress { address: String },
-    #[error("Only Relayer(Admin)")]
+    #[error("Only Admin")]
     OnlyAdmin,
+    #[error("Only Relayer")]
+    OnlyRelayer,
     #[error("Only XCall")]
     OnlyXCall,
     #[error("Duplicate Message")]
@@ -22,4 +24,7 @@ pub enum ContractError {
     InsufficientSignatures,
     #[error("Invalid Signature")]
     InvalidSignature,
+
+    #[error("HEX_DECODE_ERROR|{msg:?}")]
+    InvalidHexData { msg: String },
 }

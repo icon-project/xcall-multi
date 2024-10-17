@@ -6,15 +6,19 @@ use crate::types::StorageKey;
 use super::*;
 
 pub struct ClusterConnection<'a> {
+    xcall: Item<'a, Addr>,
+    admin: Item<'a, Addr>,
+    relayer: Item<'a, Addr>,
+    validators: Map<'a, String, bool>,
+    signature_threshold: Item<'a, u8>,
+
     message_fee: Map<'a, NetId, u128>,
     response_fee: Map<'a, NetId, u128>,
-    admin: Item<'a, Addr>,
+
     conn_sn: Item<'a, u128>,
     receipts: Map<'a, (String, u128), bool>,
-    xcall: Item<'a, Addr>,
+
     denom: Item<'a, String>,
-    signature_threshold: Item<'a, u16>,
-    relayers: Map<'a, Addr, bool>,
 }
 
 impl<'a> Default for ClusterConnection<'a> {
@@ -26,16 +30,52 @@ impl<'a> Default for ClusterConnection<'a> {
 impl<'a> ClusterConnection<'a> {
     pub fn new() -> Self {
         Self {
+            xcall: Item::new(StorageKey::XCall.as_str()),
+            admin: Item::new(StorageKey::Admin.as_str()),
+            relayer: Item::new(StorageKey::Relayer.as_str()),
+            validators: Map::new(StorageKey::Validators.as_str()),
+            signature_threshold: Item::new(StorageKey::SignatureThreshold.as_str()),
+
             message_fee: Map::new(StorageKey::MessageFee.as_str()),
             response_fee: Map::new(StorageKey::ResponseFee.as_str()),
-            admin: Item::new(StorageKey::Admin.as_str()),
+
             conn_sn: Item::new(StorageKey::ConnSn.as_str()),
             receipts: Map::new(StorageKey::Receipts.as_str()),
-            xcall: Item::new(StorageKey::XCall.as_str()),
+
             denom: Item::new(StorageKey::Denom.as_str()),
-            signature_threshold: Item::new(StorageKey::SignatureThreshold.as_str()),
-            relayers: Map::new(StorageKey::Relayers.as_str()),
         }
+    }
+
+    pub fn store_xcall(&mut self, store: &mut dyn Storage, address: Addr) -> StdResult<()> {
+        self.xcall.save(store, &address)?;
+        Ok(())
+    }
+
+    pub fn get_xcall(&self, store: &dyn Storage) -> Result<Addr, ContractError> {
+        Ok(self.xcall.load(store)?)
+    }
+
+    pub fn store_admin(&mut self, store: &mut dyn Storage, address: Addr) -> StdResult<()> {
+        self.admin.save(store, &address)?;
+        Ok(())
+    }
+
+    pub fn get_admin(&self, store: &dyn Storage) -> Result<Addr, ContractError> {
+        Ok(self.admin.load(store)?)
+    }
+
+    pub fn store_relayer(&mut self, store: &mut dyn Storage, address: Addr) -> StdResult<()> {
+        self.relayer.save(store, &address)?;
+        Ok(())
+    }
+
+    pub fn get_relayer(&self, store: &dyn Storage) -> Result<Addr, ContractError> {
+        Ok(self.relayer.load(store)?)
+    }
+
+    pub fn store_conn_sn(&mut self, store: &mut dyn Storage, sn: u128) -> StdResult<()> {
+        self.conn_sn.save(store, &sn)?;
+        Ok(())
     }
 
     pub fn get_next_conn_sn(&self, store: &mut dyn Storage) -> Result<u128, ContractError> {
@@ -43,11 +83,6 @@ impl<'a> ClusterConnection<'a> {
         connsn += 1;
         self.conn_sn.save(store, &connsn)?;
         Ok(connsn)
-    }
-
-    pub fn store_conn_sn(&mut self, store: &mut dyn Storage, sn: u128) -> StdResult<()> {
-        self.conn_sn.save(store, &sn)?;
-        Ok(())
     }
 
     pub fn store_fee(
@@ -61,11 +96,11 @@ impl<'a> ClusterConnection<'a> {
         self.response_fee.save(store, to, &response_fee)?;
         Ok(())
     }
-    pub fn query_message_fee(&self, store: &dyn Storage, to: NetId) -> u128 {
+    pub fn get_message_fee(&self, store: &dyn Storage, to: NetId) -> u128 {
         self.message_fee.load(store, to).unwrap_or(0)
     }
 
-    pub fn query_response_fee(&self, store: &dyn Storage, to: NetId) -> u128 {
+    pub fn get_response_fee(&self, store: &dyn Storage, to: NetId) -> u128 {
         self.response_fee.load(store, to).unwrap_or(0)
     }
 
@@ -86,76 +121,60 @@ impl<'a> ClusterConnection<'a> {
             .unwrap_or(false)
     }
 
-    pub fn store_xcall(&mut self, store: &mut dyn Storage, address: Addr) -> StdResult<()> {
-        self.xcall.save(store, &address)?;
-        Ok(())
-    }
-
-    pub fn store_admin(&mut self, store: &mut dyn Storage, address: Addr) -> StdResult<()> {
-        self.admin.save(store, &address)?;
-        Ok(())
-    }
-
     pub fn store_denom(&mut self, store: &mut dyn Storage, denom: String) -> StdResult<()> {
         self.denom.save(store, &denom)?;
         Ok(())
     }
 
-    pub fn query_admin(&self, store: &dyn Storage) -> Result<Addr, ContractError> {
-        Ok(self.admin.load(store)?)
-    }
-
-    pub fn query_xcall(&self, store: &dyn Storage) -> Result<Addr, ContractError> {
-        Ok(self.xcall.load(store)?)
-    }
-    pub fn denom(&self, store: &dyn Storage) -> String {
+    pub fn get_denom(&self, store: &dyn Storage) -> String {
         self.denom.load(store).unwrap()
     }
-    pub fn admin(&self) -> &Item<'a, Addr> {
-        &self.admin
-    }
 
-    pub fn store_relayer(&mut self, store: &mut dyn Storage, relayer: Addr) -> StdResult<()> {
-        self.relayers.save(store, relayer, &true)?;
+    pub fn store_validator(&mut self, store: &mut dyn Storage, validator: String) -> StdResult<()> {
+        self.validators.save(store, validator, &true)?;
         Ok(())
     }
 
-    pub fn remove_relayer(&mut self, store: &mut dyn Storage, relayer: Addr) -> StdResult<()> {
-        self.relayers.remove(store, relayer);
+    pub fn remove_validator(
+        &mut self,
+        store: &mut dyn Storage,
+        validator: String,
+    ) -> StdResult<()> {
+        self.validators.remove(store, validator);
         Ok(())
     }
 
-    pub fn clear_relayers(&mut self, store: &mut dyn Storage) -> StdResult<()> {
-        self.relayers.clear(store);
+    pub fn clear_validators(&mut self, store: &mut dyn Storage) -> StdResult<()> {
+        self.validators.clear(store);
         Ok(())
     }
 
-    pub fn get_relayers(&self, store: &dyn Storage) -> StdResult<Vec<Addr>> {
-        let mut relayers_list: Vec<Addr> = Vec::new();
-        let relayers_iter = self
-            .relayers
-            .range(store, None, None, cosmwasm_std::Order::Ascending);
+    pub fn get_validators(&self, store: &dyn Storage) -> StdResult<Vec<String>> {
+        let mut validators_list: Vec<String> = Vec::new();
+        let validators_iter =
+            self.validators
+                .range(store, None, None, cosmwasm_std::Order::Ascending);
 
-        for item in relayers_iter {
-            let (relayer_addr, is_active) = item?;
+        for item in validators_iter {
+            let (validator_addr, is_active) = item?;
             if is_active {
-                relayers_list.push(relayer_addr);
+                validators_list.push(validator_addr);
             }
         }
 
-        Ok(relayers_list)
+        Ok(validators_list)
     }
 
     pub fn store_signature_threshold(
         &mut self,
         store: &mut dyn Storage,
-        threshold: u16,
+        threshold: u8,
     ) -> StdResult<()> {
         self.signature_threshold.save(store, &threshold)?;
         Ok(())
     }
 
-    pub fn get_signature_threshold(&self, store: &dyn Storage) -> u16 {
+    pub fn get_signature_threshold(&self, store: &dyn Storage) -> u8 {
         self.signature_threshold.load(store).unwrap()
     }
 }

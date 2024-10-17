@@ -7,6 +7,8 @@ use super::*;
 const CONTRACT_NAME: &str = "crates.io:cluster-connection";
 const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
+const DEFAULT_SIGNATURE_THRESHOLD: u8 = 1;
+
 impl<'a> ClusterConnection<'a> {
     pub fn instantiate(
         &mut self,
@@ -17,15 +19,19 @@ impl<'a> ClusterConnection<'a> {
     ) -> Result<Response, ContractError> {
         set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
 
-        let relayer = deps.api.addr_validate(&msg.relayer)?;
-        self.store_admin(deps.storage, relayer.clone())?;
-        self.store_relayer(deps.storage, relayer.clone())?;
-
         let xcall_address = deps.api.addr_validate(&msg.xcall_address)?;
         self.store_xcall(deps.storage, xcall_address)?;
+
+        self.store_admin(deps.storage, _info.sender)?;
+
+        let relayer = deps.api.addr_validate(&msg.relayer)?;
+        self.store_relayer(deps.storage, relayer)?;
+
         self.store_denom(deps.storage, msg.denom)?;
 
         let _ = self.store_conn_sn(deps.storage, 0);
+
+        self.store_signature_threshold(deps.storage, DEFAULT_SIGNATURE_THRESHOLD)?;
 
         Ok(Response::new()
             .add_attribute("action", "instantiate")
@@ -51,7 +57,7 @@ impl<'a> ClusterConnection<'a> {
             fee = self.get_fee(deps.storage, to.clone(), sn > 0)?.into();
         }
 
-        let value = self.get_amount_for_denom(&info.funds, self.denom(deps.storage));
+        let value = self.get_amount_for_denom(&info.funds, self.get_denom(deps.storage));
 
         if fee > value {
             return Err(ContractError::InsufficientFunds);
@@ -77,10 +83,8 @@ impl<'a> ClusterConnection<'a> {
     ) -> Result<Response, ContractError> {
         self.ensure_admin(deps.storage, info.sender)?;
 
-        let hex_string_trimmed = msg.trim_start_matches("0x");
-        let bytes = hex::decode(hex_string_trimmed).expect("Failed to decode to vec<u8>");
+        let vec_msg: Vec<u8> = self.hex_decode(msg)?;
 
-        let vec_msg: Vec<u8> = Binary(bytes).into();
         if self.get_receipt(deps.as_ref().storage, src_network.clone(), conn_sn) {
             return Err(ContractError::DuplicateMessage);
         }
@@ -92,24 +96,34 @@ impl<'a> ClusterConnection<'a> {
         Ok(Response::new().add_submessage(xcall_submessage))
     }
 
-    pub fn set_relayers(
+    pub fn set_validators(
         &mut self,
         deps: DepsMut,
         info: MessageInfo,
-        relayers: Vec<Addr>,
+        validators: Vec<String>,
     ) -> Result<Response, ContractError> {
         self.ensure_admin(deps.storage, info.sender)?;
 
-        self.clear_relayers(deps.storage)?;
+        self.clear_validators(deps.storage)?;
 
-        let admin = self.query_admin(deps.storage)?;
-        self.store_relayer(deps.storage, admin)?;
-
-        for rlr in relayers {
-            self.store_relayer(deps.storage, rlr)?;
+        for rlr in validators {
+            self.store_validator(deps.storage, rlr)?;
         }
 
-        Ok(Response::new().add_attribute("action", "set_relayers"))
+        Ok(Response::new().add_attribute("action", "set_validators"))
+    }
+
+    pub fn set_signature_threshold(
+        &mut self,
+        deps: DepsMut,
+        info: MessageInfo,
+        threshold: u8,
+    ) -> Result<Response, ContractError> {
+        self.ensure_admin(deps.storage, info.sender)?;
+
+        self.store_signature_threshold(deps.storage, threshold)?;
+
+        Ok(Response::new().add_attribute("action", "set_signature_threshold"))
     }
 
     pub fn recv_message_with_signatures(
@@ -119,23 +133,19 @@ impl<'a> ClusterConnection<'a> {
         src_network: NetId,
         conn_sn: u128,
         msg: String,
-        account_prefix: String,
         signatures: Vec<Vec<u8>>,
     ) -> Result<Response, ContractError> {
         self.ensure_admin(deps.storage, info.sender)?;
 
-        let hex_string_trimmed = msg.trim_start_matches("0x");
-        let bytes = hex::decode(hex_string_trimmed).expect("Failed to decode to vec<u8>");
-        let vec_msg: Vec<u8> = Binary(bytes).into();
+        let vec_msg: Vec<u8> = self.hex_decode(msg)?;
 
         let threshold = self.get_signature_threshold(deps.storage);
-        let relayers = self.get_relayers(deps.storage)?;
+        let validators = self.get_validators(deps.storage)?;
 
         self.verify_signatures(
             deps.as_ref(),
             threshold,
-            relayers,
-            account_prefix.as_str(),
+            validators,
             vec_msg.clone(),
             signatures,
         )?;
@@ -157,27 +167,15 @@ impl<'a> ClusterConnection<'a> {
         env: Env,
         info: MessageInfo,
     ) -> Result<Response, ContractError> {
-        self.ensure_admin(deps.storage, info.sender)?;
-        let contract_balance = self.get_balance(&deps, env, self.denom(deps.storage));
+        self.ensure_relayer(deps.storage, info.sender)?;
+        let contract_balance = self.get_balance(&deps, env, self.get_denom(deps.storage));
         let msg = BankMsg::Send {
-            to_address: self.query_admin(deps.storage)?.to_string(),
-            amount: coins(contract_balance, self.denom(deps.storage)),
+            to_address: self.get_relayer(deps.storage)?.to_string(),
+            amount: coins(contract_balance, self.get_denom(deps.storage)),
         };
         Ok(Response::new()
             .add_attribute("action", "claim fees")
             .add_message(msg))
-    }
-
-    pub fn revert_message(
-        &self,
-        deps: DepsMut,
-        info: MessageInfo,
-        sn: u128,
-    ) -> Result<Response, ContractError> {
-        self.ensure_admin(deps.storage, info.sender)?;
-        let xcall_submessage = self.call_xcall_handle_error(deps.storage, sn)?;
-
-        Ok(Response::new().add_submessage(xcall_submessage))
     }
 
     pub fn set_admin(
@@ -187,13 +185,21 @@ impl<'a> ClusterConnection<'a> {
         address: Addr,
     ) -> Result<Response, ContractError> {
         self.ensure_admin(deps.storage, info.sender)?;
-
-        let old_admin = self.query_admin(deps.storage)?;
-        self.remove_relayer(deps.storage, old_admin)?;
-
-        let admin = deps.api.addr_validate(address.as_str())?;
-        let _ = self.store_admin(deps.storage, admin);
+        let new_admin = deps.api.addr_validate(address.as_str())?;
+        let _ = self.store_admin(deps.storage, new_admin);
         Ok(Response::new().add_attribute("action", "set_admin"))
+    }
+
+    pub fn set_relayer(
+        &mut self,
+        deps: DepsMut,
+        info: MessageInfo,
+        address: Addr,
+    ) -> Result<Response, ContractError> {
+        self.ensure_admin(deps.storage, info.sender)?;
+        let new_relayer = deps.api.addr_validate(address.as_str())?;
+        let _ = self.store_relayer(deps.storage, new_relayer);
+        Ok(Response::new().add_attribute("action", "set_relayer"))
     }
 
     pub fn set_fee(
@@ -204,7 +210,7 @@ impl<'a> ClusterConnection<'a> {
         message_fee: u128,
         response_fee: u128,
     ) -> Result<Response, ContractError> {
-        self.ensure_admin(deps.storage, info.sender)?;
+        self.ensure_relayer(deps.storage, info.sender)?;
         self.store_fee(deps.storage, network_id, message_fee, response_fee)?;
         Ok(Response::new().add_attribute("action", "set_fee"))
     }
@@ -215,9 +221,9 @@ impl<'a> ClusterConnection<'a> {
         network_id: NetId,
         response: bool,
     ) -> Result<Uint128, ContractError> {
-        let mut fee = self.query_message_fee(store, network_id.clone());
+        let mut fee = self.get_message_fee(store, network_id.clone());
         if response {
-            fee += self.query_response_fee(store, network_id);
+            fee += self.get_response_fee(store, network_id);
         }
         Ok(fee.into())
     }
@@ -227,7 +233,6 @@ impl<'a> ClusterConnection<'a> {
         _deps: DepsMut,
         message: Reply,
     ) -> Result<Response, ContractError> {
-        println!("Reply From Forward XCall");
         match message.result {
             SubMsgResult::Ok(_) => Ok(Response::new()
                 .add_attribute("action", "call_message")
@@ -244,7 +249,6 @@ impl<'a> ClusterConnection<'a> {
         _deps: DepsMut,
         message: Reply,
     ) -> Result<Response, ContractError> {
-        println!("Reply From Forward XCall");
         match message.result {
             SubMsgResult::Ok(_) => Ok(Response::new()
                 .add_attribute("action", "call_message")

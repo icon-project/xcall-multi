@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::utils::{pubkey_to_address, sha256};
+use crate::utils::sha256;
 use cosmwasm_std::{ensure_eq, Addr, BalanceResponse, BankQuery, Coin};
 use cw_xcall_lib::network_address::NetId;
 use k256::ecdsa::VerifyingKey;
@@ -11,14 +11,21 @@ use super::*;
 
 impl<'a> ClusterConnection<'a> {
     pub fn ensure_admin(&self, store: &dyn Storage, address: Addr) -> Result<(), ContractError> {
-        let admin = self.query_admin(store)?;
+        let admin = self.get_admin(store)?;
         ensure_eq!(admin, address, ContractError::OnlyAdmin);
 
         Ok(())
     }
 
+    pub fn ensure_relayer(&self, store: &dyn Storage, address: Addr) -> Result<(), ContractError> {
+        let relayer = self.get_relayer(store)?;
+        ensure_eq!(relayer, address, ContractError::OnlyRelayer);
+
+        Ok(())
+    }
+
     pub fn ensure_xcall(&self, store: &dyn Storage, address: Addr) -> Result<(), ContractError> {
-        let xcall = self.query_xcall(store)?;
+        let xcall = self.get_xcall(store)?;
         ensure_eq!(xcall, address, ContractError::OnlyXCall);
 
         Ok(())
@@ -49,13 +56,19 @@ impl<'a> ClusterConnection<'a> {
         }
     }
 
+    pub fn hex_decode(&self, val: String) -> Result<Vec<u8>, ContractError> {
+        let hex_string_trimmed = val.trim_start_matches("0x");
+        hex::decode(hex_string_trimmed)
+            .map_err(|e| ContractError::InvalidHexData { msg: e.to_string() })
+    }
+
     pub fn call_xcall_handle_message(
         &self,
         store: &dyn Storage,
         nid: &NetId,
         msg: Vec<u8>,
     ) -> Result<SubMsg, ContractError> {
-        let xcall_host = self.query_xcall(store)?;
+        let xcall_host = self.get_xcall(store)?;
         let xcall_msg = cw_xcall_lib::xcall_msg::ExecuteMsg::HandleMessage {
             from_nid: nid.clone(),
             msg,
@@ -74,7 +87,7 @@ impl<'a> ClusterConnection<'a> {
         store: &dyn Storage,
         sn: u128,
     ) -> Result<SubMsg, ContractError> {
-        let xcall_host = self.query_xcall(store)?;
+        let xcall_host = self.get_xcall(store)?;
         let xcall_msg = cw_xcall_lib::xcall_msg::ExecuteMsg::HandleError {
             sn: sn.try_into().unwrap(),
         };
@@ -90,9 +103,8 @@ impl<'a> ClusterConnection<'a> {
     pub fn verify_signatures(
         &self,
         deps: Deps,
-        threshold: u16,
-        relayers: Vec<Addr>,
-        account_prefix: &str,
+        threshold: u8,
+        relayers: Vec<String>,
         data: Vec<u8>,
         signatures: Vec<Vec<u8>>,
     ) -> Result<(), ContractError> {
@@ -102,7 +114,7 @@ impl<'a> ClusterConnection<'a> {
 
         let message_hash = sha256(&data);
 
-        let mut signers: HashMap<Addr, bool> = HashMap::new();
+        let mut signers: HashMap<String, bool> = HashMap::new();
 
         for signature in signatures {
             for recovery_param in 0..2 {
@@ -114,9 +126,9 @@ impl<'a> ClusterConnection<'a> {
                         let pk = VerifyingKey::from_sec1_bytes(&pubkey)
                             .map_err(|_| ContractError::InvalidSignature)?;
 
-                        let address = pubkey_to_address(&pk.to_bytes(), account_prefix)?;
-                        if relayers.contains(&address) && !signers.contains_key(&address) {
-                            signers.insert(address, true);
+                        let pk_hex = hex::encode(pk.to_bytes());
+                        if relayers.contains(&pk_hex) && !signers.contains_key(&pk_hex) {
+                            signers.insert(pk_hex, true);
                             if signers.len() >= threshold.into() {
                                 return Ok(());
                             }
@@ -142,11 +154,10 @@ mod tests {
         let connection = ClusterConnection::new();
         let message = b"hello";
         let threshold = 1;
-        let relayers = vec![Addr::unchecked(
-            "archway1a06mhyewfajqcf5dujzyqd6ps9a4v9usauxxqw",
-        )];
+        let relayers =
+            vec!["02e5e9769497fbc7c7ee57ab39ccedcb612018577d30ca090033dc67ba5d68b8ab".to_string()];
 
-        let hex_sign = "4ed34a3f55d51615dc1582cba1a86c776157e00e399c53c1e5a128d09325c6684855161da419df8d74e3b8629424f860b7d0a10a2713ce36f4d7a8228cc23838";
+        let hex_sign = "62249c41d09297800f35174e041ad53ec85c5dcad6a6bd0db3267d36a56eb92d7645b7a64c22ae7e1f93c6c3867d2a33e6534e64093600861916e3299e4cc922";
 
         let signature = hex::decode(hex_sign).expect("Failed to decode hex signature");
         let signatures = vec![signature];
@@ -155,7 +166,6 @@ mod tests {
             deps.as_ref(),
             threshold,
             relayers,
-            "archway",
             message.to_vec(),
             signatures,
         );
