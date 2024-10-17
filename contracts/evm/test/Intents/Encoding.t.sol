@@ -2,9 +2,9 @@
 pragma solidity ^0.8.17;
 
 import "forge-std/Test.sol";
-import "@xcall/contracts/Intents/Intents.sol";
-import "@xcall/contracts/Intents/Types.sol";
-import "@xcall/contracts/Intents/Encoding.sol";
+import "@intents/contracts/Intents/Intents.sol";
+import "@intents/contracts/Intents/Types.sol";
+import "@intents/contracts/Intents/Encoding.sol";
 import {console} from "forge-std/console.sol";
 
 contract EncodingTest is Test {

@@ -10,6 +10,7 @@ import "./Types.sol";
 import "./Encoding.sol";
 import "./GeneralizedConnection.sol";
 import "./Permit2OrderLib.sol";
+import "./IPermit2.sol";
 
 import {console} from "forge-std/console.sol";
 
@@ -90,10 +91,10 @@ contract Intents is GeneralizedConnection {
     function swapPermit2(
         Types.SwapOrder memory order,
         bytes memory signature,
-        uint32 deadline
+        IPermit2.PermitTransferFrom calldata _permit
     ) public {
         order.id = 0;
-        Permit2OrderLib._processPermit2Order(permit2, order, signature, deadline);
+        Permit2OrderLib._processPermit2Order(permit2, order, signature, _permit);
          _swap(order);
     }
 
