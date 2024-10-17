@@ -6,60 +6,66 @@ import "openzeppelin-contracts-upgradeable/contracts/proxy/utils/Initializable.s
 import "@xcall/utils/Types.sol";
 import "@xcall/contracts/xcall/interfaces/IConnection.sol";
 import "@iconfoundation/xcall-solidity-library/interfaces/ICallService.sol";
+import "@iconfoundation/xcall-solidity-library/utils/RLPEncode.sol";
 
 contract ClusterConnection is Initializable, IConnection {
+
+    using RLPEncode for bytes;
+    using RLPEncode for string;
+    using RLPEncode for uint256;
+
     mapping(string => uint256) private messageFees;
     mapping(string => uint256) private responseFees;
     mapping(string => mapping(uint256 => bool)) receipts;
-    mapping(address => bool) public isValidator;
 
     address private xCall;
+    address private relayerAddress;
     address private adminAddress;
     uint256 public connSn;
     address[] private validators;
-    uint8 private reqValidatorCnt;
+    uint8 private validatorsThreshold;
 
     event Message(string targetNetwork, uint256 sn, bytes _msg);
-    event ValidatorAdded(address _validator);
-    event ValidatorRemoved(address _validator);
+    event ValidatorSetAdded(address[] _validator, uint8 _threshold);
+
+    modifier onlyRelayer() {
+        require(msg.sender == this.relayer(), "OnlyRelayer");
+        _;
+    }
 
     modifier onlyAdmin() {
-        require(msg.sender == this.admin(), "OnlyRelayer");
+        require(msg.sender == this.admin(), "OnlyAdmin");
         _;
     }
 
     function initialize(address _relayer, address _xCall) public initializer {
         xCall = _xCall;
-        validators.push(_relayer);
-        adminAddress = _relayer;
-        emit ValidatorAdded(_relayer);
+        adminAddress = msg.sender;
+        relayerAddress = _relayer;
     }
 
     function listValidators() external view returns (address[] memory) {
         return validators;
     }
 
-    function addValidator(address _validator) external onlyAdmin {
-        require(!isValidator[_validator], "Address is already an signer");
-        validators.push(_validator);
-        isValidator[_validator] = true;
-        emit ValidatorAdded(_validator);
+    function setValidators(address[] memory _validators, uint8 _threshold) external onlyAdmin {
+        delete validators;
+        for (uint i = 0; i < _validators.length; i++) {
+            if(!isValidator(_validators[i]) && _validators[i] != address(0)) {
+                validators.push(_validators[i]);   
+            }
+        }
+        require(validators.length >= _threshold, "Not enough validators");
+        validatorsThreshold = _threshold;
+        emit ValidatorSetAdded(_validators, _threshold);
     }
 
-    function removeValidator(address _validator) external onlyAdmin {
-        require(_validator!=this.admin(), "Cannot remove admin");
-        require(isValidator[_validator],"Validator doesn't exist");
-        require(validators.length-1>=reqValidatorCnt,"Validator size less than required count after removal");
+    function isValidator(address signer) public view returns (bool) {
         for (uint i = 0; i < validators.length; i++) {
-            if (validators[i] == _validator) {
-                validators[i] = validators[validators.length - 1]; 
-                validators.pop();                 
-                isValidator[_validator] = false;
-                break;
+            if (validators[i] == signer) {
+                return true;
             }
-            emit ValidatorRemoved(_validator);
         }
-        
     }
 
     /**
@@ -72,7 +78,7 @@ contract ClusterConnection is Initializable, IConnection {
         string calldata networkId,
         uint256 messageFee,
         uint256 responseFee
-    ) external onlyAdmin {
+    ) external onlyRelayer {
         messageFees[networkId] = messageFee;
         responseFees[networkId] = responseFee;
     }
@@ -99,13 +105,13 @@ contract ClusterConnection is Initializable, IConnection {
      @notice Sends the message to a specific network.
      @param sn : positive for two-way message, zero for one-way message, negative for response
      @param to  String ( Network Id of destination network )
-     @param svc String ( name of the service )
+     @param _svc String ( name of the service )
      @param sn  Integer ( serial number of the xcall message )
      @param _msg Bytes ( serialized bytes of Service Message )
      */
     function sendMessage(
         string calldata to,
-        string calldata svc,
+        string calldata _svc,
         int256 sn,
         bytes calldata _msg
     ) external payable override {
@@ -132,10 +138,9 @@ contract ClusterConnection is Initializable, IConnection {
         uint256 _connSn,
         bytes calldata _msg,
         bytes[] calldata _signedMessages
-    ) public onlyAdmin {
-        require(_signedMessages.length > 0, "No signatures provided");
-        require(_signedMessages.length >= reqValidatorCnt, "Not enough signatures passed");
-        bytes32 messageHash = keccak256(_msg);
+    ) public onlyRelayer {
+        require(_signedMessages.length >= validatorsThreshold, "Not enough signatures passed");
+        bytes32 messageHash = getMessageHash(srcNetwork, _connSn, _msg);
         uint signerCount = 0;
         address[] memory collectedSigners = new address[](_signedMessages.length);
         for (uint i = 0; i < _signedMessages.length; i++) {
@@ -146,7 +151,7 @@ contract ClusterConnection is Initializable, IConnection {
                 signerCount++;
             }
         }
-        require(signerCount >= reqValidatorCnt,"Not enough valid signatures passed");
+        require(signerCount >= validatorsThreshold,"Not enough valid signatures passed");
         recvMessage(srcNetwork,_connSn,_msg);
     }
 
@@ -191,7 +196,7 @@ contract ClusterConnection is Initializable, IConnection {
         string memory srcNetwork,
         uint256 _connSn,
         bytes calldata _msg
-    ) public onlyAdmin {
+    ) public onlyRelayer {
         require(!receipts[srcNetwork][_connSn], "Duplicate Message");
         receipts[srcNetwork][_connSn] = true;
         ICallService(xCall).handleMessage(srcNetwork, _msg);
@@ -201,15 +206,15 @@ contract ClusterConnection is Initializable, IConnection {
      @notice Sends the balance of the contract to the owner(relayer)
 
     */
-    function claimFees() public onlyAdmin {
-        payable(adminAddress).transfer(address(this).balance);
+    function claimFees() public onlyRelayer {
+        payable(relayerAddress).transfer(address(this).balance);
     }
 
     /**
      @notice Revert a messages, used in special cases where message can't just be dropped
      @param sn  Integer ( serial number of the  xcall message )
      */
-    function revertMessage(uint256 sn) public onlyAdmin {
+    function revertMessage(uint256 sn) public onlyRelayer {
         ICallService(xCall).handleError(sn);
     }
 
@@ -227,17 +232,25 @@ contract ClusterConnection is Initializable, IConnection {
     }
 
     /**
-        @notice Set the address of the admin.
-        @param _address The address of the admin.
+        @notice Set the address of the relayer.
+        @param _address The address of the relayer.
      */
-    function setAdmin(address _address) external onlyAdmin {
+    function setAdmin(address _address) external onlyRelayer {
         adminAddress = _address;
     }
 
     /**
-       @notice Gets the address of admin
-       @return (Address) the address of admin
+       @notice Gets the address of relayer
+       @return (Address) the address of relayer
     */
+    function relayer() external view returns (address) {
+        return relayerAddress;
+    }
+
+    /**
+        @notice Gets the address of admin
+        @return (Address) the address of admin
+     */
     function admin() external view returns (address) {
         return adminAddress;
     }
@@ -246,11 +259,20 @@ contract ClusterConnection is Initializable, IConnection {
         @notice Set the required signature count for verification.
         @param _count The desired count.
      */
-    function setRequiredValidatorCount(uint8 _count) external onlyAdmin {
-        reqValidatorCnt = _count;
+    function setRequiredValidatorCount(uint8 _count) external onlyAdmin() {
+        validatorsThreshold = _count;
     }
 
     function getRequiredValidatorCount() external view returns (uint8) {
-        return reqValidatorCnt;
+        return validatorsThreshold;
+    }
+
+    function getMessageHash(string memory srcNetwork, uint256 _connSn, bytes calldata _msg) internal pure returns (bytes32) {
+        bytes memory rlp = abi.encodePacked(
+            srcNetwork.encodeString(),
+            _connSn.encodeUint(),
+            _msg.encodeBytes()
+        );
+        return keccak256(rlp);
     }
 }

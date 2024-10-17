@@ -7,8 +7,13 @@ import "@xcall/contracts/adapters/ClusterConnection.sol";
 import "@xcall/contracts/xcall/CallService.sol";
 import "@xcall/contracts/mocks/multi-protocol-dapp/MultiProtocolSampleDapp.sol";
 import "@xcall/utils/Types.sol";
+import "@iconfoundation/xcall-solidity-library/utils/RLPEncode.sol";
 
 contract ClusterConnectionTest is Test {
+
+    using RLPEncode for bytes;
+    using RLPEncode for string;
+    using RLPEncode for uint256;
     using RLPEncodeStruct for Types.CSMessage;
     using RLPEncodeStruct for Types.CSMessageRequestV2;
 
@@ -335,13 +340,17 @@ contract ClusterConnectionTest is Test {
         uint256 pk2 = hexStringToUint256("47e179ec197488593b187f80a00eb0da91f1b9d0b13f8733639f19c30a34926a");
         uint256 pk3 = hexStringToUint256("59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d");
         uint256 pk4 = hexStringToUint256("2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6");
-        bytes32 hash = keccak256(RLPEncodeStruct.encodeCSMessage(message));
+        bytes32 hash = getMessageHash(nidSource, 1, RLPEncodeStruct.encodeCSMessage(message));
+        vm.startPrank(owner);
+        address[] memory validators = new address[](4);
+        validators[0] = address(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266);
+        validators[1] = address(0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65);
+        validators[2] = address(0x70997970C51812dc3A010C7d01b50e0d17dc79C8);
+        validators[3] = address(0xa0Ee7A142d267C1f36714E4a8F75612F20a79720);
+        adapterTarget.setValidators(validators, 4);
+        vm.stopPrank();
+
         vm.startPrank(destination_relayer);
-        adapterTarget.addValidator(address(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266));
-        adapterTarget.addValidator(address(0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65));
-        adapterTarget.addValidator(address(0x70997970C51812dc3A010C7d01b50e0d17dc79C8));
-        adapterTarget.addValidator(address(0xa0Ee7A142d267C1f36714E4a8F75612F20a79720));       
-        adapterTarget.setRequiredValidatorCount(4);
         vm.expectEmit();
         emit CallMessage(iconDapp, ParseAddress.toString(address(dappSource)), 1, 1, data);
         vm.expectCall(address(xCallTarget), abi.encodeCall(xCallTarget.handleMessage, (nidSource,RLPEncodeStruct.encodeCSMessage(message))));
@@ -391,47 +400,19 @@ contract ClusterConnectionTest is Test {
     }
 
     function testAddValidator() public {
-        vm.startPrank(destination_relayer);
-        adapterTarget.addValidator(address(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266));
+        vm.startPrank(owner);
+
+        address[] memory validators = new address[](2);
+        validators[0] = address(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266);
+        validators[1] = address(0x976EA74026E726554dB657fA54763abd0C3a0aa9);
+        adapterTarget.setValidators(validators, 2);
         assertEq(2, adapterTarget.listValidators().length);
         vm.stopPrank();
     }
 
-    function testRemoveValidator() public {
-        vm.startPrank(destination_relayer);
-        adapterTarget.setRequiredValidatorCount(2);
-        adapterTarget.addValidator(address(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266));
-        adapterTarget.addValidator(address(0x976EA74026E726554dB657fA54763abd0C3a0aa9));
-        assertEq(3, adapterTarget.listValidators().length);
-        adapterTarget.removeValidator(address(0x976EA74026E726554dB657fA54763abd0C3a0aa9));
-        assertEq(2, adapterTarget.listValidators().length);
-        vm.stopPrank();
-    }
-
-
-    function testRemoveNonExistentValidator() public {
-        vm.startPrank(destination_relayer);
-        adapterTarget.addValidator(address(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266));
-        adapterTarget.addValidator(address(0x976EA74026E726554dB657fA54763abd0C3a0aa9));
-        assertEq(3, adapterTarget.listValidators().length);
-        vm.expectRevert("Validator doesn't exist");
-        adapterTarget.removeValidator(address(0xa0Ee7A142d267C1f36714E4a8F75612F20a79720));    
-        vm.stopPrank();
-    }
-
-      function testRemoveValidatorSize() public {
-        vm.startPrank(destination_relayer);
-        adapterTarget.setRequiredValidatorCount(3);
-        adapterTarget.addValidator(address(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266));
-        adapterTarget.addValidator(address(0x976EA74026E726554dB657fA54763abd0C3a0aa9));
-        assertEq(3, adapterTarget.listValidators().length);
-        vm.expectRevert("Validator size less than required count after removal");
-        adapterTarget.removeValidator(address(0x976EA74026E726554dB657fA54763abd0C3a0aa9));    
-        vm.stopPrank();
-    }
 
     function testRequiredCount() public {
-        vm.startPrank(destination_relayer);
+        vm.startPrank(owner);
         adapterTarget.setRequiredValidatorCount(3);
         assertEq(3, adapterTarget.getRequiredValidatorCount());
         vm.stopPrank();
@@ -457,10 +438,13 @@ contract ClusterConnectionTest is Test {
         );
         uint256 pk = hexStringToUint256("ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80");
         bytes32 hash = keccak256(RLPEncodeStruct.encodeCSMessage(message));
+        vm.startPrank(owner);
+        address[] memory validators = new address[](2);
+        validators[0] = address(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266);
+        validators[1] = address(0x976EA74026E726554dB657fA54763abd0C3a0aa9);
+        adapterTarget.setValidators(validators, 2);
+        vm.stopPrank();
         vm.startPrank(destination_relayer);
-        adapterTarget.addValidator(address(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266));
-        adapterTarget.addValidator(address(0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65));
-        adapterTarget.setRequiredValidatorCount(2);
         vm.expectRevert("Not enough valid signatures passed");
         bytes[] memory signatures = new bytes[](2) ;
         signatures[0] = signMessage(pk,hash);
@@ -472,5 +456,14 @@ contract ClusterConnectionTest is Test {
             signatures
         );
         vm.stopPrank();
+    }
+
+    function getMessageHash(string memory srcNetwork, uint256 _connSn, bytes memory _msg) internal pure returns (bytes32) {
+    bytes memory rlp = abi.encodePacked(
+        srcNetwork.encodeString(),
+        _connSn.encodeUint(),
+        _msg.encodeBytes()
+    );
+    return keccak256(rlp);
     }
 }
