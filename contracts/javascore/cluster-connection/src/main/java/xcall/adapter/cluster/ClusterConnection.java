@@ -91,7 +91,7 @@ public class ClusterConnection {
         }
         Context.require(validators.size() >= _threshold.intValue(), "Not enough validators");
         validatorsThreshold.set(_threshold);
-        ValidatorSetAdded(_validators, _threshold);
+        ValidatorSetAdded(_validators.toString(), _threshold);
     }
 
     /**
@@ -126,7 +126,7 @@ public class ClusterConnection {
     }
 
     @EventLog(indexed = 0)
-    public void ValidatorSetAdded(Address[] _validators, BigInteger _threshold) {
+    public void ValidatorSetAdded(String _validators, BigInteger _threshold) {
     }
 
     /**
