@@ -21,6 +21,7 @@ import score.Context;
 
 import score.Address;
 import score.BranchDB;
+import score.ByteArrayObjectWriter;
 import score.DictDB;
 import score.VarDB;
 import score.ArrayDB;
@@ -35,8 +36,9 @@ import java.util.List;
 
 public class ClusterConnection {
     protected final VarDB<Address> xCall = Context.newVarDB("callService", Address.class);
-    protected final VarDB<Address> adminAddress = Context.newVarDB("relayer", Address.class);
-    protected final VarDB<BigInteger> reqValidatorCnt = Context.newVarDB("reqValidatorCnt", BigInteger.class);
+    protected final VarDB<Address> adminAddress = Context.newVarDB("admin", Address.class);
+    protected final VarDB<Address> relayerAddress = Context.newVarDB("relayer", Address.class);
+    protected final VarDB<BigInteger> validatorsThreshold = Context.newVarDB("reqValidatorCnt", BigInteger.class);
     private final VarDB<BigInteger> connSn = Context.newVarDB("connSn", BigInteger.class);
     private final ArrayDB<Address> validators =  Context.newArrayDB("signers", Address.class);
 
@@ -44,16 +46,12 @@ public class ClusterConnection {
     protected final DictDB<String, BigInteger> responseFees = Context.newDictDB("responseFees", BigInteger.class);
     protected final BranchDB<String, DictDB<BigInteger, Boolean>> receipts = Context.newBranchDB("receipts",
             Boolean.class);
-    private final DictDB<Address, Boolean> validatorsLookup = Context.newDictDB("validatorsLookup", Boolean.class);
-
     public ClusterConnection(Address _relayer, Address _xCall) {
         if (xCall.get() == null) {
             xCall.set(_xCall);
-            adminAddress.set(_relayer);
+            adminAddress.set(Context.getCaller());
+            relayerAddress.set(_relayer);
             connSn.set(BigInteger.ZERO);
-            validators.add(_relayer);
-            validatorsLookup.set(_relayer,true);
-            ValidatorAdded(_relayer);
         }
     }
 
@@ -71,57 +69,87 @@ public class ClusterConnection {
         return sgs;
     }
 
+/**
+ * Adds a list of validators and sets the validation threshold.
+ *
+ * Clears existing validators and adds the provided addresses as validators.
+ * Ensures that the caller is an admin and that the number of validators
+ * meets or exceeds the specified threshold.
+ *
+ * @param _validators an array of addresses to be added as validators
+ * @param _threshold the minimum required number of validators
+ * @throws Exception if the number of validators is less than the threshold
+ */
     @External
-    public void addValidator(Address _validator) {
+    public void addValidator(Address[] _validators, BigInteger _threshold) {
         OnlyAdmin();
-        Context.require(validatorsLookup.get(_validator)==null,"Validator already exists");
-        validators.add(_validator);
-        validatorsLookup.set(_validator,true);
-        ValidatorAdded(_validator);
+        clearValidators();
+        for (Address validator : _validators) {
+            if(!isValidator(validator)) {
+                validators.add(validator);
+            }
+        }
+        Context.require(validators.size() >= _threshold.intValue(), "Not enough validators");
+        validatorsThreshold.set(_threshold);
+        ValidatorSetAdded(_validators, _threshold);
     }
 
-    @External
-    public void removeValidator(Address _validator) {
-        OnlyAdmin();
-        Context.require(_validator != adminAddress.get(),"cannot remove admin");
-        Context.require(validatorsLookup.get(_validator)!=null,"Validator doesn't exists");
-        Context.require((this.validators.size() - 1) >= reqValidatorCnt.get().intValue(),"Validator size less than required count after removal");
-        Address top = this.validators.pop();
-        if (!top.equals(_validator)) {
-            for (int i = 0; i < this.validators.size(); i++) {
-                if (_validator.equals(this.validators.get(i))) {
-                    this.validators.set(i, top);
-                    break;
-                }
-            }
-            validatorsLookup.set(_validator,null);
-            ValidatorRemoved(_validator);
+    /**
+     * Clear the current validators.
+     *
+     * This is a private helper method called by addValidator.
+     */
+    private void clearValidators() {
+        for(int i = 0; i < validators.size(); i++) {
+            validators.set(i, null);
         }
+    }
 
+/**
+ * Checks if the provided address is a validator.
+ *
+ * @param validator the address to check for validation
+ * @return true if the address is a validator, false otherwise
+ */
+    @External(readonly = true)
+    public boolean isValidator(Address validator) {
+        for(int i = 0; i < validators.size(); i++) {
+            if(validator.equals(validators.get(i))) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @EventLog(indexed = 2)
     public void Message(String targetNetwork, BigInteger connSn, byte[] msg) {
     }
 
-    @EventLog(indexed = 1)
-    public void ValidatorAdded(Address _validator) {
-    }
-
-    @EventLog(indexed = 1)
-    public void ValidatorRemoved(Address _validator) {
+    @EventLog(indexed = 0)
+    public void ValidatorSetAdded(Address[] _validators, BigInteger _threshold) {
     }
 
     /**
-     * Sets the admin address.
+     * Sets the relayer address.
      *
      * @param _relayer the new admin address
      */
     @External
-    public void setAdmin(Address _relayer) {
+    public void setRelayer(Address _relayer) {
         OnlyAdmin();
-        adminAddress.set(_relayer);
-    }     
+        relayerAddress.set(_relayer);
+    }  
+    
+    /**
+     * Sets the admin address.
+     *
+     * @param _admin the new admin address
+     */
+    @External
+    public void setAdmin(Address _admin) {
+        OnlyAdmin();
+        adminAddress.set(_admin);
+    }
 
     /**
      * Retrieves the admin address.
@@ -141,7 +169,7 @@ public class ClusterConnection {
     @External
     public void setRequiredValidatorCount(BigInteger _validatorCnt) {
         OnlyAdmin();
-        reqValidatorCnt.set(_validatorCnt);
+        validatorsThreshold.set(_validatorCnt);
     }
 
      /**
@@ -151,7 +179,7 @@ public class ClusterConnection {
      */
     @External(readonly = true)
     public BigInteger requiredValidatorCount() {
-        return reqValidatorCnt.get();
+        return validatorsThreshold.get();
     }
 
     /**
@@ -163,7 +191,7 @@ public class ClusterConnection {
      */
     @External
     public void setFee(String networkId, BigInteger messageFee, BigInteger responseFee) {
-        OnlyAdmin();
+        OnlyRelayer();
         messageFees.set(networkId, messageFee);
         responseFees.set(networkId, responseFee);
     }
@@ -223,17 +251,18 @@ public class ClusterConnection {
      @External
      public void recvMessageWithSignatures(String srcNetwork, BigInteger _connSn, byte[] msg,
                                            byte[][] signatures) {
-         OnlyAdmin();
-         Context.require(signatures.length >= reqValidatorCnt.get().intValue(), "Not enough signatures");
+         OnlyRelayer();
+         Context.require(signatures.length >= validatorsThreshold.get().intValue(), "Not enough signatures");
+         byte[] messageHash = getMessageHash(srcNetwork, _connSn, msg);
          List<Address> uniqueValidators = new ArrayList<>();
          for (byte[] signature : signatures) {
-             Address validator = getValidator(msg, signature);
-             Context.require(validatorsLookup.get(validator)!=null, "Invalid signature provided");
+             Address validator = getValidator(messageHash, signature);
+             Context.require(isValidator(validator), "Invalid signature provided");
              if (!uniqueValidators.contains(validator)) {
                  uniqueValidators.add(validator);
              }
          }
-         Context.require(uniqueValidators.size() >= reqValidatorCnt.get().intValue(), "Not enough valid signatures");
+         Context.require(uniqueValidators.size() >= validatorsThreshold.get().intValue(), "Not enough valid signatures");
          recvMessage(srcNetwork, _connSn, msg);
      }
 
@@ -246,20 +275,15 @@ public class ClusterConnection {
      */
     @External
     public void recvMessage(String srcNetwork, BigInteger _connSn, byte[] msg) {
-        OnlyAdmin();
+        OnlyRelayer();
         Context.require(!receipts.at(srcNetwork).getOrDefault(_connSn, false), "Duplicate Message");
         receipts.at(srcNetwork).set(_connSn, true);
         Context.call(xCall.get(), "handleMessage", srcNetwork, msg);
     }
 
     private Address getValidator(byte[] msg, byte[] sig){
-        byte[] hashMessage = getHash(msg);
-        byte[] key = Context.recoverKey("ecdsa-secp256k1", hashMessage, sig, true);
+        byte[] key = Context.recoverKey("ecdsa-secp256k1", msg, sig, true);
         return Context.getAddressFromKey(key);
-    }
-
-    private byte[] getHash(byte[] msg){
-        return Context.hash("keccak-256", msg);
     }
 
     /**
@@ -270,7 +294,7 @@ public class ClusterConnection {
      */
     @External
     public void revertMessage(BigInteger sn) {
-        OnlyAdmin();
+        OnlyRelayer();
         Context.call(xCall.get(), "handleError", sn);
     }
 
@@ -280,8 +304,8 @@ public class ClusterConnection {
      */
     @External
     public void claimFees() {
-        OnlyAdmin();
-        Context.transfer(admin(), Context.getBalance(Context.getAddress()));
+        OnlyRelayer();
+        Context.transfer(relayerAddress.get(), Context.getBalance(Context.getAddress()));
     }
 
     /**
@@ -301,8 +325,35 @@ public class ClusterConnection {
      *
      * @return true if the caller is the admin, false otherwise
      */
+    private void OnlyRelayer() {
+        Context.require(Context.getCaller().equals(relayerAddress.get()), "Only relayer can call this function");
+    }
+
+    /**
+     * Checks if the caller of the function is the admin.
+     *
+     * @return true if the caller is the admin, false otherwise
+     */
     private void OnlyAdmin() {
         Context.require(Context.getCaller().equals(adminAddress.get()), "Only admin can call this function");
+    }
+
+    /**
+     * Gets the hash of a message.
+     * 
+     * @param srcNetwork the source network id
+     * @param _connSn    the serial number of connection message
+     * @param msg        the message to hash
+     * @return the hash of the message
+     */
+    private byte[] getMessageHash(String srcNetwork, BigInteger _connSn, byte[] msg) {
+        ByteArrayObjectWriter writer = Context.newByteArrayObjectWriter("RLPn");
+        writer.beginList(3);
+        writer.write(srcNetwork);
+        writer.write(_connSn);
+        writer.write(msg);
+        writer.end();
+        return Context.hash("keccak-256", writer.toByteArray());
     }
 
 }
