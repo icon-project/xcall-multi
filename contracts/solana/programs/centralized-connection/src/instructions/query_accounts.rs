@@ -2,7 +2,7 @@ use anchor_lang::{
     prelude::*,
     solana_program::{
         instruction::Instruction,
-        program::{get_return_data, invoke},
+        program::{get_return_data, invoke, invoke_signed},
         system_program,
     },
 };
@@ -35,8 +35,8 @@ pub fn query_send_message_accounts<'info>(
     })
 }
 
-pub fn query_recv_message_accounts(
-    ctx: Context<QueryAccountsCtx>,
+pub fn query_recv_message_accounts<'info>(
+    ctx: Context<'_, '_, '_, 'info, QueryAccountsCtx<'info>>,
     src_network: String,
     conn_sn: u128,
     msg: Vec<u8>,
@@ -65,8 +65,8 @@ pub fn query_recv_message_accounts(
         AccountMetadata::new(authority, false),
     ];
 
-    let mut xcall_account_metas = vec![];
-    let mut xcall_account_infos = vec![];
+    let mut xcall_account_metas = vec![AccountMeta::new_readonly(config.key(), true)];
+    let mut xcall_account_infos = vec![config.to_account_info()];
 
     for (_, account) in ctx.remaining_accounts.iter().enumerate() {
         if account.is_writable {
@@ -78,7 +78,7 @@ pub fn query_recv_message_accounts(
         xcall_account_infos.push(account.to_account_info())
     }
 
-    let ix_data = get_handle_message_ix_data(src_network, msg, sequence_no)?;
+    let ix_data = get_handle_message_ix_data(src_network, msg, sequence_no, conn_sn)?;
 
     let ix = Instruction {
         program_id: config.xcall,
@@ -86,7 +86,11 @@ pub fn query_recv_message_accounts(
         data: ix_data,
     };
 
-    invoke(&ix, &xcall_account_infos)?;
+    invoke_signed(
+        &ix,
+        &xcall_account_infos,
+        &[&[Config::SEED_PREFIX.as_bytes(), &[config.bump]]],
+    )?;
 
     let (_, data) = get_return_data().unwrap();
     let mut data_slice: &[u8] = &data;
@@ -171,12 +175,14 @@ pub fn get_handle_message_ix_data(
     from_nid: String,
     message: Vec<u8>,
     sequence_no: u128,
+    conn_sn: u128,
 ) -> Result<Vec<u8>> {
     let mut ix_args_data = vec![];
     let ix_args = xcall_type::HandleMessageArgs {
         from_nid,
         message,
         sequence_no,
+        conn_sn,
     };
     ix_args.serialize(&mut ix_args_data)?;
 
