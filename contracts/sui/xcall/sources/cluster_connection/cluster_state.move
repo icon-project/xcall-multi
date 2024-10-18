@@ -13,18 +13,23 @@ module xcall::cluster_state {
     const VerifiedSignaturesLessThanThreshold: u64 = 100;
     const NotEnoughSignatures: u64 = 101;
     const InvalidThreshold: u64 = 102;
-    const RemovingValidatorNotInList: u64 = 103;
-    const AdminValidatorCannotBeRemoved: u64 = 104;
     const ValidatorCountMustBeGreaterThanThreshold: u64 = 105;
-    const ValidatorAlreadyExists: u64 = 106;
 
     //EVENTS
-    public struct ValidatorAdded has copy, drop {
-        validator: address
+    public struct ValidatorSetAdded has copy, drop {
+        validators: vector<Validator>,
+        threshold: u64
     }
 
-    public struct ValidatorRemoved has copy, drop {
-        validator: address
+    public struct AdminCap has key,store {
+        id: UID
+    }
+
+    public(package) fun create_admin_cap(ctx: &mut TxContext):AdminCap {
+         let admin = AdminCap {
+            id: object::new(ctx),
+        };
+        admin
     }
 
     public(package) fun get_state_mut(states:&mut Bag,connection_id:String):&mut State {
@@ -129,7 +134,7 @@ module xcall::cluster_state {
 
     }
 
-    public(package) fun verify_signatures(self:&State,msg:vector<u8>,signatures:vector<vector<u8>>){
+    public(package) fun verify_signatures(self:&State,message_hash:vector<u8>,signatures:vector<vector<u8>>){
         let threshold=self.get_validator_threshold();
         let validators=self.get_validators().map!(|validator| validator.pub_key);
         assert!(signatures.length() >= threshold, NotEnoughSignatures);
@@ -140,7 +145,7 @@ module xcall::cluster_state {
             let pub_key = get_pubkey_from_signature(signature);
             if (validators.contains(&pub_key)) {
                 
-                if (verify_signature(&pub_key,signature,&msg)){
+                if (verify_signature(&pub_key,signature,&message_hash)){
                     total=total+1;
 
                     if (total >= threshold) {
@@ -162,22 +167,20 @@ module xcall::cluster_state {
         self.validators_threshold=threshold
     }
 
-    public(package) fun add_validator(self:&mut State,validator_pub_key:String){
-        let validator=get_validator(validator_pub_key);
-        assert!(!self.validators.contains(&validator), ValidatorAlreadyExists);
-        self.validators.push_back(validator);
-        event::emit(ValidatorAdded { validator: validator.sui_address });
-    }
-
-    public(package) fun remove_validator(self:&mut State,validator_pub_key:String,ctx:&TxContext){
-        assert!(self.validators.length() > self.validators_threshold, ValidatorCountMustBeGreaterThanThreshold);
-        let validator=get_validator(validator_pub_key);
-        let (contains, index) = self.validators.index_of(&validator);
-        assert!(contains, RemovingValidatorNotInList);
-        assert!(ctx.sender() != validator.sui_address, AdminValidatorCannotBeRemoved);
-        self.validators.remove(index);
-
-        event::emit(ValidatorRemoved { validator: validator.sui_address });
+    public(package) fun set_validators(self:&mut State,validator_pub_keys:vector<String>,threshold:u64){
+        self.validators=vector::empty();
+        let mut validator_pub_keys = validator_pub_keys;
+        while (validator_pub_keys.length() > 0) {
+            let validator_pub_key = validator_pub_keys.pop_back();
+            let validator=get_validator(validator_pub_key);
+            if(self.validators.contains(&validator)){
+                continue
+            };
+            self.validators.push_back(validator);
+        };
+        assert!(self.validators.length() >= threshold, ValidatorCountMustBeGreaterThanThreshold);
+        self.validators_threshold=threshold;
+        event::emit(ValidatorSetAdded { validators: self.validators, threshold });
     }
 
     public(package) fun get_validators(self:&State):vector<Validator>{
@@ -201,36 +204,32 @@ module xcall::cluster_state {
 
 #[test_only]
 module xcall::cluster_state_tests {
-    use xcall::cluster_state::{State, get_validators, get_validator_threshold, set_validator_threshold, add_validator, remove_validator, verify_signatures};
+    use xcall::cluster_state::{State, get_validators, get_validator_threshold, set_validator_threshold, set_validators, verify_signatures};
     use sui::test_scenario::{Self, Scenario};
 
     #[test]
     fun test_add_validator(): State {
         let mut state = xcall::cluster_state::create_state();
-        add_validator(&mut state, b"AJ6snNNaDhPZLg06AkcvYL0TZe4+JgoWtZKG/EJmzdWi".to_string());
-        add_validator(&mut state, b"ADDxHCpQUcFsy5H5Gy01uv7LoISvtJLfgVGfWy4bLrjO".to_string());
-        add_validator(&mut state, b"AL0hUNIiz5Q2fv0siZc75ce3aOyUpiiI+Q8Rmfay4K/X".to_string());
-        add_validator(&mut state, b"ALnG7hYw7z5xEUSmSNsGu7IoT3J0z77lP/zuUDzBpJIA".to_string());
+
+        let validators = vector[
+            b"AJ6snNNaDhPZLg06AkcvYL0TZe4+JgoWtZKG/EJmzdWi".to_string(),
+            b"ADDxHCpQUcFsy5H5Gy01uv7LoISvtJLfgVGfWy4bLrjO".to_string(),
+            b"AL0hUNIiz5Q2fv0siZc75ce3aOyUpiiI+Q8Rmfay4K/X".to_string(),
+            b"ALnG7hYw7z5xEUSmSNsGu7IoT3J0z77lP/zuUDzBpJIA".to_string()
+        ];
+
+        set_validators(&mut state, validators, 2);
 
         let validators = get_validators(&state);
         assert!((validators.length() == 4));
 
-        assert!(get_validator_threshold(&state)==0);
 
-        set_validator_threshold(&mut state, 2);
-        assert!(get_validator_threshold(&state)==2);
+        set_validator_threshold(&mut state, 3);
+        assert!(get_validator_threshold(&state)==3);
 
         state
     }
 
-    #[test]
-    #[expected_failure(abort_code = 106)]
-    fun test_add_repeated_validator(): State {
-        let mut state = test_add_validator();
-        add_validator(&mut state, b"AJ6snNNaDhPZLg06AkcvYL0TZe4+JgoWtZKG/EJmzdWi".to_string());
-        add_validator(&mut state, b"AJ6snNNaDhPZLg06AkcvYL0TZe4+JgoWtZKG/EJmzdWi".to_string());
-        state
-    }
 
     #[test]
     fun test_set_get_threshold(): State {
@@ -245,28 +244,6 @@ module xcall::cluster_state_tests {
     fun test_set_threshold_too_high(): State {
         let mut state = test_set_get_threshold();
         set_validator_threshold(&mut state, 5);
-        state
-    }
-
-    #[test]
-    #[expected_failure(abort_code = 103)]
-    fun test_remove_validator_not_in_list(): State {
-        let mut scenario = test_scenario::begin(@0xadd);
-        let mut state = test_set_get_threshold();
-        remove_validator(&mut state, b"ALnG7hYw7z5xEUSmSNsGu7IoT3J0z77lS/zuUDzBpJIA".to_string(), scenario.ctx());
-        test_scenario::end(scenario);
-        state
-    }
-
-    #[test]
-    fun test_remove_validator(): State {
-        let mut scenario = test_scenario::begin(@0xadd);
-        let mut state = test_set_get_threshold();
-        remove_validator(&mut state, b"AJ6snNNaDhPZLg06AkcvYL0TZe4+JgoWtZKG/EJmzdWi".to_string(), scenario.ctx());
-        test_scenario::end(scenario);
-
-        let validators = get_validators(&state);
-        assert!((validators.length() == 3));
         state
     }
 

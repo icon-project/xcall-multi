@@ -1,6 +1,6 @@
 #[allow(unused_field,unused_use,unused_const,unused_mut_parameter,unused_variable,unused_assignment)]
 module xcall::cluster_connection {
-    use xcall::centralized_state::{Self,State, ReceiptKey,get_state,get_state_mut};
+    use xcall::cluster_state::{Self,State, ReceiptKey,get_state,get_state_mut};
     use std::string::{Self, String};
     use sui::bag::{Bag, Self};
     use sui::event;
@@ -25,16 +25,16 @@ module xcall::cluster_connection {
     }
     
     public(package) fun connect():State{
-        centralized_state::create()
+        cluster_state::create()
     }
 
     public fun get_fee(states:&Bag,connection_id:String,netId:String,response:bool):u64{
         let state= get_state(states,connection_id);
-        centralized_state::get_fee(state,&netId,response)
+        cluster_state::get_fee(state,&netId,response)
     }
 
     public(package) fun get_next_connection_sn(state:&mut State):u128 {
-        let sn = centralized_state::get_next_conn_sn(state);
+        let sn = cluster_state::get_next_conn_sn(state);
         sn
     }
     // this is safe because only package can call this other xcall will call other deployed instance
@@ -45,7 +45,7 @@ module xcall::cluster_connection {
         };
         assert!(coin.value() >= fee, ENotEnoughFee);
         let balance = coin.into_balance();
-        centralized_state::deposit(get_state_mut(states,connection_id),balance);
+        cluster_state::deposit(get_state_mut(states,connection_id),balance);
         let conn_sn = get_next_connection_sn(get_state_mut(states,connection_id));
 
         event::emit(Message { to, conn_sn, msg, connection_id });

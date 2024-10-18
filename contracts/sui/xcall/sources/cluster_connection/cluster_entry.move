@@ -3,6 +3,7 @@ module xcall::cluster_entry{
   use xcall::main::{Self as xcall};
   use xcall::xcall_state::{Self,Storage as XCallState,ConnCap};
   use xcall::cluster_state::{Self,get_state,get_state_mut, Validator};
+  use xcall::xcall_utils::{Self as utils};
   use std::string::{String};
 
   entry public fun receive_message(xcall:&mut XCallState,cap:&ConnCap,src_net_id:String,sn:u128,msg:vector<u8>,ctx: &mut TxContext){
@@ -32,14 +33,9 @@ module xcall::cluster_entry{
       cluster_state::get_fee(state,&net_id,response)
   }
 
-  entry fun add_validator(xcall:&mut XCallState,cap:&ConnCap,validator_pubkey:String,_ctx: &mut TxContext){
+  entry fun set_validators(xcall:&mut XCallState,cap:&ConnCap,validator_pubkey:vector<String>,threshold:u64,_ctx: &mut TxContext){
       let state=get_state_mut(xcall_state::get_connection_states_mut(xcall),cap.connection_id());
-      cluster_state::add_validator(state,validator_pubkey);
-  }
-
-  entry fun remove_validator(xcall:&mut XCallState,cap:&ConnCap,validator_pubkey:String,ctx: &mut TxContext){
-      let state=get_state_mut(xcall_state::get_connection_states_mut(xcall),cap.connection_id());
-      cluster_state::remove_validator(state,validator_pubkey,ctx);
+      cluster_state::set_validators(state,validator_pubkey,threshold);
   }
 
   entry fun set_validator_threshold(xcall:&mut XCallState,cap:&ConnCap,threshold:u64,_ctx: &mut TxContext){
@@ -59,7 +55,8 @@ module xcall::cluster_entry{
 
   entry fun recieve_message_with_signatures(xcall:&mut XCallState,cap:&ConnCap,src_net_id:String,sn:u128,msg:vector<u8>,signatures:vector<vector<u8>>,ctx: &mut TxContext){
       let state=get_state_mut(xcall_state::get_connection_states_mut(xcall),cap.connection_id());
-      cluster_state::verify_signatures(state, msg,signatures);
+      let message_hash = utils::get_message_hash(src_net_id, sn, msg);
+      cluster_state::verify_signatures(state, message_hash, signatures);
       cluster_state::check_save_receipt(state, src_net_id, sn);
       xcall::handle_message(xcall, cap,src_net_id, msg,ctx);
   }

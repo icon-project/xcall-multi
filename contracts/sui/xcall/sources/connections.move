@@ -4,10 +4,12 @@ module xcall::connections{
     use sui::bag::{Bag, Self};
     use xcall::centralized_connection::{Self};
     use xcall::cluster_connection::{Self};
+    use xcall::cluster_state::{Self,State,create_admin_cap};
     use xcall::xcall_state::{ConnCap};
     use sui::coin::{Self,Coin};
     use sui::balance::{Self, Balance};
     use sui::sui::SUI;
+    
 
 
     const EConnectionNotFound:u64=0;
@@ -23,6 +25,8 @@ module xcall::connections{
         }else
         if (get_connection_type(&connection_id).as_bytes()==ConnCluster){
             let state= cluster_connection::connect();
+            let admin_cap=cluster_state::create_admin_cap(ctx);
+            transfer::public_transfer(admin_cap, ctx.sender());
             bag::add(states, connection_id, state);
         }else{
             abort EConnectionNotFound
