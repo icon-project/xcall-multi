@@ -28,15 +28,20 @@ use crate::{
 
 pub fn query_handle_message_accounts(
     ctx: Context<QueryHandleMessageAccountsCtx>,
+    from_nid: String,
     msg: Vec<u8>,
+    conn_sn: u128,
 ) -> Result<QueryAccountsResponse> {
+    let connection = &ctx.accounts.connection;
     let config = &ctx.accounts.config;
     let admin = config.admin;
 
     let (proxy_request, _) = Pubkey::find_program_address(
         &[
             ProxyRequest::SEED_PREFIX.as_bytes(),
-            &(config.last_req_id + 1).to_be_bytes(),
+            from_nid.as_bytes(),
+            &conn_sn.to_be_bytes(),
+            &connection.owner.to_bytes(),
         ],
         &id(),
     );
@@ -149,7 +154,9 @@ pub fn query_handle_message_accounts(
 
 pub fn query_execute_call_accounts(
     ctx: Context<QueryExecuteCallAccountsCtx>,
-    req_id: u128,
+    from_nid: String,
+    conn_sn: u128,
+    connection: Pubkey,
     data: Vec<u8>,
     page: u8,
     limit: u8,
@@ -158,7 +165,12 @@ pub fn query_execute_call_accounts(
     let req = &ctx.accounts.proxy_request.req;
 
     let (proxy_request, _) = Pubkey::find_program_address(
-        &[ProxyRequest::SEED_PREFIX.as_bytes(), &req_id.to_be_bytes()],
+        &[
+            ProxyRequest::SEED_PREFIX.as_bytes(),
+            from_nid.as_bytes(),
+            &conn_sn.to_be_bytes(),
+            &connection.to_bytes(),
+        ],
         &id(),
     );
 
@@ -342,7 +354,7 @@ pub fn query_connection_send_message_accoounts<'info>(
 }
 
 #[derive(Accounts)]
-#[instruction(req_id: u128, data: Vec<u8>)]
+#[instruction(req_id: u128, from_nid: String, conn_sn: u128, connection: Pubkey, data: Vec<u8>)]
 pub struct QueryExecuteCallAccountsCtx<'info> {
     #[account(
         seeds = [Config::SEED_PREFIX.as_bytes()],
@@ -351,7 +363,7 @@ pub struct QueryExecuteCallAccountsCtx<'info> {
     pub config: Account<'info, Config>,
 
     #[account(
-        seeds = [ProxyRequest::SEED_PREFIX.as_bytes(), &req_id.to_be_bytes()],
+        seeds = [ProxyRequest::SEED_PREFIX.as_bytes(), from_nid.as_bytes(), &conn_sn.to_be_bytes(), &connection.to_bytes()],
         bump = proxy_request.bump
     )]
     pub proxy_request: Account<'info, ProxyRequest>,
@@ -360,6 +372,8 @@ pub struct QueryExecuteCallAccountsCtx<'info> {
 #[derive(Accounts)]
 #[instruction(from_nid: String, msg: Vec<u8>, sequence_no: u128)]
 pub struct QueryHandleMessageAccountsCtx<'info> {
+    pub connection: Signer<'info>,
+
     #[account(
         seeds = [Config::SEED_PREFIX.as_bytes()],
         bump = config.bump,
