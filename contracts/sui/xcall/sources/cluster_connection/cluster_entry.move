@@ -2,7 +2,7 @@ module xcall::cluster_entry{
 
   use xcall::main::{Self as xcall};
   use xcall::xcall_state::{Self,Storage as XCallState,ConnCap};
-  use xcall::cluster_state::{Self,get_state,get_state_mut, Validator};
+  use xcall::cluster_state::{Self,get_state,get_state_mut,validate_admin_cap, Validator, AdminCap};
   use xcall::xcall_utils::{Self as utils};
   use std::string::{String};
 
@@ -33,13 +33,15 @@ module xcall::cluster_entry{
       cluster_state::get_fee(state,&net_id,response)
   }
 
-  entry fun set_validators(xcall:&mut XCallState,cap:&ConnCap,validator_pubkey:vector<String>,threshold:u64,_ctx: &mut TxContext){
-      let state=get_state_mut(xcall_state::get_connection_states_mut(xcall),cap.connection_id());
+  entry fun set_validators(xcall:&mut XCallState,cap:&AdminCap,connection_id:String,validator_pubkey:vector<String>,threshold:u64,_ctx: &mut TxContext){
+      validate_admin_cap(cap,connection_id);
+      let state=get_state_mut(xcall_state::get_connection_states_mut(xcall),connection_id);
       cluster_state::set_validators(state,validator_pubkey,threshold);
   }
 
-  entry fun set_validator_threshold(xcall:&mut XCallState,cap:&ConnCap,threshold:u64,_ctx: &mut TxContext){
-      let state=get_state_mut(xcall_state::get_connection_states_mut(xcall),cap.connection_id());
+  entry fun set_validator_threshold(xcall:&mut XCallState,cap:&AdminCap,connection_id:String,threshold:u64,_ctx: &mut TxContext){
+      validate_admin_cap(cap,connection_id);
+      let state=get_state_mut(xcall_state::get_connection_states_mut(xcall),connection_id);
       cluster_state::set_validator_threshold(state,threshold);
   }
 

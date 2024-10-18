@@ -25,7 +25,7 @@ module xcall::connections{
         }else
         if (get_connection_type(&connection_id).as_bytes()==ConnCluster){
             let state= cluster_connection::connect();
-            let admin_cap=cluster_state::create_admin_cap(ctx);
+            let admin_cap=cluster_state::create_admin_cap(connection_id,ctx);
             transfer::public_transfer(admin_cap, ctx.sender());
             bag::add(states, connection_id, state);
         }else{

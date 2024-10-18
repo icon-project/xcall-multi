@@ -14,6 +14,7 @@ module xcall::cluster_state {
     const NotEnoughSignatures: u64 = 101;
     const InvalidThreshold: u64 = 102;
     const ValidatorCountMustBeGreaterThanThreshold: u64 = 105;
+    const InvalidAdminCap: u64 = 106;
 
     //EVENTS
     public struct ValidatorSetAdded has copy, drop {
@@ -22,14 +23,20 @@ module xcall::cluster_state {
     }
 
     public struct AdminCap has key,store {
-        id: UID
+        id: UID,
+        connection_id: String
     }
 
-    public(package) fun create_admin_cap(ctx: &mut TxContext):AdminCap {
+    public(package) fun create_admin_cap(connection_id:String,ctx: &mut TxContext):AdminCap {
          let admin = AdminCap {
             id: object::new(ctx),
+            connection_id: connection_id
         };
         admin
+    }
+
+    public(package) fun validate_admin_cap(self:&AdminCap,connection_id:String){
+        assert!(self.connection_id == connection_id, InvalidAdminCap);
     }
 
     public(package) fun get_state_mut(states:&mut Bag,connection_id:String):&mut State {
@@ -145,12 +152,7 @@ module xcall::cluster_state {
             let pub_key = get_pubkey_from_signature(signature);
             if (validators.contains(&pub_key)) {
                 
-<<<<<<< HEAD
-                if (verify_signature(&pub_key,signature,&message_hash)){
-                    total=total+1;
-=======
-                if (verify_signature(&pub_key,signature,&msg)){
->>>>>>> 441f1d8ba277f798b77950240effa19e8380889b
+                if (verify_signature(&pub_key,signature,&message_hash)) {
 
                     if (!unique_verified_pubkey.contains(&pub_key)){
                         unique_verified_pubkey.push_back(pub_key);

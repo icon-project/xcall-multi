@@ -21,7 +21,6 @@ module xcall::cluster_connection {
         msg:vector<u8>,
         // same package can instantiate multiple connection so this is required
         connection_id:String,
-
     }
     
     public(package) fun connect():State{
