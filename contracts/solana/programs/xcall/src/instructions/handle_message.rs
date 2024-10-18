@@ -26,6 +26,8 @@ use crate::{
 /// - `message`: The encoded message payload received from the chain.
 /// - `sequence_no`: The sequence number associated with the message, used to track message
 ///   ordering and responses.
+/// - `conn_sn`: The sequence number of connection associated with the message, used to derive
+///   unique proxy request account with the combination of other parameters
 ///
 /// # Returns
 /// - `Result<()>`: Returns `Ok(())` if successful, or an appropriate error if any validation or
@@ -35,6 +37,7 @@ pub fn handle_message<'info>(
     from_nid: String,
     message: Vec<u8>,
     sequence_no: u128,
+    conn_sn: u128,
 ) -> Result<()> {
     let config = &ctx.accounts.config;
     if config.network_id == from_nid.to_string() {
@@ -48,7 +51,7 @@ pub fn handle_message<'info>(
                 return Err(XcallError::PendingResponseAccountMustNotBeSpecified.into());
             }
 
-            invoke_handle_request(ctx, from_nid, cs_message.payload)?
+            invoke_handle_request(ctx, from_nid, cs_message.payload, conn_sn)?
         }
         CSMessageType::CSMessageResult => {
             let rollback_account = ctx
@@ -67,7 +70,7 @@ pub fn handle_message<'info>(
                 return Ok(());
             }
 
-            invoke_handle_result(ctx, from_nid, cs_message.payload, sequence_no)?;
+            invoke_handle_result(ctx, from_nid, cs_message.payload, sequence_no, conn_sn)?;
         }
     }
     Ok(())
@@ -84,6 +87,8 @@ pub fn handle_message<'info>(
 /// - `ctx`: Context containing all relevant accounts and program-specific information.
 /// - `from_nid`: Network ID of the source chain that sent the request.
 /// - `payload`: Encoded payload of the request message.
+/// - `conn_sn`: The sequence number of connection associated with the message, used to derive
+///   unique proxy request account with the combination of other parameters
 ///
 /// # Returns
 /// - `Result<()>`: Returns `Ok(())` if the request is successfully processed, or an error if
@@ -92,6 +97,7 @@ pub fn handle_request(
     ctx: Context<HandleRequestCtx>,
     from_nid: String,
     payload: &[u8],
+    conn_sn: u128,
 ) -> Result<()> {
     let mut req: CSMessageRequest = payload.try_into()?;
 
@@ -128,7 +134,9 @@ pub fn handle_request(
         to: req.to().clone(),
         sn: req.sequence_no(),
         reqId: req_id,
-        data: req.data()
+        data: req.data(),
+        connection: source.owner.to_owned(),
+        connSn: conn_sn
     });
 
     let proxy_request = &mut ctx.accounts.proxy_request;
@@ -151,11 +159,13 @@ pub fn handle_request(
 /// # Arguments
 /// - `ctx`: The context of accounts involved in the operation.
 /// - `payload`: The raw result data from the cross-chain operation, which is decoded and processed.
+/// - `conn_sn`: The sequence number of connection associated with the message, used to derive
+///   unique proxy request account with the combination of other parameters
 ///
 /// # Returns
 /// - `Result<()>`: Returns `Ok(())` if the operation completes successfully, or an error if something
 /// goes wrong.
-pub fn handle_result(ctx: Context<HandleResultCtx>, payload: &[u8]) -> Result<()> {
+pub fn handle_result(ctx: Context<HandleResultCtx>, payload: &[u8], conn_sn: u128) -> Result<()> {
     let result: CSMessageResult = payload.try_into()?;
     let proxy_request = &ctx.accounts.proxy_request;
     let rollback_account = &mut ctx.accounts.rollback_account;
@@ -180,7 +190,7 @@ pub fn handle_result(ctx: Context<HandleResultCtx>, payload: &[u8]) -> Result<()
             success_res.success = true;
 
             if let Some(message) = &mut result.message() {
-                handle_reply(ctx, message)?;
+                handle_reply(ctx, message, conn_sn)?;
             } else {
                 if proxy_request.is_some() {
                     return Err(XcallError::ProxyRequestAccountMustNotBeSpecified.into());
@@ -250,11 +260,17 @@ pub fn handle_error(ctx: Context<HandleErrorCtx>, sequence_no: u128) -> Result<(
 /// # Arguments
 /// * `ctx` - The context containing relevant accounts for handling the reply.
 /// * `reply` - The mutable reference to the incoming reply message to be processed.
+/// * `conn_sn`: The sequence number of connection associated with the message, used to derive
+///   unique proxy request account with the combination of other parameters
 ///
 /// # Returns
 /// - `Result<()>`: Returns `Ok(())` if the operation completes successfully, or an error if something
 /// goes wrong.
-pub fn handle_reply(ctx: Context<HandleResultCtx>, reply: &mut CSMessageRequest) -> Result<()> {
+pub fn handle_reply(
+    ctx: Context<HandleResultCtx>,
+    reply: &mut CSMessageRequest,
+    conn_sn: u128,
+) -> Result<()> {
     let rollback = &ctx.accounts.rollback_account.rollback;
     if rollback.to().nid() != reply.from().nid() {
         return Err(XcallError::InvalidReplyReceived.into());
@@ -267,7 +283,9 @@ pub fn handle_reply(ctx: Context<HandleResultCtx>, reply: &mut CSMessageRequest)
         to: reply.to().clone(),
         sn: reply.sequence_no(),
         reqId: req_id,
-        data: reply.data()
+        data: reply.data(),
+        connection: ctx.accounts.connection.owner.to_owned(),
+        connSn: conn_sn
     });
 
     let proxy_request = ctx
@@ -295,6 +313,8 @@ pub fn handle_reply(ctx: Context<HandleResultCtx>, reply: &mut CSMessageRequest)
 /// - `ctx`: The context containing the accounts and program-specific info needed for the instruction.
 /// - `from_nid`: The network ID of the chain that sent the request.
 /// - `msg_payload`: The payload of the request message received from the source chain.
+/// - `conn_sn`: The sequence number of connection associated with the message, used to derive
+///   unique proxy request account with the combination of other parameters
 ///
 /// # Returns
 /// - `Result<()>`: Indicates whether the invocation was successful or encountered an error.
@@ -302,11 +322,13 @@ pub fn invoke_handle_request<'info>(
     ctx: Context<'_, '_, '_, 'info, HandleMessageCtx<'info>>,
     from_nid: String,
     msg_payload: Vec<u8>,
+    conn_sn: u128,
 ) -> Result<()> {
     let mut data = vec![];
     let args = xcall_lib::xcall_type::HandleRequestArgs {
         from_nid,
         msg_payload,
+        conn_sn,
     };
     args.serialize(&mut data)?;
     let ix_data = helper::get_instruction_data(xcall_lib::xcall_type::HANDLE_REQUEST_IX, data);
@@ -362,6 +384,8 @@ pub fn invoke_handle_request<'info>(
 /// - `from_nid`: The network ID of the chain that sent the response.
 /// - `msg_payload`: The payload of the message received from the destination chain.
 /// - `sequence_no`: The sequence number associated with the original request message.
+/// - `conn_sn`: The sequence number of connection associated with the message, used to derive
+///   unique proxy request account with the combination of other parameters
 ///
 /// # Returns
 /// - `Result<()>`: Indicates whether the invocation was successful or encountered an error.
@@ -370,12 +394,14 @@ pub fn invoke_handle_result<'info>(
     from_nid: String,
     msg_payload: Vec<u8>,
     sequence_no: u128,
+    conn_sn: u128,
 ) -> Result<()> {
     let mut data = vec![];
     let args = xcall_lib::xcall_type::HandleResultArgs {
         from_nid,
         msg_payload,
         sequence_no,
+        conn_sn,
     };
     args.serialize(&mut data)?;
     let ix_data = helper::get_instruction_data(xcall_lib::xcall_type::HANDLE_RESULT_IX, data);
@@ -547,7 +573,7 @@ pub struct HandleMessageCtx<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(from_nid: String, msg_payload: Vec<u8>)]
+#[instruction(from_nid: String, msg_payload: Vec<u8>, conn_sn: u128)]
 pub struct HandleRequestCtx<'info> {
     /// The account that signs and pays for the transaction. This account is mutable
     /// because it will be debited for any fees or rent required during the transaction.
@@ -590,7 +616,7 @@ pub struct HandleRequestCtx<'info> {
         init_if_needed,
         payer = signer,
         space = ProxyRequest::SIZE,
-        seeds = [ProxyRequest::SEED_PREFIX.as_bytes(), &(config.last_req_id + 1).to_be_bytes()],
+        seeds = [ProxyRequest::SEED_PREFIX.as_bytes(), from_nid.as_bytes(), &conn_sn.to_be_bytes(), &connection.owner.to_bytes()],
         bump
     )]
     pub proxy_request: Account<'info, ProxyRequest>,
@@ -609,7 +635,7 @@ pub struct HandleRequestCtx<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(from_nid: String, msg_payload: Vec<u8>, sequence_no: u128)]
+#[instruction(from_nid: String, msg_payload: Vec<u8>, sequence_no: u128, conn_sn: u128)]
 pub struct HandleResultCtx<'info> {
     /// The account that signs and pays for the transaction. This account is mutable
     /// because it will be debited for any fees or rent required during the transaction.
@@ -664,7 +690,7 @@ pub struct HandleResultCtx<'info> {
         init_if_needed,
         payer = signer,
         space = ProxyRequest::SIZE,
-        seeds = [ProxyRequest::SEED_PREFIX.as_bytes(), &(config.last_req_id + 1).to_be_bytes()],
+        seeds = [ProxyRequest::SEED_PREFIX.as_bytes(), from_nid.as_bytes(), &conn_sn.to_be_bytes(), &connection.owner.to_bytes()],
         bump
     )]
     pub proxy_request: Option<Account<'info, ProxyRequest>>,

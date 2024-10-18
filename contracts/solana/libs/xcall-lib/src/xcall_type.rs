@@ -25,12 +25,14 @@ pub struct HandleMessageArgs {
     pub from_nid: String,
     pub message: Vec<u8>,
     pub sequence_no: u128,
+    pub conn_sn: u128,
 }
 
 #[derive(Debug, Clone, AnchorSerialize, AnchorDeserialize)]
 pub struct HandleRequestArgs {
     pub from_nid: String,
     pub msg_payload: Vec<u8>,
+    pub conn_sn: u128,
 }
 
 #[derive(Debug, Clone, AnchorSerialize, AnchorDeserialize)]
@@ -38,6 +40,7 @@ pub struct HandleResultArgs {
     pub from_nid: String,
     pub msg_payload: Vec<u8>,
     pub sequence_no: u128,
+    pub conn_sn: u128,
 }
 
 #[derive(Debug, Clone, AnchorSerialize, AnchorDeserialize)]
@@ -48,4 +51,7 @@ pub struct HandleErrorArgs {
 #[derive(Debug, Clone, AnchorSerialize, AnchorDeserialize)]
 pub struct HandleForcedRollback {
     pub req_id: u128,
+    pub from_nid: String,
+    pub conn_sn: u128,
+    pub connection: Pubkey,
 }
