@@ -15,6 +15,10 @@ module multisig::multisig {
     use sui::{ecdsa_k1::secp256k1_verify};
     use sui::{ecdsa_r1::secp256r1_verify};
     
+    //ERROR
+    const EAlreadyApproved: u64 = 10;
+    const EApprovalThresholdNotMet: u64 = 11;
+    const EOnlyMember: u64 = 12;
 
     /** signature schemes*/
     const FlagED25519 :u8= 0x00;
@@ -183,7 +187,7 @@ module multisig::multisig {
     entry fun create_proposal(storage:&mut Storage,title:String,tx_bytes_64:String,multisig_address:address,ctx:&TxContext){
         let tx_bytes=base64::decode(&tx_bytes_64);
         let wallet=storage.wallets.get(&multisig_address);
-        assert!(only_member(wallet,ctx.sender())==true);
+        assert!(only_member(wallet,ctx.sender())==true, EOnlyMember);
         let is_digest=tx_bytes.length()==32;
         let proposal_id=get_proposal_id(storage);
         let proposal= Proposal{
@@ -203,7 +207,7 @@ module multisig::multisig {
         let raw_signature=base64::decode(&raw_signature_64);
         let proposal = storage.proposals.borrow(proposal_id);
         let wallet= storage.wallets.get(&proposal.multisig_address);
-        assert!(only_member(wallet,ctx.sender())==true);
+        assert!(only_member(wallet,ctx.sender())==true, EOnlyMember);
         let (index,pubkey)=get_pubkey(wallet,ctx.sender());
         assert!(index!=0);
         assert!(verify_pubkey(&pubkey,&proposal.tx_data,&raw_signature,proposal.is_digest)==true);
@@ -211,7 +215,7 @@ module multisig::multisig {
             proposal_id:proposal_id,
             sui_address:ctx.sender()
         };
-        assert!(storage.votes.contains(vote_key)==false);
+        assert!(storage.votes.contains(vote_key)==false, EAlreadyApproved);
         storage.votes.add(vote_key, Vote{
              signature:raw_signature,
              voter:ctx.sender()
@@ -221,6 +225,36 @@ module multisig::multisig {
     entry fun execute_event(storage:&Storage,proposal_id:u64){
         let command= get_execute_command(storage,proposal_id);
         event::emit(Executed {proposal_id:proposal_id,command:command});
+    }
+
+    public fun isProposalApproved(storage:&Storage,proposal_id:u64):bool{
+        let proposal=storage.proposals.borrow(proposal_id);
+        let wallet=storage.wallets.get(&proposal.multisig_address);
+        let mut signatures:vector<vector<u8>> = vector::empty();
+
+        let mut i=0;
+        while( i <wallet.signers.length()){
+           
+            let signer_1= wallet.signers.borrow(i);
+            let key=VoteKey{
+               proposal_id:proposal_id,
+               sui_address:signer_1.sui_address
+            };
+            if (storage.votes.contains(key)){
+                signatures.push_back(storage.votes.borrow(key).signature)
+            };
+            i=i+1;
+
+        };
+        signatures.length()>=wallet.threshold as u64
+    }
+
+    public fun hasMemberApproved(storage:&Storage,proposal_id:u64,ctx:&TxContext):bool{
+        let key=VoteKey{
+            proposal_id:proposal_id,
+            sui_address:ctx.sender()
+        }; 
+        storage.votes.contains(key)
     }
 
     public fun get_execute_command(storage:&Storage,proposal_id:u64):String{
@@ -242,6 +276,8 @@ module multisig::multisig {
             i=i+1;
 
         };
+
+        assert!(signatures.length()>=wallet.threshold as u64, EApprovalThresholdNotMet);
 
         let multisig= create_multi_signature(&signatures,&wallet.signers,wallet.threshold);
         let multisig_serialized_64= base64::encode(&serialize_multisig(&multisig));
