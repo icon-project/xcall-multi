@@ -122,6 +122,11 @@ pub fn handle_request(
             pending_request.sources.push(source.owner.to_owned())
         }
         if pending_request.sources.len() != req.protocols().len() {
+            // close the proxy request as it's no longer needed
+            ctx.accounts
+                .proxy_request
+                .close(ctx.accounts.signer.to_account_info())?;
+
             return Ok(());
         }
         pending_request.close(ctx.accounts.admin.clone())?;
