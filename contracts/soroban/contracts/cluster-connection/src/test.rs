@@ -49,6 +49,7 @@ impl TestContext {
         self.env.mock_all_auths();
 
         client.initialize(&InitializeMsg {
+            admin: self.relayer.clone(),
             relayer: self.relayer.clone(),
             native_token: self.native_token.clone(),
             xcall_address: self.xcall.clone(),
@@ -66,6 +67,7 @@ impl TestContext {
 
 fn get_dummy_initialize_msg(env: &Env) -> InitializeMsg {
     InitializeMsg {
+        admin: Address::generate(&env),
         relayer: Address::generate(&env),
         native_token: env.register_stellar_asset_contract(Address::generate(&env)),
         xcall_address: Address::generate(&env),

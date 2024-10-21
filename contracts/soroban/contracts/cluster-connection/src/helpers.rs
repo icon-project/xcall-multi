@@ -3,6 +3,13 @@ use core::panic;
 use soroban_sdk::{token, Address, Bytes, BytesN, Env, FromVal, Map, String, Vec};
 use crate::{errors::ContractError, interfaces::interface_xcall::XcallClient, storage};
 
+pub fn ensure_relayer(e: &Env) -> Result<Address, ContractError> {
+    let relayer = storage::relayer(&e)?;
+    relayer.require_auth();
+
+    Ok(relayer)
+}
+
 pub fn ensure_admin(e: &Env) -> Result<Address, ContractError> {
     let admin = storage::admin(&e)?;
     admin.require_auth();

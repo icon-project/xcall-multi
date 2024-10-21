@@ -29,6 +29,13 @@ pub fn admin(e: &Env) -> Result<Address, ContractError> {
         .ok_or(ContractError::Uninitialized)
 }
 
+pub fn relayer(e: &Env) -> Result<Address, ContractError> {
+    e.storage()
+        .instance()
+        .get(&StorageKey::Relayer)
+        .ok_or(ContractError::Uninitialized)
+}
+
 pub fn get_upgrade_authority(e: &Env) -> Result<Address, ContractError> {
     e.storage()
         .instance()
@@ -121,6 +128,10 @@ pub fn store_receipt(e: &Env, network_id: String, sn: u128) {
     let key = StorageKey::Receipts(network_id, sn);
     e.storage().persistent().set(&key, &true);
     extend_persistent(e, &key);
+}
+
+pub fn store_relayer(e: &Env, relayer: Address) {
+    e.storage().instance().set(&StorageKey::Relayer, &relayer);
 }
 
 pub fn store_admin(e: &Env, admin: Address) {

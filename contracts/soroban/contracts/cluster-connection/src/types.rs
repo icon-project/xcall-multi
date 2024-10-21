@@ -4,6 +4,7 @@ use soroban_sdk::{contracttype, Address, String};
 #[derive(Clone)]
 pub enum StorageKey {
     Xcall,
+    Relayer,
     Admin,
     UpgradeAuthority,
     Xlm,
@@ -17,6 +18,7 @@ pub enum StorageKey {
 #[contracttype]
 pub struct InitializeMsg {
     pub relayer: Address,
+    pub admin: Address,
     pub native_token: Address,
     pub xcall_address: Address,
     pub upgrade_authority: Address,

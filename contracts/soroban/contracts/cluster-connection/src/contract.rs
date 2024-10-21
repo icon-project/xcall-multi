@@ -12,7 +12,8 @@ impl ClusterConnection {
 
         storage::store_native_token(&env, msg.native_token);
         storage::store_conn_sn(&env, 0);
-        storage::store_admin(&env, msg.relayer);
+        storage::store_relayer(&env, msg.relayer);
+        storage::store_admin(&env, msg.admin);
         storage::store_xcall(&env, msg.xcall_address);
         storage::store_upgrade_authority(&env, msg.upgrade_authority);
         storage::store_validator_threshold(&env, 0);
@@ -27,7 +28,7 @@ impl ClusterConnection {
     }
 
     pub fn set_admin(env: Env, address: Address) -> Result<(), ContractError> {
-        helpers::ensure_admin(&env)?;
+        helpers::ensure_relayer(&env)?;
         storage::store_admin(&env, address);
         Ok(())
     }
@@ -74,7 +75,7 @@ impl ClusterConnection {
         conn_sn: u128,
         msg: Bytes,
     ) -> Result<(), ContractError> {
-        helpers::ensure_admin(&env)?;
+        helpers::ensure_relayer(&env)?;
 
         if storage::get_sn_receipt(&env, src_network.clone(), conn_sn) {
             return Err(ContractError::DuplicateMessage);
@@ -86,7 +87,7 @@ impl ClusterConnection {
     }
 
     pub fn revert_message(env: &Env, sn: u128) -> Result<(), ContractError> {
-        helpers::ensure_admin(&env)?;
+        helpers::ensure_relayer(&env)?;
         helpers::call_xcall_handle_error(&env, sn)?;
 
         Ok(())
@@ -99,7 +100,7 @@ impl ClusterConnection {
         msg: Bytes,
         signatures: Vec<BytesN<65>>,
     ) -> Result<(), ContractError> {
-        helpers::ensure_admin(&env)?;
+        helpers::ensure_relayer(&env)?;
 
         if !helpers::verify_signatures(&env, signatures, msg.clone()){
             return Err(ContractError::SignatureVerificationFailed);
@@ -120,14 +121,14 @@ impl ClusterConnection {
         message_fee: u128,
         response_fee: u128,
     ) -> Result<(), ContractError> {
-        helpers::ensure_admin(&env)?;
+        helpers::ensure_relayer(&env)?;
 
         storage::store_network_fee(&env, network_id, message_fee, response_fee);
         Ok(())
     }
 
     pub fn claim_fees(env: Env) -> Result<(), ContractError> {
-        let admin = helpers::ensure_admin(&env)?;
+        let admin = helpers::ensure_relayer(&env)?;
 
         let token_addr = storage::native_token(&env)?;
         let client = token::Client::new(&env, &token_addr);
@@ -138,7 +139,7 @@ impl ClusterConnection {
     }
 
     pub fn add_validator(env: Env, address: Address) -> Result<(), ContractError> {
-        helpers::ensure_admin(&env)?;
+        helpers::ensure_relayer(&env)?;
         let validators = storage::get_validators(&env).unwrap();
         if validators.contains(&address) {
             return Err(ContractError::ValidatorAlreadyAdded);
@@ -153,13 +154,13 @@ impl ClusterConnection {
     }
 
     pub fn set_validators_threshold(env: Env, threshold: u32) -> Result<(), ContractError> {
-        helpers::ensure_admin(&env)?;
+        helpers::ensure_relayer(&env)?;
         storage::store_validator_threshold(&env, threshold);
         Ok(())
     }
 
     pub fn remove_validator(env: Env, address: Address) -> Result<(), ContractError> {
-        helpers::ensure_admin(&env)?;
+        helpers::ensure_relayer(&env)?;
         let validators: Vec<Address> = storage::get_validators(&env).unwrap();
         let threshold = storage::get_validators_threshold(&env).unwrap();
         let admin = storage::admin(&env).unwrap();
