@@ -29,6 +29,8 @@ module intents_v1::main {
     const EInvalidFillToken:u64=2;
     const EInvalidPayoutAmount:u64=3;
     const EInvalidMsgType:u64=4;
+    const EMsgInvalidSource:u64=5;
+    const EInvalidDestination:u64=6;
 
 
     public struct AdminCap has key, store {
@@ -42,7 +44,6 @@ module intents_v1::main {
         nid: String, // Network Identifier
         connection: ConnectionState,
         orders: Table<u128, SwapOrder>, // Mapping of deposit ID to SwapOrder
-     //   pending_fills: Table<vector<u8>, u128>, // Mapping of order hash to pending payment
         finished_orders: Table<vector<u8>, bool>,
         fee: u8,
         fee_handler: address,
@@ -122,7 +123,7 @@ module intents_v1::main {
 
         assert!(keccak256(&order.encode()) == keccak256(&fill.get_order_bytes()));
         assert!(order.get_dst_nid() == srcNid);
-        let take= self.funds.remove<u128,Coin<T>>(fill.get_id());
+        let take = self.funds.remove<u128,Coin<T>>(fill.get_id());
         event::emit(OrderClosed { id:fill.get_id() });
         let solver = utils::address_from_str(&fill.get_solver());
         transfer::public_transfer(take, solver);
@@ -138,11 +139,15 @@ module intents_v1::main {
     /// - `ctx`: Mutable reference to the TxContext.
     fun resolve_cancel(
         self: &mut Storage,
+        srcNetwork:String,
         order_bytes: vector<u8>,
         ctx: &TxContext
     ) {
         let order_hash = keccak256(&order_bytes);
         let order = swap_order::decode(&order_bytes);
+
+        assert!(order.get_src_nid() == srcNetwork,EMsgInvalidSource);
+        assert!(order.get_dst_nid() == self.nid,EInvalidDestination);
 
         if (self.finished_orders.contains(order_hash)) {
             abort EAlreadyFinished
@@ -240,7 +245,7 @@ module intents_v1::main {
         }
         else if (orderMessage.get_type() == CANCEL) {
             let cancel = order_cancel::decode(&orderMessage.get_message());
-            resolve_cancel(self, cancel.get_order_bytes(), ctx);
+            resolve_cancel(self, srcNetwork,cancel.get_order_bytes(), ctx);
         }
     }
 
@@ -357,7 +362,8 @@ module intents_v1::main {
         
         if (src_nid == dst_nid) {
             let order = self.orders.borrow<u128, SwapOrder>(id);
-            self.resolve_cancel(order.encode(), ctx);
+            let srcNetwork=self.nid;
+            self.resolve_cancel(srcNetwork, order.encode(), ctx)
         } else {
             cluster_connection::send_message(
                 self.get_connection_state_mut(),
@@ -380,6 +386,10 @@ module intents_v1::main {
 
     entry fun set_fee_handler(self:&mut Storage,_cap:&AdminCap,handler:address){
         self.fee_handler=handler;
+    }
+
+     entry fun set_fee(self:&mut Storage,_cap:&AdminCap,fee:u8){
+        self.fee=fee;
     }
 
      entry fun get_receive_msg_args(self:&Storage,msg:vector<u8>):Params{
