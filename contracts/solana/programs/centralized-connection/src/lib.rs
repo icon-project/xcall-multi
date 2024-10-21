@@ -72,7 +72,7 @@ pub mod centralized_connection {
         msg: Vec<u8>,
         sequence_no: u128,
     ) -> Result<()> {
-        helper::call_xcall_handle_message(ctx, src_network, msg, sequence_no)
+        helper::call_xcall_handle_message(ctx, src_network, msg, sequence_no, conn_sn)
     }
 
     pub fn revert_message<'info>(

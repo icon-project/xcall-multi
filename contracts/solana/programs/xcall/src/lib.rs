@@ -137,6 +137,8 @@ pub mod xcall {
     /// - `msg`: The encoded message payload received from the chain.
     /// - `sequence_no`: The sequence number associated with the message, used to track message
     ///   ordering and responses.
+    /// - `conn_sn`: The sequence number of connection associated with the message, used to derive
+    ///   unique proxy request account with the combination of other parameters
     ///
     /// # Returns
     /// - `Result<()>`: Returns `Ok(())` if the message is successfully handled, or an error if any
@@ -146,8 +148,9 @@ pub mod xcall {
         from_nid: String,
         msg: Vec<u8>,
         sequence_no: u128,
+        conn_sn: u128,
     ) -> Result<()> {
-        instructions::handle_message(ctx, from_nid, msg, sequence_no)
+        instructions::handle_message(ctx, from_nid, msg, sequence_no, conn_sn)
     }
 
     /// Instruction: Handle Request
@@ -162,16 +165,20 @@ pub mod xcall {
     /// - `ctx`: Context containing all relevant accounts and program-specific information.
     /// - `from_nid`: Network ID of the chain that sent the request.
     /// - `msg_payload`: Encoded payload of the request message.
+    /// - `conn_sn`: The sequence number of connection associated with the message, used to derive
+    ///   unique proxy request account with the combination of other parameters
     ///
     /// # Returns
     /// - `Result<()>`: Returns `Ok(())` if the request is processed successfully, or an error if
     ///   validation or processing fails.
+    #[allow(unused_variables)]
     pub fn handle_request<'info>(
         ctx: Context<'_, '_, '_, 'info, HandleRequestCtx<'info>>,
         from_nid: String,
         msg_payload: Vec<u8>,
+        conn_sn: u128,
     ) -> Result<()> {
-        instructions::handle_request(ctx, from_nid, &msg_payload)
+        instructions::handle_request(ctx, from_nid, &msg_payload, conn_sn)
     }
 
     /// Instruction: Handle Result
@@ -187,6 +194,8 @@ pub mod xcall {
     /// - `from_nid`: Network ID of the chain that sent the result.
     /// - `msg_payload`: Encoded payload of the result message.
     /// - `sequence_no`: Unique sequence number of the result message.
+    /// - `conn_sn`: The sequence number of connection associated with the message, used to derive
+    ///   unique proxy request account with the combination of other parameters
     ///
     /// # Returns
     /// - `Result<()>`: Returns `Ok(())` if the result is processed successfully, or an error if
@@ -197,8 +206,9 @@ pub mod xcall {
         from_nid: String,
         msg_payload: Vec<u8>,
         sequence_no: u128,
+        conn_sn: u128,
     ) -> Result<()> {
-        instructions::handle_result(ctx, &msg_payload)
+        instructions::handle_result(ctx, &msg_payload, conn_sn)
     }
 
     /// Instruction: Handle Error
@@ -357,13 +367,22 @@ pub mod xcall {
     /// # Parameters
     /// - `ctx`: The context of the solana program instruction
     /// - `req_id`: The unique identifier for the request being processed.
+    /// - `from_nid`: Network ID of the chain that sent the request.
+    /// - `conn_sn`: The sequence number of connection associated with the message, used to derive
+    ///   unique proxy request account with the combination of other parameters
+    /// - `connection`: The connection key used to derive proxy request account with the combination
+    ///   of other parameters
     /// - `data`: The data associated with the call request, which will be verified and processed.
     ///
     /// # Returns
     /// - `Result<()>`: Returns `Ok(())` if the call was executed successfully, or an error if it failed.
+    #[allow(unused_variables)]
     pub fn execute_call<'info>(
         ctx: Context<'_, '_, '_, 'info, ExecuteCallCtx<'info>>,
         req_id: u128,
+        from_nid: String,
+        conn_sn: u128,
+        connection: Pubkey,
         data: Vec<u8>,
     ) -> Result<()> {
         instructions::execute_call(ctx, req_id, data)
@@ -402,6 +421,11 @@ pub mod xcall {
     /// # Arguments
     /// * `ctx` - Context containing the accounts required for processing the forced rollback.
     /// * `req_id` - The unique request ID associated with the message being rolled back.
+    /// - `from_nid`: Network ID of the chain that sent the request.
+    /// - `conn_sn`: The sequence number of connection associated with the message, used to derive
+    ///   unique proxy request account with the combination of other parameters
+    /// - `connection`: The connection key used to derive proxy request account with the combination
+    ///   of other parameters
     ///
     /// # Returns
     /// * `Result<()>` - Returns `Ok(())` on successful execution, or an error if the rollback process
@@ -410,18 +434,27 @@ pub mod xcall {
     pub fn handle_forced_rollback<'info>(
         ctx: Context<'_, '_, '_, 'info, HandleForcedRollbackCtx<'info>>,
         req_id: u128,
+        from_nid: String,
+        conn_sn: u128,
+        connection: Pubkey,
     ) -> Result<()> {
         instructions::handle_forced_rollback(ctx)
     }
 
+    #[allow(unused_variables)]
     pub fn query_execute_call_accounts<'info>(
         ctx: Context<'_, '_, '_, 'info, QueryExecuteCallAccountsCtx<'info>>,
         req_id: u128,
+        from_nid: String,
+        conn_sn: u128,
+        connection: Pubkey,
         data: Vec<u8>,
         page: u8,
         limit: u8,
     ) -> Result<QueryAccountsPaginateResponse> {
-        instructions::query_execute_call_accounts(ctx, req_id, data, page, limit)
+        instructions::query_execute_call_accounts(
+            ctx, from_nid, conn_sn, connection, data, page, limit,
+        )
     }
 
     #[allow(unused_variables)]
@@ -440,8 +473,9 @@ pub mod xcall {
         from_nid: String,
         msg: Vec<u8>,
         sequence_no: u128,
+        conn_sn: u128,
     ) -> Result<QueryAccountsResponse> {
-        instructions::query_handle_message_accounts(ctx, msg)
+        instructions::query_handle_message_accounts(ctx, from_nid, msg, conn_sn)
     }
 
     pub fn query_handle_error_accounts(

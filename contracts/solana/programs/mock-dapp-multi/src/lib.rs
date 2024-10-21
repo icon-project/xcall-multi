@@ -64,8 +64,11 @@ pub mod mock_dapp_multi {
     pub fn execute_forced_rollback<'info>(
         ctx: Context<'_, '_, '_, 'info, ExecuteForcedRollbackCtx<'info>>,
         req_id: u128,
+        from_nid: String,
+        conn_sn: u128,
+        connection: Pubkey,
     ) -> Result<()> {
-        instructions::execute_forced_rollback(ctx, req_id)
+        instructions::execute_forced_rollback(ctx, req_id, from_nid, conn_sn, connection)
     }
 
     #[allow(unused_variables)]
