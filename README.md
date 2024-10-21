@@ -13,9 +13,9 @@
 [java-cov-link]: https://app.codecov.io/gh/icon-project/intent-contracts/tree/main/contracts/javascore
 [rust-cov-link]: https://app.codecov.io/gh/icon-project/intent-contracts/tree/main/contracts/cosmwasm-vm
 [solidity-cov-link]: https://app.codecov.io/gh/icon-project/intent-contracts/tree/main/contracts/evm
-[java-cov-badge]: https://codecov.io/gh/icon-project/intent-contracts/branch/main/graph/badge.svg?token=KWDB59JITE&flag=java
-[rust-cov-badge]: https://codecov.io/gh/icon-project/xcall-multi/branch/main/graph/badge.svg?token=KWDB59JITE&flag=rust
-[solidity-cov-badge]: https://codecov.io/gh/icon-project/xcall-multi/branch/main/graph/badge.svg?token=KWDB59JITE&flag=solidity
+[java-cov-badge]: https://codecov.io/gh/icon-project/intent-contracts/graph/badge.svg?token=W8SGQJ11ZG&flag=java
+[rust-cov-badge]: https://codecov.io/gh/icon-project/intent-contracts/graph/badge.svg?token=W8SGQJ11ZG&flag=rust
+[solidity-cov-badge]: https://codecov.io/gh/icon-project/intent-contracts/graph/badge.svg?token=W8SGQJ11ZG&flag=solidity
 
 # xcall-multi
 xcall-multi is a cross chain messaging service built to mimic regular transaction flows across any interoperable solution.
