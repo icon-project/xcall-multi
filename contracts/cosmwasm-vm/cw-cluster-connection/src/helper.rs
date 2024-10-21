@@ -117,26 +117,27 @@ impl<'a> ClusterConnection<'a> {
         let mut signers: HashMap<String, bool> = HashMap::new();
 
         for signature in signatures {
-            for recovery_param in 0..2 {
-                match deps
-                    .api
-                    .secp256k1_recover_pubkey(&message_hash, &signature, recovery_param)
-                {
-                    Ok(pubkey) => {
-                        let pk = VerifyingKey::from_sec1_bytes(&pubkey)
-                            .map_err(|_| ContractError::InvalidSignature)?;
+            if signature.len() != 65 {
+                return Err(ContractError::InvalidSignature);
+            }
+            match deps
+                .api
+                .secp256k1_recover_pubkey(&message_hash, &signature[0..64], signature[64])
+            {
+                Ok(pubkey) => {
+                    let pk = VerifyingKey::from_sec1_bytes(&pubkey)
+                        .map_err(|_| ContractError::InvalidSignature)?;
 
-                        let pk_hex = hex::encode(pk.to_bytes());
-                        if relayers.contains(&pk_hex) && !signers.contains_key(&pk_hex) {
-                            signers.insert(pk_hex, true);
-                            if signers.len() >= threshold.into() {
-                                return Ok(());
-                            }
-                            break;
+                    let pk_hex = hex::encode(pk.to_bytes());
+                    if relayers.contains(&pk_hex) && !signers.contains_key(&pk_hex) {
+                        signers.insert(pk_hex, true);
+                        if signers.len() >= threshold.into() {
+                            return Ok(());
                         }
+                        break;
                     }
-                    Err(_) => continue,
                 }
+                Err(_) => continue,
             }
         }
 
@@ -158,8 +159,8 @@ mod tests {
             vec!["02e5e9769497fbc7c7ee57ab39ccedcb612018577d30ca090033dc67ba5d68b8ab".to_string()];
 
         let hex_sign = "62249c41d09297800f35174e041ad53ec85c5dcad6a6bd0db3267d36a56eb92d7645b7a64c22ae7e1f93c6c3867d2a33e6534e64093600861916e3299e4cc922";
-
-        let signature = hex::decode(hex_sign).expect("Failed to decode hex signature");
+        let mut signature = hex::decode(hex_sign).expect("Failed to decode hex signature");
+        signature.push(1);
         let signatures = vec![signature];
 
         let result = connection.verify_signatures(

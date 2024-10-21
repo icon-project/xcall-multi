@@ -25,6 +25,9 @@ pub enum ContractError {
     #[error("Invalid Signature")]
     InvalidSignature,
 
-    #[error("HEX_DECODE_ERROR|{msg:?}")]
+    #[error("Invalid Hex Data|{msg:?}")]
     InvalidHexData { msg: String },
+
+    #[error("Invalid Threshold Value|{msg:?}")]
+    InvalidThreshold { msg: String },
 }

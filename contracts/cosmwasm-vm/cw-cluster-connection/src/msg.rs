@@ -14,6 +14,7 @@ pub enum ExecuteMsg {
 
     SetValidators {
         validators: Vec<String>,
+        threshold: u8,
     },
 
     SetSignatureThreshold {

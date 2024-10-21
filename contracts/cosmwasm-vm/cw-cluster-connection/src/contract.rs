@@ -39,6 +39,65 @@ impl<'a> ClusterConnection<'a> {
             .add_attribute("xcall_address", msg.xcall_address))
     }
 
+    pub fn set_admin(
+        &mut self,
+        deps: DepsMut,
+        info: MessageInfo,
+        address: Addr,
+    ) -> Result<Response, ContractError> {
+        self.ensure_admin(deps.storage, info.sender)?;
+        let new_admin = deps.api.addr_validate(address.as_str())?;
+        let _ = self.store_admin(deps.storage, new_admin);
+        Ok(Response::new().add_attribute("action", "set_admin"))
+    }
+
+    pub fn set_relayer(
+        &mut self,
+        deps: DepsMut,
+        info: MessageInfo,
+        address: Addr,
+    ) -> Result<Response, ContractError> {
+        self.ensure_admin(deps.storage, info.sender)?;
+        let new_relayer = deps.api.addr_validate(address.as_str())?;
+        let _ = self.store_relayer(deps.storage, new_relayer);
+        Ok(Response::new().add_attribute("action", "set_relayer"))
+    }
+
+    pub fn set_validators(
+        &mut self,
+        deps: DepsMut,
+        info: MessageInfo,
+        validators: Vec<String>,
+        threshold: u8,
+    ) -> Result<Response, ContractError> {
+        self.ensure_admin(deps.storage, info.sender)?;
+
+        if threshold < 1 {
+            return Err(ContractError::InvalidThreshold {
+                msg: "threshold should be at least 1".to_string(),
+            });
+        }
+
+        if validators.len() > 0 {
+            self.clear_validators(deps.storage)?;
+            for rlr in validators {
+                self.store_validator(deps.storage, rlr)?;
+            }
+        }
+
+        let validators_set = self.get_validators(deps.storage)?;
+
+        if threshold as usize > validators_set.len() {
+            return Err(ContractError::InvalidThreshold {
+                msg: "threshold should be at most the size of validators".to_string(),
+            });
+        }
+
+        self.store_signature_threshold(deps.storage, threshold)?;
+
+        Ok(Response::new().add_attribute("action", "set_validators"))
+    }
+
     pub fn send_message(
         &mut self,
         deps: DepsMut,
@@ -81,7 +140,7 @@ impl<'a> ClusterConnection<'a> {
         conn_sn: u128,
         msg: String,
     ) -> Result<Response, ContractError> {
-        self.ensure_admin(deps.storage, info.sender)?;
+        self.ensure_relayer(deps.storage, info.sender)?;
 
         let vec_msg: Vec<u8> = self.hex_decode(msg)?;
 
@@ -94,23 +153,6 @@ impl<'a> ClusterConnection<'a> {
             self.call_xcall_handle_message(deps.storage, &src_network, vec_msg)?;
 
         Ok(Response::new().add_submessage(xcall_submessage))
-    }
-
-    pub fn set_validators(
-        &mut self,
-        deps: DepsMut,
-        info: MessageInfo,
-        validators: Vec<String>,
-    ) -> Result<Response, ContractError> {
-        self.ensure_admin(deps.storage, info.sender)?;
-
-        self.clear_validators(deps.storage)?;
-
-        for rlr in validators {
-            self.store_validator(deps.storage, rlr)?;
-        }
-
-        Ok(Response::new().add_attribute("action", "set_validators"))
     }
 
     pub fn set_signature_threshold(
@@ -135,7 +177,7 @@ impl<'a> ClusterConnection<'a> {
         msg: String,
         signatures: Vec<Vec<u8>>,
     ) -> Result<Response, ContractError> {
-        self.ensure_admin(deps.storage, info.sender)?;
+        self.ensure_relayer(deps.storage, info.sender)?;
 
         let vec_msg: Vec<u8> = self.hex_decode(msg)?;
 
@@ -176,30 +218,6 @@ impl<'a> ClusterConnection<'a> {
         Ok(Response::new()
             .add_attribute("action", "claim fees")
             .add_message(msg))
-    }
-
-    pub fn set_admin(
-        &mut self,
-        deps: DepsMut,
-        info: MessageInfo,
-        address: Addr,
-    ) -> Result<Response, ContractError> {
-        self.ensure_admin(deps.storage, info.sender)?;
-        let new_admin = deps.api.addr_validate(address.as_str())?;
-        let _ = self.store_admin(deps.storage, new_admin);
-        Ok(Response::new().add_attribute("action", "set_admin"))
-    }
-
-    pub fn set_relayer(
-        &mut self,
-        deps: DepsMut,
-        info: MessageInfo,
-        address: Addr,
-    ) -> Result<Response, ContractError> {
-        self.ensure_admin(deps.storage, info.sender)?;
-        let new_relayer = deps.api.addr_validate(address.as_str())?;
-        let _ = self.store_relayer(deps.storage, new_relayer);
-        Ok(Response::new().add_attribute("action", "set_relayer"))
     }
 
     pub fn set_fee(

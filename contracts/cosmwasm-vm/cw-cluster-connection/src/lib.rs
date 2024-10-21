@@ -45,7 +45,10 @@ pub fn execute(
 
         ExecuteMsg::SetRelayer { address } => conn.set_relayer(deps, info, address),
 
-        ExecuteMsg::SetValidators { validators } => conn.set_validators(deps, info, validators),
+        ExecuteMsg::SetValidators {
+            validators,
+            threshold,
+        } => conn.set_validators(deps, info, validators, threshold),
 
         ExecuteMsg::SetSignatureThreshold { threshold } => {
             conn.set_signature_threshold(deps, info, threshold)
