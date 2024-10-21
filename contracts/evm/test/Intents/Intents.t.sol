@@ -2,10 +2,10 @@
 pragma solidity ^0.8.22;
 
 import "forge-std/Test.sol";
-import "@xcall/contracts/Intents/GeneralizedConnection.sol";
-import "@xcall/contracts/Intents/Intents.sol";
-import "@xcall/contracts/Intents/Types.sol";
-import "@xcall/contracts/Intents/Encoding.sol";
+import "@intents/contracts/Intents/GeneralizedConnection.sol";
+import "@intents/contracts/Intents/Intents.sol";
+import "@intents/contracts/Intents/Types.sol";
+import "@intents/contracts/Intents/Encoding.sol";
 import "@iconfoundation/xcall-solidity-library/utils/ParseAddress.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 import "openzeppelin-contracts/contracts/token/ERC20/extensions/ERC20Burnable.sol";
