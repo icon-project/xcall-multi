@@ -1,21 +1,21 @@
 [![Project Status: Initial Release](https://img.shields.io/badge/repo%20status-active-green.svg?style=flat-square)](https://www.repostatus.org/#active)
-[![License: Apache-2.0](https://img.shields.io/github/license/icon-project/xcall-multi.svg?style=flat-square)](https://github.com/icon-project/xcall-multi/blob/main/LICENSE)
-[![Lines Of Code](https://img.shields.io/tokei/lines/github/icon-project/xcall-multi?style=flat-square)](https://github.com/icon-project/xcall-multi)
-[![Version](https://img.shields.io/github/tag/icon-project/xcall-multi.svg?style=flat-square)](https://github.com/icon-project/xcall-multi)
-![GitHub Workflow Status - cosmwasm](https://github.com/icon-project/xcall-multi/actions/workflows/build-and-publish-cosmwasm.yml/badge.svg)
-![GitHub Workflow Status - javascore](https://github.com/icon-project/xcall-multi/actions/workflows/build-and-publish-javascore.yml/badge.svg)
+[![License: Apache-2.0](https://img.shields.io/github/license/icon-project/intent-contracts.svg?style=flat-square)](https://github.com/icon-project/intent-contracts/blob/main/LICENSE)
+[![Lines Of Code](https://img.shields.io/tokei/lines/github/icon-project/intent-contracts?style=flat-square)](https://github.com/icon-project/intent-contracts)
+[![Version](https://img.shields.io/github/tag/icon-project/intent-contracts.svg?style=flat-square)](https://github.com/icon-project/intent-contracts)
+![GitHub Workflow Status - cosmwasm](https://github.com/icon-project/intent-contracts/actions/workflows/build-and-publish-cosmwasm.yml/badge.svg)
+![GitHub Workflow Status - javascore](https://github.com/icon-project/intent-contracts/actions/workflows/build-and-publish-javascore.yml/badge.svg)
 | Language                            | Code Coverage                                              |
 | ----------------------------------- | ---------------------------------------------------------- |
 | [Java](./contracts/javascore)       | [![Java Cov][java-cov-badge]][java-cov-link]               |
 | [Rust](./contracts/cosmwasm-vm)     | [![Rust Cov][rust-cov-badge]][rust-cov-link]               |
 | [Solidity](./contracts/evm)         | [![Solidity Cov][solidity-cov-badge]][solidity-cov-link]   |
 
-[java-cov-link]: https://app.codecov.io/gh/icon-project/xcall-multi/tree/main/contracts/javascore
-[rust-cov-link]: https://app.codecov.io/gh/icon-project/xcall-multi/tree/main/contracts/cosmwasm-vm
-[solidity-cov-link]: https://app.codecov.io/gh/icon-project/xcall-multi/tree/main/contracts/evm
-[java-cov-badge]: https://codecov.io/gh/icon-project/xcall-multi/branch/main/graph/badge.svg?token=KWDB59JITE&flag=java
-[rust-cov-badge]: https://codecov.io/gh/icon-project/xcall-multi/branch/main/graph/badge.svg?token=KWDB59JITE&flag=rust
-[solidity-cov-badge]: https://codecov.io/gh/icon-project/xcall-multi/branch/main/graph/badge.svg?token=KWDB59JITE&flag=solidity
+[java-cov-link]: https://app.codecov.io/gh/icon-project/intent-contracts/tree/main/contracts/javascore
+[rust-cov-link]: https://app.codecov.io/gh/icon-project/intent-contracts/tree/main/contracts/cosmwasm-vm
+[solidity-cov-link]: https://app.codecov.io/gh/icon-project/intent-contracts/tree/main/contracts/evm
+[java-cov-badge]: https://codecov.io/gh/icon-project/intent-contracts/graph/badge.svg?token=W8SGQJ11ZG&flag=java
+[rust-cov-badge]: https://codecov.io/gh/icon-project/intent-contracts/graph/badge.svg?token=W8SGQJ11ZG&flag=rust
+[solidity-cov-badge]: https://codecov.io/gh/icon-project/intent-contracts/graph/badge.svg?token=W8SGQJ11ZG&flag=solidity
 
 # xcall-multi
 xcall-multi is a cross chain messaging service built to mimic regular transaction flows across any interoperable solution.
