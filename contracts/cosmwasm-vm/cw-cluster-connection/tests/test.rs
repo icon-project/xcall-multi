@@ -284,7 +284,7 @@ pub fn test_claim_fees() {
     let message_fee: u128 = 200;
     let response_fee: u128 = 100;
 
-    let amount: u128 = 100;
+    let amount: u128 = 200;
     let coin: Coin = Coin {
         denom: DENOM.to_string(),
         amount: Uint128::from(amount),
@@ -293,7 +293,7 @@ pub fn test_claim_fees() {
     let res = execute(
         deps.as_mut(),
         env.clone(),
-        mock_info(RELAYER, &[coin.clone()]),
+        mock_info(RELAYER, &[]),
         ExecuteMsg::SetFee {
             network_id: nid.clone(),
             message_fee,
@@ -316,8 +316,8 @@ pub fn test_claim_fees() {
 
     let res = execute(
         deps.as_mut(),
-        env,
-        mock_info(RELAYER, &[coin]),
+        env.clone(),
+        mock_info(RELAYER, &[]),
         ExecuteMsg::ClaimFees {},
     );
     assert!(res.is_ok());
