@@ -213,3 +213,16 @@ fn test_handle_call_message_reply() {
         &Some(vec![&ctx.env]),
     );
 }
+
+#[test]
+fn test_upgrade() {
+    let ctx = TestContext::default();
+    let client = MockDappClient::new(&ctx.env, &ctx.contract);
+    ctx.init_context(&client);
+
+    let wasm_hash = ctx.env.deployer().upload_contract_wasm(mock_dapp::WASM);
+    assert_eq!(client.version(), 1);
+
+    client.upgrade(&wasm_hash);
+    assert_eq!(client.version(), 2);
+}

@@ -6,6 +6,7 @@ pub enum StorageKey {
     Admin,
     Xlm,
     Sn,
+    Version,
     Rollback(u128),
     Connections(String),
 }

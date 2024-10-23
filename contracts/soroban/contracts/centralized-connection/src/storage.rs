@@ -50,13 +50,6 @@ pub fn native_token(e: &Env) -> Result<Address, ContractError> {
         .ok_or(ContractError::Uninitialized)
 }
 
-pub fn get_conn_sn(e: &Env) -> Result<u128, ContractError> {
-    e.storage()
-        .instance()
-        .get(&StorageKey::ConnSn)
-        .ok_or(ContractError::Uninitialized)
-}
-
 pub fn get_next_conn_sn(e: &Env) -> u128 {
     let mut sn = e.storage().instance().get(&StorageKey::ConnSn).unwrap_or(0);
     sn += 1;
@@ -101,6 +94,19 @@ pub fn get_sn_receipt(e: &Env, network_id: String, sn: u128) -> bool {
     }
 
     is_received
+}
+
+pub fn get_contract_version(e: &Env) -> u32 {
+    e.storage()
+        .instance()
+        .get(&StorageKey::Version)
+        .unwrap_or(1)
+}
+
+pub fn set_contract_version(e: &Env, new_version: u32) {
+    e.storage()
+        .instance()
+        .set(&StorageKey::Version, &new_version);
 }
 
 pub fn store_receipt(e: &Env, network_id: String, sn: u128) {

@@ -15,6 +15,7 @@ pub enum StorageKey {
     PendingResponses(BytesN<32>),
     LastReqId,
     UpgradeAuthority,
+    Version,
 }
 
 #[contracttype]

@@ -1,11 +1,13 @@
 #![cfg(test)]
 
+extern crate std;
+
 use soroban_sdk::{
     bytes,
-    testutils::{Address as _, Events},
-    vec, Address, IntoVal, String,
+    testutils::{Address as _, AuthorizedFunction, AuthorizedInvocation, Events},
+    vec, Address, Bytes, BytesN, IntoVal, String, Symbol,
 };
-use soroban_xcall_lib::messages::msg_type::MessageType;
+use soroban_xcall_lib::{messages::msg_type::MessageType, network_address::NetworkAddress};
 
 use crate::{
     contract::XcallClient,
@@ -15,13 +17,14 @@ use crate::{
         message::CSMessage,
         request::CSMessageRequest,
         result::{CSMessageResult, CSResponseType},
+        rollback::Rollback,
     },
 };
 
 use super::setup::*;
 
 #[test]
-#[should_panic(expected = "HostError: Error(Contract, #9)")]
+#[should_panic(expected = "HostError: Error(Contract, #19)")]
 fn test_handle_message_fail_for_same_network_id() {
     let ctx = TestContext::default();
     let client = XcallClient::new(&ctx.env, &ctx.contract);
@@ -35,7 +38,7 @@ fn test_handle_message_fail_for_same_network_id() {
 }
 
 #[test]
-#[should_panic(expected = "HostError: Error(Contract, #9)")]
+#[should_panic(expected = "HostError: Error(Contract, #18)")]
 fn test_handle_message_request_fail_for_invalid_network_id() {
     let ctx = TestContext::default();
     let client = XcallClient::new(&ctx.env, &ctx.contract);
@@ -78,6 +81,35 @@ fn test_handle_message_request_fail_for_invalid_source() {
     client.handle_message(
         &Address::generate(&ctx.env),
         &String::from_str(&ctx.env, "stellar"),
+        &cs_message,
+    );
+}
+
+#[test]
+#[should_panic(expected = "HostError: Error(Contract, #9)")]
+fn test_handle_message_request_fail_for_invalid_source_2() {
+    let ctx = TestContext::default();
+    let client = XcallClient::new(&ctx.env, &ctx.contract);
+    ctx.init_context(&client);
+
+    let from = NetworkAddress::new(
+        &ctx.env,
+        String::from_str(&ctx.env, "cosmos"),
+        ctx.dapp.to_string(),
+    );
+    let request = CSMessageRequest::new(
+        from,
+        Address::generate(&ctx.env).to_string(),
+        1,
+        vec![&ctx.env],
+        MessageType::CallMessage,
+        bytes!(&ctx.env, 0xabc),
+    );
+    let cs_message = CSMessage::from_request(&ctx.env, &request).encode(&ctx.env);
+
+    client.handle_message(
+        &Address::generate(&ctx.env),
+        &String::from_str(&ctx.env, "cosmos"),
         &cs_message,
     );
 }
@@ -142,7 +174,7 @@ fn test_handle_message_request_from_multiple_sources() {
         assert_eq!(res, ());
 
         let cs_message = CSMessage::decode(&ctx.env, encoded.clone()).unwrap();
-        let hash = ctx.env.crypto().keccak256(cs_message.payload());
+        let hash: BytesN<32> = ctx.env.crypto().keccak256(cs_message.payload()).into();
 
         ctx.env.as_contract(&ctx.contract, || {
             let pending_requests = storage::get_pending_request(&ctx.env, hash);
@@ -175,6 +207,56 @@ fn test_handle_message_request_from_multiple_sources() {
             )
         ]
     )
+}
+
+#[test]
+fn test_handle_message_result_from_multiple_protocols() {
+    let ctx = TestContext::default();
+    let client = XcallClient::new(&ctx.env, &ctx.contract);
+    ctx.init_context(&client);
+
+    let protocols = get_dummy_protocols(&ctx.env);
+
+    let sequence_no = 1;
+    let rollback = Rollback::new(
+        Address::generate(&ctx.env),
+        get_dummy_network_address(&ctx.env),
+        protocols.clone(),
+        bytes!(&ctx.env, 0xabc),
+        false,
+    );
+    ctx.env.as_contract(&ctx.contract, || {
+        storage::store_rollback(&ctx.env, sequence_no, &rollback);
+    });
+
+    let result = CSMessageResult::new(
+        sequence_no,
+        CSResponseType::CSResponseSuccess,
+        Bytes::new(&ctx.env),
+    );
+    let encoded = CSMessage::from_result(&ctx.env, &result).encode(&ctx.env);
+
+    for (i, protocol) in protocols.iter().enumerate() {
+        let from_nid = String::from_str(&ctx.env, "s");
+        let sender = Address::from_string(&protocol);
+
+        let res = client.handle_message(&sender, &from_nid, &encoded);
+        assert_eq!(res, ());
+
+        let cs_message = CSMessage::decode(&ctx.env, encoded.clone()).unwrap();
+        let hash: BytesN<32> = ctx.env.crypto().keccak256(cs_message.payload()).into();
+
+        ctx.env.as_contract(&ctx.contract, || {
+            let pending_responses = storage::get_pending_response(&ctx.env, hash);
+
+            let i = i as u32 + 1;
+            if i < protocols.len() {
+                assert_eq!(pending_responses.len(), i)
+            } else {
+                assert_eq!(pending_responses.len(), 0)
+            }
+        })
+    }
 }
 
 #[test]
@@ -285,6 +367,46 @@ fn test_handle_message_result_should_enable_rollback_when_response_is_failure_fr
 }
 
 #[test]
+#[should_panic(expected = "HostError: Error(Contract, #15)")]
+fn test_handle_message_result_when_invalid_reply_received() {
+    let ctx = TestContext::default();
+    let client = XcallClient::new(&ctx.env, &ctx.contract);
+    ctx.init_context(&client);
+
+    let sequence_no = 1;
+    let rollback = get_dummy_rollback(&ctx.env);
+    ctx.env.as_contract(&ctx.contract, || {
+        storage::store_rollback(&ctx.env, sequence_no, &rollback);
+    });
+
+    let from = NetworkAddress::new(
+        &ctx.env,
+        String::from_str(&ctx.env, "cosmos"),
+        ctx.dapp.to_string(),
+    );
+    let request = CSMessageRequest::new(
+        from,
+        Address::generate(&ctx.env).to_string(),
+        sequence_no,
+        get_dummy_protocols(&ctx.env),
+        MessageType::CallMessage,
+        bytes!(&ctx.env, 0xabc),
+    );
+    let result = CSMessageResult::new(
+        sequence_no,
+        CSResponseType::CSResponseSuccess,
+        request.encode(&ctx.env),
+    );
+    let cs_message = CSMessage::from_result(&ctx.env, &result).encode(&ctx.env);
+
+    client.handle_message(
+        &ctx.centralized_connection,
+        &String::from_str(&ctx.env, "cosmos"),
+        &cs_message,
+    );
+}
+
+#[test]
 fn test_handle_message_result_when_response_is_success_from_dst_chain() {
     let ctx = TestContext::default();
     let client = XcallClient::new(&ctx.env, &ctx.contract);
@@ -316,6 +438,26 @@ fn test_handle_message_result_when_response_is_success_from_dst_chain() {
         &ctx.centralized_connection,
         &String::from_str(&ctx.env, "cosmos"),
         &cs_message,
+    );
+
+    assert_eq!(
+        ctx.env.auths(),
+        std::vec![(
+            ctx.centralized_connection.clone(),
+            AuthorizedInvocation {
+                function: AuthorizedFunction::Contract((
+                    ctx.contract.clone(),
+                    Symbol::new(&ctx.env, "handle_message"),
+                    (
+                        &ctx.centralized_connection,
+                        String::from_str(&ctx.env, "cosmos"),
+                        cs_message
+                    )
+                        .into_val(&ctx.env)
+                )),
+                sub_invocations: std::vec![]
+            }
+        )]
     );
 
     ctx.env.as_contract(&ctx.contract, || {
@@ -366,5 +508,66 @@ fn test_handle_message_result_when_response_is_success_from_dst_chain() {
                 call_msg_event.into_val(&ctx.env)
             )
         ]
-    )
+    );
+}
+
+#[test]
+fn test_handle_error() {
+    let ctx = TestContext::default();
+    let client = XcallClient::new(&ctx.env, &ctx.contract);
+    ctx.init_context(&client);
+
+    let sequence_no = 1;
+    let rollback = get_dummy_rollback(&ctx.env);
+    ctx.env.as_contract(&ctx.contract, || {
+        storage::store_rollback(&ctx.env, sequence_no, &rollback);
+    });
+
+    client.handle_error(&ctx.centralized_connection, &sequence_no);
+
+    let response_msg_event = ResponseMsgEvent {
+        sn: sequence_no,
+        code: 0_u32,
+    };
+    let rollback_msg_event = RollbackMsgEvent { sn: sequence_no };
+
+    let mut events = ctx.env.events().all();
+    events.pop_front();
+
+    assert_eq!(
+        events,
+        vec![
+            &ctx.env,
+            (
+                client.address.clone(),
+                ("ResponseMessage",).into_val(&ctx.env),
+                response_msg_event.into_val(&ctx.env)
+            ),
+            (
+                client.address.clone(),
+                ("RollbackMessage",).into_val(&ctx.env),
+                rollback_msg_event.into_val(&ctx.env)
+            )
+        ]
+    );
+    assert_eq!(
+        ctx.env.auths(),
+        std::vec![(
+            ctx.centralized_connection.clone(),
+            AuthorizedInvocation {
+                function: AuthorizedFunction::Contract((
+                    ctx.contract.clone(),
+                    Symbol::new(&ctx.env, "handle_error"),
+                    (&ctx.centralized_connection, sequence_no,).into_val(&ctx.env)
+                )),
+                sub_invocations: std::vec![]
+            }
+        )]
+    );
+
+    ctx.env.as_contract(&ctx.contract, || {
+        // rollback should be enabled
+        let rollback = storage::get_rollback(&ctx.env, sequence_no).unwrap();
+        assert_eq!(rollback.enabled, true);
+    });
 }

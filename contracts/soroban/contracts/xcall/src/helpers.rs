@@ -24,13 +24,6 @@ pub fn ensure_upgrade_authority(e: &Env) -> Result<Address, ContractError> {
     Ok(authority)
 }
 
-pub fn ensure_fee_handler(e: &Env) -> Result<Address, ContractError> {
-    let fee_handler = storage::get_fee_handler(&e)?;
-    fee_handler.require_auth();
-
-    Ok(fee_handler)
-}
-
 pub fn ensure_data_size(len: usize) -> Result<(), ContractError> {
     if len > MAX_DATA_SIZE as usize {
         return Err(ContractError::MaxDataSizeExceeded);

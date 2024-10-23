@@ -125,7 +125,14 @@ impl MockDapp {
         helpers::ensure_admin(&env)?;
         env.deployer().update_current_contract_wasm(new_wasm_hash);
 
+        let current_version = storage::get_contract_version(&env);
+        storage::set_contract_version(&env, current_version + 1);
+
         Ok(())
+    }
+
+    pub fn version(env: Env) -> u32 {
+        storage::get_contract_version(&env)
     }
 
     fn process_message(

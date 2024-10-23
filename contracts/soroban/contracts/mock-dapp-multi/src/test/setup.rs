@@ -3,14 +3,20 @@ use soroban_xcall_lib::network_address::NetworkAddress;
 
 use crate::contract::{MockDapp, MockDappClient};
 
-mod connection {
+pub mod connection {
     soroban_sdk::contractimport!(
         file = "../../target/wasm32-unknown-unknown/release/centralized_connection.wasm"
     );
 }
 
-mod xcall_module {
+pub mod xcall_module {
     soroban_sdk::contractimport!(file = "../../target/wasm32-unknown-unknown/release/xcall.wasm");
+}
+
+pub mod mock_dapp {
+    soroban_sdk::contractimport!(
+        file = "../../target/wasm32-unknown-unknown/release/mock_dapp_multi.wasm"
+    );
 }
 
 pub fn get_dummy_network_address(env: &Env) -> NetworkAddress {
@@ -31,6 +37,7 @@ pub struct TestContext {
     pub env: Env,
     pub native_token: Address,
     pub xcall: Address,
+    pub upgrade_authority: Address,
     pub centralized_connection: Address,
 }
 
@@ -38,14 +45,16 @@ impl TestContext {
     pub fn default() -> Self {
         let env = Env::default();
         let address = Address::generate(&env);
+        let native_token_contract = env.register_stellar_asset_contract_v2(address);
 
         Self {
             contract: env.register_contract(None, MockDapp),
             nid: String::from_str(&env, "stellar"),
             admin: Address::generate(&env),
-            native_token: env.register_stellar_asset_contract(address),
+            native_token: native_token_contract.address(),
             network_address: get_dummy_network_address(&env),
             xcall: env.register_contract_wasm(None, xcall_module::WASM),
+            upgrade_authority: Address::generate(&env),
             centralized_connection: env.register_contract_wasm(None, connection::WASM),
             env,
         }
@@ -72,6 +81,7 @@ impl TestContext {
             native_token: self.native_token.clone(),
             network_id: self.nid.clone(),
             sender: Address::generate(&self.env),
+            upgrade_authority: self.upgrade_authority.clone(),
         };
         xcall_client.initialize(&initialize_msg);
 
@@ -86,6 +96,7 @@ impl TestContext {
             native_token: self.native_token.clone(),
             relayer: Address::generate(&self.env),
             xcall_address: self.xcall.clone(),
+            upgrade_authority: self.upgrade_authority.clone(),
         };
         connection_client.initialize(&initialize_msg);
 

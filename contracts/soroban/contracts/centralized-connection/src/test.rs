@@ -2,8 +2,13 @@
 
 extern crate std;
 
-mod xcall {
+mod xcall_module {
     soroban_sdk::contractimport!(file = "../../target/wasm32-unknown-unknown/release/xcall.wasm");
+}
+mod connection {
+    soroban_sdk::contractimport!(
+        file = "../../target/wasm32-unknown-unknown/release/centralized_connection.wasm"
+    );
 }
 
 use crate::{
@@ -13,9 +18,14 @@ use crate::{
     types::InitializeMsg,
 };
 use soroban_sdk::{
-    symbol_short,
+    bytes, symbol_short,
     testutils::{Address as _, AuthorizedFunction, AuthorizedInvocation, Events},
-    token, vec, Address, Bytes, Env, IntoVal, String, Symbol,
+    token, vec, Address, Bytes, Env, IntoVal, String, Symbol, Vec,
+};
+use soroban_xcall_lib::{messages::msg_type::MessageType, network_address::NetworkAddress};
+use xcall::{
+    storage as xcall_storage,
+    types::{message::CSMessage, request::CSMessageRequest, rollback::Rollback},
 };
 
 pub struct TestContext {
@@ -33,11 +43,12 @@ impl TestContext {
     pub fn default() -> Self {
         let env = Env::default();
         let token_admin = Address::generate(&env);
+        let native_token_contract = env.register_stellar_asset_contract_v2(token_admin.clone());
         Self {
-            xcall: env.register_contract_wasm(None, xcall::WASM),
+            xcall: env.register_contract_wasm(None, xcall_module::WASM),
             contract: env.register_contract(None, CentralizedConnection),
             relayer: Address::generate(&env),
-            native_token: env.register_stellar_asset_contract(token_admin.clone()),
+            native_token: native_token_contract.address(),
             nid: String::from_str(&env, "icon"),
             upgrade_authority: Address::generate(&env),
             env,
@@ -54,6 +65,23 @@ impl TestContext {
             xcall_address: self.xcall.clone(),
             upgrade_authority: self.upgrade_authority.clone(),
         });
+
+        self.init_xcall_state();
+    }
+
+    pub fn init_xcall_state(&self) {
+        let xcall_client = xcall_module::Client::new(&self.env, &self.xcall);
+
+        let initialize_msg = xcall_module::InitializeMsg {
+            native_token: self.native_token.clone(),
+            network_id: self.nid.clone(),
+            sender: Address::generate(&self.env),
+            upgrade_authority: self.upgrade_authority.clone(),
+        };
+        xcall_client.initialize(&initialize_msg);
+
+        xcall_client.set_protocol_fee(&100_u128);
+        xcall_client.set_default_connection(&self.nid, &self.contract)
     }
 
     pub fn init_send_message(&self, client: &CentralizedConnectionClient<'static>) {
@@ -65,9 +93,11 @@ impl TestContext {
 }
 
 fn get_dummy_initialize_msg(env: &Env) -> InitializeMsg {
+    let native_token_contract = env.register_stellar_asset_contract_v2(Address::generate(&env));
+
     InitializeMsg {
         relayer: Address::generate(&env),
-        native_token: env.register_stellar_asset_contract(Address::generate(&env)),
+        native_token: native_token_contract.address(),
         xcall_address: Address::generate(&env),
         upgrade_authority: Address::generate(&env),
     }
@@ -342,4 +372,109 @@ fn test_get_receipt_returns_false() {
 
     let receipt = client.get_receipt(&ctx.nid, &sequence_no);
     assert_eq!(receipt, true)
+}
+
+#[test]
+fn test_recv_message() {
+    let ctx = TestContext::default();
+    let client = CentralizedConnectionClient::new(&ctx.env, &ctx.contract);
+    ctx.init_context(&client);
+
+    let protocols: Vec<String> = vec![&ctx.env, ctx.contract.to_string()];
+    let from = NetworkAddress::new(
+        &ctx.env,
+        String::from_str(&ctx.env, "0x2.icon"),
+        ctx.xcall.to_string(),
+    );
+    let request = CSMessageRequest::new(
+        from,
+        Address::generate(&ctx.env).to_string(),
+        1,
+        protocols,
+        MessageType::CallMessagePersisted,
+        bytes!(&ctx.env, 0xabc),
+    );
+    let cs_message = CSMessage::from_request(&ctx.env, &request);
+    let encoded = cs_message.encode(&ctx.env);
+
+    let conn_sn = 1;
+    let from_nid = String::from_str(&ctx.env, "0x2.icon");
+    client.recv_message(&from_nid, &conn_sn, &encoded);
+}
+
+#[test]
+#[should_panic(expected = "HostError: Error(Contract, #5)")]
+fn test_recv_message_duplicate_connection_sequence() {
+    let ctx = TestContext::default();
+    let client = CentralizedConnectionClient::new(&ctx.env, &ctx.contract);
+    ctx.init_context(&client);
+
+    let protocols: Vec<String> = vec![&ctx.env, ctx.contract.to_string()];
+    let from = NetworkAddress::new(
+        &ctx.env,
+        String::from_str(&ctx.env, "0x2.icon"),
+        ctx.xcall.to_string(),
+    );
+    let request = CSMessageRequest::new(
+        from,
+        Address::generate(&ctx.env).to_string(),
+        1,
+        protocols,
+        MessageType::CallMessagePersisted,
+        bytes!(&ctx.env, 0xabc),
+    );
+    let cs_message = CSMessage::from_request(&ctx.env, &request);
+    let encoded = cs_message.encode(&ctx.env);
+
+    let conn_sn = 1;
+    let from_nid = String::from_str(&ctx.env, "0x2.icon");
+    client.recv_message(&from_nid, &conn_sn, &encoded);
+
+    client.recv_message(&from_nid, &conn_sn, &encoded);
+}
+
+#[test]
+pub fn test_revert_message() {
+    let ctx = TestContext::default();
+    let client = CentralizedConnectionClient::new(&ctx.env, &ctx.contract);
+    ctx.init_context(&client);
+
+    let sequence_no = 1;
+    let protocols: Vec<String> = vec![&ctx.env, ctx.contract.to_string()];
+    let to = NetworkAddress::new(
+        &ctx.env,
+        String::from_str(&ctx.env, "0x2.icon"),
+        ctx.xcall.to_string(),
+    );
+    let rollback = Rollback::new(
+        Address::generate(&ctx.env),
+        to,
+        protocols.clone(),
+        bytes!(&ctx.env, 0xabc),
+        false,
+    );
+    ctx.env.as_contract(&ctx.xcall, || {
+        xcall_storage::store_rollback(&ctx.env, sequence_no, &rollback);
+    });
+
+    client.revert_message(&sequence_no);
+
+    ctx.env.as_contract(&ctx.xcall, || {
+        // rollback should be enabled
+        let rollback = xcall_storage::get_rollback(&ctx.env, sequence_no).unwrap();
+        assert_eq!(rollback.enabled, true);
+    });
+}
+
+#[test]
+fn test_upgrade() {
+    let ctx = TestContext::default();
+    let client = CentralizedConnectionClient::new(&ctx.env, &ctx.contract);
+    ctx.init_context(&client);
+
+    let wasm_hash = ctx.env.deployer().upload_contract_wasm(connection::WASM);
+    assert_eq!(client.version(), 1);
+
+    client.upgrade(&wasm_hash);
+    assert_eq!(client.version(), 2);
 }
