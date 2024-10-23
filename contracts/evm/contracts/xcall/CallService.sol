@@ -289,6 +289,7 @@ contract CallService is IBSH, ICallService, IFeeManage, Initializable {
             tryExecuteCall(_reqId, dapp, req.from, _data, protocols);
         } else if (req.messageType == Types.PERSISTENT_MESSAGE_TYPE) {
             this.executeMessage(dapp, req.from, _data, protocols);
+            emit CallExecuted(_reqId, Types.CS_RESP_SUCCESS, "");
         } else if (req.messageType == Types.CALL_MESSAGE_ROLLBACK_TYPE) {
             replyState = req;
             int256 code = tryExecuteCall(
