@@ -8,7 +8,9 @@ module xcall::xcall_utils {
     use std::string::{Self, String};
     use sui::hex;
     use sui::bcs::{Self};
-   
+    use sui_rlp::encoder::{Self};
+    use sui::hash::{Self};
+
    public fun are_equal<Element>(a1:&vector<Element>,a2:&vector<Element>): bool {
 
        if(length(a1)!=length(a2)){
@@ -24,6 +26,15 @@ module xcall::xcall_utils {
         }   
     }
 
+    public fun get_message_hash(src_net_id: String, sn: u128, msg: vector<u8>): vector<u8> {
+        let mut list=vector::empty<vector<u8>>();
+        vector::push_back(&mut list, encoder::encode_string(&src_net_id));
+        vector::push_back(&mut list, encoder::encode_u128(sn));
+        vector::push_back(&mut list, encoder::encode(&msg));
+        let encoded=encoder::encode_list(&list,false);
+        hash::keccak256(&encoded)
+
+    }
 
     public fun id_to_hex_string(id:&ID): String {
         let bytes = object::id_to_bytes(id);
