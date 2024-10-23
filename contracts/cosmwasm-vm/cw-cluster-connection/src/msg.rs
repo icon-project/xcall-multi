@@ -39,12 +39,6 @@ pub enum ExecuteMsg {
         src_network: NetId,
         conn_sn: u128,
         msg: String,
-    },
-
-    RecvMessageWithSignatures {
-        src_network: NetId,
-        conn_sn: u128,
-        msg: String,
         signatures: Vec<Vec<u8>>,
     },
 }

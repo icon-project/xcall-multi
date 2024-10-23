@@ -370,53 +370,6 @@ pub fn test_send_message_unauthorized() {
 
 #[test]
 pub fn test_recv_message() {
-    let (mut deps, env, mut _ctx) = instantiate(ADMIN);
-    let src_network = NetId::from_str("0x2.icon").unwrap();
-    let msg = ExecuteMsg::RecvMessage {
-        src_network,
-        conn_sn: 1,
-        msg: "".to_string(),
-    };
-
-    let res = execute(
-        deps.as_mut(),
-        env.clone(),
-        mock_info(RELAYER, &[]),
-        msg.clone(),
-    );
-    assert!(res.is_ok());
-
-    let receipt = _ctx.get_receipt(
-        deps.as_ref().storage,
-        NetId::from_str("0x2.icon").unwrap(),
-        1,
-    );
-
-    assert_eq!(receipt, true);
-}
-
-#[test]
-pub fn test_recv_message_unauthorized() {
-    let (mut deps, env, mut _ctx) = instantiate(ADMIN);
-    let src_network = NetId::from_str("0x2.icon").unwrap();
-    let msg = ExecuteMsg::RecvMessage {
-        src_network,
-        conn_sn: 1,
-        msg: "".to_string(),
-    };
-
-    let res = execute(
-        deps.as_mut(),
-        env.clone(),
-        mock_info("Unauthorized User", &[]),
-        msg.clone(),
-    );
-    assert!(res.is_err());
-    assert_eq!("Only Relayer", res.unwrap_err().to_string());
-}
-
-#[test]
-pub fn test_recv_message_with_signatures() {
     let (mut deps, env, ctx) = instantiate(ADMIN);
 
     let validators =
@@ -441,7 +394,7 @@ pub fn test_recv_message_with_signatures() {
     let signatures = vec![sign_1];
 
     // Test with non-relayer sender (should fail)
-    let msg_with_signatures = ExecuteMsg::RecvMessageWithSignatures {
+    let msg_with_signatures = ExecuteMsg::RecvMessage {
         src_network: src_network.clone(),
         conn_sn,
         msg: msg.to_string(),
@@ -471,7 +424,7 @@ pub fn test_recv_message_with_signatures() {
 }
 
 #[test]
-pub fn test_recv_message_with_signatures_insufficient() {
+pub fn test_recv_message_signatures_insufficient() {
     let (mut deps, env, ctx) = instantiate(ADMIN);
 
     let validators = vec![
@@ -497,7 +450,7 @@ pub fn test_recv_message_with_signatures_insufficient() {
     sign_1.push(1);
     let signatures = vec![sign_1];
 
-    let msg_with_signatures = ExecuteMsg::RecvMessageWithSignatures {
+    let msg_with_signatures = ExecuteMsg::RecvMessage {
         src_network: src_network.clone(),
         conn_sn,
         msg: msg.to_string(),

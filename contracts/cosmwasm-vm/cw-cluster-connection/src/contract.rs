@@ -1,4 +1,4 @@
-use cosmwasm_std::{coins, Addr, BankMsg, Event, SubMsgResult, Uint128};
+use cosmwasm_std::{coins, Addr, BankMsg, Event, Uint128};
 use cw_xcall_lib::network_address::NetId;
 
 use super::*;
@@ -87,7 +87,7 @@ impl<'a> ClusterConnection<'a> {
 
         let validators_set = self.get_validators(deps.storage)?;
 
-        if threshold as usize > validators_set.len() {
+        if validators_set.len() < threshold as usize {
             return Err(ContractError::InvalidThreshold {
                 msg: "threshold should be at most the size of validators".to_string(),
             });
@@ -132,29 +132,6 @@ impl<'a> ClusterConnection<'a> {
             ))
     }
 
-    pub fn recv_message(
-        &mut self,
-        deps: DepsMut,
-        info: MessageInfo,
-        src_network: NetId,
-        conn_sn: u128,
-        msg: String,
-    ) -> Result<Response, ContractError> {
-        self.ensure_relayer(deps.storage, info.sender)?;
-
-        let vec_msg: Vec<u8> = self.hex_decode(msg)?;
-
-        if self.get_receipt(deps.as_ref().storage, src_network.clone(), conn_sn) {
-            return Err(ContractError::DuplicateMessage);
-        }
-        self.store_receipt(deps.storage, src_network.clone(), conn_sn)?;
-
-        let xcall_submessage =
-            self.call_xcall_handle_message(deps.storage, &src_network, vec_msg)?;
-
-        Ok(Response::new().add_submessage(xcall_submessage))
-    }
-
     pub fn set_signature_threshold(
         &mut self,
         deps: DepsMut,
@@ -168,7 +145,7 @@ impl<'a> ClusterConnection<'a> {
         Ok(Response::new().add_attribute("action", "set_signature_threshold"))
     }
 
-    pub fn recv_message_with_signatures(
+    pub fn recv_message(
         &mut self,
         deps: DepsMut,
         info: MessageInfo,
@@ -179,22 +156,16 @@ impl<'a> ClusterConnection<'a> {
     ) -> Result<Response, ContractError> {
         self.ensure_relayer(deps.storage, info.sender)?;
 
-        let vec_msg: Vec<u8> = self.hex_decode(msg)?;
-
-        let threshold = self.get_signature_threshold(deps.storage);
-        let validators = self.get_validators(deps.storage)?;
-
-        self.verify_signatures(
-            deps.as_ref(),
-            threshold,
-            validators,
-            vec_msg.clone(),
-            signatures,
-        )?;
-
         if self.get_receipt(deps.as_ref().storage, src_network.clone(), conn_sn) {
             return Err(ContractError::DuplicateMessage);
         }
+
+        let vec_msg: Vec<u8> = self.hex_decode(msg)?;
+
+        let threshold = self.get_signature_threshold(deps.storage);
+
+        self.verify_signatures(deps.as_ref(), threshold, vec_msg.clone(), signatures)?;
+
         self.store_receipt(deps.storage, src_network.clone(), conn_sn)?;
 
         let xcall_submessage =
@@ -244,49 +215,6 @@ impl<'a> ClusterConnection<'a> {
             fee += self.get_response_fee(store, network_id);
         }
         Ok(fee.into())
-    }
-
-    fn xcall_handle_message_reply(
-        &self,
-        _deps: DepsMut,
-        message: Reply,
-    ) -> Result<Response, ContractError> {
-        match message.result {
-            SubMsgResult::Ok(_) => Ok(Response::new()
-                .add_attribute("action", "call_message")
-                .add_attribute("method", "xcall_handle_message_reply")),
-            SubMsgResult::Err(error) => Err(ContractError::ReplyError {
-                code: message.id,
-                msg: error,
-            }),
-        }
-    }
-
-    fn xcall_handle_error_reply(
-        &self,
-        _deps: DepsMut,
-        message: Reply,
-    ) -> Result<Response, ContractError> {
-        match message.result {
-            SubMsgResult::Ok(_) => Ok(Response::new()
-                .add_attribute("action", "call_message")
-                .add_attribute("method", "xcall_handle_error_reply")),
-            SubMsgResult::Err(error) => Err(ContractError::ReplyError {
-                code: message.id,
-                msg: error,
-            }),
-        }
-    }
-
-    pub fn reply(&self, deps: DepsMut, _env: Env, msg: Reply) -> Result<Response, ContractError> {
-        match msg.id {
-            XCALL_HANDLE_MESSAGE_REPLY_ID => self.xcall_handle_message_reply(deps, msg),
-            XCALL_HANDLE_ERROR_REPLY_ID => self.xcall_handle_error_reply(deps, msg),
-            _ => Err(ContractError::ReplyError {
-                code: msg.id,
-                msg: "Unknown".to_string(),
-            }),
-        }
     }
 
     pub fn migrate(

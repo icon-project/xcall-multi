@@ -165,6 +165,10 @@ impl<'a> ClusterConnection<'a> {
         Ok(validators_list)
     }
 
+    pub fn is_validator(&self, store: &dyn Storage, pub_key: String) -> bool {
+        self.validators.has(store, pub_key)
+    }
+
     pub fn store_signature_threshold(
         &mut self,
         store: &mut dyn Storage,

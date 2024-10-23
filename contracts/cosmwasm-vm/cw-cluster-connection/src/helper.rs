@@ -1,13 +1,15 @@
 use std::collections::HashMap;
 
-use crate::utils::sha256;
 use cosmwasm_std::{ensure_eq, Addr, BalanceResponse, BankQuery, Coin};
 use cw_xcall_lib::network_address::NetId;
 use k256::ecdsa::VerifyingKey;
 
-pub const XCALL_HANDLE_MESSAGE_REPLY_ID: u64 = 1;
-pub const XCALL_HANDLE_ERROR_REPLY_ID: u64 = 2;
 use super::*;
+
+pub fn sha256(data: &[u8]) -> Vec<u8> {
+    use sha2::Digest;
+    sha2::Sha256::digest(&data).to_vec()
+}
 
 impl<'a> ClusterConnection<'a> {
     pub fn ensure_admin(&self, store: &dyn Storage, address: Addr) -> Result<(), ContractError> {
@@ -78,25 +80,7 @@ impl<'a> ClusterConnection<'a> {
             msg: to_json_binary(&xcall_msg).unwrap(),
             funds: vec![],
         });
-        let sub_msg: SubMsg = SubMsg::reply_always(call_message, XCALL_HANDLE_MESSAGE_REPLY_ID);
-        Ok(sub_msg)
-    }
-
-    pub fn call_xcall_handle_error(
-        &self,
-        store: &dyn Storage,
-        sn: u128,
-    ) -> Result<SubMsg, ContractError> {
-        let xcall_host = self.get_xcall(store)?;
-        let xcall_msg = cw_xcall_lib::xcall_msg::ExecuteMsg::HandleError {
-            sn: sn.try_into().unwrap(),
-        };
-        let call_message: CosmosMsg<Empty> = CosmosMsg::Wasm(WasmMsg::Execute {
-            contract_addr: xcall_host.to_string(),
-            msg: to_json_binary(&xcall_msg).unwrap(),
-            funds: vec![],
-        });
-        let sub_msg: SubMsg = SubMsg::reply_always(call_message, XCALL_HANDLE_ERROR_REPLY_ID);
+        let sub_msg: SubMsg = SubMsg::new(call_message);
         Ok(sub_msg)
     }
 
@@ -104,7 +88,6 @@ impl<'a> ClusterConnection<'a> {
         &self,
         deps: Deps,
         threshold: u8,
-        relayers: Vec<String>,
         data: Vec<u8>,
         signatures: Vec<Vec<u8>>,
     ) -> Result<(), ContractError> {
@@ -129,12 +112,13 @@ impl<'a> ClusterConnection<'a> {
                         .map_err(|_| ContractError::InvalidSignature)?;
 
                     let pk_hex = hex::encode(pk.to_bytes());
-                    if relayers.contains(&pk_hex) && !signers.contains_key(&pk_hex) {
+                    if self.is_validator(deps.storage, pk_hex.clone())
+                        && !signers.contains_key(&pk_hex)
+                    {
                         signers.insert(pk_hex, true);
                         if signers.len() >= threshold.into() {
                             return Ok(());
                         }
-                        break;
                     }
                 }
                 Err(_) => continue,
@@ -142,35 +126,5 @@ impl<'a> ClusterConnection<'a> {
         }
 
         return Err(ContractError::InsufficientSignatures);
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use cosmwasm_std::testing::mock_dependencies;
-    #[test]
-    fn test_verify_signatures_simple() {
-        let deps = mock_dependencies();
-        let connection = ClusterConnection::new();
-        let message = b"hello";
-        let threshold = 1;
-        let relayers =
-            vec!["02e5e9769497fbc7c7ee57ab39ccedcb612018577d30ca090033dc67ba5d68b8ab".to_string()];
-
-        let hex_sign = "62249c41d09297800f35174e041ad53ec85c5dcad6a6bd0db3267d36a56eb92d7645b7a64c22ae7e1f93c6c3867d2a33e6534e64093600861916e3299e4cc922";
-        let mut signature = hex::decode(hex_sign).expect("Failed to decode hex signature");
-        signature.push(1);
-        let signatures = vec![signature];
-
-        let result = connection.verify_signatures(
-            deps.as_ref(),
-            threshold,
-            relayers,
-            message.to_vec(),
-            signatures,
-        );
-
-        assert!(result.is_ok());
     }
 }

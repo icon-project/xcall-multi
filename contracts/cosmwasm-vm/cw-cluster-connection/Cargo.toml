@@ -39,9 +39,6 @@ cw-xcall-lib = { path="../cw-xcall-lib" }
 hex = "0.4.3"
 serde-json-wasm = {workspace=true}
 sha2 = { version = "0.10.6", default-features = false }
-sha3 = { version = "0.10.6", default-features = false }
-ripemd = "0.1.3"
-bech32 = "0.9.1"
 k256 = "0.11.6"
 
 [dev-dependencies]

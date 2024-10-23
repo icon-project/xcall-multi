@@ -4,11 +4,10 @@ pub mod helper;
 pub mod msg;
 pub mod state;
 pub mod types;
-pub mod utils;
 
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{
-    entry_point, to_json_binary, Binary, CosmosMsg, Deps, DepsMut, Empty, Env, MessageInfo, Reply,
+    entry_point, to_json_binary, Binary, CosmosMsg, Deps, DepsMut, Empty, Env, MessageInfo,
     Response, StdError, StdResult, Storage, SubMsg, WasmMsg,
 };
 
@@ -68,14 +67,8 @@ pub fn execute(
             src_network,
             conn_sn,
             msg,
-        } => conn.recv_message(deps, info, src_network, conn_sn, msg),
-
-        ExecuteMsg::RecvMessageWithSignatures {
-            src_network,
-            conn_sn,
-            msg,
             signatures,
-        } => conn.recv_message_with_signatures(deps, info, src_network, conn_sn, msg, signatures),
+        } => conn.recv_message(deps, info, src_network, conn_sn, msg, signatures),
     }
 }
 
@@ -114,12 +107,6 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
             to_json_binary(&threshold)
         }
     }
-}
-
-#[cfg_attr(not(feature = "library"), entry_point)]
-pub fn reply(deps: DepsMut, env: Env, msg: Reply) -> Result<Response, ContractError> {
-    let conn = ClusterConnection::default();
-    conn.reply(deps, env, msg)
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
