@@ -3,7 +3,8 @@ include(
         'test-lib',
         'xcall',
         'xcall-lib',
-        'centralized-connection'
+        'centralized-connection',
+        'aggregator'
 )
 
 include(':dapp-simple')
