@@ -227,7 +227,7 @@ module multisig::multisig {
         event::emit(Executed {proposal_id:proposal_id,command:command});
     }
 
-    public fun isProposalApproved(storage:&Storage,proposal_id:u64):bool{
+    public fun is_proposal_approved(storage:&Storage,proposal_id:u64):bool{
         let proposal=storage.proposals.borrow(proposal_id);
         let wallet=storage.wallets.get(&proposal.multisig_address);
         let mut signatures:vector<vector<u8>> = vector::empty();
@@ -249,10 +249,10 @@ module multisig::multisig {
         signatures.length()>=wallet.threshold as u64
     }
 
-    public fun hasMemberApproved(storage:&Storage,proposal_id:u64,ctx:&TxContext):bool{
+    public fun has_member_voted(storage:&Storage,proposal_id:u64,member:address):bool{
         let key=VoteKey{
             proposal_id:proposal_id,
-            sui_address:ctx.sender()
+            sui_address:member
         }; 
         storage.votes.contains(key)
     }
