@@ -151,5 +151,11 @@ module sui_rlp::decoder {
          bcs::peel_address(&mut bcs)
     }
 
+     public fun decode_bool(vec:&vector<u8>):bool{
+       let val= *vector::borrow(vec,0);
+       val==1
+
+    }
+
  
 }
