@@ -6,8 +6,7 @@ edition = "2024.beta" # edition = "legacy" to use legacy (pre-2024) Move
 
 [dependencies]
 Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "framework/testnet" }
-[dependencies.sui_rlp]
-local = '../libs/sui_rlp'
+sui_rlp={git = "https://github.com/icon-project/xcall-multi.git", subdir = "contracts/sui/libs/sui_rlp", rev = "main"}
 # For remote import, use the `{ git = "...", subdir = "...", rev = "..." }`.
 # Revision can be a branch, a tag, and a commit hash.
 # MyRemotePackage = { git = "https://some.remote/host.git", subdir = "remote/path", rev = "main" }
