@@ -1,3 +1,6 @@
+use std::vec;
+
+use common::rlp;
 use cosmwasm_std::{coins, Addr, BankMsg, Event, Uint128};
 use cw_xcall_lib::network_address::NetId;
 
@@ -160,16 +163,20 @@ impl<'a> ClusterConnection<'a> {
             return Err(ContractError::DuplicateMessage);
         }
 
-        let vec_msg: Vec<u8> = self.hex_decode(msg)?;
+        let mut msg_vec: Vec<u8> = self.hex_decode(msg)?;
+
+        let mut signed_msg = src_network.as_str().as_bytes().to_vec();
+        signed_msg.append(&mut rlp::encode(&conn_sn).to_vec());
+        signed_msg.append(&mut msg_vec);
 
         let threshold = self.get_signature_threshold(deps.storage);
 
-        self.verify_signatures(deps.as_ref(), threshold, vec_msg.clone(), signatures)?;
+        self.verify_signatures(deps.as_ref(), threshold, signed_msg, signatures)?;
 
         self.store_receipt(deps.storage, src_network.clone(), conn_sn)?;
 
         let xcall_submessage =
-            self.call_xcall_handle_message(deps.storage, &src_network, vec_msg)?;
+            self.call_xcall_handle_message(deps.storage, &src_network, msg_vec)?;
 
         Ok(Response::new().add_submessage(xcall_submessage))
     }

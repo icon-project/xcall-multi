@@ -387,9 +387,9 @@ pub fn test_recv_message() {
 
     // Set up test data
     let src_network = NetId::from_str("0x2.icon").unwrap();
-    let conn_sn: u128 = 1;
+    let conn_sn: u128 = 5;
     let msg = string_to_hex("hello");
-    let mut sign_1 = hex::decode("62249c41d09297800f35174e041ad53ec85c5dcad6a6bd0db3267d36a56eb92d7645b7a64c22ae7e1f93c6c3867d2a33e6534e64093600861916e3299e4cc922").unwrap();
+    let mut sign_1 = hex::decode("7fe5c14fd4a520417402be8a39405181fca96fb3001e60be8e46623a4430994031e2693ad9eaf71a6bb7ae1bb794afb5561e3f8c3d1248cdd43513a9ab4300b9").unwrap();
     sign_1.push(1);
     let signatures = vec![sign_1];
 
@@ -446,7 +446,7 @@ pub fn test_recv_message_signatures_insufficient() {
     let src_network = NetId::from_str("0x2.icon").unwrap();
     let conn_sn: u128 = 1;
     let msg = string_to_hex("hello");
-    let mut sign_1 = hex::decode("62249c41d09297800f35174e041ad53ec85c5dcad6a6bd0db3267d36a56eb92d7645b7a64c22ae7e1f93c6c3867d2a33e6534e64093600861916e3299e4cc922").unwrap();
+    let mut sign_1 = hex::decode("7fe5c14fd4a520417402be8a39405181fca96fb3001e60be8e46623a4430994031e2693ad9eaf71a6bb7ae1bb794afb5561e3f8c3d1248cdd43513a9ab4300b9").unwrap();
     sign_1.push(1);
     let signatures = vec![sign_1];
 

@@ -88,14 +88,14 @@ impl<'a> ClusterConnection<'a> {
         &self,
         deps: Deps,
         threshold: u8,
-        data: Vec<u8>,
+        signed_msg: Vec<u8>,
         signatures: Vec<Vec<u8>>,
     ) -> Result<(), ContractError> {
         if signatures.len() < threshold.into() {
             return Err(ContractError::InsufficientSignatures);
         }
 
-        let message_hash = sha256(&data);
+        let message_hash = sha256(&signed_msg);
 
         let mut signers: HashMap<String, bool> = HashMap::new();
 
