@@ -48,7 +48,7 @@ module intents_v1::utils {
     }
 
     public fun get_type_string<T>():String{
-        string::from_ascii(type_name::get<T>().into_string())
+        to_hex_string(string::from_ascii(type_name::get<T>().into_string()))
     }
 
     public fun to_hex_string(str:String):String{
