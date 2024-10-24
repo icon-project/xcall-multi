@@ -1,37 +1,76 @@
 module sui_rlp::utils {
-     use std::vector::{Self};
-     use std::string::{Self,String};
-     use std::bcs;
-     public fun to_bytes_u32(number: u32): vector<u8> {
-        let  mut bytes: vector<u8> = vector::empty();
-        let mut i:u8=0;
-        while(i < 4){
-            let val =( (number>>(i * 8) & 0xFF) as u8) ;
-            vector::push_back(&mut bytes,val);
-            i=i+1;
-        };
-        bytes.reverse();
-        bytes
-    }
+    use std::bcs;
+
 
     // Convert bytes to u32
-    public fun from_bytes_u32(bytes: &vector<u8>): u32 {let mut result = 0;
-        let mut multiplier = 1;
-        let length = vector::length(bytes);
-
-        let mut i = length;
-        while (i > 0) {
-            i = i - 1;
-            //std::debug::print(vector::borrow(bytes, i));
-            result = result + ((*vector::borrow(bytes, i) as u32) * multiplier);
-            //std::debug::print(&result);
-
-            if (i > 0) {
-            multiplier = multiplier * 256
-            };
-            
+    public fun from_bytes_u32(bytes: &vector<u8>): u32 {
+        let mut bytes= truncate_zeros(bytes);
+        bytes.reverse();
+        let mut diff= 4-bytes.length();
+        while (diff > 0) {
+            bytes.push_back(0_u8);
+            diff=diff-1;
         };
-        result
+        sui::bcs::peel_u32(&mut sui::bcs::new(bytes))
+    }
+
+
+    // Convert bytes to u64
+    public fun from_bytes_u64(bytes: &vector<u8>): u64 {
+        let mut bytes= truncate_zeros(bytes);
+        bytes.reverse();
+        let mut diff= 8-bytes.length();
+        while (diff > 0) {
+            bytes.push_back(0_u8);
+            diff=diff-1;
+        };
+        sui::bcs::peel_u64(&mut sui::bcs::new(bytes))
+
+    }
+
+    // Convert bytes to u128
+    public fun from_bytes_u128(bytes: &vector<u8>): u128 {
+        let mut bytes= truncate_zeros(bytes);
+        bytes.reverse();
+        let mut diff= 16-bytes.length();
+        while (diff > 0) {
+            bytes.push_back(0_u8);
+            diff=diff-1;
+        };
+        sui::bcs::peel_u128(&mut sui::bcs::new(bytes))
+
+    }
+
+    public fun to_bytes_u128(number:u128):vector<u8>{
+        let bytes=bcs::to_bytes(&number);
+        to_signed_bytes(bytes)
+    }
+
+
+    public fun to_bytes_u64(number:u64):vector<u8>{
+        let bytes=bcs::to_bytes(&number);
+        to_signed_bytes(bytes)
+    }
+
+    public fun to_bytes_u32(number: u32): vector<u8> {
+        let bytes=bcs::to_bytes(&number);
+        to_signed_bytes(bytes)
+    }
+
+    fun to_signed_bytes(mut bytes:vector<u8>):vector<u8>{
+        bytes.reverse();
+        let truncated=truncate_zeros(&bytes);
+        let first_byte=*truncated.borrow(0);
+
+        if (first_byte >= 128) {
+            let mut prefix = vector<u8>[0];
+            prefix.append(truncated);
+            prefix
+
+        }else {
+            truncated
+        }
+
     }
 
     fun truncate_zeros(bytes: &vector<u8>): vector<u8> {
@@ -51,89 +90,10 @@ module sui_rlp::utils {
         result
     }
 
-    // Convert bytes to u64
-    public fun from_bytes_u64(bytes: &vector<u8>): u64 {
-        let bytes = truncate_zeros(bytes);
-        let mut result = 0;
-        let mut multiplier = 1;
-        let length = vector::length(&bytes);
 
-        let mut i = length;
-        while (i > 0) {
-            i = i - 1;
-            //std::debug::print(vector::borrow(bytes, i));
-            result = result + ((*vector::borrow(&bytes, i) as u64) * (multiplier));
-            //std::debug::print(&result);
-            if (i > 0) {
-            multiplier = multiplier * 256
-            };
-            
-        };
-        result
-    }
-
-    public fun to_bytes_u128(number:u128):vector<u8>{
-        let mut right:u128= 128;
-        let mut i=1;
-        while(i < 16){
-            right=right << 8;
-            i=i+1;
-
-        };
-        let mut bytes=bcs::to_bytes(&number);
-        bytes.reverse();
-        if (number < right){
-           truncate_zeros(&bytes)
-        }else {
-             let mut prefix = vector<u8>[0];
-             prefix.append(truncate_zeros(&bytes));
-             prefix
-        }
-    }
-
-    public fun to_bytes_u64(number:u64):vector<u8>{
-        let mut right:u64= 128;
-        let mut i=1;
-        while(i < 8){
-            right=right << 8;
-            i=i+1;
-
-        };
-        let mut bytes=bcs::to_bytes(&number);
-        bytes.reverse();
-        if (number < right){
-           truncate_zeros(&bytes)
-        }else {
-             let mut prefix = vector<u8>[0];
-             prefix.append(truncate_zeros(&bytes));
-             prefix
-        }
-    }
-
-    // Convert bytes to u128
-    public fun from_bytes_u128(bytes: &vector<u8>): u128 {
-        let bytes = truncate_zeros(bytes);
-       let mut result = 0;
-        let mut multiplier = 1;
-        let length = vector::length(&bytes);
-
-        let mut i = length;
-        while (i > 0) {
-            i = i - 1;
-            //std::debug::print(vector::borrow(bytes, i));
-            result = result + ((*vector::borrow(&bytes, i) as u128) * multiplier);
-            //std::debug::print(&result);
-
-            if (i > 0) {
-            multiplier = multiplier * 256
-            };
-            
-        };
-        result
-    }
 
     /* end is exclusive in slice*/
-   public fun slice_vector(vec: &vector<u8>, start: u64, length: u64): vector<u8> {
+    public fun slice_vector(vec: &vector<u8>, start: u64, length: u64): vector<u8> {
         let mut result = vector::empty<u8>();
         let mut i = 0;
         while (i < length) {
@@ -141,27 +101,23 @@ module sui_rlp::utils {
             vector::push_back(&mut result, value);
             i = i + 1;
         };
-        //std::debug::print(&result);
         result
     }
 
-   
+
 }
 
 module sui_rlp::utils_test {
     use sui_rlp::utils::{Self};
-     use std::vector::{Self};
-     use std::debug;
-     use sui::bcs::{Self};
 
 
-      #[test]
+    #[test]
     fun test_u32_conversion() {
         let num= (122 as u32);
         let bytes= utils::to_bytes_u32(num);
         let converted=utils::from_bytes_u32(&bytes);
         assert!(num==converted,0x01);
-        
+
     }
 
     #[test]
@@ -172,7 +128,7 @@ module sui_rlp::utils_test {
         std::debug::print(&bytes);
         std::debug::print(&converted);
         assert!(num==converted,0x01);
-        
+
     }
 
     #[test]
@@ -183,7 +139,7 @@ module sui_rlp::utils_test {
         let converted=utils::from_bytes_u128(&bytes);
         std::debug::print(&converted);
         assert!(num==converted,0x01); 
-        
+
     }
 
     #[test]
@@ -191,16 +147,13 @@ module sui_rlp::utils_test {
         let data=create_vector(10);
         let slice= utils::slice_vector(&data,0,3);
         let expected= create_vector(3);
-       //debug::print(&expected);
-       //debug::print(&slice);
-       //debug::print(&data);
         assert!(slice==expected,0x01);
 
-        
+
     }
 
     fun create_vector(n:u8):vector<u8>{
-         let mut data=vector::empty();
+        let mut data=vector::empty();
         let mut i=0;
         while(i < n){
             vector::push_back(&mut data,i);
