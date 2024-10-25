@@ -1,6 +1,7 @@
 module sui_rlp::utils {
      use std::vector::{Self};
      use std::string::{Self,String};
+     use std::bcs;
      public fun to_bytes_u32(number: u32): vector<u8> {
         let  mut bytes: vector<u8> = vector::empty();
         let mut i:u8=0;
@@ -31,20 +32,6 @@ module sui_rlp::utils {
             
         };
         result
-    }
-
-     public fun to_bytes_u64(number: u64): vector<u8> {
-        let  mut bytes: vector<u8> = vector::empty();
-        let mut i:u8=0;
-        while(i < 8){
-            let val =( (number>>(i * 8) & 0xFF) as u8) ;
-             vector::push_back(&mut bytes,val);
-            i=i+1;
-        };
-        bytes.reverse();
-        let mut prefix = vector<u8>[0];
-        prefix.append(truncate_zeros(&bytes));
-        prefix
     }
 
     fun truncate_zeros(bytes: &vector<u8>): vector<u8> {
@@ -85,21 +72,42 @@ module sui_rlp::utils {
         result
     }
 
-    
-
-    // Convert u128 to bytes
-    public fun to_bytes_u128(number: u128): vector<u8> {
-        let  mut bytes: vector<u8> = vector::empty();
-        let mut i:u8=0;
+    public fun to_bytes_u128(number:u128):vector<u8>{
+        let mut right:u128= 128;
+        let mut i=1;
         while(i < 16){
-            let val = ((number>>(i * 8) & 0xFF) as u8) ;
-             vector::push_back(&mut bytes,val);
+            right=right << 8;
             i=i+1;
+
         };
+        let mut bytes=bcs::to_bytes(&number);
         bytes.reverse();
-        let mut prefix = vector<u8>[0];
-        prefix.append(truncate_zeros(&bytes));
-        prefix
+        if (number < right){
+           truncate_zeros(&bytes)
+        }else {
+             let mut prefix = vector<u8>[0];
+             prefix.append(truncate_zeros(&bytes));
+             prefix
+        }
+    }
+
+    public fun to_bytes_u64(number:u64):vector<u8>{
+        let mut right:u64= 128;
+        let mut i=1;
+        while(i < 8){
+            right=right << 8;
+            i=i+1;
+
+        };
+        let mut bytes=bcs::to_bytes(&number);
+        bytes.reverse();
+        if (number < right){
+           truncate_zeros(&bytes)
+        }else {
+             let mut prefix = vector<u8>[0];
+             prefix.append(truncate_zeros(&bytes));
+             prefix
+        }
     }
 
     // Convert bytes to u128

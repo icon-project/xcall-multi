@@ -1,0 +1,24 @@
+[workspace]
+members = [
+    "programs/*",
+    "libs/*"
+]
+resolver = "2"
+
+[workspace.dependencies]
+anchor-lang = { version = "0.30.1", features = ["init-if-needed"] }
+borsh = { version = "1.5.1" }
+hex ={ version = "0.4.3", default-features = false }
+anchor-lang-idl = { version = "0.1.1", features = ["convert"] }
+
+rlp = { path = "./libs/rlp" }
+xcall-lib = { path = "./libs/xcall-lib" }
+
+[profile.release]
+overflow-checks = true
+lto = "fat"
+codegen-units = 1
+[profile.release.build-override]
+opt-level = 3
+incremental = false
+codegen-units = 1
