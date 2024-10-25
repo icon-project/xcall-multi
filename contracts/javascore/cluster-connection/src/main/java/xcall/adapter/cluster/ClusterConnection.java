@@ -81,7 +81,7 @@ public class ClusterConnection {
  * @throws Exception if the number of validators is less than the threshold
  */
     @External
-    public void addValidator(Address[] _validators, BigInteger _threshold) {
+    public void updateValidators(Address[] _validators, BigInteger _threshold) {
         OnlyAdmin();
         clearValidators();
         for (Address validator : _validators) {
@@ -266,16 +266,7 @@ public class ClusterConnection {
          recvMessage(srcNetwork, _connSn, msg);
      }
 
-    /**
-     * Receives a message from a source network.
-     *
-     * @param srcNetwork the source network id from which the message is received
-     * @param _connSn    the serial number of the connection message
-     * @param msg        serialized bytes of Service Message
-     */
-    @External
-    public void recvMessage(String srcNetwork, BigInteger _connSn, byte[] msg) {
-        OnlyRelayer();
+    private void recvMessage(String srcNetwork, BigInteger _connSn, byte[] msg) {
         Context.require(!receipts.at(srcNetwork).getOrDefault(_connSn, false), "Duplicate Message");
         receipts.at(srcNetwork).set(_connSn, true);
         Context.call(xCall.get(), "handleMessage", srcNetwork, msg);
