@@ -80,7 +80,9 @@ pub fn compress_public_keys(e: &Env, uncompressed_public_key: BytesN<65>) -> Byt
 pub fn verify_signatures(
     e: &Env,
     signatures: Vec<BytesN<65>>,
-    message: Bytes,
+    src_network: &String,
+    conn_sn: &u128,
+    message: &Bytes,
 ) -> bool {
     let validators = storage::get_validators(e).unwrap();
     let threshold = storage::get_validators_threshold(e).unwrap();
@@ -88,14 +90,13 @@ pub fn verify_signatures(
     if signatures.len() < threshold {
         return false
     }
-    let message_hash = e.crypto().sha256(&message);
+    let message_hash = e.crypto().keccak256(&get_encoded_message(e, src_network, conn_sn, message));
      let mut unique_validators = Map::new(e);
      let mut count = 0;
      
 
       for sig in signatures.iter() {
         let r_s_v = sig.to_array();
-
         // Separate signature (r + s) and recovery ID
         let signature_array: [u8; 64] = r_s_v[..64].try_into().unwrap(); // r + s part
         let recovery_id = r_s_v[64] as u32; // recovery ID
@@ -119,6 +120,13 @@ pub fn verify_signatures(
 
 }
  
+
+pub fn get_encoded_message(e: &Env, src_network: &String, conn_sn: &u128, message: &Bytes) -> Bytes {
+    let mut result = Bytes::from_val(e, &src_network.to_val());
+    result.extend_from_slice(&conn_sn.to_be_bytes());
+    result.append(message);
+    result
+}
 
 pub fn call_xcall_handle_message(e: &Env, nid: &String, msg: Bytes) -> Result<(), ContractError> {
     let xcall_addr = storage::get_xcall(&e)?;

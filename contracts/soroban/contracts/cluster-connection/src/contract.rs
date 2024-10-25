@@ -69,30 +69,6 @@ impl ClusterConnection {
         Ok(())
     }
 
-    pub fn recv_message(
-        env: Env,
-        src_network: String,
-        conn_sn: u128,
-        msg: Bytes,
-    ) -> Result<(), ContractError> {
-        helpers::ensure_relayer(&env)?;
-
-        if storage::get_sn_receipt(&env, src_network.clone(), conn_sn) {
-            return Err(ContractError::DuplicateMessage);
-        }
-        storage::store_receipt(&env, src_network.clone(), conn_sn);
-
-        helpers::call_xcall_handle_message(&env, &src_network, msg)?;
-        Ok(())
-    }
-
-    pub fn revert_message(env: &Env, sn: u128) -> Result<(), ContractError> {
-        helpers::ensure_relayer(&env)?;
-        helpers::call_xcall_handle_error(&env, sn)?;
-
-        Ok(())
-    }
-
     pub fn recv_message_with_signatures(
         env: Env,
         src_network: String,
@@ -102,7 +78,7 @@ impl ClusterConnection {
     ) -> Result<(), ContractError> {
         helpers::ensure_relayer(&env)?;
 
-        if !helpers::verify_signatures(&env, signatures, msg.clone()){
+        if !helpers::verify_signatures(&env, signatures, &src_network, &conn_sn, &msg){
             return Err(ContractError::SignatureVerificationFailed);
         };
 
@@ -138,13 +114,20 @@ impl ClusterConnection {
         Ok(())
     }
 
-    pub fn add_validator(env: Env, address: Address) -> Result<(), ContractError> {
+    pub fn update_validators(env: Env, addresses: Vec<Address>, threshold: u32) -> Result<(), ContractError> {
         helpers::ensure_relayer(&env)?;
-        let validators = storage::get_validators(&env).unwrap();
-        if validators.contains(&address) {
-            return Err(ContractError::ValidatorAlreadyAdded);
+        let mut validators = Vec::new(&env);
+
+        for address in addresses.clone() {
+            if !validators.contains(&address) {
+                validators.push_back(address);
+            }
         }
-        storage::add_validator(&env, address);
+        if (validators.len() as u32) < threshold {
+            return Err(ContractError::ThresholdExceeded);
+            
+        }
+        storage::store_validators(&env, addresses);
         Ok(())
     }
 
@@ -155,27 +138,11 @@ impl ClusterConnection {
 
     pub fn set_validators_threshold(env: Env, threshold: u32) -> Result<(), ContractError> {
         helpers::ensure_relayer(&env)?;
-        storage::store_validator_threshold(&env, threshold);
-        Ok(())
-    }
-
-    pub fn remove_validator(env: Env, address: Address) -> Result<(), ContractError> {
-        helpers::ensure_relayer(&env)?;
-        let validators: Vec<Address> = storage::get_validators(&env).unwrap();
-        let threshold = storage::get_validators_threshold(&env).unwrap();
-        let admin = storage::admin(&env).unwrap();
-
-        let index = validators.iter().position(|v| v == address);
-        if index.is_none() {
-            return Err(ContractError::ValidatorNotFound);
-        }
-        if address == admin {
-            return Err(ContractError::CannotRemoveAdmin);
-        }
-        if (validators.len() as u32) <= threshold {
+        let validators = storage::get_validators(&env).unwrap();
+        if (validators.len() as u32) < threshold {
             return Err(ContractError::ThresholdExceeded);
         }
-        storage::remove_validator(&env, address);
+        storage::store_validator_threshold(&env, threshold);
         Ok(())
     }
 

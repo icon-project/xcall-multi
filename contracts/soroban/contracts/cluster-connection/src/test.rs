@@ -353,11 +353,16 @@ fn test_add_validator() {
 
     ctx.init_context(&client);
 
-    let validator = Address::generate(&ctx.env);
-    client.add_validator(&validator.clone());
+    let validator1 = Address::generate(&ctx.env);
+    let validator2 = Address::generate(&ctx.env);
+    let validator3 = Address::generate(&ctx.env);
 
     let mut validators = Vec::new(&ctx.env);
-    validators.push_back(validator.clone());
+    validators.push_back(validator1.clone());
+    validators.push_back(validator2.clone());
+    validators.push_back(validator3.clone());
+
+    client.update_validators(&validators, &3_u32);
 
     assert_eq!(
         ctx.env.auths(),
@@ -366,18 +371,13 @@ fn test_add_validator() {
             AuthorizedInvocation {
                 function: AuthorizedFunction::Contract((
                     client.address.clone(),
-                    Symbol::new(&ctx.env, "add_validator"),
-                    (validator.clone(),).into_val(&ctx.env)
+                    Symbol::new(&ctx.env, "update_validators"),
+                    (validators.clone(), 3,).into_val(&ctx.env)
                 )),
                 sub_invocations: std::vec![]
             }
         )]
     );
-
-    let validator = Address::generate(&ctx.env);
-    client.add_validator(&validator.clone());
-    validators.push_back(validator.clone());
-
 
     assert_eq!(
         client.get_validators(),
@@ -385,8 +385,9 @@ fn test_add_validator() {
     );
 }
 
+
 #[test]
-fn test_remove_validator() {
+fn test_set_threshold() {
     let ctx = TestContext::default();
     let client = ClusterConnectionClient::new(&ctx.env, &ctx.contract);
 
@@ -396,46 +397,12 @@ fn test_remove_validator() {
     let validator2 = Address::generate(&ctx.env);
     let validator3 = Address::generate(&ctx.env);
 
-    client.add_validator(&validator1.clone());
-    client.add_validator(&validator2.clone());
-    client.add_validator(&validator3.clone());
-
     let mut validators = Vec::new(&ctx.env);
     validators.push_back(validator1.clone());
     validators.push_back(validator2.clone());
     validators.push_back(validator3.clone());
 
-    assert_eq!(
-        client.get_validators(),
-        validators
-    );
-
-    assert_eq!(
-        client.get_validators().len(),
-        3
-    );
-
-    client.remove_validator(&validator2.clone());
-
-    assert_eq!(
-        client.get_validators().len(),
-        2
-    );
-    validators.remove(1);
-
-    assert_eq!(
-        client.get_validators(),
-        validators
-    );
-}
-
-#[test]
-fn test_set_threshold() {
-    let ctx = TestContext::default();
-    let client = ClusterConnectionClient::new(&ctx.env, &ctx.contract);
-
-    ctx.init_context(&client);
-
+    client.update_validators(&validators, &3_u32);
     let threshold: u32 = 2_u32;
     client.set_validators_threshold(&threshold);
 

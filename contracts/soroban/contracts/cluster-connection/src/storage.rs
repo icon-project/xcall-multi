@@ -164,20 +164,6 @@ pub fn store_validators(e: &Env, validators: Vec<Address>) {
     e.storage().instance().set(&StorageKey::Validators, &validators);
 }
 
-pub fn remove_validator(e: &Env, address: Address) {
-    let mut validators: Vec<Address> = get_validators(e).unwrap();
-    if let Some(index) = validators.iter().position(|v| v == address) {
-        validators.remove(index.try_into().unwrap());
-        e.storage().instance().set(&StorageKey::Validators, &validators);
-    }
-}
-
-pub fn add_validator(e: &Env, address: Address) {
-    let mut validators = get_validators(e).unwrap();
-    validators.push_back(address);
-    store_validators(e, validators);
-}
-
 pub fn store_network_fee(e: &Env, network_id: String, message_fee: u128, response_fee: u128) {
     let key = StorageKey::NetworkFee(network_id);
     let network_fee = NetworkFee {
