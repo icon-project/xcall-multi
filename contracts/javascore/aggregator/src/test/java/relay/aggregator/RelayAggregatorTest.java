@@ -10,6 +10,7 @@ import org.junit.jupiter.api.function.Executable;
 import score.Address;
 import score.Context;
 import score.UserRevertedException;
+import scorex.util.HashSet;
 
 import com.iconloop.score.test.Account;
 import com.iconloop.score.test.Score;
@@ -69,7 +70,7 @@ class RelayAggregatorTest extends TestBase {
         Address[] relayers = new Address[] { adminAc.getAddress(), relayerOneAc.getAddress(), relayerTwoAc.getAddress(),
                 relayerThreeAc.getAddress() };
 
-        aggregator.invoke(adminAc, "addRelayers", (Object) relayers);
+        aggregator.invoke(adminAc, "setRelayers", (Object) relayers, 2);
 
         aggregatorSpy = (RelayAggregator) spy(aggregator.getInstance());
         aggregator.setInstance(aggregatorSpy);
@@ -118,68 +119,91 @@ class RelayAggregatorTest extends TestBase {
     public void testSetSignatureThreshold_unauthorised() {
         int threshold = 3;
 
-        Executable action = () -> aggregator.invoke(relayerOneAc, "setSignatureThreshold", threshold);
+        Executable action = () -> aggregator.invoke(relayerOneAc,
+                "setSignatureThreshold", threshold);
         UserRevertedException e = assertThrows(UserRevertedException.class, action);
 
-        assertEquals("Reverted(0): Unauthorized: caller is not the leader relayer", e.getMessage());
+        assertEquals("Reverted(0): Unauthorized: caller is not the leader relayer",
+                e.getMessage());
     }
 
     @Test
-    public void testAddRelayers() {
+    public void testSetRelayers() {
         Account relayerFiveAc = sm.createAccount();
-        Address[] newRelayers = new Address[] { relayerFourAc.getAddress(), relayerFiveAc.getAddress() };
+        Address[] newRelayers = new Address[] { relayerThreeAc.getAddress(), relayerFourAc.getAddress(),
+                relayerFiveAc.getAddress() };
 
-        aggregator.invoke(adminAc, "addRelayers", (Object) newRelayers);
+        Integer threshold = 3;
+        aggregator.invoke(adminAc, "setRelayers", (Object) newRelayers, threshold);
 
         Address[] updatedRelayers = (Address[]) aggregator.call("getRelayers");
 
-        assertTrue(updatedRelayers[updatedRelayers.length - 1].equals(relayerFiveAc.getAddress()));
-        assertTrue(updatedRelayers[updatedRelayers.length - 2].equals(relayerFourAc.getAddress()));
-    }
+        Address[] expectedRelayers = new Address[] { adminAc.getAddress(), relayerThreeAc.getAddress(),
+                relayerFourAc.getAddress(),
+                relayerFiveAc.getAddress() };
 
-    @Test
-    public void testAddRelayers_unauthorised() {
-        Account relayerFiveAc = sm.createAccount();
-        Address[] newRelayers = new Address[] { relayerFourAc.getAddress(), relayerFiveAc.getAddress() };
-
-        Executable action = () -> aggregator.invoke(relayerOneAc, "addRelayers", (Object) newRelayers);
-        UserRevertedException e = assertThrows(UserRevertedException.class, action);
-
-        assertEquals("Reverted(0): Unauthorized: caller is not the leader relayer", e.getMessage());
-    }
-
-    @Test
-    public void testRemoveRelayers() {
-        Address[] relayerToBeRemoved = new Address[] { relayerOneAc.getAddress(),
-                relayerTwoAc.getAddress() };
-
-        aggregator.invoke(adminAc, "removeRelayers", (Object) relayerToBeRemoved);
-
-        Address[] updatedRelayers = (Address[]) aggregator.call("getRelayers");
-
-        Boolean removed = true;
+        HashSet<Address> updatedRelayersSet = new HashSet<Address>();
         for (Address rlr : updatedRelayers) {
-            if (rlr.equals(relayerOneAc.getAddress()) || rlr.equals(relayerTwoAc.getAddress())) {
-                removed = false;
-                break;
-            }
+            updatedRelayersSet.add(rlr);
         }
 
-        assertTrue(removed);
-        assertEquals(updatedRelayers[1], relayerThreeAc.getAddress());
+        HashSet<Address> expectedRelayersSet = new HashSet<Address>();
+        for (Address rlr : expectedRelayers) {
+            expectedRelayersSet.add(rlr);
+        }
+
+        assertEquals(expectedRelayersSet, updatedRelayersSet);
+
+        Integer result = (Integer) aggregator.call("getSignatureThreshold");
+        assertEquals(threshold, result);
     }
 
     @Test
-    public void testRemoveRelayers_unauthorised() {
-        Address[] relayerToBeRemoved = new Address[] { relayerOneAc.getAddress(),
-                relayerTwoAc.getAddress() };
+    public void testSetRelayers_unauthorized() {
+        Account relayerFiveAc = sm.createAccount();
+        Address[] newRelayers = new Address[] { relayerThreeAc.getAddress(), relayerFourAc.getAddress(),
+                relayerFiveAc.getAddress() };
 
-        aggregator.invoke(adminAc, "removeRelayers", (Object) relayerToBeRemoved);
-
-        Executable action = () -> aggregator.invoke(relayerFourAc, "removeRelayers", (Object) relayerToBeRemoved);
+        Integer threshold = 3;
+        Executable action = () -> aggregator.invoke(relayerOneAc, "setRelayers",
+                (Object) newRelayers, threshold);
         UserRevertedException e = assertThrows(UserRevertedException.class, action);
 
-        assertEquals("Reverted(0): Unauthorized: caller is not the leader relayer", e.getMessage());
+        assertEquals("Reverted(0): Unauthorized: caller is not the leader relayer",
+                e.getMessage());
+
+    }
+
+    @Test
+    public void testSetRelayers_invalidThreshold() {
+        Account relayerFiveAc = sm.createAccount();
+        Address[] newRelayers = new Address[] { relayerThreeAc.getAddress(), relayerFourAc.getAddress(),
+                relayerFiveAc.getAddress() };
+
+        Integer threshold = 5;
+        Executable action = () -> aggregator.invoke(adminAc, "setRelayers",
+                (Object) newRelayers, threshold);
+        UserRevertedException e = assertThrows(UserRevertedException.class, action);
+
+        assertEquals("Reverted(0): threshold value should be at least 1 and not greater than relayers size",
+                e.getMessage());
+
+    }
+
+    @Test
+    public void testSetRelayers_invalidThresholdZero() {
+        Account relayerFiveAc = sm.createAccount();
+        Address[] newRelayers = new Address[] { relayerThreeAc.getAddress(), relayerFourAc.getAddress(),
+                relayerFiveAc.getAddress() };
+
+        Integer threshold = 0;
+        Executable action = () -> aggregator.invoke(adminAc, "setRelayers",
+                (Object) newRelayers, threshold);
+        UserRevertedException e = assertThrows(UserRevertedException.class, action);
+
+        assertEquals("Reverted(0): threshold value should be at least 1 and not greater than relayers size",
+                e.getMessage());
+
     }
 
     @Test
@@ -197,11 +221,13 @@ class RelayAggregatorTest extends TestBase {
         byte[] dataHash = Context.hash("sha-256", data);
         byte[] sign = relayerOne.sign(dataHash);
 
-        aggregator.invoke(relayerOneAc, "submitPacket", srcNetwork, srcContractAddress, srcSn, srcHeight, dstNetwork,
+        aggregator.invoke(relayerOneAc, "submitPacket", srcNetwork,
+                srcContractAddress, srcSn, srcHeight, dstNetwork,
                 dstContractAddress, data,
                 sign);
 
-        boolean submitted = (boolean) aggregator.call("packetSubmitted", relayerOneAc.getAddress(), srcNetwork,
+        boolean submitted = (boolean) aggregator.call("packetSubmitted",
+                relayerOneAc.getAddress(), srcNetwork,
                 srcContractAddress, srcSn);
         assertEquals(submitted, true);
     }
@@ -212,7 +238,8 @@ class RelayAggregatorTest extends TestBase {
         BigInteger srcSn = BigInteger.ONE;
         String srcContractAddress = "hxjuiod";
 
-        boolean submitted = (boolean) aggregator.call("packetSubmitted", relayerOneAc.getAddress(), srcNetwork,
+        boolean submitted = (boolean) aggregator.call("packetSubmitted",
+                relayerOneAc.getAddress(), srcNetwork,
                 srcContractAddress, srcSn);
         assertEquals(submitted, false);
     }
@@ -232,12 +259,14 @@ class RelayAggregatorTest extends TestBase {
         byte[] dataHash = Context.hash("sha-256", data);
         byte[] sign = relayerOne.sign(dataHash);
 
-        aggregator.invoke(relayerOneAc, "submitPacket", srcNetwork, srcContractAddress, srcSn, srcHeight, dstNetwork,
+        aggregator.invoke(relayerOneAc, "submitPacket", srcNetwork,
+                srcContractAddress, srcSn, srcHeight, dstNetwork,
                 dstContractAddress, data,
                 sign);
 
         String pktID = Packet.createId(srcNetwork, srcContractAddress, srcSn);
-        verify(aggregatorSpy).PacketRegistered(srcNetwork, srcContractAddress, srcSn, srcHeight, dstNetwork,
+        verify(aggregatorSpy).PacketRegistered(srcNetwork, srcContractAddress, srcSn,
+                srcHeight, dstNetwork,
                 dstContractAddress, data);
         verify(aggregatorSpy).setSignature(pktID, relayerOneAc.getAddress(), sign);
     }
@@ -257,12 +286,14 @@ class RelayAggregatorTest extends TestBase {
         byte[] dataHash = Context.hash("sha-256", data);
 
         byte[] signAdmin = admin.sign(dataHash);
-        aggregator.invoke(adminAc, "submitPacket", srcNetwork, srcContractAddress, srcSn, srcHeight, dstNetwork,
+        aggregator.invoke(adminAc, "submitPacket", srcNetwork, srcContractAddress,
+                srcSn, srcHeight, dstNetwork,
                 dstContractAddress, data,
                 signAdmin);
 
         byte[] signOne = relayerOne.sign(dataHash);
-        aggregator.invoke(relayerOneAc, "submitPacket", srcNetwork, srcContractAddress, srcSn, srcHeight, dstNetwork,
+        aggregator.invoke(relayerOneAc, "submitPacket", srcNetwork,
+                srcContractAddress, srcSn, srcHeight, dstNetwork,
                 dstContractAddress,
                 data,
                 signOne);
@@ -277,7 +308,8 @@ class RelayAggregatorTest extends TestBase {
         assertArrayEquals(signAdmin, decodedSigs[0]);
         assertArrayEquals(signOne, decodedSigs[1]);
 
-        verify(aggregatorSpy).PacketAcknowledged(srcNetwork, srcContractAddress, srcSn, srcHeight, dstNetwork,
+        verify(aggregatorSpy).PacketAcknowledged(srcNetwork, srcContractAddress,
+                srcSn, srcHeight, dstNetwork,
                 dstContractAddress, data,
                 encodedSigs);
     }
@@ -295,7 +327,8 @@ class RelayAggregatorTest extends TestBase {
         byte[] dataHash = Context.hash("sha-256", data);
         byte[] sign = relayerFour.sign(dataHash);
 
-        Executable action = () -> aggregator.invoke(relayerFourAc, "submitPacket", srcNetwork, srcContractAddress,
+        Executable action = () -> aggregator.invoke(relayerFourAc, "submitPacket",
+                srcNetwork, srcContractAddress,
                 srcSn,
                 srcHeight, dstNetwork, dstContractAddress, data, sign);
 
@@ -319,10 +352,12 @@ class RelayAggregatorTest extends TestBase {
         byte[] dataHash = Context.hash("sha-256", data);
         byte[] sign = relayerOne.sign(dataHash);
 
-        aggregator.invoke(relayerOneAc, "submitPacket", srcNetwork, srcContractAddress, srcSn, srcHeight, dstNetwork,
+        aggregator.invoke(relayerOneAc, "submitPacket", srcNetwork,
+                srcContractAddress, srcSn, srcHeight, dstNetwork,
                 dstContractAddress, data, sign);
 
-        Executable action = () -> aggregator.invoke(relayerOneAc, "submitPacket", srcNetwork, srcContractAddress, srcSn,
+        Executable action = () -> aggregator.invoke(relayerOneAc, "submitPacket",
+                srcNetwork, srcContractAddress, srcSn,
                 srcHeight, dstNetwork, dstContractAddress,
                 data, sign);
         ;
