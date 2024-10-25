@@ -63,8 +63,8 @@ impl Config {
         Ok(account.lamports() - rent_exempt_balance)
     }
 
-    pub fn get_threshold(&self) -> Result<u8> {
-        Ok(self.threshold)
+    pub fn get_threshold(&self) -> u8 {
+        self.threshold
     }
 
     pub fn set_threshold(&mut self, threshold: u8) {
@@ -75,15 +75,15 @@ impl Config {
         self.validators.push(validator);
     }
 
-    pub fn remove_validator(&mut self, validator: Pubkey) {
-        if self.admin == validator {
-            return;
-        }
-        if self.validators.len() < self.threshold as usize {
-            return;
-        }
-        self.validators.retain(|x| *x != validator);
+    pub fn store_validators(&mut self, validators: Vec<Pubkey>) {
+        self.validators = validators
     }
+
+    pub fn is_validator(&self, address: &Pubkey) -> bool {
+        self.validators.contains(address)
+    }
+
+
 
     pub fn get_validators(&self) -> Vec<Pubkey> {
         self.validators.clone()

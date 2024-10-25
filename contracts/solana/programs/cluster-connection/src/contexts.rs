@@ -229,21 +229,6 @@ pub struct AddValidator<'info> {
     pub config: Account<'info, Config>,
 }
 
-#[derive(Accounts)]
-pub struct RemoveValidator<'info> {
-    /// Transaction signer
-    #[account(mut)]
-    pub admin: Signer<'info>,
-
-    /// Config
-    #[account(
-        mut,
-        seeds = [Config::SEED_PREFIX.as_bytes()],
-        bump = config.bump,
-        has_one = admin @ ConnectionError::OnlyAdmin,
-    )]
-    pub config: Account<'info, Config>,
-}
 
 #[derive(Accounts)]
 pub struct GetValidators<'info> {

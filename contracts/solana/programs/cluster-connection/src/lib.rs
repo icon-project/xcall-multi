@@ -64,27 +64,17 @@ pub mod centralized_connection {
         Ok(())
     }
 
-    #[allow(unused_variables)]
-    pub fn recv_message<'info>(
-        ctx: Context<'_, '_, '_, 'info, RecvMessage<'info>>,
-        src_network: String,
-        conn_sn: u128,
-        msg: Vec<u8>,
-        sequence_no: u128,
-    ) -> Result<()> {
-        helper::call_xcall_handle_message(ctx, src_network, msg, sequence_no)
-    }
 
     #[allow(unused_variables)]
-    pub fn receive_message_with_signatures<'info>(
+    pub fn receive_message<'info>(
         ctx: Context<'_, '_, '_, 'info, ReceiveMessageWithSignatures<'info>>,
         src_network: String,
         conn_sn: u128,
         msg: Vec<u8>,
         sequence_no: u128,
-        signatures: Vec<[u8; 64]>,
+        signatures: Vec<[u8; 65]>,
     ) -> Result<()> {
-        helper::call_xcall_handle_message_with_signatures(ctx, src_network, msg, sequence_no,signatures)
+        helper::call_xcall_handle_message_with_signatures(ctx, src_network, msg, conn_sn, sequence_no,signatures)
     }
 
     pub fn revert_message<'info>(
@@ -118,17 +108,22 @@ pub mod centralized_connection {
     }
 
     pub fn set_threshold(ctx: Context<SetThreshold>, threshold: u8) -> Result<()> {
+        if ctx.accounts.config.get_validators().len() < threshold as usize {
+            return Err(error::ConnectionError::ValidatorsMustBeGreaterThanThreshold.into());
+        }
         ctx.accounts.config.set_threshold(threshold);
         Ok(())
     }
 
-    pub fn add_validator(ctx: Context<AddValidator>, validator: Pubkey) -> Result<()> {
-        ctx.accounts.config.add_validator(validator);
-        Ok(())
-    }
-
-    pub fn remove_validator(ctx: Context<RemoveValidator>, validator: Pubkey) -> Result<()> {
-        ctx.accounts.config.remove_validator(validator);
+    pub fn update_validators(ctx: Context<AddValidator>, validators: Vec<Pubkey>, threshold: u8) -> Result<()> {
+        let mut unique_validators = validators.clone();
+        unique_validators.sort();
+        unique_validators.dedup();
+        if unique_validators.len() < threshold as usize {
+            return Err(error::ConnectionError::ValidatorsMustBeGreaterThanThreshold.into());
+        }
+        ctx.accounts.config.set_threshold(threshold);
+        ctx.accounts.config.store_validators(unique_validators);
         Ok(())
     }
 
@@ -137,7 +132,7 @@ pub mod centralized_connection {
     }
 
     pub fn get_threshold(ctx: Context<GetThreshold>) -> Result<u8> {
-        Ok(ctx.accounts.config.get_threshold()?)
+        Ok(ctx.accounts.config.get_threshold())
     }
 
     #[allow(unused_variables)]

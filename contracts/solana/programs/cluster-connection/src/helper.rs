@@ -1,18 +1,13 @@
 use anchor_lang::{
     prelude::*,
     solana_program::{
-        hash,
-        instruction::{AccountMeta,Instruction},
-        program::{invoke, invoke_signed},
-        sysvar::{recent_blockhashes::ID as SYSVAR_ID},
-        ed25519_program,
-        system_instruction,
+        hash, instruction::{AccountMeta,Instruction}, keccak::hashv, program::{invoke, invoke_signed}, secp256k1_recover::{secp256k1_recover, Secp256k1Pubkey}, system_instruction, sysvar::recent_blockhashes::ID as SYSVAR_ID
     },
 };
 
-use ed25519_dalek::{PublicKey as Ed25519PublicKey, Signature, Verifier};
 use crate::contexts::*;
 use crate::state::*;
+use crate::error::*;
 
 use xcall_lib::xcall_type;
 
@@ -44,60 +39,51 @@ pub fn get_instruction_data(ix_name: &str, data: Vec<u8>) -> Vec<u8> {
     ix_data
 }
 
-pub fn verify_message(signature: [u8; 64], message: Vec<u8>, pubkey: Pubkey) -> Result<()> {
-    // Recover the public key from the signature
+pub fn get_message_hash(from_nid: &String, connection_sn: &u128, message: &Vec<u8>) -> [u8; 32] {
+    let mut result = from_nid.as_bytes().to_vec();  
+    result.extend_from_slice(&connection_sn.to_le_bytes()); 
+    result.extend_from_slice(message);  
 
-    // let pubkey = Pubkey::from([
-    //     57, 234, 243, 206, 86, 29, 102, 46, 179, 39, 246, 137, 159, 74, 167, 40, 
-    //     69, 191, 199, 163, 68, 114, 221, 40, 45, 129, 56, 73, 87, 58, 119, 149
-    // ]);
-
-    let validator_pubkey = Ed25519PublicKey::from_bytes(&pubkey.to_bytes()).unwrap();
-
-    let signature = Signature::from_bytes(&signature).unwrap();
-
-    validator_pubkey
-        .verify(&message, &signature)
-        .unwrap();
-    
-
-    Ok(())
+    let hash = hashv(&[&result]);
+    hash.0
 }
 
-pub fn call_xcall_handle_message<'info>(
-    ctx: Context<'_, '_, '_, 'info, RecvMessage<'info>>,
-    from_nid: String,
-    message: Vec<u8>,
-    sequence_no: u128,
-) -> Result<()> {
-    let mut data = vec![];
-    let args = xcall_type::HandleMessageArgs {
-        from_nid,
-        message,
-        sequence_no,
-    };
-    args.serialize(&mut data)?;
-
-    let ix_data = get_instruction_data("handle_message", data);
-
-    invoke_instruction(
-        ix_data,
-        &ctx.accounts.config,
-        &ctx.accounts.authority,
-        &ctx.accounts.admin,
-        &ctx.accounts.system_program,
-        ctx.remaining_accounts,
-    )
+pub fn recover_pubkey(message: [u8; 32], sig: [u8; 65]) -> Pubkey {
+    let recovery_key = sig[64];
+    let signature = &sig[0..64];
+    let recovered_pubkey = secp256k1_recover(&message, recovery_key, signature).unwrap_or(
+        Secp256k1Pubkey::new(&[0u8; 64]),);
+    let pubkey_bytes: [u8; 64] = recovered_pubkey.to_bytes();
+    let mut solana_pubkey_bytes = [0u8; 32];
+    solana_pubkey_bytes.copy_from_slice(&pubkey_bytes[..32]);
+    Pubkey::new_from_array(solana_pubkey_bytes)
 }
+
+
 
 pub fn call_xcall_handle_message_with_signatures<'info>(
     ctx: Context<'_, '_, '_, 'info, ReceiveMessageWithSignatures<'info>>,
     from_nid: String,
     message: Vec<u8>,
+    connection_sn: u128,
     sequence_no: u128,
-    signatures: Vec<[u8; 64]>,
+    signatures: Vec<[u8; 65]>,
 ) -> Result<()> {
     let mut data = vec![];
+
+    let message_hash = get_message_hash(&from_nid, &connection_sn, &message);
+    let mut unique_validators = Vec::new();
+    for sig in signatures {
+        let pubkey = recover_pubkey(message_hash, sig);
+        if ctx.accounts.config.is_validator(&pubkey) {
+            unique_validators.push(pubkey);
+        } 
+    }
+
+    if (unique_validators.len() as u8) < ctx.accounts.config.get_threshold() {
+        return Err(ConnectionError::ValidatorsMustBeGreaterThanThreshold.into());
+    }
+
     let args = xcall_type::HandleMessageArgs {
         from_nid,
         message,
@@ -178,20 +164,3 @@ pub fn invoke_instruction<'info>(
     Ok(())
 }
 
-#[test]
-fn test_verify_message() {
-    let message: Vec<u8> = b"Test message".to_vec();
-    let result = verify_message([
-        73, 220,  38, 229, 202, 199, 238, 241,  69, 237, 194,
-       226, 113,  76,  59, 167, 134,  83,  13, 213, 245, 151,
-        26, 220, 196, 162, 247, 240,  95, 245,  78, 205,  26,
-       233, 140, 177, 151, 207, 193,  23,  71,  96, 126, 115,
-       200,  21, 108, 178,  48, 133, 117, 208,  27,  80, 237,
-        93, 180,  97, 235,  40, 109,  36,  31,  11
-     ], message.clone(), Pubkey::new(&[57, 234, 243, 206, 86, 29, 102, 46, 179, 39, 246, 137, 159, 74, 167, 40, 
-        69, 191, 199, 163, 68, 114, 221, 40, 45, 129, 56, 73, 87, 58, 119, 149]
-       ));
-
-    // Step 6: Assert that the signature verification is successful
-    assert!(result.is_ok(), "Signature verification failed");
-}
