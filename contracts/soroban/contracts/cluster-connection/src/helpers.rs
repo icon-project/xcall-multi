@@ -60,7 +60,6 @@ pub fn transfer_token(
 pub fn compress_public_keys(e: &Env, uncompressed_public_key: BytesN<65>) -> Bytes {
     let uncompressed_pub_key_array = uncompressed_public_key.to_array();
     if uncompressed_pub_key_array[0] != 0x04 {
-        //return empty bytessize(33);
         return Bytes::from_array(e, &[0u8; 33]);
     }
 
@@ -123,7 +122,7 @@ pub fn verify_signatures(
 
 pub fn get_encoded_message(e: &Env, src_network: &String, conn_sn: &u128, message: &Bytes) -> Bytes {
     let mut result = Bytes::from_val(e, &src_network.to_val());
-    result.extend_from_slice(&conn_sn.to_be_bytes());
+    result.extend_from_slice(&conn_sn.to_le_bytes());
     result.append(message);
     result
 }
