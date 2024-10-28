@@ -1,4 +1,4 @@
-@xcall/contracts/=./contracts/
+@intents/contracts/=./contracts/
 @iconfoundation/xcall-solidity-library/=./library/xcall/
 @xcall/utils/=./library/utils/
 ds-test/=lib/forge-std/lib/ds-test/src/
