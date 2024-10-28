@@ -46,12 +46,14 @@ pub fn call_xcall_handle_message<'info>(
     from_nid: String,
     message: Vec<u8>,
     sequence_no: u128,
+    conn_sn: u128,
 ) -> Result<()> {
     let mut data = vec![];
     let args = xcall_type::HandleMessageArgs {
         from_nid,
         message,
         sequence_no,
+        conn_sn,
     };
     args.serialize(&mut data)?;
 

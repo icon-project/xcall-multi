@@ -182,6 +182,7 @@ describe("CentralizedConnection", () => {
     ).encode();
 
     let recvMessageAccounts = await ctx.getRecvMessageAccounts(
+      fromNetwork,
       connSn,
       nextSequenceNo,
       cs_message,
@@ -212,7 +213,11 @@ describe("CentralizedConnection", () => {
     expect(await ctx.getReceipt(fromNetwork, nextSequenceNo)).to.be.empty;
 
     // expect proxy request in xcall PDA's account
-    let proxyRequest = await xcallCtx.getProxyRequest(nextReqId);
+    let proxyRequest = await xcallCtx.getProxyRequest(
+      fromNetwork,
+      connSn,
+      connectionProgram.programId
+    );
     expect(proxyRequest.req.protocols).to.includes(
       connectionProgram.programId.toString()
     );
@@ -229,17 +234,30 @@ describe("CentralizedConnection", () => {
     // call xcall execute_call
     let executeCallAccounts = await xcallCtx.getExecuteCallAccounts(
       nextReqId,
+      fromNetwork,
+      connSn,
+      connectionProgram.programId,
       data
     );
 
     await xcallProgram.methods
-      .executeCall(new anchor.BN(nextReqId), Buffer.from(data))
+      .executeCall(
+        new anchor.BN(nextReqId),
+        fromNetwork,
+        new anchor.BN(connSn),
+        connectionProgram.programId,
+        Buffer.from(data)
+      )
       .accounts({
         signer: ctx.admin.publicKey,
         systemProgram: SYSTEM_PROGRAM_ID,
         config: XcallPDA.config().pda,
         admin: xcallConfig.admin,
-        proxyRequest: XcallPDA.proxyRequest(nextReqId).pda,
+        proxyRequest: XcallPDA.proxyRequest(
+          fromNetwork,
+          connSn,
+          connectionProgram.programId
+        ).pda,
       })
       .remainingAccounts([...executeCallAccounts.slice(4)])
       .signers([ctx.admin])
@@ -348,6 +366,7 @@ describe("CentralizedConnection", () => {
     ).encode();
 
     let recvMessageAccounts = await ctx.getRecvMessageAccounts(
+      ctx.dstNetworkId,
       connSn,
       nextSequenceNo,
       csMessage,
@@ -467,6 +486,7 @@ describe("CentralizedConnection", () => {
     ).encode();
 
     let recvMessageAccounts = await ctx.getRecvMessageAccounts(
+      ctx.dstNetworkId,
       connSn,
       nextSequenceNo,
       csMessage,
@@ -664,6 +684,7 @@ describe("CentralizedConnection", () => {
     ).encode();
 
     let recvMessageAccounts = await ctx.getRecvMessageAccounts(
+      fromNetwork,
       connSn,
       nextSequenceNo,
       cs_message,
@@ -691,7 +712,12 @@ describe("CentralizedConnection", () => {
     await sleep(2);
 
     let executeForcedRollbackIx = await mockDappProgram.methods
-      .executeForcedRollback(new anchor.BN(nextReqId))
+      .executeForcedRollback(
+        new anchor.BN(nextReqId),
+        fromNetwork,
+        new anchor.BN(connSn),
+        connectionProgram.programId
+      )
       .accountsStrict({
         config: DappPDA.config().pda,
         systemProgram: SYSTEM_PROGRAM_ID,
@@ -710,7 +736,11 @@ describe("CentralizedConnection", () => {
           isWritable: true,
         },
         {
-          pubkey: XcallPDA.proxyRequest(nextReqId).pda,
+          pubkey: XcallPDA.proxyRequest(
+            fromNetwork,
+            connSn,
+            connectionProgram.programId
+          ).pda,
           isSigner: false,
           isWritable: true,
         },
