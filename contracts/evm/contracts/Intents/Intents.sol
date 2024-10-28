@@ -5,6 +5,8 @@ pragma abicoder v2;
 import "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import "openzeppelin-contracts/contracts/utils/Strings.sol";
 import "@iconfoundation/xcall-solidity-library/utils/ParseAddress.sol";
+import "openzeppelin-contracts/contracts/access/Ownable.sol";
+
 
 import "./Types.sol";
 import "./Encoding.sol";
@@ -16,7 +18,7 @@ import {console} from "forge-std/console.sol";
 
 /// @title ICONIntents
 /// @notice Implements the intent-based swapping protocol for cross-chain swaps.
-contract Intents is GeneralizedConnection {
+contract Intents is GeneralizedConnection, Ownable {
     using Encoding for *;
     using Strings for string;
     using SafeERC20 for IERC20;
@@ -71,6 +73,13 @@ contract Intents is GeneralizedConnection {
         permit2 = IPermit2(_premit2);
     }
 
+    function setFeeHandler(address _feeHandler) external onlyOwner {
+        feeHandler = _feeHandler;
+    }
+
+    function setProtocolFee(uint16 _protocolFee) external onlyOwner {
+        protocolFee = _protocolFee;
+    }
 
     function swap(
         Types.SwapOrder memory order

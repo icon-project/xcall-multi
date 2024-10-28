@@ -642,4 +642,28 @@ contract IntentsTest is Test {
         // Assert
         assertTrue(intents.finishedOrders(keccak256(order.encode())));
     }
+
+    function testSetFeeHandler() public {
+        address newFeeHandler = address(0x891);
+        intents.setFeeHandler(newFeeHandler);
+        assertEq(intents.feeHandler(), newFeeHandler);
+
+        address nonOwner = address(0x892);
+        vm.startPrank(nonOwner);
+
+        vm.expectRevert("Ownable: caller is not the owner");
+        intents.setFeeHandler(newFeeHandler);
+    }
+
+    function testSetProtocolFee() public {
+        uint16 newFee = 13;
+        intents.setProtocolFee(newFee);
+        assertEq(intents.protocolFee(), newFee);
+
+        address nonOwner = address(0x892);
+        vm.startPrank(nonOwner);
+
+        vm.expectRevert("Ownable: caller is not the owner");
+        intents.setProtocolFee(newFee);
+    }
 }
