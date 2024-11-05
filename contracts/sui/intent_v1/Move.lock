@@ -2,11 +2,11 @@
 
 [move]
 version = 2
-manifest_digest = "21E81E673F20301CA05AB61BB8D16BE536D40D02C6F8E62987634453774206FC"
+manifest_digest = "6305771898C8BDB218E218C41F747AAA626C65587647B3F4A7184BF915238509"
 deps_digest = "3C4103934B1E040BB6B23F1D610B4EF9F2F1166A50A104EADCF77467C004C600"
 dependencies = [
   { name = "Sui" },
-  { name = "xcall" },
+  { name = "sui_rlp" },
 ]
 
 [[move.package]]
@@ -23,23 +23,14 @@ dependencies = [
 
 [[move.package]]
 name = "sui_rlp"
-source = { local = "../libs/sui_rlp" }
+source = { git = "https://github.com/icon-project/xcall-multi.git", rev = "main", subdir = "contracts/sui/libs/sui_rlp" }
 
 dependencies = [
   { name = "Sui" },
-]
-
-[[move.package]]
-name = "xcall"
-source = { local = "../xcall" }
-
-dependencies = [
-  { name = "Sui" },
-  { name = "sui_rlp" },
 ]
 
 [move.toolchain-version]
-compiler-version = "1.25.1"
+compiler-version = "1.33.2"
 edition = "2024.beta"
 flavor = "sui"
 
@@ -47,6 +38,6 @@ flavor = "sui"
 
 [env.testnet]
 chain-id = "4c78adac"
-original-published-id = "0x7545f1a2cd73437e731b73b718ebbf13c440880fb811dbdef53a76b8586ccb8f"
-latest-published-id = "0x7545f1a2cd73437e731b73b718ebbf13c440880fb811dbdef53a76b8586ccb8f"
+original-published-id = "0x468fb4326302ec28df8812a41e400f3a6be4a94d9fcedf51e5935c9ac2a44226"
+latest-published-id = "0x468fb4326302ec28df8812a41e400f3a6be4a94d9fcedf51e5935c9ac2a44226"
 published-version = "1"
