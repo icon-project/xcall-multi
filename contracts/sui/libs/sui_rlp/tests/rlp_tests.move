@@ -80,6 +80,80 @@ module sui_rlp::rlp_tests {
         list
     }
 
+
+     #[test]
+    fun test_encoding_u128(){
+        let num:u128=100;
+        let bytes=x"64";
+        let encoded= encoder::encode_u128(num);
+        assert!(encoded==bytes);
+        let decoded=decoder::decode_u128(&decoder::decode(&encoded));
+        assert!(decoded==num);
+        
+        ////
+        /// 
+        let num:u128=200;
+        let bytes=x"8200c8";
+        let encoded= encoder::encode_u128(num);
+        assert!(encoded==bytes);
+        let decoded=decoder::decode_u128(&decoder::decode(&encoded));
+        assert!(decoded==num);
+        ///
+        /// 
+        let num:u128=3000000;
+        let bytes=x"832dc6c0";
+        let encoded= encoder::encode_u128(num);
+        std::debug::print(&encoded);
+        assert!(encoded==bytes);
+        let decoded=decoder::decode_u128(&decoder::decode(&encoded));
+        assert!(decoded==num);
+
+        let num:u128=273468273;
+        let bytes=x"84104ccb71";
+        let encoded= encoder::encode_u128(num);
+        assert!(encoded==bytes);
+        let decoded=decoder::decode_u128(&decoder::decode(&encoded));
+        assert!(decoded==num);
+
+        let num:u128=2342312;
+        let bytes=x"8323bda8";
+        let encoded= encoder::encode_u128(num);
+        assert!(encoded==bytes);
+        let decoded=decoder::decode_u128(&decoder::decode(&encoded));
+        assert!(decoded==num);
+
+        let num:u128=1233;
+        let bytes=x"8204d1";
+        let encoded= encoder::encode_u128(num);
+        assert!(encoded==bytes);
+        let decoded=decoder::decode_u128(&decoder::decode(&encoded));
+        assert!(decoded==num);
+
+        let num:u128=412926;
+        let bytes=x"83064cfe";
+        let encoded= encoder::encode_u128(num);
+        assert!(encoded==bytes);
+        let decoded=decoder::decode_u128(&decoder::decode(&encoded));
+        assert!(decoded==num);
+
+        let num:u128=9434628989898;
+        let bytes=x"860894abb5a3ca";
+        let encoded= encoder::encode_u128(num);
+        assert!(encoded==bytes);
+        let decoded=decoder::decode_u128(&decoder::decode(&encoded));
+        assert!(decoded==num);
+
+        let num:u128=92625222222121112;
+        let bytes=x"88014912261bca8898";
+        let encoded= encoder::encode_u128(num);
+        assert!(encoded==bytes);
+        let decoded=decoder::decode_u128(&decoder::decode(&encoded));
+        assert!(decoded==num);
+
+
+       
+    }
+
      
 
 
