@@ -86,8 +86,11 @@ module sui_rlp::utils {
 
             i = i + 1;
         };
-
-        result
+        if (result.length()==0){
+            vector<u8>[0]
+        }else{
+            result
+        }
     }
 
 
