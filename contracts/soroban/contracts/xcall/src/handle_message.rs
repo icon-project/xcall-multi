@@ -160,6 +160,7 @@ pub fn handle_reply(
 }
 
 pub fn handle_error(env: &Env, sender: Address, sequence_no: u128) -> Result<(), ContractError> {
+    sender.require_auth();
     let cs_message_result = CSMessageResult::new(
         sequence_no,
         CSResponseType::CSResponseFailure,

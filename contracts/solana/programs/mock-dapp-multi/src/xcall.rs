@@ -100,9 +100,19 @@ pub fn get_send_call_ix_data(msg: Vec<u8>, to: NetworkAddress) -> Result<Vec<u8>
     Ok(ix_data)
 }
 
-pub fn get_handle_forced_rollback_ix_data(req_id: u128) -> Result<Vec<u8>> {
+pub fn get_handle_forced_rollback_ix_data(
+    req_id: u128,
+    from_nid: String,
+    conn_sn: u128,
+    connection: Pubkey,
+) -> Result<Vec<u8>> {
     let mut ix_args_data = vec![];
-    let ix_args = xcall_type::HandleForcedRollback { req_id };
+    let ix_args = xcall_type::HandleForcedRollback {
+        req_id,
+        from_nid,
+        conn_sn,
+        connection,
+    };
     ix_args.serialize(&mut ix_args_data)?;
 
     let ix_data = helpers::get_instruction_data(HANDLE_FORCED_ROLLBACK_IX, ix_args_data);

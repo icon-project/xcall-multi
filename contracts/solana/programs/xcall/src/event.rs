@@ -16,6 +16,8 @@ pub struct CallMessage {
     pub sn: u128,
     pub reqId: u128,
     pub data: Vec<u8>,
+    pub connection: Pubkey,
+    pub connSn: u128,
 }
 
 #[event]
