@@ -1,6 +1,3 @@
-use std::vec;
-
-use common::rlp;
 use cosmwasm_std::{coins, Addr, BankMsg, Event, Uint128};
 use cw_xcall_lib::network_address::NetId;
 
@@ -166,7 +163,7 @@ impl<'a> ClusterConnection<'a> {
         let mut msg_vec: Vec<u8> = self.hex_decode(msg)?;
 
         let mut signed_msg = src_network.as_str().as_bytes().to_vec();
-        signed_msg.append(&mut rlp::encode(&conn_sn).to_vec());
+        signed_msg.append(&mut to_truncated_le_bytes(conn_sn));
         signed_msg.append(&mut msg_vec);
 
         let threshold = self.get_signature_threshold(deps.storage);

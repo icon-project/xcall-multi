@@ -11,6 +11,25 @@ pub fn sha256(data: &[u8]) -> Vec<u8> {
     sha2::Sha256::digest(&data).to_vec()
 }
 
+pub fn keccak256(input: &[u8]) -> [u8; 32] {
+    use sha3::{Digest, Keccak256};
+    let mut hasher = Keccak256::new();
+    hasher.update(input);
+    let out: [u8; 32] = hasher.finalize().to_vec().try_into().unwrap();
+    out
+}
+
+pub fn to_truncated_le_bytes(n: u128) -> Vec<u8> {
+    let bytes = n.to_le_bytes();
+    let trimmed_bytes = bytes
+        .iter()
+        .rev()
+        .skip_while(|&&b| b == 0)
+        .map(|&b| b)
+        .collect::<Vec<u8>>();
+    trimmed_bytes.into_iter().rev().collect()
+}
+
 impl<'a> ClusterConnection<'a> {
     pub fn ensure_admin(&self, store: &dyn Storage, address: Addr) -> Result<(), ContractError> {
         let admin = self.get_admin(store)?;
@@ -95,7 +114,7 @@ impl<'a> ClusterConnection<'a> {
             return Err(ContractError::InsufficientSignatures);
         }
 
-        let message_hash = sha256(&signed_msg);
+        let message_hash = keccak256(&signed_msg);
 
         let mut signers: HashMap<String, bool> = HashMap::new();
 
@@ -103,14 +122,17 @@ impl<'a> ClusterConnection<'a> {
             if signature.len() != 65 {
                 return Err(ContractError::InvalidSignature);
             }
+            let mut recovery_code = 0;
+            if signature[0] == 28 {
+                recovery_code = 1
+            }
             match deps
                 .api
-                .secp256k1_recover_pubkey(&message_hash, &signature[0..64], signature[64])
+                .secp256k1_recover_pubkey(&message_hash, &signature[1..65], recovery_code)
             {
                 Ok(pubkey) => {
                     let pk = VerifyingKey::from_sec1_bytes(&pubkey)
                         .map_err(|_| ContractError::InvalidSignature)?;
-
                     let pk_hex = hex::encode(pk.to_bytes());
                     if self.is_validator(deps.storage, pk_hex.clone())
                         && !signers.contains_key(&pk_hex)
@@ -121,7 +143,10 @@ impl<'a> ClusterConnection<'a> {
                         }
                     }
                 }
-                Err(_) => continue,
+                Err(e) => {
+                    println!("am i here{:?}", e);
+                    continue;
+                }
             }
         }
 

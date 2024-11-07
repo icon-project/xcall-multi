@@ -289,7 +289,6 @@ dependencies = [
 name = "cluster-connection"
 version = "0.1.0"
 dependencies = [
- "bech32",
  "common",
  "cosmwasm",
  "cosmwasm-schema",
@@ -300,7 +299,6 @@ dependencies = [
  "getrandom",
  "hex",
  "k256 0.11.6",
- "ripemd",
  "schemars 0.8.12",
  "serde",
  "serde-json-wasm 0.5.2",

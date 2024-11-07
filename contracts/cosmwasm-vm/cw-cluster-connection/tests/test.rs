@@ -373,7 +373,7 @@ pub fn test_recv_message() {
     let (mut deps, env, ctx) = instantiate(ADMIN);
 
     let validators =
-        vec!["02e5e9769497fbc7c7ee57ab39ccedcb612018577d30ca090033dc67ba5d68b8ab".to_string()];
+        vec!["03e4899bf9b1ef805245f99d28727a592126e9365ddc5c3978a6139b51f9b47f8e".to_string()];
     let set_validators_msg = ExecuteMsg::SetValidators {
         validators: validators.clone(),
         threshold: 1,
@@ -387,10 +387,9 @@ pub fn test_recv_message() {
 
     // Set up test data
     let src_network = NetId::from_str("0x2.icon").unwrap();
-    let conn_sn: u128 = 5;
+    let conn_sn: u128 = 456456;
     let msg = string_to_hex("hello");
-    let mut sign_1 = hex::decode("7fe5c14fd4a520417402be8a39405181fca96fb3001e60be8e46623a4430994031e2693ad9eaf71a6bb7ae1bb794afb5561e3f8c3d1248cdd43513a9ab4300b9").unwrap();
-    sign_1.push(1);
+    let sign_1 = hex::decode("1c246c2747f0cfe348bd8c33811c881ea26995fc84934ead4d9d875c41c112287b2b17d87fd902cd9b7329dc166f431fc0428c34e36d43153c1104614d7ef35f75").unwrap();
     let signatures = vec![sign_1];
 
     // Test with non-relayer sender (should fail)
