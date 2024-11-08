@@ -5,9 +5,12 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
+import java.nio.charset.StandardCharsets;
 import java.security.*;
 
 import java.math.BigInteger;
+import java.util.Arrays;
+
 import score.Context;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
@@ -163,10 +166,24 @@ public class ClusterConnectionTest extends TestBase {
         byte[][] byteArray = new byte[1][];
         KeyWallet wallet = KeyWallet.create();
         byteArray[0] = wallet.sign(messageHash);
-        Address[] validators = new Address[] {Address.fromString(wallet.getAddress().toString())};
+        byte[][] validators = new byte[][] {
+                compressPublicKey(wallet.getPublicKey().toByteArray()),
+        };
         connection.invoke(owner, "updateValidators", validators, BigInteger.ONE);        
         connection.invoke(source_relayer, "recvMessageWithSignatures", nidSource, BigInteger.ONE, data, byteArray);
         verify(callservice.mock).handleMessage(eq(nidSource), eq("test".getBytes()));
+    }
+
+    private byte[] compressPublicKey(byte[] uncompressedPublicKey) {
+        byte[] xBytes = Arrays.copyOfRange(uncompressedPublicKey, 1, 33); // 32 bytes for x
+        byte[] yBytes = Arrays.copyOfRange(uncompressedPublicKey, 33, 65); // 32 bytes for y
+        BigInteger y = new BigInteger(1, yBytes);
+        byte prefix = (y.testBit(0)) ? (byte) 0x03 : (byte) 0x02;
+        byte[] compressedKey = new byte[33];
+        compressedKey[0] = prefix;
+        System.arraycopy(xBytes, 0, compressedKey, 1, 32);
+        return compressedKey;
+
     }
 
     @Test
@@ -178,7 +195,11 @@ public class ClusterConnectionTest extends TestBase {
         KeyWallet wallet2 = KeyWallet.create();
         byteArray[0] = wallet.sign(messageHash);
         byteArray[1] = wallet2.sign(messageHash);
-        Address[] validators = new Address[] {Address.fromString(wallet.getAddress().toString()), Address.fromString(wallet2.getAddress().toString())};
+        byte[] compressPublicKey = compressPublicKey(wallet.getPublicKey().toByteArray());
+        byte[][] validators = new byte[][] {
+                compressPublicKey(wallet.getPublicKey().toByteArray()),
+                compressPublicKey(wallet2.getPublicKey().toByteArray())
+        };
         connection.invoke(owner, "updateValidators", validators, BigInteger.TWO);   
         connection.invoke(source_relayer, "recvMessageWithSignatures", nidSource, BigInteger.ONE, data, byteArray);
         verify(callservice.mock).handleMessage(eq(nidSource), eq("test".getBytes()));
@@ -189,9 +210,13 @@ public class ClusterConnectionTest extends TestBase {
         byte[] data = "test".getBytes();
         byte[] messageHash = getMessageHash(nidSource, BigInteger.ONE, data);
         KeyWallet wallet = KeyWallet.create();
+        KeyWallet wallet2 = KeyWallet.create();
         byte[][] byteArray = new byte[1][];
         byteArray[0] = wallet.sign(messageHash);
-        Address[] validators = new Address[] {Address.fromString(wallet.getAddress().toString()), Address.fromString(owner.getAddress().toString())};
+        byte[][] validators = new byte[][] {
+                compressPublicKey(wallet.getPublicKey().toByteArray()),
+                compressPublicKey(wallet2.getPublicKey().toByteArray()),
+        };
         connection.invoke(owner, "updateValidators", validators, BigInteger.TWO);
         UserRevertedException e = assertThrows(UserRevertedException.class,
                 ()->connection.invoke(source_relayer, "recvMessageWithSignatures", nidSource, BigInteger.ONE, data, byteArray));
@@ -204,10 +229,14 @@ public class ClusterConnectionTest extends TestBase {
         byte[] data = "test".getBytes();
         byte[] messageHash = getMessageHash(nidSource, BigInteger.ONE, data);
         KeyWallet wallet = KeyWallet.create();
+        KeyWallet wallet2 = KeyWallet.create();
         byte[][] byteArray = new byte[2][];
         byteArray[0] = wallet.sign(messageHash);
         byteArray[1] = wallet.sign(messageHash);
-        Address[] validators = new Address[] {Address.fromString(wallet.getAddress().toString()), Address.fromString(owner.getAddress().toString())};
+        byte[][] validators = new byte[][] {
+                compressPublicKey(wallet.getPublicKey().toByteArray()),
+                compressPublicKey(wallet2.getPublicKey().toByteArray()),
+        };
         connection.invoke(owner, "updateValidators", validators, BigInteger.TWO);
         UserRevertedException e = assertThrows(UserRevertedException.class,
                 ()->connection.invoke(source_relayer, "recvMessageWithSignatures", nidSource, BigInteger.ONE, data, byteArray));
@@ -228,9 +257,13 @@ public class ClusterConnectionTest extends TestBase {
     @Test
     public void testAddSigners() throws Exception{
         KeyWallet wallet = KeyWallet.create();
-        Address[] validators = new Address[] {Address.fromString(owner.getAddress().toString()), Address.fromString(wallet.getAddress().toString())};
+        KeyWallet wallet2 = KeyWallet.create();
+        byte[][] validators = new byte[][] {
+                compressPublicKey(wallet.getPublicKey().toByteArray()),
+                compressPublicKey(wallet2.getPublicKey().toByteArray()),
+        };
         connection.invoke(owner, "updateValidators", validators, BigInteger.TWO);
-        Address[] signers = connection.call(Address[].class,"listValidators");
+        String[] signers = connection.call(String[].class,"listValidators");
         assertEquals(signers.length, 2);
     }
 
