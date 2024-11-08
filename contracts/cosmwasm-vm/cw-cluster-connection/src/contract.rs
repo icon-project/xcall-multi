@@ -1,3 +1,4 @@
+use common::rlp;
 use cosmwasm_std::{coins, Addr, BankMsg, Event, Uint128};
 use cw_xcall_lib::network_address::NetId;
 
@@ -78,7 +79,7 @@ impl<'a> ClusterConnection<'a> {
             });
         }
 
-        if validators.len() > 0 {
+        if !validators.is_empty() {
             self.clear_validators(deps.storage)?;
             for rlr in validators {
                 self.store_validator(deps.storage, rlr)?;
@@ -160,11 +161,14 @@ impl<'a> ClusterConnection<'a> {
             return Err(ContractError::DuplicateMessage);
         }
 
-        let mut msg_vec: Vec<u8> = self.hex_decode(msg)?;
+        let msg_vec: Vec<u8> = self.hex_decode(msg)?;
 
-        let mut signed_msg = src_network.as_str().as_bytes().to_vec();
-        signed_msg.append(&mut to_truncated_le_bytes(conn_sn));
-        signed_msg.append(&mut msg_vec);
+        let signed_msg = SignableMsg {
+            src_network: src_network.to_string(),
+            conn_sn: conn_sn,
+            data: msg_vec.clone(),
+        };
+        let signed_msg = rlp::encode(&signed_msg).to_vec();
 
         let threshold = self.get_signature_threshold(deps.storage);
 

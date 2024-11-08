@@ -8,7 +8,7 @@ use super::*;
 
 pub fn sha256(data: &[u8]) -> Vec<u8> {
     use sha2::Digest;
-    sha2::Sha256::digest(&data).to_vec()
+    sha2::Sha256::digest(data).to_vec()
 }
 
 pub fn keccak256(input: &[u8]) -> [u8; 32] {
@@ -24,8 +24,7 @@ pub fn to_truncated_le_bytes(n: u128) -> Vec<u8> {
     let trimmed_bytes = bytes
         .iter()
         .rev()
-        .skip_while(|&&b| b == 0)
-        .map(|&b| b)
+        .skip_while(|&&b| b == 0).copied()
         .collect::<Vec<u8>>();
     trimmed_bytes.into_iter().rev().collect()
 }
@@ -150,6 +149,6 @@ impl<'a> ClusterConnection<'a> {
             }
         }
 
-        return Err(ContractError::InsufficientSignatures);
+        Err(ContractError::InsufficientSignatures)
     }
 }

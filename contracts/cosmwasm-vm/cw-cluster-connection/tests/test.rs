@@ -373,7 +373,7 @@ pub fn test_recv_message() {
     let (mut deps, env, ctx) = instantiate(ADMIN);
 
     let validators =
-        vec!["03e4899bf9b1ef805245f99d28727a592126e9365ddc5c3978a6139b51f9b47f8e".to_string()];
+        vec!["03ea8d2913ce5bb5637fe732f920ccee7a454a8f1c32a531e7abc1a58a23cc8db0".to_string()];
     let set_validators_msg = ExecuteMsg::SetValidators {
         validators: validators.clone(),
         threshold: 1,
@@ -389,7 +389,7 @@ pub fn test_recv_message() {
     let src_network = NetId::from_str("0x2.icon").unwrap();
     let conn_sn: u128 = 456456;
     let msg = string_to_hex("hello");
-    let sign_1 = hex::decode("1c246c2747f0cfe348bd8c33811c881ea26995fc84934ead4d9d875c41c112287b2b17d87fd902cd9b7329dc166f431fc0428c34e36d43153c1104614d7ef35f75").unwrap();
+    let sign_1 = hex::decode("1c829514989de5c10e61b6571374180641c2c886997f7b6248a90df0e1e51d3de41eead0350d099f4460164e6509dc430cd6f212493013228fb51a122c4fb6b9eb").unwrap();
     let signatures = vec![sign_1];
 
     // Test with non-relayer sender (should fail)
@@ -428,7 +428,7 @@ pub fn test_recv_message_signatures_insufficient() {
 
     let validators = vec![
         "val1".to_string(),
-        "02e5e9769497fbc7c7ee57ab39ccedcb612018577d30ca090033dc67ba5d68b8ab".to_string(),
+        "03ea8d2913ce5bb5637fe732f920ccee7a454a8f1c32a531e7abc1a58a23cc8db0".to_string(),
     ];
     let set_validators_msg = ExecuteMsg::SetValidators {
         validators: validators.clone(),
@@ -445,7 +445,7 @@ pub fn test_recv_message_signatures_insufficient() {
     let src_network = NetId::from_str("0x2.icon").unwrap();
     let conn_sn: u128 = 1;
     let msg = string_to_hex("hello");
-    let mut sign_1 = hex::decode("7fe5c14fd4a520417402be8a39405181fca96fb3001e60be8e46623a4430994031e2693ad9eaf71a6bb7ae1bb794afb5561e3f8c3d1248cdd43513a9ab4300b9").unwrap();
+    let mut sign_1 = hex::decode("1c829514989de5c10e61b6571374180641c2c886997f7b6248a90df0e1e51d3de41eead0350d099f4460164e6509dc430cd6f212493013228fb51a122c4fb6b9eb").unwrap();
     sign_1.push(1);
     let signatures = vec![sign_1];
 
