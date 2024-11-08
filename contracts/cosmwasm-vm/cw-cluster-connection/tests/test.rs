@@ -111,16 +111,19 @@ fn test_set_relayer_unauthorized() {
 pub fn test_set_validators() {
     let (mut deps, env, ctx) = instantiate(ADMIN);
 
+    let val1 = "02e27e3817bf0b6d451004609c2a5d29fe315dc1d1017500399fab540785958b7a";
+    let val2 = "03ea8d2913ce5bb5637fe732f920ccee7a454a8f1c32a531e7abc1a58a23cc8db0";
+    let val3 = "03cc5598f8f40103592b6ed9e04adcf9bd67fe06d677bf5b392af0ad9b553a5b16";
     let validators = vec![
-        "validator1".to_string(),
-        "validator2".to_string(),
-        "validator3".to_string(),
+        hex::decode(val1).unwrap(),
+        hex::decode(val2).unwrap(),
+        hex::decode(val3).unwrap(),
     ];
 
     let threshold = 2;
 
     let msg = ExecuteMsg::SetValidators {
-        validators: validators.clone(),
+        validators: validators,
         threshold: threshold,
     };
 
@@ -128,9 +131,10 @@ pub fn test_set_validators() {
     let res = execute(deps.as_mut(), env.clone(), info, msg.clone());
     assert!(res.is_ok());
 
-    let stored_validators = ctx.get_validators(deps.as_ref().storage).unwrap();
+    let mut stored_validators = ctx.get_validators(deps.as_ref().storage).unwrap();
+    let mut set_validators = vec![val1.to_string(), val2.to_string(), val3.to_string()];
 
-    assert_eq!(stored_validators, validators);
+    assert_eq!(stored_validators.sort(), set_validators.sort());
 
     let stored_threshold = ctx.get_signature_threshold(deps.as_ref().storage);
     assert_eq!(stored_threshold, threshold);
@@ -140,10 +144,13 @@ pub fn test_set_validators() {
 pub fn test_set_validators_unauthorized() {
     let (mut deps, env, ctx) = instantiate(ADMIN);
 
+    let val1 = "02e27e3817bf0b6d451004609c2a5d29fe315dc1d1017500399fab540785958b7a";
+    let val2 = "03ea8d2913ce5bb5637fe732f920ccee7a454a8f1c32a531e7abc1a58a23cc8db0";
+    let val3 = "03cc5598f8f40103592b6ed9e04adcf9bd67fe06d677bf5b392af0ad9b553a5b16";
     let validators = vec![
-        "validator1".to_string(),
-        "validator2".to_string(),
-        "validator3".to_string(),
+        hex::decode(val1).unwrap(),
+        hex::decode(val2).unwrap(),
+        hex::decode(val3).unwrap(),
     ];
 
     let threshold = 2;
@@ -163,7 +170,14 @@ pub fn test_set_validators_unauthorized() {
 pub fn test_set_validators_empty() {
     let (mut deps, env, ctx) = instantiate(ADMIN);
 
-    let validators = vec!["val1".to_string(), "val2".to_string(), "val3".to_string()];
+    let val1 = "02e27e3817bf0b6d451004609c2a5d29fe315dc1d1017500399fab540785958b7a";
+    let val2 = "03ea8d2913ce5bb5637fe732f920ccee7a454a8f1c32a531e7abc1a58a23cc8db0";
+    let val3 = "03cc5598f8f40103592b6ed9e04adcf9bd67fe06d677bf5b392af0ad9b553a5b16";
+    let validators = vec![
+        hex::decode(val1).unwrap(),
+        hex::decode(val2).unwrap(),
+        hex::decode(val3).unwrap(),
+    ];
 
     let info = mock_info(ADMIN, &[]);
     let res = execute(
@@ -188,10 +202,12 @@ pub fn test_set_validators_empty() {
     );
     assert!(res.is_ok());
 
-    let stored_validators = ctx.get_validators(deps.as_ref().storage).unwrap();
+    let mut stored_validators = ctx.get_validators(deps.as_ref().storage).unwrap();
     let stored_threshold = ctx.get_signature_threshold(deps.as_ref().storage);
 
-    assert_eq!(stored_validators, validators);
+    let mut set_validators = vec![val1.to_string(), val2.to_string(), val3.to_string()];
+    assert_eq!(set_validators.sort(), stored_validators.sort());
+
     assert_eq!(stored_threshold, 2);
 }
 
@@ -199,7 +215,14 @@ pub fn test_set_validators_empty() {
 pub fn test_set_validators_invalid_threshold() {
     let (mut deps, env, ctx) = instantiate(ADMIN);
 
-    let validators = vec!["val1".to_string(), "val2".to_string(), "val3".to_string()];
+    let val1 = "02e27e3817bf0b6d451004609c2a5d29fe315dc1d1017500399fab540785958b7a";
+    let val2 = "03ea8d2913ce5bb5637fe732f920ccee7a454a8f1c32a531e7abc1a58a23cc8db0";
+    let val3 = "03cc5598f8f40103592b6ed9e04adcf9bd67fe06d677bf5b392af0ad9b553a5b16";
+    let validators = vec![
+        hex::decode(val1).unwrap(),
+        hex::decode(val2).unwrap(),
+        hex::decode(val3).unwrap(),
+    ];
 
     let info = mock_info(ADMIN, &[]);
     let res = execute(
@@ -372,8 +395,9 @@ pub fn test_send_message_unauthorized() {
 pub fn test_recv_message() {
     let (mut deps, env, ctx) = instantiate(ADMIN);
 
-    let validators =
-        vec!["03ea8d2913ce5bb5637fe732f920ccee7a454a8f1c32a531e7abc1a58a23cc8db0".to_string()];
+    let val2 = "03ea8d2913ce5bb5637fe732f920ccee7a454a8f1c32a531e7abc1a58a23cc8db0";
+    let validators = vec![hex::decode(val2).unwrap()];
+
     let set_validators_msg = ExecuteMsg::SetValidators {
         validators: validators.clone(),
         threshold: 1,
@@ -426,10 +450,9 @@ pub fn test_recv_message() {
 pub fn test_recv_message_signatures_insufficient() {
     let (mut deps, env, ctx) = instantiate(ADMIN);
 
-    let validators = vec![
-        "val1".to_string(),
-        "03ea8d2913ce5bb5637fe732f920ccee7a454a8f1c32a531e7abc1a58a23cc8db0".to_string(),
-    ];
+    let val2 = "03ea8d2913ce5bb5637fe732f920ccee7a454a8f1c32a531e7abc1a58a23cc8db0";
+    let validators = vec![hex::decode(val2).unwrap()];
+
     let set_validators_msg = ExecuteMsg::SetValidators {
         validators: validators.clone(),
         threshold: 2,
@@ -445,8 +468,7 @@ pub fn test_recv_message_signatures_insufficient() {
     let src_network = NetId::from_str("0x2.icon").unwrap();
     let conn_sn: u128 = 1;
     let msg = string_to_hex("hello");
-    let mut sign_1 = hex::decode("1c829514989de5c10e61b6571374180641c2c886997f7b6248a90df0e1e51d3de41eead0350d099f4460164e6509dc430cd6f212493013228fb51a122c4fb6b9eb").unwrap();
-    sign_1.push(1);
+    let sign_1 = hex::decode("1c829514989de5c10e61b6571374180641c2c886997f7b6248a90df0e1e51d3de41eead0350d099f4460164e6509dc430cd6f212493013228fb51a122c4fb6b9eb").unwrap();
     let signatures = vec![sign_1];
 
     let msg_with_signatures = ExecuteMsg::RecvMessage {

@@ -13,7 +13,7 @@ pub enum ExecuteMsg {
     },
 
     SetValidators {
-        validators: Vec<String>,
+        validators: Vec<Vec<u8>>,
         threshold: u8,
     },
 

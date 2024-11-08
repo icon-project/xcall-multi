@@ -24,7 +24,8 @@ pub fn to_truncated_le_bytes(n: u128) -> Vec<u8> {
     let trimmed_bytes = bytes
         .iter()
         .rev()
-        .skip_while(|&&b| b == 0).copied()
+        .skip_while(|&&b| b == 0)
+        .copied()
         .collect::<Vec<u8>>();
     trimmed_bytes.into_iter().rev().collect()
 }
@@ -115,7 +116,7 @@ impl<'a> ClusterConnection<'a> {
 
         let message_hash = keccak256(&signed_msg);
 
-        let mut signers: HashMap<String, bool> = HashMap::new();
+        let mut signers: HashMap<Vec<u8>, bool> = HashMap::new();
 
         for signature in signatures {
             if signature.len() != 65 {
@@ -132,18 +133,18 @@ impl<'a> ClusterConnection<'a> {
                 Ok(pubkey) => {
                     let pk = VerifyingKey::from_sec1_bytes(&pubkey)
                         .map_err(|_| ContractError::InvalidSignature)?;
-                    let pk_hex = hex::encode(pk.to_bytes());
-                    if self.is_validator(deps.storage, pk_hex.clone())
-                        && !signers.contains_key(&pk_hex)
+                    let pk_vec = pk.to_bytes().to_vec();
+
+                    if self.is_validator(deps.storage, pk_vec.clone())
+                        && !signers.contains_key(&pk_vec)
                     {
-                        signers.insert(pk_hex, true);
+                        signers.insert(pk_vec, true);
                         if signers.len() >= threshold.into() {
                             return Ok(());
                         }
                     }
                 }
                 Err(e) => {
-                    println!("am i here{:?}", e);
                     continue;
                 }
             }

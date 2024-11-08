@@ -68,7 +68,7 @@ impl<'a> ClusterConnection<'a> {
         &mut self,
         deps: DepsMut,
         info: MessageInfo,
-        validators: Vec<String>,
+        validators: Vec<Vec<u8>>,
         threshold: u8,
     ) -> Result<Response, ContractError> {
         self.ensure_admin(deps.storage, info.sender)?;

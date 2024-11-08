@@ -9,7 +9,7 @@ pub struct ClusterConnection<'a> {
     xcall: Item<'a, Addr>,
     admin: Item<'a, Addr>,
     relayer: Item<'a, Addr>,
-    validators: Map<'a, String, bool>,
+    validators: Map<'a, Vec<u8>, bool>,
     signature_threshold: Item<'a, u8>,
 
     message_fee: Map<'a, NetId, u128>,
@@ -130,7 +130,11 @@ impl<'a> ClusterConnection<'a> {
         self.denom.load(store).unwrap()
     }
 
-    pub fn store_validator(&mut self, store: &mut dyn Storage, validator: String) -> StdResult<()> {
+    pub fn store_validator(
+        &mut self,
+        store: &mut dyn Storage,
+        validator: Vec<u8>,
+    ) -> StdResult<()> {
         self.validators.save(store, validator, &true)?;
         Ok(())
     }
@@ -138,7 +142,7 @@ impl<'a> ClusterConnection<'a> {
     pub fn remove_validator(
         &mut self,
         store: &mut dyn Storage,
-        validator: String,
+        validator: Vec<u8>,
     ) -> StdResult<()> {
         self.validators.remove(store, validator);
         Ok(())
@@ -158,14 +162,14 @@ impl<'a> ClusterConnection<'a> {
         for item in validators_iter {
             let (validator_addr, is_active) = item?;
             if is_active {
-                validators_list.push(validator_addr);
+                validators_list.push(hex::encode(validator_addr));
             }
         }
 
         Ok(validators_list)
     }
 
-    pub fn is_validator(&self, store: &dyn Storage, pub_key: String) -> bool {
+    pub fn is_validator(&self, store: &dyn Storage, pub_key: Vec<u8>) -> bool {
         self.validators.has(store, pub_key)
     }
 

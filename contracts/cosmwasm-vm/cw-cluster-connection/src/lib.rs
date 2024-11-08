@@ -97,9 +97,7 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
 
         QueryMsg::GetValidators {} => {
             let validators = conn.get_validators(deps.storage)?;
-            let validators_str: Vec<String> =
-                validators.iter().map(|addr| addr.to_string()).collect();
-            to_json_binary(&validators_str)
+            to_json_binary(&validators)
         }
 
         QueryMsg::GetSignatureThreshold {} => {
