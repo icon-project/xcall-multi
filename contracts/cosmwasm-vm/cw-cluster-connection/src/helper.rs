@@ -122,9 +122,9 @@ impl<'a> ClusterConnection<'a> {
             if signature.len() != 65 {
                 return Err(ContractError::InvalidSignature);
             }
-            let mut recovery_code = 0;
-            if signature[0] == 28 {
-                recovery_code = 1
+            let mut recovery_code = signature[0];
+            if recovery_code >= 27 {
+                recovery_code = recovery_code - 27;
             }
             match deps
                 .api
