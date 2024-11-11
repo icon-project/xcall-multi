@@ -395,7 +395,7 @@ pub fn test_send_message_unauthorized() {
 pub fn test_recv_message() {
     let (mut deps, env, ctx) = instantiate(ADMIN);
 
-    let val2 = "03ea8d2913ce5bb5637fe732f920ccee7a454a8f1c32a531e7abc1a58a23cc8db0";
+    let val2 = "045b419bdec0d2bbc16ce8ae144ff8e825123fd0cb3e36d0075b6d8de5aab53388ac8fb4c28a8a3843f3073cdaa40c943f74737fc0cea4a95f87778affac738190";
     let validators = vec![hex::decode(val2).unwrap()];
 
     let set_validators_msg = ExecuteMsg::SetValidators {
@@ -413,7 +413,7 @@ pub fn test_recv_message() {
     let src_network = NetId::from_str("0x2.icon").unwrap();
     let conn_sn: u128 = 456456;
     let msg = string_to_hex("hello");
-    let sign_1 = hex::decode("1c829514989de5c10e61b6571374180641c2c886997f7b6248a90df0e1e51d3de41eead0350d099f4460164e6509dc430cd6f212493013228fb51a122c4fb6b9eb").unwrap();
+    let sign_1 = hex::decode("23f731c7fb3553337394233055cbb9ec05abdd1df7cbbec3d0dacced58bf5b4b30576ca14bea93ea4186e920f99f2b9f56d30175b0a7356322f3a5d75de843b81b").unwrap();
     let signatures = vec![sign_1];
 
     // Test with non-relayer sender (should fail)
@@ -450,7 +450,7 @@ pub fn test_recv_message() {
 pub fn test_recv_message_signatures_insufficient() {
     let (mut deps, env, ctx) = instantiate(ADMIN);
 
-    let val2 = "03ea8d2913ce5bb5637fe732f920ccee7a454a8f1c32a531e7abc1a58a23cc8db0";
+    let val2 = "045b419bdec0d2bbc16ce8ae144ff8e825123fd0cb3e36d0075b6d8de5aab53388ac8fb4c28a8a3843f3073cdaa40c943f74737fc0cea4a95f87778affac738190";
     let validators = vec![hex::decode(val2).unwrap()];
 
     let set_validators_msg = ExecuteMsg::SetValidators {
@@ -468,7 +468,7 @@ pub fn test_recv_message_signatures_insufficient() {
     let src_network = NetId::from_str("0x2.icon").unwrap();
     let conn_sn: u128 = 1;
     let msg = string_to_hex("hello");
-    let sign_1 = hex::decode("1c829514989de5c10e61b6571374180641c2c886997f7b6248a90df0e1e51d3de41eead0350d099f4460164e6509dc430cd6f212493013228fb51a122c4fb6b9eb").unwrap();
+    let sign_1 = hex::decode("23f731c7fb3553337394233055cbb9ec05abdd1df7cbbec3d0dacced58bf5b4b30576ca14bea93ea4186e920f99f2b9f56d30175b0a7356322f3a5d75de843b81b").unwrap();
     let signatures = vec![sign_1];
 
     let msg_with_signatures = ExecuteMsg::RecvMessage {

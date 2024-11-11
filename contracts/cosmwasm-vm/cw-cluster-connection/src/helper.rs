@@ -122,23 +122,19 @@ impl<'a> ClusterConnection<'a> {
             if signature.len() != 65 {
                 return Err(ContractError::InvalidSignature);
             }
-            let mut recovery_code = signature[0];
+            let mut recovery_code = signature[64];
             if recovery_code >= 27 {
                 recovery_code = recovery_code - 27;
             }
             match deps
                 .api
-                .secp256k1_recover_pubkey(&message_hash, &signature[1..65], recovery_code)
+                .secp256k1_recover_pubkey(&message_hash, &signature[0..64], recovery_code)
             {
                 Ok(pubkey) => {
-                    let pk = VerifyingKey::from_sec1_bytes(&pubkey)
-                        .map_err(|_| ContractError::InvalidSignature)?;
-                    let pk_vec = pk.to_bytes().to_vec();
-
-                    if self.is_validator(deps.storage, pk_vec.clone())
-                        && !signers.contains_key(&pk_vec)
+                    if self.is_validator(deps.storage, pubkey.clone())
+                        && !signers.contains_key(&pubkey)
                     {
-                        signers.insert(pk_vec, true);
+                        signers.insert(pubkey, true);
                         if signers.len() >= threshold.into() {
                             return Ok(());
                         }
