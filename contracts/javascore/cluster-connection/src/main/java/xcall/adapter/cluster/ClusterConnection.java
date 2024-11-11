@@ -288,7 +288,7 @@ public class ClusterConnection {
     }
 
     private byte[] getValidator(byte[] msg, byte[] sig){
-        return Context.recoverKey("ecdsa-secp256k1", msg, sig, true);
+        return Context.recoverKey("ecdsa-secp256k1", msg, sig, false);
     }
 
     /**

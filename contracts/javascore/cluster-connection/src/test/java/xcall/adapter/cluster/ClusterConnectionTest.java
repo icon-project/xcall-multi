@@ -167,24 +167,13 @@ public class ClusterConnectionTest extends TestBase {
         KeyWallet wallet = KeyWallet.create();
         byteArray[0] = wallet.sign(messageHash);
         byte[][] validators = new byte[][] {
-                compressPublicKey(wallet.getPublicKey().toByteArray()),
+                wallet.getPublicKey().toByteArray(),
         };
         connection.invoke(owner, "updateValidators", validators, BigInteger.ONE);        
         connection.invoke(source_relayer, "recvMessageWithSignatures", nidSource, BigInteger.ONE, data, byteArray);
         verify(callservice.mock).handleMessage(eq(nidSource), eq("test".getBytes()));
     }
 
-    private byte[] compressPublicKey(byte[] uncompressedPublicKey) {
-        byte[] xBytes = Arrays.copyOfRange(uncompressedPublicKey, 1, 33); // 32 bytes for x
-        byte[] yBytes = Arrays.copyOfRange(uncompressedPublicKey, 33, 65); // 32 bytes for y
-        BigInteger y = new BigInteger(1, yBytes);
-        byte prefix = (y.testBit(0)) ? (byte) 0x03 : (byte) 0x02;
-        byte[] compressedKey = new byte[33];
-        compressedKey[0] = prefix;
-        System.arraycopy(xBytes, 0, compressedKey, 1, 32);
-        return compressedKey;
-
-    }
 
     @Test
     public void testRecvMessageWithMultiSignatures() throws Exception{
@@ -195,10 +184,9 @@ public class ClusterConnectionTest extends TestBase {
         KeyWallet wallet2 = KeyWallet.create();
         byteArray[0] = wallet.sign(messageHash);
         byteArray[1] = wallet2.sign(messageHash);
-        byte[] compressPublicKey = compressPublicKey(wallet.getPublicKey().toByteArray());
         byte[][] validators = new byte[][] {
-                compressPublicKey(wallet.getPublicKey().toByteArray()),
-                compressPublicKey(wallet2.getPublicKey().toByteArray())
+                wallet.getPublicKey().toByteArray(),
+                wallet2.getPublicKey().toByteArray(),
         };
         connection.invoke(owner, "updateValidators", validators, BigInteger.TWO);   
         connection.invoke(source_relayer, "recvMessageWithSignatures", nidSource, BigInteger.ONE, data, byteArray);
@@ -214,8 +202,8 @@ public class ClusterConnectionTest extends TestBase {
         byte[][] byteArray = new byte[1][];
         byteArray[0] = wallet.sign(messageHash);
         byte[][] validators = new byte[][] {
-                compressPublicKey(wallet.getPublicKey().toByteArray()),
-                compressPublicKey(wallet2.getPublicKey().toByteArray()),
+                wallet.getPublicKey().toByteArray(),
+                wallet2.getPublicKey().toByteArray(),
         };
         connection.invoke(owner, "updateValidators", validators, BigInteger.TWO);
         UserRevertedException e = assertThrows(UserRevertedException.class,
@@ -234,8 +222,8 @@ public class ClusterConnectionTest extends TestBase {
         byteArray[0] = wallet.sign(messageHash);
         byteArray[1] = wallet.sign(messageHash);
         byte[][] validators = new byte[][] {
-                compressPublicKey(wallet.getPublicKey().toByteArray()),
-                compressPublicKey(wallet2.getPublicKey().toByteArray()),
+                wallet.getPublicKey().toByteArray(),
+                wallet2.getPublicKey().toByteArray(),
         };
         connection.invoke(owner, "updateValidators", validators, BigInteger.TWO);
         UserRevertedException e = assertThrows(UserRevertedException.class,
@@ -259,8 +247,8 @@ public class ClusterConnectionTest extends TestBase {
         KeyWallet wallet = KeyWallet.create();
         KeyWallet wallet2 = KeyWallet.create();
         byte[][] validators = new byte[][] {
-                compressPublicKey(wallet.getPublicKey().toByteArray()),
-                compressPublicKey(wallet2.getPublicKey().toByteArray()),
+                wallet.getPublicKey().toByteArray(),
+                wallet2.getPublicKey().toByteArray(),
         };
         connection.invoke(owner, "updateValidators", validators, BigInteger.TWO);
         String[] signers = connection.call(String[].class,"listValidators");
