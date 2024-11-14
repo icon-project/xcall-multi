@@ -41,25 +41,28 @@ module sui_rlp::utils {
 
     }
 
-    public fun to_bytes_u128(number:u128):vector<u8>{
+    public fun to_bytes_u128(number:u128,signed:bool):vector<u8>{
         let bytes=bcs::to_bytes(&number);
-        to_signed_bytes(bytes)
+        to_signed_bytes(bytes,signed)
     }
 
 
-    public fun to_bytes_u64(number:u64):vector<u8>{
+    public fun to_bytes_u64(number:u64,signed:bool):vector<u8>{
         let bytes=bcs::to_bytes(&number);
-        to_signed_bytes(bytes)
+        to_signed_bytes(bytes,signed)
     }
 
-    public fun to_bytes_u32(number: u32): vector<u8> {
+    public fun to_bytes_u32(number: u32,signed:bool): vector<u8> {
         let bytes=bcs::to_bytes(&number);
-        to_signed_bytes(bytes)
+        to_signed_bytes(bytes,signed)
     }
 
-    fun to_signed_bytes(mut bytes:vector<u8>):vector<u8>{
+    fun to_signed_bytes(mut bytes:vector<u8>,signed:bool):vector<u8>{
         bytes.reverse();
         let truncated=truncate_zeros(&bytes);
+        if(signed==false){
+            return truncated
+        };
         let first_byte=*truncated.borrow(0);
 
         if (first_byte >= 128) {
@@ -114,7 +117,7 @@ module sui_rlp::utils_test {
     #[test]
     fun test_u32_conversion() {
         let num= (122 as u32);
-        let bytes= utils::to_bytes_u32(num);
+        let bytes= utils::to_bytes_u32(num,true);
         let converted=utils::from_bytes_u32(&bytes);
         assert!(num==converted,0x01);
 
@@ -123,7 +126,7 @@ module sui_rlp::utils_test {
     #[test]
     fun test_u64_conversion() {
         let num= (55000 as u64);
-        let bytes= utils::to_bytes_u64(num);
+        let bytes= utils::to_bytes_u64(num,true);
         let converted=utils::from_bytes_u64(&bytes);
         std::debug::print(&bytes);
         std::debug::print(&converted);
@@ -134,7 +137,7 @@ module sui_rlp::utils_test {
     #[test]
     fun test_u128_conversion() {
         let num= (1222223333 as u128);
-        let bytes= utils::to_bytes_u128(num);
+        let bytes= utils::to_bytes_u128(num,true);
         std::debug::print(&bytes);
         let converted=utils::from_bytes_u128(&bytes);
         std::debug::print(&converted);
