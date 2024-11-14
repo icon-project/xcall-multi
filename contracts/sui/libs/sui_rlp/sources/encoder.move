@@ -85,6 +85,12 @@ module sui_rlp::encoder {
 
     }
 
+     public fun encode_u32(num:u32):vector<u8>{
+        let vec= utils::to_bytes_u32(num);
+        encode(&vec)
+
+    }
+
     public fun encode_u64(num:u64):vector<u8>{
         let vec= utils::to_bytes_u64(num,true);
         encode(&vec)
@@ -124,6 +130,25 @@ module sui_rlp::encoder {
             return vector<u8>[1]
         };
         vector<u8>[0]
+    }
+
+    #[test]
+    fun test_encode_zero_value(){
+        let num=0_u128;
+        let bytes=encode_u128(num);
+        assert!(bytes==x"00");
+
+         let num=0_u64;
+        let bytes=encode_u64(num);
+        assert!(bytes==x"00");
+
+        let num=0_u32;
+        let bytes=encode_u32(num);
+        assert!(bytes==x"00");
+
+        let num=0_u8;
+        let bytes=encode_u8(num);
+        assert!(bytes==x"00");
     }
 
    
