@@ -54,6 +54,14 @@ pub fn encode_length(env: &Env, len: u64, offset: u8) -> Bytes {
     len_info
 }
 
+pub fn encode_bool(env: &Env, value: bool) -> Bytes {
+    if value == true {
+        return bytes!(env, 0x01);
+    }
+
+    bytes!(env, 0x00)
+}
+
 pub fn encode_u8(env: &Env, num: u8) -> Bytes {
     let mut bytes = Bytes::new(&env);
     bytes.push_back(num);

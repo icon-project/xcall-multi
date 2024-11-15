@@ -5,19 +5,48 @@ use soroban_sdk::{
 };
 
 pub fn u32_to_bytes(env: &Env, number: u32) -> Bytes {
-    let mut bytes = bytes!(&env, 0x00);
-    let mut i = 3;
-    let mut leading_zero = true;
-    while i >= 0 {
-        let val = (number >> (i * 8) & 0xff) as u8;
-        if val > 0 || !leading_zero {
-            leading_zero = false;
-            bytes.push_back(val);
-        }
+    let bytes = Bytes::from_slice(&env, &number.to_be_bytes());
+    to_signed_bytes(&env, bytes)
+}
 
-        i -= 1;
+pub fn u64_to_bytes(env: &Env, number: u64) -> Bytes {
+    let bytes = Bytes::from_slice(&env, &number.to_be_bytes());
+    to_signed_bytes(&env, bytes)
+}
+
+pub fn u128_to_bytes(env: &Env, number: u128) -> Bytes {
+    let bytes = Bytes::from_slice(&env, &number.to_be_bytes());
+    to_signed_bytes(&env, bytes)
+}
+
+pub fn to_signed_bytes(env: &Env, bytes: Bytes) -> Bytes {
+    let truncated = truncate_zeros(&env, bytes);
+    let first_byte = truncated.get(0).unwrap_or(0);
+
+    if first_byte >= 128 {
+        let mut prefix = bytes!(&env, 0x00);
+        prefix.append(&truncated);
+        prefix
+    } else {
+        truncated
     }
-    bytes
+}
+
+pub fn truncate_zeros(env: &Env, bytes: Bytes) -> Bytes {
+    let mut i = 0;
+    let mut started = false;
+    let mut result = Bytes::new(&env);
+
+    while i < bytes.len() {
+        let val = bytes.get(i).unwrap();
+        if val > 0 || started {
+            started = true;
+            result.push_back(val);
+        }
+        i = i + 1;
+    }
+
+    result
 }
 
 pub fn bytes_to_u32(bytes: Bytes) -> u32 {
@@ -28,45 +57,12 @@ pub fn bytes_to_u32(bytes: Bytes) -> u32 {
     num
 }
 
-pub fn u64_to_bytes(env: &Env, number: u64) -> Bytes {
-    let mut bytes = bytes!(&env, 0x00);
-    let mut i = 7;
-    let mut leading_zero = true;
-    while i >= 0 {
-        let val = (number >> (i * 8) & 0xff) as u8;
-        if val > 0 || !leading_zero {
-            leading_zero = false;
-            bytes.push_back(val);
-        }
-
-        i -= 1;
-    }
-    bytes
-}
-
 pub fn bytes_to_u64(bytes: Bytes) -> u64 {
     let mut num = 0;
     for byte in bytes.iter() {
         num = (num << 8) | byte as u64;
     }
     num
-}
-
-pub fn u128_to_bytes(env: &Env, number: u128) -> Bytes {
-    let mut bytes = bytes!(&env, 0x00);
-    let mut i = 15;
-    let mut leading_zero = true;
-    while i >= 0 {
-        let val = (number >> (i * 8) & 0xff) as u8;
-        if val > 0 || !leading_zero {
-            leading_zero = false;
-            bytes.push_back(val);
-        }
-
-        i -= 1;
-    }
-
-    bytes
 }
 
 pub fn bytes_to_u128(bytes: Bytes) -> u128 {

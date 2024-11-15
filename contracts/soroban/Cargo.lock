@@ -126,13 +126,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "17f6e324229dc011159fcc089755d1e2e216a90d43a7dea6853ca740b84f35e7"
 
 [[package]]
-name = "centralized-connection"
-version = "0.0.0"
-dependencies = [
- "soroban-sdk",
-]
-
-[[package]]
 name = "cfg-if"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -565,6 +558,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8e04e2fd2b8188ea827b32ef11de88377086d690286ab35747ef7f9bf3ccb590"
 
 [[package]]
+name = "intent"
+version = "0.1.0"
+dependencies = [
+ "soroban-rlp",
+ "soroban-sdk",
+]
+
+[[package]]
 name = "itertools"
 version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -642,16 +643,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9d811f3e15f28568be3407c8e7fdb6514c1cda3cb30683f15b6a1a1dc4ea14a7"
 dependencies = [
  "adler",
-]
-
-[[package]]
-name = "mock-dapp-multi"
-version = "0.0.0"
-dependencies = [
- "soroban-rlp",
- "soroban-sdk",
- "soroban-xcall-lib",
- "xcall",
 ]
 
 [[package]]
@@ -1142,13 +1133,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "soroban-xcall-lib"
-version = "0.1.0"
-dependencies = [
- "soroban-sdk",
-]
-
-[[package]]
 name = "spin"
 version = "0.9.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1457,15 +1441,6 @@ name = "windows_x86_64_msvc"
 version = "0.52.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bec47e5bfd1bff0eeaf6d8b485cc1074891a197ab4225d504cb7a1ab88b02bf0"
-
-[[package]]
-name = "xcall"
-version = "0.1.0"
-dependencies = [
- "soroban-rlp",
- "soroban-sdk",
- "soroban-xcall-lib",
-]
 
 [[package]]
 name = "zeroize"

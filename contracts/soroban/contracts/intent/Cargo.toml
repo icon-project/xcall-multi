@@ -1,0 +1,16 @@
+[package]
+name = "intent"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+doctest = false
+
+[dependencies]
+soroban-sdk = { workspace = true }
+soroban-rlp = { path = "../../libs/soroban-rlp" }
+
+[dev-dependencies]
+soroban-sdk = { workspace = true, features = ["testutils"] }
