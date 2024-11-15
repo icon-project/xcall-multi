@@ -13,5 +13,5 @@ public class SwapOrderData {
     public BigInteger amount;
     public String toToken;
     public BigInteger toAmount;
-    public byte[] data;
+    public String data;
 }

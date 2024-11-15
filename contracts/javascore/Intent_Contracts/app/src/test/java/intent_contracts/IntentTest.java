@@ -44,7 +44,7 @@ public class IntentTest extends TestBase {
     private final String toToken = "0x7891";
     private final BigInteger amount = BigInteger.valueOf(500).multiply(TEN.pow(18));
     private final BigInteger toAmount = BigInteger.valueOf(400).multiply(TEN.pow(18));
-    private final byte[] data = "".getBytes();
+    private final String data = "";
     private final BigInteger protocolFee = BigInteger.valueOf(50);
     private static final BigInteger initialSupply = BigInteger.valueOf(1000);
     private static final BigInteger totalSupply = initialSupply.multiply(TEN.pow(18));

@@ -42,7 +42,7 @@ public class Intent extends GeneralizedConnection {
             BigInteger amount,
             String toToken,
             BigInteger toAmount,
-            byte[] data) {
+            String data) {
     }
 
     @EventLog(indexed = 2)
@@ -106,7 +106,7 @@ public class Intent extends GeneralizedConnection {
                 permit,
                 transferDetails,
                 Address.fromString(order.creator),
-                Context.hash("keccak-256", order.data),
+                Context.hash("keccak-256", order.data.getBytes()),
                 "",
                 signature);
 
