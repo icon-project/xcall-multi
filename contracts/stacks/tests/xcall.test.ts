@@ -11,7 +11,7 @@ const CENTRALIZED_CONNECTION_CONTRACT_NAME = "centralized-connection";
 const MOCK_DAPP_CONTRACT_NAME = "mock-dapp";
 
 const STACKS_NID = "stacks";
-const ICON_NID = "icon";
+const ICON_NID = "test";
 
 const sourceContract = accounts.get("wallet_1")!;
 const destinationContract = deployer! + '.' + MOCK_DAPP_CONTRACT_NAME;
@@ -88,28 +88,6 @@ describe("xcall", () => {
 
     simnet.callPublicFn(
       XCALL_PROXY_CONTRACT_NAME,
-      "set-trusted-protocols",
-      [
-        Cl.stringAscii(STACKS_NID),
-        Cl.list([Cl.stringAscii(deployer! + "." + CENTRALIZED_CONNECTION_CONTRACT_NAME)]),
-        xcallImpl
-      ],
-      deployer!
-    );
-
-    simnet.callPublicFn(
-      XCALL_PROXY_CONTRACT_NAME,
-      "set-trusted-protocols",
-      [
-        Cl.stringAscii(ICON_NID),
-        Cl.list([Cl.stringAscii(deployer! + "." + CENTRALIZED_CONNECTION_CONTRACT_NAME)]),
-        xcallImpl
-      ],
-      deployer!
-    );
-
-    simnet.callPublicFn(
-      XCALL_PROXY_CONTRACT_NAME,
       "set-protocol-fee-handler",
       [centralizedConnection, xcallImpl],
       deployer!
@@ -167,6 +145,112 @@ describe("xcall", () => {
     );
   });
 
+  it("verifies protocol sources and destinations are passed correctly in send-message", () => {
+    const data = Uint8Array.from(encode(["Hello, Destination Contract!"]));
+    const expectedSn = 1;
+  
+    const sourcesResult = simnet.callReadOnlyFn(
+      MOCK_DAPP_CONTRACT_NAME,
+      "get-sources",
+      [Cl.stringAscii(ICON_NID)],
+      deployer!
+    );
+    expect(sourcesResult.result).toStrictEqual(
+      Cl.list([Cl.stringAscii(deployer! + "." + CENTRALIZED_CONNECTION_CONTRACT_NAME)])
+    );
+  
+    const destinationsResult = simnet.callReadOnlyFn(
+      MOCK_DAPP_CONTRACT_NAME,
+      "get-destinations", 
+      [Cl.stringAscii(ICON_NID)],
+      deployer!
+    );
+    expect(destinationsResult.result).toStrictEqual(
+      Cl.list([Cl.stringAscii(deployer! + "." + CENTRALIZED_CONNECTION_CONTRACT_NAME)])
+    );
+  
+    const sendMessageResult = simnet.callPublicFn(
+      MOCK_DAPP_CONTRACT_NAME,
+      "send-message",
+      [
+        Cl.stringAscii(to),
+        Cl.buffer(data),
+        Cl.none(),
+        xcallImpl
+      ],
+      sourceContract
+    );
+    expect(sendMessageResult.result).toBeOk(Cl.uint(expectedSn));
+  
+    const callMessageSentEvent = sendMessageResult.events.find(e => 
+      e.event === 'print_event' &&
+      // @ts-ignore: Property 'data' does not exist on type 'ClarityValue'. Property 'data' does not exist on type 'TrueCV'.
+      e.data.value!.data.event.data === 'CallMessageSent'
+    );
+    expect(callMessageSentEvent).toBeDefined();
+  
+    // @ts-ignore: Property 'data' does not exist on type 'ClarityValue'. Property 'data' does not exist on type 'TrueCV'.
+    const eventData = callMessageSentEvent!.data.value!.data;
+    expect(eventData.from).toStrictEqual(Cl.principal(sourceContract));
+    expect(eventData.to).toStrictEqual(Cl.stringAscii(to));
+    expect(eventData.sn).toStrictEqual(Cl.uint(expectedSn));
+  });
+
+  it("verifies send-message with specific input data", () => {
+    const to = "test/cxfa65fef6524222c5edad37989da26deaa5b4a40a";
+    const svc = "";
+    const sn = 3;
+    const msgHex = "0x30783464363537333733363136373635353437323631366537333636363537323534363537333734363936653637353736393734363836663735373435323666366336633632363136333662";
+
+    const msg = new Uint8Array(
+      msgHex
+        .slice(2) // Remove '0x' prefix
+        .match(/.{1,2}/g)! // Split into pairs
+        .map(byte => parseInt(byte, 16)) // Convert each pair to number
+    );
+    
+    const sendMessageResult = simnet.callPublicFn(
+      "centralized-connection",
+      "send-message",
+      [
+        Cl.stringAscii(to),
+        Cl.stringAscii(svc),
+        Cl.int(sn),
+        Cl.buffer(msg)
+      ],
+      deployer!
+    );
+
+    // Verify the transaction succeeded
+    expect(sendMessageResult.result).toBeOk(Cl.int(1)); // Should return next conn-sn
+
+    // Verify the Message event was emitted correctly
+    const messageEvent = sendMessageResult.events.find(e => 
+      e.event === 'print_event' &&
+      // @ts-ignore: Property 'data' does not exist on type 'ClarityValue'
+      e.data.value.data.event.data === 'Message'
+    );
+    expect(messageEvent).toBeDefined();
+
+    // @ts-ignore: Property 'data' does not exist on type 'ClarityValue'
+    const eventData = messageEvent!.data.value.data;
+    
+    // Verify event data matches input
+    expect(eventData.to).toStrictEqual(Cl.stringAscii(to));
+    expect(eventData.sn).toStrictEqual(Cl.int(1));
+    expect(eventData.msg).toStrictEqual(Cl.buffer(msg));
+
+    // Verify connection sequence number was incremented
+    const getConnSnResult = simnet.callReadOnlyFn(
+      "centralized-connection",
+      "get-conn-sn",
+      [],
+      deployer!
+    );
+    expect(getConnSnResult.result).toBeOk(Cl.int(1));
+  });
+
+
   it("verifies the connection is properly initialized", () => {
     const xcallResult = simnet.callReadOnlyFn(
       CENTRALIZED_CONNECTION_CONTRACT_NAME,
@@ -208,6 +292,37 @@ describe("xcall", () => {
     );
     expect(dappResult.result).toStrictEqual(Cl.list([Cl.stringAscii(deployer! + "." + CENTRALIZED_CONNECTION_CONTRACT_NAME)]));
   });
+
+  it("verifies the current implementation after upgrade is xcallImpl", () => {
+    const getCurrentImplementationResult = simnet.callReadOnlyFn(
+      XCALL_PROXY_CONTRACT_NAME,
+      "get-current-implementation",
+      [],
+      deployer!
+    );
+
+    expect(getCurrentImplementationResult.result).toBeOk(xcallImpl);
+
+    const isCurrentImplementationResult = simnet.callReadOnlyFn(
+      XCALL_PROXY_CONTRACT_NAME,
+      "is-current-implementation",
+      [xcallImpl],
+      deployer!
+    );
+
+    expect(isCurrentImplementationResult.result).toBeOk(Cl.bool(true));
+
+    const isNotCurrentImplementationResult = simnet.callReadOnlyFn(
+      XCALL_PROXY_CONTRACT_NAME,
+      "is-current-implementation",
+      [Cl.contractPrincipal(deployer!, CENTRALIZED_CONNECTION_CONTRACT_NAME)],
+      deployer!
+    );
+
+    expect(isNotCurrentImplementationResult.result).toBeOk(Cl.bool(false));
+  });
+
+  
 
   it("sends and executes a call", () => {
     const data = Uint8Array.from(encode(["Hello, Destination Contract!"]));

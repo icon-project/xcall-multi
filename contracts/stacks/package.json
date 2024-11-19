@@ -8,6 +8,7 @@
   "scripts": {
     "test": "vitest run",
     "test:xcall-impl": "vitest run tests/xcall.test.ts",
+    "test:rlp": "vitest run tests/rlp.test.ts",
     "test:report": "vitest run -- --coverage --costs",
     "test:watch": "chokidar \"tests/**/*.ts\" \"contracts/**/*.clar\" -c \"npm run test:report\""
   },

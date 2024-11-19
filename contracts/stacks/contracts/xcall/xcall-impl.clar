@@ -217,16 +217,20 @@
   )
 )
 
-(define-private (emit-call-message-sent-event (from principal) (to (string-ascii 128)) (sn uint))
+(define-private (emit-call-message-sent-event (from principal) (to (string-ascii 128)) (sn uint) (data (buff 2048)) (sources (optional (list 10 (string-ascii 128)))) (destinations (optional (list 10 (string-ascii 128)))))
   (print
     {
       event: "CallMessageSent",
-        from: tx-sender,
-        to: to,
-        sn: sn,
+      from: tx-sender,
+      to: to,
+      sn: sn,
+      data: data,
+      sources: (default-to (list) sources),
+      destinations: (default-to (list) destinations)
     }
   )
 )
+
 
 (define-private (emit-response-message-event (sn uint) (code uint))
   (print 
@@ -288,7 +292,7 @@
       (connection-result (unwrap-panic (get-default-connection dst-network-id)))
     )
     (asserts! (is-some connection-result) ERR_INVALID_NETWORK_ADDRESS)
-    (emit-call-message-sent-event tx-sender to next-sn)
+    (emit-call-message-sent-event tx-sender to next-sn data sources destinations)
     (map-set outgoing-messages
       { sn: next-sn }
       {

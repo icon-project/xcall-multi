@@ -43,6 +43,11 @@
     false
   ))
 
+(define-private (is-authorized)
+  (or 
+    (is-xcall)
+    (is-admin)))
+
 (define-public (initialize (xcall-contract principal) (admin-address principal))
   (begin
     (asserts! (is-admin) ERR_UNAUTHORIZED)
@@ -79,14 +84,13 @@
   )
 )
 
-(define-public (send-message (to (string-ascii 128)) (svc (string-ascii 128)) (sn int) (msg (buff 2048)) (implementation <xcall-impl-trait>))
+(define-public (send-message (to (string-ascii 128)) (svc (string-ascii 128)) (sn int) (msg (buff 2048)))
   (begin
-    (asserts! (is-xcall) ERR_UNAUTHORIZED)
+    (asserts! (is-authorized) ERR_UNAUTHORIZED)
     (let
       ((fee (unwrap! (get-fee to (> sn 0)) ERR_INVALID_FEE)))
       (asserts! (>= (stx-get-balance tx-sender) fee) ERR_INVALID_FEE)
       (var-set conn-sn (+ (var-get conn-sn) 1))
-      (as-contract (unwrap-panic (contract-call? .xcall-proxy handle-message to msg implementation)))
       (emit-message-event to (var-get conn-sn) msg)
       (ok (var-get conn-sn)))))
 

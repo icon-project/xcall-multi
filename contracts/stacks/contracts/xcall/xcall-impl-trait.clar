@@ -19,7 +19,6 @@
     (set-default-connection ((string-ascii 128) (string-ascii 128)) (response bool uint))
     (set-trusted-protocols ((string-ascii 128) (list 10 (string-ascii 128))) (response bool uint))
     
-    (get-network-address () (response (string-ascii 257) uint))
     (get-network-id () (response (string-ascii 128) uint))
     (get-protocol-fee () (response uint uint))
     (get-fee ((string-ascii 128) bool (optional (list 10 (string-ascii 128)))) (response uint uint))
