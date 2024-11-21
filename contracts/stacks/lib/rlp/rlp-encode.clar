@@ -126,18 +126,19 @@
 
 (define-private (encode-list-lenght (data (buff 1024)))
   (let (
-            (length (len data))
-        )
-        (if (<= length u55 )
-            (check_length (concat  (encode-uint-raw (+ u192 length)) data))
-            (let (
-                    (encoded_lenght (encode-uint-raw length))
-                    (prefix (concat (encode-uint-raw (+ u247 (len encoded_lenght))) encoded_lenght))
-                )
-                (check_length (concat  prefix data))
-            )
-        )
+    (length (len data))
+  )
+    (if (<= length u55)
+      (check_length (concat (encode-uint-raw (+ u192 length)) data))
+      (let (
+        (length-bytes (unwrap-panic (to-consensus-buff? length)))
+        (len-byte1 (unwrap-panic (element-at? length-bytes u15)))
+        (len-byte2 (unwrap-panic (element-at? length-bytes u16)))
+        (prefix (concat (concat 0xfa00 len-byte1) len-byte2))
+      )
+      (check_length (concat prefix data)))
     )
+  )
 )
 
 (define-private (concat-buff (a (buff 1024)) (b (buff 1024)))
