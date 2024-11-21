@@ -6,14 +6,50 @@ const address1 = accounts.get("wallet_1")!;
 
 describe("RLP Encoding Tests", () => {
   it("encodes u8", () => {
-    const result = simnet.callReadOnlyFn(
-      "rlp-encode",
-      "encode-uint",
-      [Cl.uint(100)],
-      address1
-    );
-    // @ts-ignore: Property 'buffer' does not exist on type 'ClarityValue'.
-    expect(result.result.buffer).toEqual(Cl.bufferFromHex("64").buffer);
+    const testValues = [
+      { value: 100, expectedHex: "64" },
+      { value: 128, expectedHex: "8180" },
+      { value: 245, expectedHex: "81f5" },
+      { value: 255, expectedHex: "81ff" },
+    ];
+
+    testValues.forEach(({ value, expectedHex }) => {
+      const result = simnet.callReadOnlyFn(
+        "rlp-encode",
+        "encode-uint",
+        [Cl.uint(value)],
+        address1
+      );
+  
+      // @ts-ignore: Property 'buffer' does not exist on type 'ClarityValue'.
+      expect(result.result.buffer).toEqual(
+        Cl.bufferFromHex(expectedHex).buffer
+      );
+    });
+  });
+
+  it("encodes u16", () => {
+    const testValues = [
+      { value: 256, expectedHex: "820100" },
+      { value: 1024, expectedHex: "820400" },
+      { value: 65535, expectedHex: "82ffff" },
+      { value: 65536, expectedHex: "83010000" },
+      { value: 16777215, expectedHex: "83ffffff" }
+    ];
+  
+    testValues.forEach(({ value, expectedHex }) => {
+      const result = simnet.callReadOnlyFn(
+        "rlp-encode",
+        "encode-uint",
+        [Cl.uint(value)],
+        address1
+      );
+  
+      // @ts-ignore: Property 'buffer' does not exist on type 'ClarityValue'.
+      expect(result.result.buffer).toEqual(
+        Cl.bufferFromHex(expectedHex).buffer
+      );
+    });
   });
 
   it("encodes u32", () => {
@@ -51,12 +87,12 @@ describe("RLP Encoding Tests", () => {
     const result = simnet.callReadOnlyFn(
       "rlp-encode",
       "encode-uint", 
-      [Cl.uint(199999999999999999999999999999999999999n)],
+      [Cl.uint(180593171625979951495805181356371083263n)],
       address1
     );
     // @ts-ignore: Property 'buffer' does not exist on type 'ClarityValue'.
     expect(result.result.buffer).toEqual(
-      Cl.bufferFromHex("910096769950B50D88F41314447FFFFFFFFF").buffer
+      Cl.bufferFromHex("910087dcfacd87982736cdefcdefff" + "ffffff").buffer
     );
   });
 

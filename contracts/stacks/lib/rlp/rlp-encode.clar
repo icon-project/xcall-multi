@@ -38,12 +38,11 @@
         0x80
         (let (
             (encoded (unwrap-panic (to-consensus-buff? data)))
-            (sliced (unwrap-panic (slice? encoded 
-                (if (>= data (pow u256 u15)) u1 u4)  ;; u1 for very large numbers, u4 for others
-                (len encoded))))
+            (sliced (unwrap-panic (slice? encoded u1 (len encoded))))
             (stripped (fold rm-lead sliced 0x00))
             )
-            (if (>= data u256)
+            ;; For 4+ bytes, prefix 0x00 to avoid RLP misinterpreting first byte as string length
+            (if (>= data (pow u256 u3))
                 (check_length (concat 0x00 stripped))
                 stripped)
         )
@@ -77,13 +76,13 @@
                                                 (if (>= data (pow u256 u4))
                                                     (check_length (concat 0x86 (encode-uint-raw data)))
                                                     (if (>= data (pow u256 u3))
-                                                        (check_length (concat 0x85 (encode-uint-raw data)))
+                                                        (check_length (concat 0x85 (encode-uint-raw data))) ;; We skip 0x84 for some reason
                                                         (if (>= data (pow u256 u2))
-                                                            (check_length (concat 0x84 (encode-uint-raw data)))
+                                                            (check_length (concat 0x83 (encode-uint-raw data)))
                                                             (if (>= data u256)
-                                                                (check_length (concat 0x83 (encode-uint-raw data)))
+                                                                (check_length (concat 0x82 (encode-uint-raw data)))
                                                                 (if (>= data u128)
-                                                                    (check_length (concat 0x82 (encode-uint-raw data)))
+                                                                    (check_length (concat 0x81 (encode-uint-raw data)))
                                                                     (encode-uint-raw data)))))))))))))))))
 )
 
@@ -110,36 +109,26 @@
     )
 )
 
-(define-private (encode-lenght (data (buff 1024)))
-  (let (
-        (length (len data))
-        )
-        (if (<= length u1 )
-            data
-            (if (<= length u55 )
-                (check_length (concat  (encode-uint-raw (+ u128 length)) data)) 
-                (check_length (concat  (encode-uint-raw (+ u183 length)) data))
-            )
-        )
-    )
-)
 
 (define-private (encode-list-lenght (data (buff 1024)))
-  (let (
-    (length (len data))
-  )
-    (if (<= length u55)
-      (check_length (concat (encode-uint-raw (+ u192 length)) data))
-      (let (
-        (length-bytes (unwrap-panic (to-consensus-buff? length)))
-        (len-byte1 (unwrap-panic (element-at? length-bytes u15)))
-        (len-byte2 (unwrap-panic (element-at? length-bytes u16)))
-        (prefix (concat (concat 0xfa00 len-byte1) len-byte2))
-      )
-      (check_length (concat prefix data)))
-    )
-  )
-)
+ (let (
+       (length (len data))
+   )
+   (if (<= length u55)
+       (check_length (concat (encode-uint-raw (+ u192 length)) data))
+       (let (
+           (encoded-length (unwrap-panic (to-consensus-buff? length)))
+           (stripped-length (unwrap-panic 
+               (slice? encoded-length
+                   (if (>= length u256) u14
+                       (if (>= length u256) u15 u16))
+                   (len encoded-length))))
+           (prefix (encode-uint-raw (+ u247 (len stripped-length))))
+       )
+           (check_length (concat (concat prefix stripped-length) data))
+       )
+   )
+))
 
 (define-private (concat-buff (a (buff 1024)) (b (buff 1024)))
   (check_length (concat b a))
