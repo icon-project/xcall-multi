@@ -110,7 +110,10 @@
   (match (var-get network-id)
     some-network-id
       (match (var-get contract-address)
-        some-network-addr (ok (concat (concat some-network-id "/") some-network-addr))
+        some-network-addr 
+          (ok (unwrap! 
+            (as-max-len? (concat (concat some-network-id "/") some-network-addr) u128)
+            ERR_INVALID_NETWORK_ADDRESS))
         ERR_NOT_INITIALIZED
       )
     ERR_NOT_INITIALIZED
