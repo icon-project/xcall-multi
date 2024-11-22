@@ -119,10 +119,7 @@
        (let (
            (encoded-length (unwrap-panic (to-consensus-buff? length)))
            (stripped-length (unwrap-panic 
-               (slice? encoded-length
-                   (if (>= length u256) u14
-                       (if (>= length u256) u15 u16))
-                   (len encoded-length))))
+               (slice? encoded-length u14 (len encoded-length))))
            (prefix (encode-uint-raw (+ u247 (len stripped-length))))
        )
            (check_length (concat (concat prefix stripped-length) data))
@@ -132,4 +129,34 @@
 
 (define-private (concat-buff (a (buff 1024)) (b (buff 1024)))
   (check_length (concat b a))
+)
+
+(define-read-only (encode-long-list-test)
+    (let (
+        (value-u8 (encode-uint u245))
+        (value-u32 (encode-uint u24196199))
+        (value-u64 (encode-uint u103921887687475199))
+        (value-u128 (encode-uint u180593171625979951495805181356371083263))
+        
+        (string1 (encode-string "Integer quis auctor elit sed vulputate mi sit."))
+        (string2 (encode-string "Tincidunt nunc pulvinar sapien et ligula"))
+        
+        (string-list-raw (list 
+            string1
+            string2
+        ))
+        (string-list (encode-arr string-list-raw))
+        
+        (last-string (encode-string "Sed adipiscing diam donec adipiscing tristique"))
+        
+        (final-list (list 
+            value-u8
+            value-u32
+            value-u64
+            value-u128
+            string-list
+            last-string
+        ))
+    )
+    (encode-arr final-list))
 )
