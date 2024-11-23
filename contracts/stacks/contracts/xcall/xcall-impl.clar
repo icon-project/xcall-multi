@@ -1,5 +1,3 @@
-(define-constant CONTRACT_NAME "xcall-impl")
-
 (impl-trait .xcall-impl-trait.xcall-impl-trait)
 (use-trait xcall-common-trait .xcall-common-trait.xcall-common-trait)
 (use-trait xcall-receiver-trait .xcall-receiver-trait.xcall-receiver-trait)
@@ -278,11 +276,14 @@
   )
 )
 
+(define-private (encode-protocol-string (protocol (string-ascii 128)))
+  (contract-call? .rlp-encode encode-string protocol))
+
 (define-public (send-call-message 
   (to (string-ascii 128)) 
   (data (buff 2048)) 
   (rollback (optional (buff 1024))) 
-  (sources (optional (list 10 (string-ascii 128)))) 
+  (sources (optional (list 10 (string-ascii 128))))
   (destinations (optional (list 10 (string-ascii 128))))
 )
   (let
@@ -293,26 +294,54 @@
       (parsed-address (try! (parse-network-address to)))
       (dst-network-id (get network-id parsed-address))
       (connection-result (unwrap-panic (get-default-connection dst-network-id)))
+      (from-address (unwrap! (get-network-address) ERR_NOT_INITIALIZED))
+
+      (encoded-from (contract-call? .rlp-encode encode-string from-address))
+      (encoded-to (contract-call? .rlp-encode encode-string to))
+      (encoded-sn (contract-call? .rlp-encode encode-uint next-sn))
+      (encoded-type (contract-call? .rlp-encode encode-uint CS_MESSAGE_TYPE_REQUEST))
+      (encoded-data (unwrap! (as-max-len? data u1024) ERR_INVALID_MESSAGE))
+      (encoded-protocols (contract-call? .rlp-encode encode-arr 
+        (map encode-protocol-string (default-to (list) sources))))
+
+      (request-components (list 
+          encoded-from
+          encoded-to 
+          encoded-sn
+          encoded-type
+          encoded-data
+          encoded-protocols))
+
+      (encoded-request (contract-call? .rlp-encode encode-arr request-components))
+
+      (message-components (list
+          (contract-call? .rlp-encode encode-uint CS_MESSAGE_TYPE_REQUEST)
+          encoded-request))
+      (cs-message-request (contract-call? .rlp-encode encode-arr message-components))
     )
     (asserts! (is-some connection-result) ERR_INVALID_NETWORK_ADDRESS)
-    (emit-call-message-sent-event tx-sender to next-sn data sources destinations)
+    
+    (emit-call-message-sent-event tx-sender to next-sn cs-message-request sources destinations)
+    
     (map-set outgoing-messages
       { sn: next-sn }
       {
         to: to,
-        data: data,
+        data: cs-message-request,
         rollback: rollback,
         sources: sources,
         destinations: destinations
       }
     )
+    
     (if (and (is-reply dst-network-id sources) (is-none rollback))
       (begin
         (var-set reply-state none)
-        (var-set call-reply (some data))
+        (var-set call-reply (some cs-message-request))
       )
       true
     )
+    
     (try! (stx-transfer? fee tx-sender fee-to))
     (ok next-sn)
   )
