@@ -296,28 +296,30 @@
       (connection-result (unwrap-panic (get-default-connection dst-network-id)))
       (from-address (unwrap! (get-network-address) ERR_NOT_INITIALIZED))
 
-      (encoded-from (contract-call? .rlp-encode encode-string from-address))
-      (encoded-to (contract-call? .rlp-encode encode-string to))
-      (encoded-sn (contract-call? .rlp-encode encode-uint next-sn))
-      (encoded-type (contract-call? .rlp-encode encode-uint CS_MESSAGE_TYPE_REQUEST))
-      (encoded-data (unwrap! (as-max-len? data u1024) ERR_INVALID_MESSAGE))
-      (encoded-protocols (contract-call? .rlp-encode encode-arr 
-        (map encode-protocol-string (default-to (list) sources))))
+      (source-contract (contract-call? .rlp-encode encode-string from-address))
+      (dest-address (contract-call? .rlp-encode encode-string to))
+      (sn (contract-call? .rlp-encode encode-uint next-sn))
+      (msg-type (contract-call? .rlp-encode encode-uint CS_MESSAGE_TYPE_REQUEST))
+      (message-data (contract-call? .rlp-encode encode-buff 
+                      (unwrap! (as-max-len? data u1024) ERR_INVALID_MESSAGE)))
 
-      (request-components (list 
-          encoded-from
-          encoded-to 
-          encoded-sn
-          encoded-type
-          encoded-data
-          encoded-protocols))
+      (protocol-list-raw (map encode-protocol-string
+          (default-to (list) sources)))
+      (protocol-list (contract-call? .rlp-encode encode-arr protocol-list-raw))
 
-      (encoded-request (contract-call? .rlp-encode encode-arr request-components))
-
-      (message-components (list
+      (inner-message-raw (list 
+          source-contract
+          dest-address 
+          sn
+          msg-type
+          message-data
+          protocol-list))
+      (inner-message (contract-call? .rlp-encode encode-arr inner-message-raw))
+      
+      (final-list-raw (list 
           (contract-call? .rlp-encode encode-uint CS_MESSAGE_TYPE_REQUEST)
-          encoded-request))
-      (cs-message-request (contract-call? .rlp-encode encode-arr message-components))
+          inner-message))
+      (cs-message-request (contract-call? .rlp-encode encode-arr final-list-raw))
     )
     (asserts! (is-some connection-result) ERR_INVALID_NETWORK_ADDRESS)
     
