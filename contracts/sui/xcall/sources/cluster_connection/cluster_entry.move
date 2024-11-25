@@ -2,7 +2,7 @@ module xcall::cluster_entry{
 
   use xcall::main::{Self as xcall};
   use xcall::xcall_state::{Self,Storage as XCallState,ConnCap};
-  use xcall::cluster_state::{Self,get_state,get_state_mut,validate_admin_cap, Validator, AdminCap};
+  use xcall::cluster_state::{Self,get_state,get_state_mut,validate_admin_cap, AdminCap};
   use xcall::xcall_utils::{Self as utils};
   use std::string::{String};
 
@@ -33,7 +33,7 @@ module xcall::cluster_entry{
       cluster_state::get_fee(state,&net_id,response)
   }
 
-  entry fun set_validators(xcall:&mut XCallState,cap:&AdminCap,connection_id:String,validator_pubkey:vector<String>,threshold:u64,_ctx: &mut TxContext){
+  entry fun set_validators(xcall:&mut XCallState,cap:&AdminCap,connection_id:String,validator_pubkey:vector<vector<u8>>,threshold:u64,_ctx: &mut TxContext){
       validate_admin_cap(cap,connection_id);
       let state=get_state_mut(xcall_state::get_connection_states_mut(xcall),connection_id);
       cluster_state::set_validators(state,validator_pubkey,threshold);
@@ -45,7 +45,7 @@ module xcall::cluster_entry{
       cluster_state::set_validator_threshold(state,threshold);
   }
 
-  entry fun get_validators(states: &XCallState,connection_id:String,_ctx: &TxContext):vector<Validator>{
+  entry fun get_validators(states: &XCallState,connection_id:String,_ctx: &TxContext):vector<vector<u8>>{
       let state = get_state(states.get_connection_states(),connection_id);
       cluster_state::get_validators(state)
   }
@@ -57,8 +57,7 @@ module xcall::cluster_entry{
 
   entry fun recieve_message_with_signatures(xcall:&mut XCallState,cap:&ConnCap,src_net_id:String,sn:u128,msg:vector<u8>,signatures:vector<vector<u8>>,ctx: &mut TxContext){
       let state=get_state_mut(xcall_state::get_connection_states_mut(xcall),cap.connection_id());
-      let message_hash = utils::get_message_hash(src_net_id, sn, msg);
-      cluster_state::verify_signatures(state, message_hash, signatures);
+      cluster_state::verify_signatures(state, src_net_id, sn, msg, signatures);
       cluster_state::check_save_receipt(state, src_net_id, sn);
       xcall::handle_message(xcall, cap,src_net_id, msg,ctx);
   }

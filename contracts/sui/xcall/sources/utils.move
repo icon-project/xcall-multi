@@ -32,8 +32,7 @@ module xcall::xcall_utils {
         vector::push_back(&mut list, encoder::encode_u128(sn));
         vector::push_back(&mut list, encoder::encode(&msg));
         let encoded=encoder::encode_list(&list,false);
-        hash::keccak256(&encoded)
-
+        encoded
     }
 
     public fun id_to_hex_string(id:&ID): String {

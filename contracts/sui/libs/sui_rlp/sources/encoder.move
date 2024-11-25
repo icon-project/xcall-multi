@@ -86,7 +86,7 @@ module sui_rlp::encoder {
     }
 
      public fun encode_u32(num:u32):vector<u8>{
-        let vec= utils::to_bytes_u32(num);
+        let vec= utils::to_bytes_u32(num,true);
         encode(&vec)
 
     }
