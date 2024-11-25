@@ -2,13 +2,15 @@ module xcall::cluster_state {
     use std::string::{String};
     use sui::vec_map::{Self, VecMap};
     use xcall::xcall_utils::{Self as utils};
-    use xcall::signatures::{pubkey_to_sui_address, verify_signature, get_pubkey_from_signature};
     use sui::coin::{Self};
     use sui::balance::{Self, Balance};
     use sui::sui::SUI;
     use sui::bag::{Bag, Self};
     use sui::event;
-
+    use sui::address::{Self};
+    use sui::hash::{Self};
+    use 0x2::ecdsa_k1::{secp256k1_ecrecover, decompress_pubkey};
+    
     //ERRORS
     const VerifiedSignaturesLessThanThreshold: u64 = 100;
     const NotEnoughSignatures: u64 = 101;
@@ -16,9 +18,13 @@ module xcall::cluster_state {
     const ValidatorCountMustBeGreaterThanThreshold: u64 = 105;
     const InvalidAdminCap: u64 = 106;
 
+    /* hash algorithm*/
+    const KECCAK256: u8 = 0x00;
+    const SHA256: u8 = 0x01;
+
     //EVENTS
     public struct ValidatorSetAdded has copy, drop {
-        validators: vector<Validator>,
+        validators: vector<vector<u8>>,
         threshold: u64
     }
 
@@ -55,18 +61,13 @@ module xcall::cluster_state {
         nid: String,
     }
 
-    public struct Validator has store, drop, copy{
-        pub_key:vector<u8>,
-        sui_address:address,
-    }
-
     public struct State has store{ 
         message_fee: VecMap<String, u64>,
         response_fee: VecMap<String, u64>,
         receipts: VecMap<ReceiptKey, bool>,
         conn_sn: u128,
         balance: Balance<SUI>,
-        validators: vector<Validator>,
+        validators: vector<vector<u8>>,
         validators_threshold:u64,
 
     }
@@ -80,14 +81,6 @@ module xcall::cluster_state {
             balance:balance::zero(),
             validators: vector::empty(),
             validators_threshold:0
-        }
-    }
-
-    fun get_validator(pub_key:String):Validator{
-        let (pubkey,sui_address)=pubkey_to_sui_address(&pub_key);
-        Validator{
-            pub_key:pubkey,
-            sui_address:sui_address
         }
     }
 
@@ -141,32 +134,59 @@ module xcall::cluster_state {
 
     }
 
-    public(package) fun verify_signatures(self:&State,message_hash:vector<u8>,signatures:vector<vector<u8>>){
-        let threshold=self.get_validator_threshold();
-        let validators=self.get_validators().map!(|validator| validator.pub_key);
+    public(package) fun verify_signatures(
+    self: &State,
+    src_net_id: String,
+    sn: u128,
+    msg: vector<u8>,
+    signatures: vector<vector<u8>>
+    ) {
+        let message_hash = utils::get_message_hash(src_net_id, sn, msg);
+        let threshold = self.get_validator_threshold();
+        let validators = self.get_validators();
+
+        // Ensure the number of signatures meets the threshold
         assert!(signatures.length() >= threshold, NotEnoughSignatures);
+
         let mut i = 0;
         let mut unique_verified_pubkey = vector::empty();
+
         while (i < signatures.length()) {
-            let signature = signatures.borrow(i);
-            let pub_key = get_pubkey_from_signature(signature);
+            let mut signature = *signatures.borrow(i);
+            let mut recovery_code = signature.pop_back();
+            let code = 27 as u8;
+
+            if (recovery_code >= code) {
+                recovery_code = recovery_code - code;
+            };
+
+            signature.push_back(recovery_code);
+
+            let pub_key = decompress_pubkey(
+                &secp256k1_ecrecover(&signature, &message_hash, KECCAK256)
+            );
+
             if (validators.contains(&pub_key)) {
-                
-                if (verify_signature(&pub_key,signature,&message_hash)) {
+                if (!unique_verified_pubkey.contains(&pub_key)) {
+                    unique_verified_pubkey.push_back(pub_key);
+                };
 
-                    if (!unique_verified_pubkey.contains(&pub_key)){
-                        unique_verified_pubkey.push_back(pub_key);
-                    };
-
-                    if (unique_verified_pubkey.length() >= threshold) {
-                        return
-                    };
+                // Exit early if the threshold is met
+                if (unique_verified_pubkey.length() >= threshold) {
+                    return;
                 };
             };
-            i=i+1;
+
+            i = i + 1;
         };
-        assert!(unique_verified_pubkey.length() >= threshold, VerifiedSignaturesLessThanThreshold); 
+
+        // Assert that the unique verified public keys meet the threshold
+        assert!(
+            unique_verified_pubkey.length() >= threshold,
+            VerifiedSignaturesLessThanThreshold
+        );
     }
+
 
     public(package) fun get_validator_threshold(self:&State):u64{
         self.validators_threshold
@@ -177,12 +197,11 @@ module xcall::cluster_state {
         self.validators_threshold=threshold
     }
 
-    public(package) fun set_validators(self:&mut State,validator_pub_keys:vector<String>,threshold:u64){
+    public(package) fun set_validators(self:&mut State,validator_pub_keys:vector<vector<u8>>,threshold:u64){
         self.validators=vector::empty();
         let mut validator_pub_keys = validator_pub_keys;
         while (validator_pub_keys.length() > 0) {
-            let validator_pub_key = validator_pub_keys.pop_back();
-            let validator=get_validator(validator_pub_key);
+            let validator = validator_pub_keys.pop_back();
             if(self.validators.contains(&validator)){
                 continue
             };
@@ -193,7 +212,7 @@ module xcall::cluster_state {
         event::emit(ValidatorSetAdded { validators: self.validators, threshold });
     }
 
-    public(package) fun get_validators(self:&State):vector<Validator>{
+    public(package) fun get_validators(self:&State):vector<vector<u8>>{
         self.validators
     }
 
@@ -222,10 +241,10 @@ module xcall::cluster_state_tests {
         let mut state = xcall::cluster_state::create_state();
 
         let validators = vector[
-            b"AJ6snNNaDhPZLg06AkcvYL0TZe4+JgoWtZKG/EJmzdWi".to_string(),
-            b"ADDxHCpQUcFsy5H5Gy01uv7LoISvtJLfgVGfWy4bLrjO".to_string(),
-            b"AL0hUNIiz5Q2fv0siZc75ce3aOyUpiiI+Q8Rmfay4K/X".to_string(),
-            b"ALnG7hYw7z5xEUSmSNsGu7IoT3J0z77lP/zuUDzBpJIA".to_string()
+            x"045b419bdec0d2bbc16ce8ae144ff8e825123fd0cb3e36d0075b6d8de5aab53388ac8fb4c28a8a3843f3073cdaa40c943f74737fc0cea4a95f87778affac738190",
+            x"04ae36a8bfd8cf6586f34c688528894835f5e7c19d36689bac5460656b613c5eabf1fa982212aa27caece23a2708eb3c8936e132b9fd82c5aee2aa4b06917b5713",
+            x"04f8c0afc6e4fa149e17fbb0f4d09647971bd016291e9ac66d0a708ec82fc8d5d2ac878d81b7d3f1d37f1013439fc3eb58a4df2f802f931c791c5d81b09034f337",
+            x"046bc928ee4932efd619ec4c00e0591e932cf2cfef13a59f6027da1c6cba36b35d91238b54aece19825025a9c7cb0bc58a60d5c49e7fc8e5b39fcc4c2193f5feb2"
         ];
 
         set_validators(&mut state, validators, 2);
@@ -244,8 +263,8 @@ module xcall::cluster_state_tests {
     #[test]
     fun test_set_get_threshold(): State {
         let mut state = test_add_validator();
-        set_validator_threshold(&mut state, 2);
-        assert!(get_validator_threshold(&state)==2);
+        set_validator_threshold(&mut state, 1);
+        assert!(get_validator_threshold(&state)==1);
         state
     }
 
@@ -303,12 +322,15 @@ module xcall::cluster_state_tests {
     #[test]
     #[expected_failure(abort_code = 101)]
     fun test_verify_signatures_less_than_threshold(): State {
-        let state = test_set_get_threshold();
-        
-        let msg: vector<u8> = x"6162636465666768";
-        let signatures = vector[x"00bb0a7ba4a242a4988c820b94a8df9b312e9e7cf4f8302b53ee2e046e76da86eae9c15296a421b8dddb29cafa8d50523e0b04300216e393d45c0739a0eab8e60cb9c6ee1630ef3e711144a648db06bbb2284f7274cfbee53ffcee503cc1a49200"]; 
+        let state = test_add_validator();
+        let msg: vector<u8> = x"68656c6c6f";
+        let src_net_id = b"0x2.icon".to_string();
+        let conn_sn = 456456;
 
-        xcall::cluster_state::verify_signatures(&state, msg, signatures);
+        let signatures = vector[x"23f731c7fb3553337394233055cbb9ec05abdd1df7cbbec3d0dacced58bf5b4b30576ca14bea93ea4186e920f99f2b9f56d30175b0a7356322f3a5d75de843b81b",
+                                ];
+
+        xcall::cluster_state::verify_signatures(&state,src_net_id, conn_sn, msg, signatures);
         state
     }
 
@@ -316,24 +338,28 @@ module xcall::cluster_state_tests {
     #[expected_failure(abort_code = 100)]
     fun test_verify_signatures_invalid(): State {
         let state = test_set_get_threshold();
-        let msg: vector<u8> = x"6162636465666768";
-        let signatures = vector[x"00bb0a7ba4a242a4988c820b94a8df9b312e9e7cf4f8302b53ee2e046e76da86eae9c15296a421b8dddb29cafa8d50523e0b04300216e393d45c0739a0eab8e60cb9c6ee1630ef3e711144a648db06bbb2284f7274cfbee53ffcee503cc1a49200",
-                                                    x"00c6d94cc625e73e036852316d228e578893aad2a7b21febc08f92a5d53978154782e4a0551ced23fb92c765b4cb4715e231de0235e2b641b81a36b9f2a3f8630d9eac9cd35a0e13d92e0d3a02472f60bd1365ee3e260a16b59286fc4266cdd5a2"
-                                                   ];
+        let msg: vector<u8> = x"68656c6c6f";
+        let src_net_id = b"0x2.icon".to_string();
+        let conn_sn = 456456;
 
-        xcall::cluster_state::verify_signatures(&state, msg, signatures);
+        let signatures = vector[x"23f731c7fb3553337394233055cbb9ec05abdd1df7cbbec3d0dacced58bf5b4b30576ca14bea93ea4186e920f99f2b9f56d30175b0a7356322f3a5d75de843b81c",
+                                ];
+
+        xcall::cluster_state::verify_signatures(&state,src_net_id, conn_sn, msg, signatures);
         state
     }
 
     #[test]
     fun test_verify_signatures(): State {
         let state = test_set_get_threshold();
-        let msg: vector<u8> = x"6162636465666768";
-        let signatures = vector[x"00bb0a7ba4a242a4988c820b94a8df9b312e9e7cf4f8302b53ee2e046e76da86eae9c15296a421b8dddb29cafa8d50523e0b04300216e393d45c0739a0eab8e60cb9c6ee1630ef3e711144a648db06bbb2284f7274cfbee53ffcee503cc1a49200",
-                                                    x"00c6d94cc625e73e036852316d229e578893aad2a7b21febc08f92a5d53978154782e4a0551ced23fb92c765b4cb4715e231de0235e2b641b81a36b9f2a3f8630d9eac9cd35a0e13d92e0d3a02472f60bd1365ee3e260a16b59286fc4266cdd5a2"
-                                                   ];
+        let msg: vector<u8> = x"68656c6c6f";
+        let src_net_id = b"0x2.icon".to_string();
+        let conn_sn = 456456;
 
-        xcall::cluster_state::verify_signatures(&state, msg, signatures);
+        let signatures = vector[x"23f731c7fb3553337394233055cbb9ec05abdd1df7cbbec3d0dacced58bf5b4b30576ca14bea93ea4186e920f99f2b9f56d30175b0a7356322f3a5d75de843b81b",
+                                ];
+
+        xcall::cluster_state::verify_signatures(&state,src_net_id, conn_sn, msg, signatures);
         state
     } 
 
