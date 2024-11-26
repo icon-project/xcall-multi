@@ -13,15 +13,14 @@ use crate::{
     types::InitializeMsg,
 };
 use soroban_sdk::{
-    symbol_short,
-    testutils::{Address as _, AuthorizedFunction, AuthorizedInvocation, Events},
-    token, vec, Address, Bytes, Env, IntoVal, String, Symbol, Vec,
+    symbol_short, testutils::{Address as _, AuthorizedFunction, AuthorizedInvocation, Events}, token, vec, Address, Bytes, BytesN, Env, IntoVal, String, Symbol, Vec
 };
 
 pub struct TestContext {
     env: Env,
     xcall: Address,
     contract: Address,
+    admin:Address,
     relayer: Address,
     native_token: Address,
     token_admin: Address,
@@ -33,12 +32,14 @@ impl TestContext {
     pub fn default() -> Self {
         let env = Env::default();
         let token_admin = Address::generate(&env);
+        let xcall = env.register_contract_wasm(None, xcall::WASM);
         Self {
-            xcall: env.register_contract_wasm(None, xcall::WASM),
+            xcall: xcall.clone(),
             contract: env.register_contract(None, ClusterConnection),
             relayer: Address::generate(&env),
+            admin: Address::generate(&env),
             native_token: env.register_stellar_asset_contract(token_admin.clone()),
-            nid: String::from_str(&env, "icon"),
+            nid: String::from_str(&env, "0x2.icon"),
             upgrade_authority: Address::generate(&env),
             env,
             token_admin,
@@ -49,12 +50,13 @@ impl TestContext {
         self.env.mock_all_auths();
 
         client.initialize(&InitializeMsg {
-            admin: self.relayer.clone(),
+            admin: self.admin.clone(),
             relayer: self.relayer.clone(),
             native_token: self.native_token.clone(),
             xcall_address: self.xcall.clone(),
             upgrade_authority: self.upgrade_authority.clone(),
         });
+
     }
 
     pub fn init_send_message(&self, client: &ClusterConnectionClient<'static>) {
@@ -75,6 +77,7 @@ fn get_dummy_initialize_msg(env: &Env) -> InitializeMsg {
     }
 }
 
+
 #[test]
 fn test_initialize() {
     let ctx = TestContext::default();
@@ -83,7 +86,7 @@ fn test_initialize() {
     ctx.init_context(&client);
 
     let admin = client.get_admin();
-    assert_eq!(admin, ctx.relayer)
+    assert_eq!(admin, ctx.admin)
 }
 
 #[test]
@@ -109,7 +112,7 @@ fn test_set_admin() {
     assert_eq!(
         ctx.env.auths(),
         std::vec![(
-            ctx.relayer.clone(),
+            ctx.admin.clone(),
             AuthorizedInvocation {
                 function: AuthorizedFunction::Contract((
                     client.address.clone(),
@@ -353,26 +356,25 @@ fn test_add_validator() {
 
     ctx.init_context(&client);
 
-    let validator1 = Address::generate(&ctx.env);
-    let validator2 = Address::generate(&ctx.env);
-    let validator3 = Address::generate(&ctx.env);
+    let val1 = [4, 174, 54, 168, 191, 216, 207, 101, 134, 243, 76, 104, 133, 40, 137, 72, 53, 245, 231, 193, 157, 54, 104, 155, 172, 84, 96, 101, 107, 97, 60, 94, 171, 241, 250, 152, 34, 18, 170, 39, 202, 236, 226, 58, 39, 8, 235, 60, 137, 54, 225, 50, 185, 253, 130, 197, 174, 226, 170, 75, 6, 145, 123, 87, 19];
+    let val2 = [4, 91, 65, 155, 222, 192, 210, 187, 193, 108, 232, 174, 20, 79, 248, 232, 37, 18, 63, 208, 203, 62, 54, 208, 7, 91, 109, 141, 229, 170, 181, 51, 136, 172, 143, 180, 194, 138, 138, 56, 67, 243, 7, 60, 218, 164, 12, 148, 63, 116, 115, 127, 192, 206, 164, 169, 95, 135, 119, 138, 255, 172, 115, 129, 144];
+    let val3 = [4, 248, 192, 175, 198, 228, 250, 20, 158, 23, 251, 176, 244, 208, 150, 71, 151, 27, 208, 22, 41, 30, 154, 198, 109, 10, 112, 142, 200, 47, 200, 213, 210, 172, 135, 141, 129, 183, 211, 241, 211, 127, 16, 19, 67, 159, 195, 235, 88, 164, 223, 47, 128, 47, 147, 28, 121, 28, 93, 129, 176, 144, 52, 243, 55];
 
     let mut validators = Vec::new(&ctx.env);
-    validators.push_back(validator1.clone());
-    validators.push_back(validator2.clone());
-    validators.push_back(validator3.clone());
-
+    validators.push_back(BytesN::from_array(&ctx.env, &val1));
+    validators.push_back(BytesN::from_array(&ctx.env, &val2));
+    validators.push_back(BytesN::from_array(&ctx.env, &val3));
     client.update_validators(&validators, &3_u32);
 
     assert_eq!(
         ctx.env.auths(),
         std::vec![(
-            ctx.relayer,
+            ctx.admin.clone(),
             AuthorizedInvocation {
                 function: AuthorizedFunction::Contract((
                     client.address.clone(),
                     Symbol::new(&ctx.env, "update_validators"),
-                    (validators.clone(), 3,).into_val(&ctx.env)
+                    (validators.clone(), 3_u32,).into_val(&ctx.env)
                 )),
                 sub_invocations: std::vec![]
             }
@@ -393,23 +395,23 @@ fn test_set_threshold() {
 
     ctx.init_context(&client);
 
-    let validator1 = Address::generate(&ctx.env);
-    let validator2 = Address::generate(&ctx.env);
-    let validator3 = Address::generate(&ctx.env);
+    let val1 = [4, 174, 54, 168, 191, 216, 207, 101, 134, 243, 76, 104, 133, 40, 137, 72, 53, 245, 231, 193, 157, 54, 104, 155, 172, 84, 96, 101, 107, 97, 60, 94, 171, 241, 250, 152, 34, 18, 170, 39, 202, 236, 226, 58, 39, 8, 235, 60, 137, 54, 225, 50, 185, 253, 130, 197, 174, 226, 170, 75, 6, 145, 123, 87, 19];
+    let val2 = [4, 91, 65, 155, 222, 192, 210, 187, 193, 108, 232, 174, 20, 79, 248, 232, 37, 18, 63, 208, 203, 62, 54, 208, 7, 91, 109, 141, 229, 170, 181, 51, 136, 172, 143, 180, 194, 138, 138, 56, 67, 243, 7, 60, 218, 164, 12, 148, 63, 116, 115, 127, 192, 206, 164, 169, 95, 135, 119, 138, 255, 172, 115, 129, 144];
+    let val3 = [4, 248, 192, 175, 198, 228, 250, 20, 158, 23, 251, 176, 244, 208, 150, 71, 151, 27, 208, 22, 41, 30, 154, 198, 109, 10, 112, 142, 200, 47, 200, 213, 210, 172, 135, 141, 129, 183, 211, 241, 211, 127, 16, 19, 67, 159, 195, 235, 88, 164, 223, 47, 128, 47, 147, 28, 121, 28, 93, 129, 176, 144, 52, 243, 55];
 
     let mut validators = Vec::new(&ctx.env);
-    validators.push_back(validator1.clone());
-    validators.push_back(validator2.clone());
-    validators.push_back(validator3.clone());
-
+    validators.push_back(BytesN::from_array(&ctx.env, &val1));
+    validators.push_back(BytesN::from_array(&ctx.env, &val2));
+    validators.push_back(BytesN::from_array(&ctx.env, &val3));
     client.update_validators(&validators, &3_u32);
+
     let threshold: u32 = 2_u32;
     client.set_validators_threshold(&threshold);
 
     assert_eq!(
         ctx.env.auths(),
         std::vec![(
-            ctx.relayer,
+            ctx.admin.clone(),
             AuthorizedInvocation {
                 function: AuthorizedFunction::Contract((
                     client.address.clone(),
@@ -426,3 +428,88 @@ fn test_set_threshold() {
     client.set_validators_threshold(&threshold);
     assert_eq!(client.get_validators_threshold(), threshold);
 }
+
+
+#[test]
+fn test_receive_message() {
+    let ctx = TestContext::default();
+    let client = ClusterConnectionClient::new(&ctx.env, &ctx.contract);
+
+    ctx.init_context(&client);
+
+    let val1 = [4, 174, 54, 168, 191, 216, 207, 101, 134, 243, 76, 104, 133, 40, 137, 72, 53, 245, 231, 193, 157, 54, 104, 155, 172, 84, 96, 101, 107, 97, 60, 94, 171, 241, 250, 152, 34, 18, 170, 39, 202, 236, 226, 58, 39, 8, 235, 60, 137, 54, 225, 50, 185, 253, 130, 197, 174, 226, 170, 75, 6, 145, 123, 87, 19];
+    let val2 = [4, 91, 65, 155, 222, 192, 210, 187, 193, 108, 232, 174, 20, 79, 248, 232, 37, 18, 63, 208, 203, 62, 54, 208, 7, 91, 109, 141, 229, 170, 181, 51, 136, 172, 143, 180, 194, 138, 138, 56, 67, 243, 7, 60, 218, 164, 12, 148, 63, 116, 115, 127, 192, 206, 164, 169, 95, 135, 119, 138, 255, 172, 115, 129, 144];
+    let val3 = [4, 248, 192, 175, 198, 228, 250, 20, 158, 23, 251, 176, 244, 208, 150, 71, 151, 27, 208, 22, 41, 30, 154, 198, 109, 10, 112, 142, 200, 47, 200, 213, 210, 172, 135, 141, 129, 183, 211, 241, 211, 127, 16, 19, 67, 159, 195, 235, 88, 164, 223, 47, 128, 47, 147, 28, 121, 28, 93, 129, 176, 144, 52, 243, 55];
+
+    let mut validators = Vec::new(&ctx.env);
+    validators.push_back(BytesN::from_array(&ctx.env, &val1));
+    validators.push_back(BytesN::from_array(&ctx.env, &val2));
+    validators.push_back(BytesN::from_array(&ctx.env, &val3));
+    client.update_validators(&validators, &1_u32);
+
+    let conn_sn = 456456_u128;
+    let msg = Bytes::from_array(&ctx.env,&[104, 101, 108, 108, 111]);
+    let src_network = String::from_str(&ctx.env, "0x2.icon");
+
+    let mut signatures = Vec::new(&ctx.env);
+    signatures.push_back(BytesN::from_array(&ctx.env, &[35, 247, 49, 199, 251, 53, 83, 51, 115, 148, 35, 48, 85, 203, 185, 236, 5, 171, 221, 29, 247, 203, 190, 195, 208, 218, 204, 237, 88, 191, 91, 75, 48, 87, 108, 161, 75, 234, 147, 234, 65, 134, 233, 32, 249, 159, 43, 159, 86, 211, 1, 117, 176, 167, 53, 99, 34, 243, 165, 215, 93, 232, 67, 184, 27]));
+
+    client.recv_message_with_signatures(&src_network, &conn_sn, &msg, &signatures);
+}
+
+#[test]
+#[should_panic(expected = "HostError: Error(Contract, #11)")]
+fn test_receive_message_less_signatures() {
+    let ctx = TestContext::default();
+    let client = ClusterConnectionClient::new(&ctx.env, &ctx.contract);
+
+    ctx.init_context(&client);
+
+    let val1 = [4, 174, 54, 168, 191, 216, 207, 101, 134, 243, 76, 104, 133, 40, 137, 72, 53, 245, 231, 193, 157, 54, 104, 155, 172, 84, 96, 101, 107, 97, 60, 94, 171, 241, 250, 152, 34, 18, 170, 39, 202, 236, 226, 58, 39, 8, 235, 60, 137, 54, 225, 50, 185, 253, 130, 197, 174, 226, 170, 75, 6, 145, 123, 87, 19];
+    let val2 = [4, 91, 65, 155, 222, 192, 210, 187, 193, 108, 232, 174, 20, 79, 248, 232, 37, 18, 63, 208, 203, 62, 54, 208, 7, 91, 109, 141, 229, 170, 181, 51, 136, 172, 143, 180, 194, 138, 138, 56, 67, 243, 7, 60, 218, 164, 12, 148, 63, 116, 115, 127, 192, 206, 164, 169, 95, 135, 119, 138, 255, 172, 115, 129, 144];
+    let val3 = [4, 248, 192, 175, 198, 228, 250, 20, 158, 23, 251, 176, 244, 208, 150, 71, 151, 27, 208, 22, 41, 30, 154, 198, 109, 10, 112, 142, 200, 47, 200, 213, 210, 172, 135, 141, 129, 183, 211, 241, 211, 127, 16, 19, 67, 159, 195, 235, 88, 164, 223, 47, 128, 47, 147, 28, 121, 28, 93, 129, 176, 144, 52, 243, 55];
+
+    let mut validators = Vec::new(&ctx.env);
+    validators.push_back(BytesN::from_array(&ctx.env, &val1));
+    validators.push_back(BytesN::from_array(&ctx.env, &val2));
+    validators.push_back(BytesN::from_array(&ctx.env, &val3));
+    client.update_validators(&validators, &2_u32);
+
+    let conn_sn = 456456_u128;
+    let msg = Bytes::from_array(&ctx.env,&[104, 101, 108, 108, 111]);
+    let src_network = String::from_str(&ctx.env, "0x2.icon");
+
+    let mut signatures = Vec::new(&ctx.env);
+    signatures.push_back(BytesN::from_array(&ctx.env, &[35, 247, 49, 199, 251, 53, 83, 51, 115, 148, 35, 48, 85, 203, 185, 236, 5, 171, 221, 29, 247, 203, 190, 195, 208, 218, 204, 237, 88, 191, 91, 75, 48, 87, 108, 161, 75, 234, 147, 234, 65, 134, 233, 32, 249, 159, 43, 159, 86, 211, 1, 117, 176, 167, 53, 99, 34, 243, 165, 215, 93, 232, 67, 184, 27]));
+
+    client.recv_message_with_signatures(&src_network, &conn_sn, &msg, &signatures);
+}
+
+#[test]
+#[should_panic(expected = "HostError: Error(Contract, #11)")]
+fn test_receive_message_with_invalid_signature() {
+    let ctx = TestContext::default();
+    let client = ClusterConnectionClient::new(&ctx.env, &ctx.contract);
+
+    ctx.init_context(&client);
+
+    let val1 = [4, 174, 54, 168, 191, 216, 207, 101, 134, 243, 76, 104, 133, 40, 137, 72, 53, 245, 231, 193, 157, 54, 104, 155, 172, 84, 96, 101, 107, 97, 60, 94, 171, 241, 250, 152, 34, 18, 170, 39, 202, 236, 226, 58, 39, 8, 235, 60, 137, 54, 225, 50, 185, 253, 130, 197, 174, 226, 170, 75, 6, 145, 123, 87, 19];
+    let val2 = [4, 91, 65, 155, 222, 192, 210, 187, 193, 108, 232, 174, 20, 79, 248, 232, 37, 18, 63, 208, 203, 62, 54, 208, 7, 91, 109, 141, 229, 170, 181, 51, 136, 172, 143, 180, 194, 138, 138, 56, 67, 243, 7, 60, 218, 164, 12, 148, 63, 116, 115, 127, 192, 206, 164, 169, 95, 135, 119, 138, 255, 172, 115, 129, 144];
+    let val3 = [4, 248, 192, 175, 198, 228, 250, 20, 158, 23, 251, 176, 244, 208, 150, 71, 151, 27, 208, 22, 41, 30, 154, 198, 109, 10, 112, 142, 200, 47, 200, 213, 210, 172, 135, 141, 129, 183, 211, 241, 211, 127, 16, 19, 67, 159, 195, 235, 88, 164, 223, 47, 128, 47, 147, 28, 121, 28, 93, 129, 176, 144, 52, 243, 55];
+
+    let mut validators = Vec::new(&ctx.env);
+    validators.push_back(BytesN::from_array(&ctx.env, &val1));
+    validators.push_back(BytesN::from_array(&ctx.env, &val2));
+    validators.push_back(BytesN::from_array(&ctx.env, &val3));
+    client.update_validators(&validators, &1_u32);
+
+    let conn_sn = 456456_u128;
+    let msg = Bytes::from_array(&ctx.env,&[104, 100, 108, 108, 111]);
+    let src_network = String::from_str(&ctx.env, "0x2.icon");
+
+    let mut signatures = Vec::new(&ctx.env);
+    signatures.push_back(BytesN::from_array(&ctx.env, &[35, 247, 49, 199, 251, 53, 83, 51, 115, 148, 35, 48, 85, 203, 185, 236, 5, 171, 221, 29, 247, 203, 190, 195, 208, 218, 204, 237, 88, 191, 91, 75, 48, 87, 108, 161, 75, 234, 147, 234, 65, 134, 233, 32, 249, 159, 43, 159, 86, 211, 1, 117, 176, 167, 53, 99, 34, 243, 165, 215, 93, 232, 67, 184, 27]));
+
+    client.recv_message_with_signatures(&src_network, &conn_sn, &msg, &signatures);
+}
+

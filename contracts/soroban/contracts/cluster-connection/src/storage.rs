@@ -1,4 +1,4 @@
-use soroban_sdk::{vec, Address, Env, String, Vec};
+use soroban_sdk::{Address, BytesN, Env, String, Vec};
 
 use crate::{
     errors::ContractError,
@@ -117,7 +117,7 @@ pub fn get_validators_threshold(e: &Env) -> Result<u32, ContractError> {
         .ok_or(ContractError::Uninitialized)
 }
 
-pub fn get_validators(e: &Env) -> Result<Vec<Address>, ContractError> {
+pub fn get_validators(e: &Env) -> Result<Vec<BytesN<65>>, ContractError> {
     e.storage()
         .instance()
         .get(&StorageKey::Validators)
@@ -160,7 +160,7 @@ pub fn store_validator_threshold(e: &Env, threshold: u32) {
     e.storage().instance().set(&StorageKey::ValidatorThreshold, &threshold);
 }
 
-pub fn store_validators(e: &Env, validators: Vec<Address>) {
+pub fn store_validators(e: &Env, validators: Vec<BytesN<65>>) {
     e.storage().instance().set(&StorageKey::Validators, &validators);
 }
 

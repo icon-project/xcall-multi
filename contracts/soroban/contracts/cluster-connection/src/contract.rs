@@ -28,7 +28,7 @@ impl ClusterConnection {
     }
 
     pub fn set_admin(env: Env, address: Address) -> Result<(), ContractError> {
-        helpers::ensure_relayer(&env)?;
+        helpers::ensure_admin(&env)?;
         storage::store_admin(&env, address);
         Ok(())
     }
@@ -42,6 +42,12 @@ impl ClusterConnection {
         helpers::ensure_upgrade_authority(&env)?;
         storage::store_upgrade_authority(&env, address);
 
+        Ok(())
+    }
+
+    pub fn set_relayer(env: Env, address: Address) -> Result<(), ContractError> {
+        helpers::ensure_admin(&env)?;
+        storage::store_relayer(&env, address);
         Ok(())
     }
 
@@ -114,11 +120,11 @@ impl ClusterConnection {
         Ok(())
     }
 
-    pub fn update_validators(env: Env, addresses: Vec<Address>, threshold: u32) -> Result<(), ContractError> {
-        helpers::ensure_relayer(&env)?;
+    pub fn update_validators(env: Env, pub_keys: Vec<BytesN<65>>, threshold: u32) -> Result<(), ContractError> {
+        helpers::ensure_admin(&env)?;
         let mut validators = Vec::new(&env);
 
-        for address in addresses.clone() {
+        for address in pub_keys.clone() {
             if !validators.contains(&address) {
                 validators.push_back(address);
             }
@@ -127,7 +133,8 @@ impl ClusterConnection {
             return Err(ContractError::ThresholdExceeded);
             
         }
-        storage::store_validators(&env, addresses);
+        storage::store_validators(&env, pub_keys);
+        storage::store_validator_threshold(&env, threshold);
         Ok(())
     }
 
@@ -137,7 +144,7 @@ impl ClusterConnection {
     }
 
     pub fn set_validators_threshold(env: Env, threshold: u32) -> Result<(), ContractError> {
-        helpers::ensure_relayer(&env)?;
+        helpers::ensure_admin(&env)?;
         let validators = storage::get_validators(&env).unwrap();
         if (validators.len() as u32) < threshold {
             return Err(ContractError::ThresholdExceeded);
@@ -146,9 +153,14 @@ impl ClusterConnection {
         Ok(())
     }
 
-    pub fn get_validators(env: Env) -> Result<Vec<Address>, ContractError> {
+    pub fn get_validators(env: Env) -> Result<Vec<BytesN<65>>, ContractError> {
         let validators = storage::get_validators(&env).unwrap();
         Ok(validators)
+    }
+
+    pub fn get_relayer(env: Env) -> Result<Address, ContractError> {
+        let address = storage::relayer(&env)?;
+        Ok(address)
     }
 
     pub fn get_fee(env: Env, network_id: String, response: bool) -> Result<u128, ContractError> {
