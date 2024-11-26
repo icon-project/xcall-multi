@@ -153,6 +153,19 @@ pub fn get_own_network_address(e: &Env) -> Result<NetworkAddress, ContractError>
     Ok(from)
 }
 
+pub fn get_contract_version(e: &Env) -> u32 {
+    e.storage()
+        .instance()
+        .get(&StorageKey::Version)
+        .unwrap_or(1)
+}
+
+pub fn set_contract_version(e: &Env, new_version: u32) {
+    e.storage()
+        .instance()
+        .set(&StorageKey::Version, &new_version);
+}
+
 pub fn store_admin(e: &Env, address: &Address) {
     e.storage().instance().set(&StorageKey::Admin, &address);
     extend_instance(&e);

@@ -1,8 +1,6 @@
 [workspace]
 members = [
-    "contracts/cosmwasm-vm/*",
-    "contracts/soroban/contracts/*",
-    "contracts/soroban/libs/*"
+    "contracts/cosmwasm-vm/*"
 ]
 
 [workspace.package]
@@ -37,8 +35,6 @@ cw-common={ git="https://github.com/icon-project/IBC-Integration.git", branch = 
 
 cw-mock-dapp = {path="contracts/cosmwasm-vm/cw-mock-dapp"}
 cw-mock-dapp-multi = { path="contracts/cosmwasm-vm/cw-mock-dapp-multi"}
-
-soroban-sdk = "21.6.0"
 
 [profile.release]
 opt-level = 'z'

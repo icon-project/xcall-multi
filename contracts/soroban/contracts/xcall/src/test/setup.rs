@@ -10,10 +10,19 @@ use soroban_xcall_lib::{
     network_address::NetworkAddress,
 };
 
-mod connection {
+pub mod connection {
     soroban_sdk::contractimport!(
         file = "../../target/wasm32-unknown-unknown/release/centralized_connection.wasm"
     );
+}
+pub mod dapp {
+    soroban_sdk::contractimport!(
+        file = "../../target/wasm32-unknown-unknown/release/mock_dapp_multi.wasm"
+    );
+}
+
+pub mod xcall {
+    soroban_sdk::contractimport!(file = "../../target/wasm32-unknown-unknown/release/xcall.wasm");
 }
 
 use crate::{
@@ -115,6 +124,7 @@ pub struct TestContext {
     pub token_admin: Address,
     pub network_address: NetworkAddress,
     pub upgrade_authority: Address,
+    pub dapp: Address,
     pub centralized_connection: Address,
 }
 
@@ -122,18 +132,21 @@ impl TestContext {
     pub fn default() -> Self {
         let env = Env::default();
         let token_admin = Address::generate(&env);
+        let dapp = env.register_contract_wasm(None, dapp::WASM);
         let centralized_connection = env.register_contract_wasm(None, connection::WASM);
+        let native_token_contract = env.register_stellar_asset_contract_v2(token_admin.clone());
 
         Self {
             contract: env.register_contract(None, Xcall),
             admin: Address::generate(&env),
             fee_handler: Address::generate(&env),
-            native_token: env.register_stellar_asset_contract(token_admin.clone()),
+            native_token: native_token_contract.address(),
             nid: String::from_str(&env, "stellar"),
             network_address: get_dummy_network_address(&env),
             upgrade_authority: Address::generate(&env),
             env,
             token_admin,
+            dapp,
             centralized_connection,
         }
     }
@@ -151,6 +164,8 @@ impl TestContext {
         self.init_connection_state();
         client.set_protocol_fee(&100);
         client.set_default_connection(&self.nid, &self.centralized_connection);
+
+        self.init_dapp_state();
     }
 
     pub fn init_connection_state(&self) {
@@ -167,6 +182,17 @@ impl TestContext {
         let message_fee = 100;
         let response_fee = 100;
         connection_client.set_fee(&self.nid, &message_fee, &response_fee);
+    }
+
+    pub fn init_dapp_state(&self) {
+        let dapp_client = dapp::Client::new(&self.env, &self.dapp);
+        dapp_client.init(&self.admin, &self.contract.clone(), &self.native_token);
+
+        dapp_client.add_connection(
+            &self.centralized_connection.to_string(),
+            &Address::generate(&self.env).to_string(),
+            &self.nid,
+        );
     }
 
     pub fn mint_native_token(&self, address: &Address, amount: u128) {
