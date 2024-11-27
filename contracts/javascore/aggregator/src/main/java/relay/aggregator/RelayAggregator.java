@@ -42,6 +42,7 @@ public class RelayAggregator {
     private final DictDB<Address, Boolean> relayersLookup = Context.newDictDB("relayersLookup", Boolean.class);
 
     private final DictDB<String, Packet> packets = Context.newDictDB("packets", Packet.class);
+    private final DictDB<String, Boolean> acknowledgedPackets = Context.newDictDB("acknowledgedPackets", Boolean.class);
 
     private final BranchDB<String, DictDB<Address, byte[]>> signatures = Context.newBranchDB("signatures",
             byte[].class);
@@ -133,6 +134,15 @@ public class RelayAggregator {
         return existingSign != null;
     }
 
+    @External(readonly = true)
+    public boolean packetAcknowledged(
+            String srcNetwork,
+            String srcContractAddress,
+            BigInteger srcSn) {
+        String pktID = Packet.createId(srcNetwork, srcContractAddress, srcSn);
+        return acknowledgedPackets.get(pktID) != null && acknowledgedPackets.get(pktID) == true;
+    }
+
     @External
     public void submitPacket(
             String srcNetwork,
@@ -148,6 +158,9 @@ public class RelayAggregator {
 
         Packet pkt = new Packet(srcNetwork, srcContractAddress, srcSn, srcHeight, dstNetwork, dstContractAddress, data);
         String pktID = pkt.getId();
+
+        Context.require(acknowledgedPackets.get(pktID) == null || acknowledgedPackets.get(pktID) == false,
+                "packet already acknowledged: need not submit");
 
         if (packets.get(pktID) == null) {
             packets.set(pktID, pkt);
@@ -181,6 +194,7 @@ public class RelayAggregator {
                     pkt.getDstContractAddress(),
                     pkt.getData(),
                     encodedSigs);
+            acknowledgedPackets.set(pktID, true);
             removePacket(pktID);
         }
     }
