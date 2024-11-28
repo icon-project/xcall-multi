@@ -159,8 +159,9 @@ public class RelayAggregator {
         Packet pkt = new Packet(srcNetwork, srcContractAddress, srcSn, srcHeight, dstNetwork, dstContractAddress, data);
         String pktID = pkt.getId();
 
-        Context.require(acknowledgedPackets.get(pktID) == null || acknowledgedPackets.get(pktID) == false,
-                "packet already acknowledged: need not submit");
+        if (acknowledgedPackets.get(pktID) != null && acknowledgedPackets.get(pktID) == true) {
+            return;
+        }
 
         if (packets.get(pktID) == null) {
             packets.set(pktID, pkt);
