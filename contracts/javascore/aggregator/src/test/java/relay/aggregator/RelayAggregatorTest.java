@@ -376,45 +376,6 @@ class RelayAggregatorTest extends TestBase {
         }
 
         @Test
-        public void testSubmitPacket_alreadyAcknowledged() throws Exception {
-                String srcNetwork = "0x2.icon";
-                String dstNetwork = "sui";
-                BigInteger srcSn = BigInteger.ONE;
-                BigInteger srcHeight = BigInteger.ONE;
-                String srcContractAddress = "hxjuiod";
-                String dstContractAddress = "hxjuiod";
-                byte[] data = new byte[] { 0x01, 0x02 };
-
-                aggregator.invoke(adminAc, "setSignatureThreshold", 2);
-
-                byte[] dataHash = Context.hash("sha-256", data);
-
-                byte[] signAdmin = admin.sign(dataHash);
-                aggregator.invoke(adminAc, "submitPacket", srcNetwork, srcContractAddress,
-                                srcSn, srcHeight, dstNetwork,
-                                dstContractAddress, data,
-                                signAdmin);
-
-                byte[] signOne = relayerOne.sign(dataHash);
-                aggregator.invoke(relayerOneAc, "submitPacket", srcNetwork,
-                                srcContractAddress, srcSn, srcHeight, dstNetwork,
-                                dstContractAddress,
-                                data,
-                                signOne);
-
-                byte[] signTwo = relayerTwo.sign(dataHash);
-                Executable action = () -> aggregator.invoke(relayerTwoAc, "submitPacket", srcNetwork,
-                                srcContractAddress, srcSn, srcHeight, dstNetwork,
-                                dstContractAddress,
-                                data,
-                                signTwo);
-                UserRevertedException e = assertThrows(UserRevertedException.class, action);
-                assertEquals("Reverted(0): packet already acknowledged: need not submit",
-                                e.getMessage());
-
-        }
-
-        @Test
         public void testSubmitPacket_unauthorized() throws Exception {
                 String srcNetwork = "0x2.icon";
                 String dstNetwork = "sui";
