@@ -46,13 +46,28 @@ module sui_rlp::utils {
         to_signed_bytes(bytes,signed)
     }
 
+    public fun to_bytes_u128_sign(number:u128,signed:bool):vector<u8>{
+        let bytes=bcs::to_bytes(&number);
+        to_signed_bytes(bytes,signed)
+    }
+
 
     public fun to_bytes_u64(number:u64,signed:bool):vector<u8>{
         let bytes=bcs::to_bytes(&number);
         to_signed_bytes(bytes,signed)
     }
 
+    public fun to_bytes_u64_sign(number:u64,signed:bool):vector<u8>{
+        let bytes=bcs::to_bytes(&number);
+        to_signed_bytes(bytes,signed)
+    }
+
     public fun to_bytes_u32(number: u32,signed:bool): vector<u8> {
+        let bytes=bcs::to_bytes(&number);
+        to_signed_bytes(bytes,signed)
+    }
+
+    public fun to_bytes_u32_sign(number: u32,signed:bool): vector<u8> {
         let bytes=bcs::to_bytes(&number);
         to_signed_bytes(bytes,signed)
     }
@@ -120,7 +135,7 @@ module sui_rlp::utils_test {
     #[test]
     fun test_u32_conversion() {
         let num= (122 as u32);
-        let bytes= utils::to_bytes_u32(num,true);
+        let bytes= utils::to_bytes_u32_sign(num,true);
         let converted=utils::from_bytes_u32(&bytes);
         assert!(num==converted,0x01);
 
@@ -129,7 +144,7 @@ module sui_rlp::utils_test {
     #[test]
     fun test_u64_conversion() {
         let num= (55000 as u64);
-        let bytes= utils::to_bytes_u64(num,true);
+        let bytes= utils::to_bytes_u64_sign(num,true);
         let converted=utils::from_bytes_u64(&bytes);
         std::debug::print(&bytes);
         std::debug::print(&converted);
@@ -140,7 +155,7 @@ module sui_rlp::utils_test {
     #[test]
     fun test_u128_conversion() {
         let num= (1222223333 as u128);
-        let bytes= utils::to_bytes_u128(num,true);
+        let bytes= utils::to_bytes_u128_sign(num,true);
         std::debug::print(&bytes);
         let converted=utils::from_bytes_u128(&bytes);
         std::debug::print(&converted);
