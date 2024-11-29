@@ -157,6 +157,20 @@ fn test_get_fee() {
 }
 
 #[test]
+fn test_get_network_address() {
+    let ctx = TestContext::default();
+    let client = XcallClient::new(&ctx.env, &ctx.contract);
+    ctx.init_context(&client);
+
+    let network_address = client.get_network_address();
+    let expected_network_address = String::from_str(
+        &ctx.env,
+        "icon/CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAK3IM",
+    );
+    assert_eq!(network_address, expected_network_address);
+}
+
+#[test]
 fn test_set_upgrade_authority() {
     let ctx = TestContext::default();
     let client = XcallClient::new(&ctx.env, &ctx.contract);
@@ -182,4 +196,17 @@ fn test_set_upgrade_authority() {
 
     let autorhity = client.get_upgrade_authority();
     assert_eq!(autorhity, new_upgrade_authority);
+}
+
+#[test]
+fn test_upgrade() {
+    let ctx = TestContext::default();
+    let client = XcallClient::new(&ctx.env, &ctx.contract);
+    ctx.init_context(&client);
+
+    let wasm_hash = ctx.env.deployer().upload_contract_wasm(xcall::WASM);
+    assert_eq!(client.version(), 1);
+
+    client.upgrade(&wasm_hash);
+    assert_eq!(client.version(), 2);
 }
