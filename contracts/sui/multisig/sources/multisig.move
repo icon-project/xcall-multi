@@ -82,6 +82,7 @@ module multisig::multisig {
         multisig_address:address,
         tx_data:vector<u8>,
         is_digest:bool,
+        approved:bool
     }
 
     public struct Vote has store,drop{
@@ -102,10 +103,9 @@ module multisig::multisig {
         proposals:Table<u64,Proposal>,
         votes:Table<VoteKey,Vote>,
         proposal_count:u64,
-
-
-
     }
+
+
     public fun get_wallets(self:&Storage):&VecMap<address,MultisigWallet>{
         &self.wallets
     }
@@ -196,7 +196,7 @@ module multisig::multisig {
             multisig_address:multisig_address,
             tx_data:tx_bytes,
             is_digest,
-
+            approved:false
         };
         storage.proposals.add(proposal_id,proposal);
         storage.wallet_proposals.borrow_mut(multisig_address).push_back(proposal_id);
@@ -220,20 +220,10 @@ module multisig::multisig {
              signature:raw_signature,
              voter:ctx.sender()
         });
-    }
 
-    entry fun execute_event(storage:&Storage,proposal_id:u64){
-        let command= get_execute_command(storage,proposal_id);
-        event::emit(Executed {proposal_id:proposal_id,command:command});
-    }
-
-    public fun isProposalApproved(storage:&Storage,proposal_id:u64):bool{
-        let proposal=storage.proposals.borrow(proposal_id);
-        let wallet=storage.wallets.get(&proposal.multisig_address);
         let mut signatures:vector<vector<u8>> = vector::empty();
-
         let mut i=0;
-        while( i <wallet.signers.length()){
+        while( i < wallet.signers.length()){
            
             let signer_1= wallet.signers.borrow(i);
             let key=VoteKey{
@@ -246,13 +236,21 @@ module multisig::multisig {
             i=i+1;
 
         };
-        signatures.length()>=wallet.threshold as u64
+
+        if (signatures.length()>=wallet.threshold as u64){
+            storage.proposals.borrow_mut(proposal_id).approved=true;    
+        }
     }
 
-    public fun hasMemberApproved(storage:&Storage,proposal_id:u64,ctx:&TxContext):bool{
+    entry fun execute_event(storage:&Storage,proposal_id:u64){
+        let command= get_execute_command(storage,proposal_id);
+        event::emit(Executed {proposal_id:proposal_id,command:command});
+    }
+
+    public fun has_member_voted(storage:&Storage,proposal_id:u64,member:address):bool{
         let key=VoteKey{
             proposal_id:proposal_id,
-            sui_address:ctx.sender()
+            sui_address:member
         }; 
         storage.votes.contains(key)
     }
@@ -354,10 +352,6 @@ module multisig::multisig {
             bitmap,
             multi_pubkey
         }
-
-
-
-
     }
 
     public fun serialize_multisig(sig:&MultiSignature):vector<u8>{
