@@ -53,7 +53,7 @@ pub fn bytes_to_u64(bytes: Bytes) -> u64 {
 }
 
 pub fn u128_to_bytes(env: &Env, number: u128) -> Bytes {
-    let mut bytes = bytes!(&env, 0x00);
+    let mut bytes: Bytes = Bytes::new(&env);
     let mut i = 15;
     let mut leading_zero = true;
     while i >= 0 {

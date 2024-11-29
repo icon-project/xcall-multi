@@ -198,6 +198,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "cluster-connection"
+version = "0.0.0"
+dependencies = [
+ "soroban-rlp",
+ "soroban-sdk",
+]
+
+[[package]]
 name = "common"
 version = "0.1.0"
 source = "git+https://github.com/icon-project/IBC-Integration.git?branch=main#9a9095926b9141217473745d21ad06c277313015"

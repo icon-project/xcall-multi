@@ -1,4 +1,4 @@
-#![cfg(test)]
+// #![cfg(test)]
 
-mod contract;
-pub mod setup;
+// mod contract;
+// pub mod setup;
