@@ -5,7 +5,7 @@ include(
         'xcall-lib',
         'centralized-connection',
         'cluster-connection'
-        
+        'aggregator'
 )
 
 include(':dapp-simple')

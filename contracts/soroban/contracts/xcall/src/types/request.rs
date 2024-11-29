@@ -61,11 +61,6 @@ impl CSMessageRequest {
         msg_type == MessageType::CallMessageWithRollback
     }
 
-    pub fn allow_retry(&self) -> bool {
-        let msg_type: MessageType = (self.msg_type as u8).into();
-        msg_type == MessageType::CallMessagePersisted
-    }
-
     pub fn data(&self) -> &Bytes {
         &self.data
     }
