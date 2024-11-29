@@ -21,4 +21,6 @@ pub enum ContractError {
     InvalidReplyReceived = 15,
     InvalidRlpLength = 16,
     NoRollbackData = 17,
+    NetworkIdMismatch = 18,
+    InvalidSourceNetwork = 19,
 }

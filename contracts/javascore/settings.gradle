@@ -4,6 +4,7 @@ include(
         'xcall',
         'xcall-lib',
         'centralized-connection',
+        'cluster-connection'
         'aggregator'
 )
 

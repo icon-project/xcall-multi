@@ -1,4 +1,4 @@
-use soroban_sdk::{Address, Bytes, Env, String, Vec};
+use soroban_sdk::{Address, Bytes, BytesN, Env, String, Vec};
 
 use crate::{
     errors::ContractError,
@@ -21,7 +21,7 @@ pub fn handle_message(
 
     let config = storage::get_config(&env)?;
     if config.network_id == from_nid {
-        return Err(ContractError::ProtocolsMismatch);
+        return Err(ContractError::InvalidSourceNetwork);
     }
 
     let cs_message: CSMessage = CSMessage::decode(&env, msg)?;
@@ -43,7 +43,7 @@ pub fn handle_request(
 
     let (src_net, _) = req.from().parse_network_address(&env);
     if src_net != from_net {
-        return Err(ContractError::ProtocolsMismatch);
+        return Err(ContractError::NetworkIdMismatch);
     }
     let source = sender.to_string();
     let source_valid = is_valid_source(&env, &source, src_net, &req.protocols())?;
@@ -52,7 +52,7 @@ pub fn handle_request(
     }
 
     if req.protocols().len() > 1 {
-        let hash = env.crypto().keccak256(&data);
+        let hash: BytesN<32> = env.crypto().keccak256(&data).into();
         let mut pending_request = storage::get_pending_request(&env, hash.clone());
 
         if !pending_request.contains(source.clone()) {
@@ -96,7 +96,7 @@ pub fn handle_result(env: &Env, sender: &Address, data: Bytes) -> Result<(), Con
     }
 
     if rollback.protocols().len() > 1 {
-        let hash = env.crypto().keccak256(&data);
+        let hash: BytesN<32> = env.crypto().keccak256(&data).into();
         let mut pending_response = storage::get_pending_response(&env, hash.clone());
 
         if !pending_response.contains(source.clone()) {
@@ -160,6 +160,7 @@ pub fn handle_reply(
 }
 
 pub fn handle_error(env: &Env, sender: Address, sequence_no: u128) -> Result<(), ContractError> {
+    sender.require_auth();
     let cs_message_result = CSMessageResult::new(
         sequence_no,
         CSResponseType::CSResponseFailure,
@@ -178,8 +179,10 @@ pub fn is_valid_source(
         return Ok(true);
     }
     if protocols.len() == 0 {
-        let default_connection = storage::default_connection(e, src_net)?;
-        return Ok(sender.clone() == default_connection.to_string());
+        let default_connection = storage::default_connection(e, src_net);
+        if default_connection.is_ok() {
+            return Ok(sender.clone() == default_connection.unwrap().to_string());
+        }
     }
     Ok(false)
 }

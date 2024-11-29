@@ -65,6 +65,11 @@ yarn-error.log*
 lerna-debug.log*
 .pnpm-debug.log*
 
+### Solana ###
+# Logs
+.anchor
+test-ledger
+
 ### Soroban ###
 .soroban
 test_snapshots

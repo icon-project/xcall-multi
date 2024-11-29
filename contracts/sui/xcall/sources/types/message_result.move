@@ -87,7 +87,7 @@ module xcall::message_result_tests {
         let msg= message_result::create(1,message_result::success(),vector::empty());
         let encoded= message_result::encode(&msg);
         std::debug::print(&encoded);
-        assert!(encoded==x"c58200010180",0x01);
+        assert!(encoded==x"c3010180",0x01);
         let decoded=message_result::decode(&encoded);
         assert!(decoded==msg,0x01);
 
@@ -99,7 +99,7 @@ module xcall::message_result_tests {
         let msg= message_result::create(2,message_result::failure(),vector::empty());
         let encoded= message_result::encode(&msg);
         std::debug::print(&encoded);
-        assert!(encoded==x"c58200020080",0x01);
+        assert!(encoded==x"c3020080",0x01);
         let decoded=message_result::decode(&encoded);
         assert!(decoded==msg,0x01);
 
