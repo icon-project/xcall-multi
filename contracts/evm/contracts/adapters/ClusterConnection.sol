@@ -2,10 +2,13 @@
 pragma solidity >=0.8.0;
 pragma abicoder v2;
 
+import {console2 } from "forge-std/Test.sol";
+
 import "openzeppelin-contracts-upgradeable/contracts/proxy/utils/Initializable.sol";
 import "@xcall/utils/Types.sol";
 import "@xcall/contracts/xcall/interfaces/IConnection.sol";
 import "@iconfoundation/xcall-solidity-library/interfaces/ICallService.sol";
+import "@iconfoundation/xcall-solidity-library/utils/RLPEncode.sol";
 import "@iconfoundation/xcall-solidity-library/utils/RLPEncode.sol";
 
 contract ClusterConnection is Initializable, IConnection {
@@ -26,7 +29,7 @@ contract ClusterConnection is Initializable, IConnection {
     uint8 private validatorsThreshold;
 
     event Message(string targetNetwork, uint256 sn, bytes _msg);
-    event ValidatorSetAdded(address[] _validator, uint8 _threshold);
+    event ValidatorSetAdded(bytes[] _validator, uint8 _threshold);
 
     modifier onlyRelayer() {
         require(msg.sender == this.relayer(), "OnlyRelayer");
@@ -48,11 +51,12 @@ contract ClusterConnection is Initializable, IConnection {
         return validators;
     }
 
-    function setValidators(address[] memory _validators, uint8 _threshold) external onlyAdmin {
+    function updateValidators(bytes[] memory _validators, uint8 _threshold) external onlyAdmin {
         delete validators;
         for (uint i = 0; i < _validators.length; i++) {
-            if(!isValidator(_validators[i]) && _validators[i] != address(0)) {
-                validators.push(_validators[i]);   
+            address validators_address = publicKeyToAddress(_validators[i]);
+            if(!isValidator(validators_address) && validators_address != address(0)) {
+                validators.push(validators_address);   
             }
         }
         require(validators.length >= _threshold, "Not enough validators");
@@ -143,16 +147,24 @@ contract ClusterConnection is Initializable, IConnection {
         bytes32 messageHash = getMessageHash(srcNetwork, _connSn, _msg);
         uint signerCount = 0;
         address[] memory collectedSigners = new address[](_signedMessages.length);
+        
         for (uint i = 0; i < _signedMessages.length; i++) {
             address signer = recoverSigner(messageHash, _signedMessages[i]);
             require(signer != address(0), "Invalid signature");
-            if (!isValidatorProcessed(collectedSigners, signer)){
+            if (!isValidatorProcessed(collectedSigners, signer) && existsInValidators(signer)){
                 collectedSigners[signerCount] = signer;
                 signerCount++;
             }
         }
         require(signerCount >= validatorsThreshold,"Not enough valid signatures passed");
         recvMessage(srcNetwork,_connSn,_msg);
+    }
+
+    function existsInValidators(address signer) internal view returns (bool) {
+        for (uint i = 0; i < validators.length; i++){
+            if (validators[i] == signer) return true;
+        }
+        return false;
     }
 
     function isValidatorProcessed(address[] memory processedSigners, address signer) public pure returns (bool) {
@@ -178,25 +190,14 @@ contract ClusterConnection is Initializable, IConnection {
             v += 27;
         }
         require(v == 27 || v == 28, "Invalid signature 'v' value");
-        return ecrecover(toEthSignedMessageHash(messageHash), v, r, s);
+        return ecrecover(messageHash, v, r, s);
     }
 
-    function toEthSignedMessageHash(bytes32 _messageHash) internal pure returns (bytes32) {
-        return keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", _messageHash));
-    }
-
-
-    /**
-     @notice Sends the message to a xCall.
-     @param srcNetwork  String ( Network Id )
-     @param _connSn Integer ( connection message sn )
-     @param _msg Bytes ( serialized bytes of Service Message )
-     */
     function recvMessage(
         string memory srcNetwork,
         uint256 _connSn,
         bytes calldata _msg
-    ) public onlyRelayer {
+    ) internal {
         require(!receipts[srcNetwork][_connSn], "Duplicate Message");
         receipts[srcNetwork][_connSn] = true;
         ICallService(xCall).handleMessage(srcNetwork, _msg);
@@ -232,11 +233,19 @@ contract ClusterConnection is Initializable, IConnection {
     }
 
     /**
+        @notice Set the address of the admin.
+        @param _address The address of the admin.
+     */
+    function setAdmin(address _address) external onlyAdmin {
+        adminAddress = _address;
+    }
+
+        /**
         @notice Set the address of the relayer.
         @param _address The address of the relayer.
      */
-    function setAdmin(address _address) external onlyRelayer {
-        adminAddress = _address;
+    function setRelayer(address _address) external onlyAdmin {
+        relayerAddress = _address;
     }
 
     /**
@@ -272,7 +281,22 @@ contract ClusterConnection is Initializable, IConnection {
             srcNetwork.encodeString(),
             _connSn.encodeUint(),
             _msg.encodeBytes()
-        );
+        ).encodeList();
         return keccak256(rlp);
     }
+
+  function publicKeyToAddress(bytes memory publicKey) internal pure returns (address addr) {
+        require(publicKey.length == 65, "Invalid public key length");
+
+        bytes32 hash;
+
+        assembly {
+            let publicKeyStart := add(publicKey, 0x20)
+            let destinationStart := add(publicKeyStart, 1)
+            hash := keccak256(destinationStart, 64)
+        }
+
+        addr = address(uint160(uint256(hash)));
+    }
+    
 }
