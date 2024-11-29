@@ -41,9 +41,10 @@ module sui_rlp::utils {
 
     }
 
-    public fun to_bytes_u128(number:u128,signed:bool):vector<u8>{
+    //Deprecated
+    public fun to_bytes_u128(number:u128):vector<u8>{
         let bytes=bcs::to_bytes(&number);
-        to_signed_bytes(bytes,signed)
+        to_signed_bytes(bytes,true)
     }
 
     public fun to_bytes_u128_sign(number:u128,signed:bool):vector<u8>{
@@ -51,20 +52,21 @@ module sui_rlp::utils {
         to_signed_bytes(bytes,signed)
     }
 
-
-    public fun to_bytes_u64(number:u64,signed:bool):vector<u8>{
+    //Deprecated
+    public fun to_bytes_u64(number:u64):vector<u8>{
         let bytes=bcs::to_bytes(&number);
-        to_signed_bytes(bytes,signed)
+        to_signed_bytes(bytes,true)
     }
 
     public fun to_bytes_u64_sign(number:u64,signed:bool):vector<u8>{
         let bytes=bcs::to_bytes(&number);
         to_signed_bytes(bytes,signed)
     }
-
-    public fun to_bytes_u32(number: u32,signed:bool): vector<u8> {
+    
+    //Deprecated
+    public fun to_bytes_u32(number: u32): vector<u8> {
         let bytes=bcs::to_bytes(&number);
-        to_signed_bytes(bytes,signed)
+        to_signed_bytes(bytes,true)
     }
 
     public fun to_bytes_u32_sign(number: u32,signed:bool): vector<u8> {
