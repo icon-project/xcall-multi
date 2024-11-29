@@ -77,6 +77,7 @@ export class TestContext {
   }
 
   async getRecvMessageAccounts(
+    fromNetwork: string,
     connSn: number,
     sequenceNo: number,
     csMessage: Uint8Array,
@@ -106,7 +107,7 @@ export class TestContext {
 
     let res = await connectionProgram.methods
       .queryRecvMessageAccounts(
-        this.dstNetworkId,
+        fromNetwork,
         new anchor.BN(connSn),
         Buffer.from(csMessage),
         new anchor.BN(sequenceNo),

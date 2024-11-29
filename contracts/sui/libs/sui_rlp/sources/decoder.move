@@ -20,7 +20,6 @@ module sui_rlp::decoder {
             } else {
                 let length_len = byte - 0xb7;
                 let length_bytes = utils::slice_vector(encoded, 1, length_len as u64);
-               //debug::print(&length_bytes);
                 let length = utils::from_bytes_u64(&length_bytes);
                 let data_start = (length_len + 1) as u64;
                 utils::slice_vector(encoded, data_start, length)
@@ -149,6 +148,12 @@ module sui_rlp::decoder {
     public fun decode_address(vec:&vector<u8>):address{
          let mut bcs = bcs::new(*vec);
          bcs::peel_address(&mut bcs)
+    }
+
+     public fun decode_bool(vec:&vector<u8>):bool{
+       let val= *vector::borrow(vec,0);
+       val==1
+
     }
 
  
