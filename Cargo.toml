@@ -1,7 +1,6 @@
 [workspace]
 members = [
-    "contracts/cosmwasm-vm/*",
-
+    "contracts/cosmwasm-vm/*"
 ]
 
 [workspace.package]
