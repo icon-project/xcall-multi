@@ -106,14 +106,14 @@ contract ClusterConnectionTest is Test {
     }
 
     function testSetAdmin() public {
-        vm.prank(source_relayer);
+        vm.prank(owner);
         adapterSource.setAdmin(user);
         assertEq(adapterSource.admin(), user);
     }
 
     function testSetAdminUnauthorized() public {
         vm.prank(user);
-        vm.expectRevert("OnlyRelayer");
+        vm.expectRevert("OnlyAdmin");
         adapterSource.setAdmin(user);
     }
 
@@ -328,10 +328,10 @@ contract ClusterConnectionTest is Test {
         adapterTarget.updateValidators(validators, 2);
         vm.stopPrank();
         vm.startPrank(destination_relayer);
-        vm.expectRevert("Not enough valid signatures passed");
         bytes[] memory signatures = new bytes[](2) ;
         signatures[0] = signMessage(pk,hash);
         signatures[1] = signMessage(pk,hash);
+        vm.expectRevert("Not enough valid signatures passed");
         adapterTarget.recvMessageWithSignatures(
             nidSource,
             1,
