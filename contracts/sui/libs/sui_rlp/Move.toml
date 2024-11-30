@@ -14,4 +14,4 @@
 [package]
   edition = '2024.alpha'
   name = 'sui_rlp'
-  published-at = '0xd1bdf1b24b50450934b7b6fd0eab077bebf1aba6c00e972c54ec6b2653001d7f'
+  published-at = '0x7d603ccbb9f9726e06ccfbb64b9f9c90dd7e2b3a15eb270a2ddc94098a2e8dfd'
