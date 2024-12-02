@@ -242,7 +242,7 @@ pub fn increment_last_request_id(e: &Env) -> u128 {
 pub fn save_success_response(e: &Env, sn: u128) {
     let key = StorageKey::SuccessfulResponses(sn);
     e.storage().persistent().set(&key, &true);
-    extend_persistent(e);
+    extend_persistent(e, &key);
 }
 
 pub fn extend_instance(e: &Env) {
@@ -251,10 +251,10 @@ pub fn extend_instance(e: &Env) {
         .extend_ttl(LEDGER_THRESHOLD_INSTANCE, LEDGER_BUMP_INSTANCE);
 }
 
-pub fn extend_persistent(e: &Env) {
+pub fn extend_persistent(e: &Env, key: &StorageKey) {
     e.storage()
         .persistent()
-        .extend_ttl(LEDGER_THRESHOLD_PERSISTENT, LEDGER_BUMP_PERSISTENT);
+        .extend_ttl(key, LEDGER_THRESHOLD_PERSISTENT, LEDGER_BUMP_PERSISTENT);
 }
 
 pub fn extend_temporary_request(e: &Env, key: &StorageKey) {
