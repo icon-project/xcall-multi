@@ -139,6 +139,9 @@ pub fn decode_u64(env: &Env, bytes: Bytes) -> u64 {
 }
 
 pub fn decode_u128(env: &Env, bytes: Bytes) -> u128 {
+    if bytes.len() == 1 {
+        return bytes_to_u128(bytes);
+    }
     let decoded = decode(&env, bytes);
     bytes_to_u128(decoded)
 }
