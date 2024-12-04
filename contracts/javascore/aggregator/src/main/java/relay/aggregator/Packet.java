@@ -66,8 +66,6 @@ public class Packet {
                 || srcHeight == null || dstNetwork == null || dstContractAddress == null || data == null;
         Context.require(!isIllegalArg,
                 "srcNetwork, contractAddress, srcSn, srcHeight, dstNetwork, and data cannot be null");
-        if (isIllegalArg) {
-        }
         this.srcNetwork = srcNetwork;
         this.srcContractAddress = srcContractAddress;
         this.srcSn = srcSn;
