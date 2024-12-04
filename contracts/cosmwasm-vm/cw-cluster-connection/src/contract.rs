@@ -153,6 +153,7 @@ impl<'a> ClusterConnection<'a> {
         src_network: NetId,
         conn_sn: u128,
         msg: String,
+        dst_network: NetId,
         signatures: Vec<Vec<u8>>,
     ) -> Result<Response, ContractError> {
         self.ensure_relayer(deps.storage, info.sender)?;
@@ -167,6 +168,7 @@ impl<'a> ClusterConnection<'a> {
             src_network: src_network.to_string(),
             conn_sn: conn_sn,
             data: msg_vec.clone(),
+            dst_network: dst_network.to_string(),
         };
         let signed_msg = rlp::encode(&signed_msg).to_vec();
 

@@ -2,21 +2,16 @@ use std::collections::HashMap;
 
 use cosmwasm_std::{ensure_eq, Addr, BalanceResponse, BankQuery, Coin};
 use cw_xcall_lib::network_address::NetId;
-use k256::ecdsa::VerifyingKey;
+use sha2::Digest;
+use sha3::Keccak256;
 
 use super::*;
 
-pub fn sha256(data: &[u8]) -> Vec<u8> {
-    use sha2::Digest;
-    sha2::Sha256::digest(data).to_vec()
-}
-
-pub fn keccak256(input: &[u8]) -> [u8; 32] {
+pub fn keccak256(input: &[u8]) -> Keccak256 {
     use sha3::{Digest, Keccak256};
     let mut hasher = Keccak256::new();
     hasher.update(input);
-    let out: [u8; 32] = hasher.finalize().to_vec().try_into().unwrap();
-    out
+    return hasher;
 }
 
 pub fn to_truncated_le_bytes(n: u128) -> Vec<u8> {
@@ -114,7 +109,7 @@ impl<'a> ClusterConnection<'a> {
             return Err(ContractError::InsufficientSignatures);
         }
 
-        let message_hash = keccak256(&signed_msg);
+        let message_hash = keccak256(&signed_msg).finalize().to_vec();
 
         let mut signers: HashMap<Vec<u8>, bool> = HashMap::new();
 

@@ -40,7 +40,7 @@ hex = "0.4.3"
 serde-json-wasm = {workspace=true}
 sha2 = { version = "0.10.6", default-features = false }
 sha3 = { version = "0.10.6", default-features = false }
-k256 = "0.11.6"
+k256 = "0.13.3"
 
 [dev-dependencies]
 cosmwasm = "0.7.2"

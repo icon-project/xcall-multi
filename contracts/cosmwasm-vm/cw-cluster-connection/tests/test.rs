@@ -2,13 +2,20 @@ pub mod setup;
 use cluster_connection::{
     execute, msg::ExecuteMsg, state::ClusterConnection, types::InstantiateMsg,
 };
+use cluster_connection::{keccak256, SignableMsg};
+use common::rlp;
 use cosmwasm_std::{testing::mock_env, Env};
 use cosmwasm_std::{
     testing::{mock_dependencies, mock_info, MockApi, MockQuerier},
     Addr, MemoryStorage, OwnedDeps, Uint128,
 };
-use cosmwasm_std::{Coin, Event};
+use cosmwasm_std::{Api, Coin, Event};
 use cw_xcall_lib::network_address::NetId;
+use k256::ecdsa::signature::SignerMut;
+use k256::elliptic_curve::sec1::ToEncodedPoint;
+use k256::{
+    ecdsa::Signature, ecdsa::SigningKey, ecdsa::VerifyingKey, elliptic_curve::rand_core::OsRng,
+};
 use std::str::FromStr;
 
 const XCALL: &str = "xcall";
@@ -395,8 +402,31 @@ pub fn test_send_message_unauthorized() {
 pub fn test_recv_message() {
     let (mut deps, env, ctx) = instantiate(ADMIN);
 
-    let val2 = "045b419bdec0d2bbc16ce8ae144ff8e825123fd0cb3e36d0075b6d8de5aab53388ac8fb4c28a8a3843f3073cdaa40c943f74737fc0cea4a95f87778affac738190";
-    let validators = vec![hex::decode(val2).unwrap()];
+    let src_network = NetId::from_str("0x2.icon").unwrap();
+    let dst_network = NetId::from_str("archway").unwrap();
+    let conn_sn: u128 = 456456;
+    let msg = string_to_hex("hello");
+
+    let signed_msg = SignableMsg {
+        src_network: src_network.to_string(),
+        conn_sn: conn_sn,
+        data: hex::decode(msg.clone()).unwrap(),
+        dst_network: dst_network.to_string(),
+    };
+    let signed_msg = rlp::encode(&signed_msg).to_vec();
+    let message_digest = keccak256(&signed_msg);
+
+    let signing_key = SigningKey::random(&mut OsRng);
+
+    let verifying_key = VerifyingKey::from(&signing_key);
+    let pubkey = verifying_key.to_encoded_point(false).as_bytes().to_vec();
+
+    let (signature, recovery_code) = signing_key.sign_digest_recoverable(message_digest).unwrap();
+
+    let mut sign_1 = signature.to_vec();
+    sign_1.push(recovery_code.to_byte());
+
+    let validators = vec![pubkey.clone()];
 
     let set_validators_msg = ExecuteMsg::SetValidators {
         validators: validators.clone(),
@@ -409,18 +439,14 @@ pub fn test_recv_message() {
         set_validators_msg,
     );
 
-    // Set up test data
-    let src_network = NetId::from_str("0x2.icon").unwrap();
-    let conn_sn: u128 = 456456;
-    let msg = string_to_hex("hello");
-    let sign_1 = hex::decode("23f731c7fb3553337394233055cbb9ec05abdd1df7cbbec3d0dacced58bf5b4b30576ca14bea93ea4186e920f99f2b9f56d30175b0a7356322f3a5d75de843b81b").unwrap();
     let signatures = vec![sign_1];
 
     // Test with non-relayer sender (should fail)
     let msg_with_signatures = ExecuteMsg::RecvMessage {
         src_network: src_network.clone(),
         conn_sn,
-        msg: msg.to_string(),
+        msg: msg,
+        dst_network,
         signatures: signatures.clone(),
     };
     let res = execute(
@@ -450,8 +476,31 @@ pub fn test_recv_message() {
 pub fn test_recv_message_signatures_insufficient() {
     let (mut deps, env, ctx) = instantiate(ADMIN);
 
-    let val2 = "045b419bdec0d2bbc16ce8ae144ff8e825123fd0cb3e36d0075b6d8de5aab53388ac8fb4c28a8a3843f3073cdaa40c943f74737fc0cea4a95f87778affac738190";
-    let validators = vec![hex::decode(val2).unwrap()];
+    let src_network = NetId::from_str("0x2.icon").unwrap();
+    let dst_network = NetId::from_str("archway").unwrap();
+    let conn_sn: u128 = 456456;
+    let msg = string_to_hex("hello");
+
+    let signed_msg = SignableMsg {
+        src_network: src_network.to_string(),
+        conn_sn: conn_sn,
+        data: hex::decode(msg.clone()).unwrap(),
+        dst_network: dst_network.to_string(),
+    };
+    let signed_msg = rlp::encode(&signed_msg).to_vec();
+    let message_digest = keccak256(&signed_msg);
+
+    let signing_key = SigningKey::random(&mut OsRng);
+
+    let verifying_key = VerifyingKey::from(&signing_key);
+    let pubkey = verifying_key.to_encoded_point(false).as_bytes().to_vec();
+
+    let (signature, recovery_code) = signing_key.sign_digest_recoverable(message_digest).unwrap();
+
+    let mut sign_1 = signature.to_vec();
+    sign_1.push(recovery_code.to_byte());
+
+    let validators = vec![pubkey];
 
     let set_validators_msg = ExecuteMsg::SetValidators {
         validators: validators.clone(),
@@ -464,17 +513,13 @@ pub fn test_recv_message_signatures_insufficient() {
         set_validators_msg,
     );
 
-    // Set up test data
-    let src_network = NetId::from_str("0x2.icon").unwrap();
-    let conn_sn: u128 = 1;
-    let msg = string_to_hex("hello");
-    let sign_1 = hex::decode("23f731c7fb3553337394233055cbb9ec05abdd1df7cbbec3d0dacced58bf5b4b30576ca14bea93ea4186e920f99f2b9f56d30175b0a7356322f3a5d75de843b81b").unwrap();
     let signatures = vec![sign_1];
 
     let msg_with_signatures = ExecuteMsg::RecvMessage {
         src_network: src_network.clone(),
         conn_sn,
-        msg: msg.to_string(),
+        msg: msg,
+        dst_network,
         signatures: signatures.clone(),
     };
 
@@ -484,6 +529,7 @@ pub fn test_recv_message_signatures_insufficient() {
         mock_info(RELAYER, &[]),
         msg_with_signatures.clone(),
     );
+    println!("response: {:?}", res);
     assert!(res.is_err());
     assert_eq!("Insufficient Signatures", res.unwrap_err().to_string());
 }

@@ -49,13 +49,15 @@ pub struct SignableMsg {
     pub src_network: String,
     pub conn_sn: u128,
     pub data: Vec<u8>,
+    pub dst_network: String,
 }
 impl Encodable for SignableMsg {
     fn rlp_append(&self, stream: &mut rlp::RlpStream) {
-        stream.begin_list(3);
+        stream.begin_list(4);
         stream.append(&self.src_network);
         stream.append(&self.conn_sn);
         stream.append(&self.data);
+        stream.append(&self.dst_network);
     }
 }
 
@@ -65,9 +67,10 @@ pub fn test_signable_msg_rlp() {
         src_network: "0x2.icon".to_string(),
         conn_sn: 456456,
         data: "hello".as_bytes().to_vec(),
+        dst_network: "archway".to_string(),
     };
 
     let signed_msg = rlp::encode(&signed_msg).to_vec();
 
-    println!("singed message: {:?}", signed_msg);
+    println!("signed message: {:?}", signed_msg);
 }
