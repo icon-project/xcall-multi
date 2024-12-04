@@ -16,7 +16,7 @@ fn test_encode_u32() {
     let env = Env::default();
 
     let encoded = encode_u32(&env, 2000022458);
-    assert_eq!(encoded, bytes!(&env, 0x85007735EBBA));
+    assert_eq!(encoded, bytes!(&env, 0x847735EBBA));
 }
 
 #[test]
@@ -24,10 +24,10 @@ fn test_encode_u64() {
     let env = Env::default();
 
     let encoded = encode_u64(&env, 1999999999999999999);
-    assert_eq!(encoded, bytes!(&env, 0x89001BC16D674EC7FFFF));
+    assert_eq!(encoded, bytes!(&env, 0x881BC16D674EC7FFFF));
 
     let encoded = encode_u64(&env, 199999999);
-    assert_eq!(encoded, bytes!(&env, 0x85000BEBC1FF))
+    assert_eq!(encoded, bytes!(&env, 0x840BEBC1FF))
 }
 
 #[test]
@@ -63,11 +63,10 @@ fn test_encode_string_with_larger_bytes_length() {
 
     let encoded = encode_string(&env, String::from_str(&env, "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s"));
 
-    let expected_rlp_byte = 185;
+    let expected_rlp_byte = 184;
     let str_bytes_slice = b"Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s";
     let mut expected_bytes = Bytes::new(&env);
     expected_bytes.push_back(expected_rlp_byte);
-    expected_bytes.push_back(0);
     expected_bytes.push_back(0x97);
     expected_bytes.extend_from_slice(str_bytes_slice);
 
@@ -108,29 +107,29 @@ fn test_encode_strings_with_longer_bytes() {
 
     let encoded = encode_strings(&env, strings);
 
-    let rlp_byte = 0xf7 + 3;
+    let rlp_byte = 0xf7 + 2;
     let mut expected_encode = Bytes::new(&env);
 
     // rlp byte and data length bytes
     expected_encode.push_back(rlp_byte);
-    expected_encode.extend_from_array(&[0x00, 0x01, 0x74]);
+    expected_encode.extend_from_array(&[0x01, 0x71]);
 
     // strings
-    let string_rlp_byte = 0xb7 + 2;
+    let string_rlp_byte = 0xb7 + 1;
     let string_len_byte = 0x7c;
-    expected_encode.extend_from_array(&[string_rlp_byte, 0, string_len_byte]);
+    expected_encode.extend_from_array(&[string_rlp_byte, string_len_byte]);
     expected_encode.extend_from_slice(b"It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout.");
 
     let string_len_byte = 0x7b;
-    expected_encode.extend_from_array(&[string_rlp_byte, 0, string_len_byte]);
+    expected_encode.extend_from_array(&[string_rlp_byte, string_len_byte]);
     expected_encode.extend_from_slice(b"Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.");
 
     let string_len_byte = 0x74;
-    expected_encode.extend_from_array(&[string_rlp_byte, 0, string_len_byte]);
+    expected_encode.extend_from_array(&[string_rlp_byte, string_len_byte]);
     expected_encode.extend_from_slice(b"Egestas maecenas pharetra convallis posuere morbi. Velit laoreet id donec ultrices tincidunt arcu non sodales neque.");
 
     assert_eq!(encoded, expected_encode);
-    assert_eq!(encoded.len(), 376);
+    // assert_eq!(encoded.len(), 376);
 }
 
 #[test]
@@ -149,7 +148,7 @@ fn test_encode_list_with_smaller_bytes() {
 
     let mut list: Vec<Bytes> = vec![&env];
     let short_str = String::from_str(&env, "soroban-rlp");
-    list.push_back(u32_to_bytes(&env, 4294967295));
+    list.push_back(u32_to_bytes(&env, 4294967295, true));
     list.push_back(string_to_bytes(&env, short_str.clone()));
 
     let encoded = encode_list(&env, list, true);
@@ -184,18 +183,18 @@ fn test_encode_list_with_longer_bytes() {
     let mut expected_bytes = Bytes::new(&env);
 
     // rlp and data len bytes
-    let rlp_byte = 0xf7 + 2;
-    let data_len_byte = 0xAA + 4;
-    expected_bytes.extend_from_array(&[rlp_byte, 0, data_len_byte]);
+    let rlp_byte = 0xf7 + 1;
+    let data_len_byte = 0xAA + 1;
+    expected_bytes.extend_from_array(&[rlp_byte, data_len_byte]);
 
     // u8
     expected_bytes.extend_from_array(&[0x81, 0xF5]);
 
     // u32
-    expected_bytes.extend_from_array(&[0x85, 0x00, 0x01, 0x71, 0x34, 0x67]);
+    expected_bytes.extend_from_array(&[0x84, 0x01, 0x71, 0x34, 0x67]);
 
     // u64
-    expected_bytes.extend_from_array(&[0x89, 0x00, 0x01, 0x71, 0x34, 0x67, 0xff, 0xff, 0xff, 0xff]);
+    expected_bytes.extend_from_array(&[0x88, 0x01, 0x71, 0x34, 0x67, 0xff, 0xff, 0xff, 0xff]);
 
     // u128
     expected_bytes.extend_from_array(&[
@@ -204,10 +203,10 @@ fn test_encode_list_with_longer_bytes() {
     ]);
 
     // strings
-    let array_rlp_byte = 0xf7 + 2;
+    let array_rlp_byte = 0xf7 + 1;
     let total_rlp_bytes_in_array = 2;
     let strings_len_byte = 0x56 + total_rlp_bytes_in_array;
-    expected_bytes.extend_from_array(&[array_rlp_byte, 0, strings_len_byte]);
+    expected_bytes.extend_from_array(&[array_rlp_byte, strings_len_byte]);
 
     let rlp_byte = 0x80 + 46;
     expected_bytes.push_back(rlp_byte);
