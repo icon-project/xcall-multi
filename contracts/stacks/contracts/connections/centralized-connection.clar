@@ -96,7 +96,7 @@
 
 (define-public (recv-message (src-network-id (string-ascii 128)) (conn-sn-in int) (msg (buff 2048)) (implementation <xcall-impl-trait>))
   (begin
-    (asserts! (is-eq tx-sender (var-get admin)) ERR_UNAUTHORIZED)
+    (asserts! (is-authorized) ERR_UNAUTHORIZED)
     (asserts! (is-none (map-get? receipts {network-id: src-network-id, conn-sn: conn-sn-in})) ERR_DUPLICATE_MESSAGE)
     (map-set receipts {network-id: src-network-id, conn-sn: conn-sn-in} true)
     (as-contract (contract-call? .xcall-proxy handle-message src-network-id msg implementation))))
