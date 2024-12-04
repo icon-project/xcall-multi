@@ -50,7 +50,6 @@ public class RelayAggregator {
         if (admin.get() == null) {
             admin.set(_admin);
             signatureThreshold.set(DEFAULT_SIGNATURE_THRESHOLD);
-            addRelayer(_admin);
         }
     }
 
@@ -59,12 +58,6 @@ public class RelayAggregator {
         adminOnly();
 
         Context.require(admin.get() != _admin, "admin already set");
-
-        // add new admin as relayer
-        addRelayer(_admin);
-
-        // remove old admin from relayer list
-        removeRelayer(admin.get());
 
         admin.set(_admin);
     }
@@ -107,10 +100,9 @@ public class RelayAggregator {
                 addRelayer(newRelayer);
             }
 
-            Address adminAdrr = admin.get();
             for (int i = 0; i < relayers.size(); i++) {
                 Address oldRelayer = relayers.get(i);
-                if (!oldRelayer.equals(adminAdrr) && !newRelayersMap.containsKey(oldRelayer)) {
+                if (!newRelayersMap.containsKey(oldRelayer)) {
                     removeRelayer(oldRelayer);
                 }
             }
