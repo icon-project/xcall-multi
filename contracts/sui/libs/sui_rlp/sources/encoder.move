@@ -49,7 +49,7 @@ module sui_rlp::encoder {
                 vector::append(&mut encoded_list,result);
 
             } else {
-                let length_bytes = utils::to_bytes_u64(len,false);
+                let length_bytes = utils::to_bytes_u64_sign(len,false);
                 let prefix = (0xf7 + vector::length(&length_bytes)) as u8;
                 vector::push_back(&mut encoded_list, prefix);
                 vector::append(&mut encoded_list, length_bytes);
@@ -69,7 +69,7 @@ module sui_rlp::encoder {
             let len_u8=(len as u8);
             vector::push_back(&mut length_info,(offset+len_u8));
         }else {
-            let length_bytes=utils::to_bytes_u64(len,false);
+            let length_bytes=utils::to_bytes_u64_sign(len,false);
             let length_byte_len=vector::length(&length_bytes);
             let length_byte_len=offset+(length_byte_len as u8);
             vector::push_back(&mut length_info,length_byte_len);
@@ -86,19 +86,19 @@ module sui_rlp::encoder {
     }
 
      public fun encode_u32(num:u32):vector<u8>{
-        let vec= utils::to_bytes_u32(num,true);
+        let vec= utils::to_bytes_u32_sign(num,true);
         encode(&vec)
 
     }
 
     public fun encode_u64(num:u64):vector<u8>{
-        let vec= utils::to_bytes_u64(num,true);
+        let vec= utils::to_bytes_u64_sign(num,true);
         encode(&vec)
         
     }
 
     public fun encode_u128(num:u128):vector<u8>{
-        let vec= utils::to_bytes_u128(num,true);
+        let vec= utils::to_bytes_u128_sign(num,true);
         encode(&vec)
     }
 
