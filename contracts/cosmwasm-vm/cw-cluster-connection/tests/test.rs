@@ -500,7 +500,8 @@ pub fn test_recv_message_signatures_insufficient() {
     let mut sign_1 = signature.to_vec();
     sign_1.push(recovery_code.to_byte());
 
-    let validators = vec![pubkey];
+    let val2 = "03ea8d2913ce5bb5637fe732f920ccee7a454a8f1c32a531e7abc1a58a23cc8db0";
+    let validators = vec![pubkey, hex::decode(val2).unwrap()];
 
     let set_validators_msg = ExecuteMsg::SetValidators {
         validators: validators.clone(),
