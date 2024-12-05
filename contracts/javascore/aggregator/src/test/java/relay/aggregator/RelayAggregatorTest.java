@@ -1,7 +1,6 @@
 package relay.aggregator;
 
 import java.math.BigInteger;
-import java.util.Arrays;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -21,9 +20,7 @@ import foundation.icon.icx.KeyWallet;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 
@@ -67,8 +64,7 @@ class RelayAggregatorTest extends TestBase {
 
                 aggregator = sm.deploy(adminAc, RelayAggregator.class, adminAc.getAddress());
 
-                Address[] relayers = new Address[] { adminAc.getAddress(), relayerOneAc.getAddress(),
-                                relayerTwoAc.getAddress(),
+                Address[] relayers = new Address[] { relayerOneAc.getAddress(), relayerTwoAc.getAddress(),
                                 relayerThreeAc.getAddress() };
 
                 aggregator.invoke(adminAc, "setRelayers", (Object) relayers, 2);
@@ -79,21 +75,11 @@ class RelayAggregatorTest extends TestBase {
 
         @Test
         public void testSetAdmin() {
-                Address oldAdmin = (Address) aggregator.call("getAdmin");
-
                 Account newAdminAc = sm.createAccount();
                 aggregator.invoke(adminAc, "setAdmin", newAdminAc.getAddress());
 
                 Address newAdmin = (Address) aggregator.call("getAdmin");
                 assertEquals(newAdminAc.getAddress(), newAdmin);
-
-                Address[] relayers = (Address[]) aggregator.call("getRelayers");
-
-                boolean containsNewAdmin = Arrays.asList(relayers).contains(newAdmin);
-                boolean containsOldAdmin = Arrays.asList(relayers).contains(oldAdmin);
-
-                assertTrue(containsNewAdmin);
-                assertFalse(containsOldAdmin);
         }
 
         @Test
@@ -104,7 +90,7 @@ class RelayAggregatorTest extends TestBase {
                 Executable action = () -> aggregator.invoke(normalAc, "setAdmin", newAdminAc.getAddress());
                 UserRevertedException e = assertThrows(UserRevertedException.class, action);
 
-                assertEquals("Reverted(0): Unauthorized: caller is not the leader relayer", e.getMessage());
+                assertEquals("Reverted(0): Unauthorized: caller is not the admin", e.getMessage());
         }
 
         @Test
@@ -124,7 +110,7 @@ class RelayAggregatorTest extends TestBase {
                                 "setSignatureThreshold", threshold);
                 UserRevertedException e = assertThrows(UserRevertedException.class, action);
 
-                assertEquals("Reverted(0): Unauthorized: caller is not the leader relayer",
+                assertEquals("Reverted(0): Unauthorized: caller is not the admin",
                                 e.getMessage());
         }
 
@@ -139,7 +125,7 @@ class RelayAggregatorTest extends TestBase {
 
                 Address[] updatedRelayers = (Address[]) aggregator.call("getRelayers");
 
-                Address[] expectedRelayers = new Address[] { adminAc.getAddress(), relayerThreeAc.getAddress(),
+                Address[] expectedRelayers = new Address[] { relayerThreeAc.getAddress(),
                                 relayerFourAc.getAddress(),
                                 relayerFiveAc.getAddress() };
 
@@ -170,7 +156,7 @@ class RelayAggregatorTest extends TestBase {
                                 (Object) newRelayers, threshold);
                 UserRevertedException e = assertThrows(UserRevertedException.class, action);
 
-                assertEquals("Reverted(0): Unauthorized: caller is not the leader relayer",
+                assertEquals("Reverted(0): Unauthorized: caller is not the admin",
                                 e.getMessage());
 
         }
@@ -229,19 +215,23 @@ class RelayAggregatorTest extends TestBase {
 
                 boolean submitted = (boolean) aggregator.call("packetSubmitted",
                                 relayerOneAc.getAddress(), srcNetwork,
-                                srcContractAddress, srcSn);
+                                srcContractAddress, srcSn, srcHeight, dstNetwork, dstContractAddress, data);
                 assertEquals(submitted, true);
         }
 
         @Test
         public void testPacketSubmitted_false() throws Exception {
                 String srcNetwork = "0x2.icon";
+                String dstNetwork = "sui";
                 BigInteger srcSn = BigInteger.ONE;
+                BigInteger srcHeight = BigInteger.ONE;
                 String srcContractAddress = "hxjuiod";
+                String dstContractAddress = "hxjuiod";
+                byte[] data = new byte[] { 0x01, 0x02 };
 
                 boolean submitted = (boolean) aggregator.call("packetSubmitted",
                                 relayerOneAc.getAddress(), srcNetwork,
-                                srcContractAddress, srcSn);
+                                srcContractAddress, srcSn, srcHeight, dstNetwork, dstContractAddress, data);
                 assertEquals(submitted, false);
         }
 
@@ -259,12 +249,6 @@ class RelayAggregatorTest extends TestBase {
 
                 byte[] dataHash = Context.hash("sha-256", data);
 
-                byte[] signAdmin = admin.sign(dataHash);
-                aggregator.invoke(adminAc, "submitPacket", srcNetwork, srcContractAddress,
-                                srcSn, srcHeight, dstNetwork,
-                                dstContractAddress, data,
-                                signAdmin);
-
                 byte[] signOne = relayerOne.sign(dataHash);
                 aggregator.invoke(relayerOneAc, "submitPacket", srcNetwork,
                                 srcContractAddress, srcSn, srcHeight, dstNetwork,
@@ -272,15 +256,22 @@ class RelayAggregatorTest extends TestBase {
                                 data,
                                 signOne);
 
+                byte[] signTwo = relayerTwo.sign(dataHash);
+                aggregator.invoke(relayerTwoAc, "submitPacket", srcNetwork,
+                                srcContractAddress, srcSn, srcHeight, dstNetwork,
+                                dstContractAddress,
+                                data,
+                                signTwo);
+
                 byte[][] sigs = new byte[2][];
-                sigs[0] = signAdmin;
-                sigs[1] = signOne;
+                sigs[0] = signOne;
+                sigs[1] = signTwo;
 
                 byte[] encodedSigs = RelayAggregator.serializeSignatures(sigs);
                 byte[][] decodedSigs = RelayAggregator.deserializeSignatures(encodedSigs);
 
-                assertArrayEquals(signAdmin, decodedSigs[0]);
-                assertArrayEquals(signOne, decodedSigs[1]);
+                assertArrayEquals(signOne, decodedSigs[0]);
+                assertArrayEquals(signTwo, decodedSigs[1]);
 
                 verify(aggregatorSpy).PacketAcknowledged(srcNetwork, srcContractAddress,
                                 srcSn, srcHeight, dstNetwork,
@@ -289,47 +280,8 @@ class RelayAggregatorTest extends TestBase {
 
                 boolean acknowledged = (boolean) aggregator.call("packetAcknowledged",
                                 srcNetwork,
-                                srcContractAddress, srcSn);
+                                srcContractAddress, srcSn, srcHeight, dstNetwork, dstContractAddress, data);
                 assertEquals(acknowledged, true);
-        }
-
-        @Test
-        public void testPacketAcknowledged_false() throws Exception {
-                String srcNetwork = "0x2.icon";
-                BigInteger srcSn = BigInteger.ONE;
-                String srcContractAddress = "hxjuiod";
-
-                boolean acknowledged = (boolean) aggregator.call("packetAcknowledged",
-                                srcNetwork,
-                                srcContractAddress, srcSn);
-                assertEquals(acknowledged, false);
-        }
-
-        @Test
-        public void testSubmitPacket() throws Exception {
-                String srcNetwork = "0x2.icon";
-                String dstNetwork = "sui";
-                BigInteger srcSn = BigInteger.ONE;
-                BigInteger srcHeight = BigInteger.ONE;
-                String srcContractAddress = "hxjuiod";
-                String dstContractAddress = "hxjuiod";
-                byte[] data = new byte[] { 0x01, 0x02 };
-
-                aggregator.invoke(adminAc, "setSignatureThreshold", 2);
-
-                byte[] dataHash = Context.hash("sha-256", data);
-                byte[] sign = relayerOne.sign(dataHash);
-
-                aggregator.invoke(relayerOneAc, "submitPacket", srcNetwork,
-                                srcContractAddress, srcSn, srcHeight, dstNetwork,
-                                dstContractAddress, data,
-                                sign);
-
-                String pktID = Packet.createId(srcNetwork, srcContractAddress, srcSn);
-                verify(aggregatorSpy).PacketRegistered(srcNetwork, srcContractAddress, srcSn,
-                                srcHeight, dstNetwork,
-                                dstContractAddress, data);
-                verify(aggregatorSpy).setSignature(pktID, relayerOneAc.getAddress(), sign);
         }
 
         @Test
@@ -346,12 +298,6 @@ class RelayAggregatorTest extends TestBase {
 
                 byte[] dataHash = Context.hash("sha-256", data);
 
-                byte[] signAdmin = admin.sign(dataHash);
-                aggregator.invoke(adminAc, "submitPacket", srcNetwork, srcContractAddress,
-                                srcSn, srcHeight, dstNetwork,
-                                dstContractAddress, data,
-                                signAdmin);
-
                 byte[] signOne = relayerOne.sign(dataHash);
                 aggregator.invoke(relayerOneAc, "submitPacket", srcNetwork,
                                 srcContractAddress, srcSn, srcHeight, dstNetwork,
@@ -359,15 +305,22 @@ class RelayAggregatorTest extends TestBase {
                                 data,
                                 signOne);
 
+                byte[] signTwo = relayerTwo.sign(dataHash);
+                aggregator.invoke(relayerTwoAc, "submitPacket", srcNetwork,
+                                srcContractAddress, srcSn, srcHeight, dstNetwork,
+                                dstContractAddress,
+                                data,
+                                signTwo);
+
                 byte[][] sigs = new byte[2][];
-                sigs[0] = signAdmin;
-                sigs[1] = signOne;
+                sigs[0] = signOne;
+                sigs[1] = signTwo;
 
                 byte[] encodedSigs = RelayAggregator.serializeSignatures(sigs);
                 byte[][] decodedSigs = RelayAggregator.deserializeSignatures(encodedSigs);
 
-                assertArrayEquals(signAdmin, decodedSigs[0]);
-                assertArrayEquals(signOne, decodedSigs[1]);
+                assertArrayEquals(signOne, decodedSigs[0]);
+                assertArrayEquals(signTwo, decodedSigs[1]);
 
                 verify(aggregatorSpy).PacketAcknowledged(srcNetwork, srcContractAddress,
                                 srcSn, srcHeight, dstNetwork,
