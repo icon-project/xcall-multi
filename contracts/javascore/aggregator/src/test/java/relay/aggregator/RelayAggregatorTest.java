@@ -236,7 +236,7 @@ class RelayAggregatorTest extends TestBase {
         }
 
         @Test
-        public void testSubmitPacket() throws Exception {
+        public void testPacketAcknowledged_true() throws Exception {
                 String srcNetwork = "0x2.icon";
                 String dstNetwork = "sui";
                 BigInteger srcSn = BigInteger.ONE;
@@ -248,20 +248,40 @@ class RelayAggregatorTest extends TestBase {
                 aggregator.invoke(adminAc, "setSignatureThreshold", 2);
 
                 byte[] dataHash = Context.hash("sha-256", data);
-                byte[] sign = relayerOne.sign(dataHash);
 
+                byte[] signOne = relayerOne.sign(dataHash);
                 aggregator.invoke(relayerOneAc, "submitPacket", srcNetwork,
                                 srcContractAddress, srcSn, srcHeight, dstNetwork,
-                                dstContractAddress, data,
-                                sign);
+                                dstContractAddress,
+                                data,
+                                signOne);
 
-                Packet pkt = new Packet(srcNetwork, srcContractAddress, srcSn, srcHeight, dstNetwork,
-                                dstContractAddress, data);
-                byte[] pktID = pkt.getId();
-                verify(aggregatorSpy).PacketRegistered(srcNetwork, srcContractAddress, srcSn,
-                                srcHeight, dstNetwork,
-                                dstContractAddress, data);
-                verify(aggregatorSpy).setSignature(pktID, relayerOneAc.getAddress(), sign);
+                byte[] signTwo = relayerTwo.sign(dataHash);
+                aggregator.invoke(relayerTwoAc, "submitPacket", srcNetwork,
+                                srcContractAddress, srcSn, srcHeight, dstNetwork,
+                                dstContractAddress,
+                                data,
+                                signTwo);
+
+                byte[][] sigs = new byte[2][];
+                sigs[0] = signOne;
+                sigs[1] = signTwo;
+
+                byte[] encodedSigs = RelayAggregator.serializeSignatures(sigs);
+                byte[][] decodedSigs = RelayAggregator.deserializeSignatures(encodedSigs);
+
+                assertArrayEquals(signOne, decodedSigs[0]);
+                assertArrayEquals(signTwo, decodedSigs[1]);
+
+                verify(aggregatorSpy).PacketAcknowledged(srcNetwork, srcContractAddress,
+                                srcSn, srcHeight, dstNetwork,
+                                dstContractAddress, data,
+                                encodedSigs);
+
+                boolean acknowledged = (boolean) aggregator.call("packetAcknowledged",
+                                srcNetwork,
+                                srcContractAddress, srcSn, srcHeight, dstNetwork, dstContractAddress, data);
+                assertEquals(acknowledged, true);
         }
 
         @Test
