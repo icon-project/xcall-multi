@@ -398,7 +398,7 @@ contract ClusterConnectionTest is Test {
                 srcNetwork.encodeString(),
                 _connSn.encodeUint(),
                 _msg.encodeBytes(),
-                srcNetwork.encodeString()
+                dstNetwork.encodeString()
             )
             .encodeList();
         return keccak256(rlp);
