@@ -146,13 +146,15 @@ contract ClusterConnection is Initializable, IConnection {
         string memory srcNetwork,
         uint256 _connSn,
         bytes calldata _msg,
-        string memory dstNetwork,
         bytes[] calldata _signedMessages
     ) public onlyRelayer {
         require(
             _signedMessages.length >= validatorsThreshold,
             "Not enough signatures passed"
         );
+
+        string memory dstNetwork = ICallService(xCall).getNetworkId();
+
         bytes32 messageHash = getMessageHash(
             srcNetwork,
             _connSn,

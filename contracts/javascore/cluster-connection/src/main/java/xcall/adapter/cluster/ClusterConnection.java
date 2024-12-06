@@ -255,10 +255,12 @@ public class ClusterConnection {
             String srcNetwork,
             BigInteger _connSn,
             byte[] msg,
-            String dstNetwork,
             byte[][] signatures) {
         OnlyRelayer();
         Context.require(signatures.length >= validatorsThreshold.get().intValue(), "Not enough signatures");
+
+        String dstNetwork = Context.call(String.class, xCall.get(), "getNetworkId");
+
         byte[] messageHash = getMessageHash(srcNetwork, _connSn, msg, dstNetwork);
         List<String> uniqueValidators = new ArrayList<>();
         for (byte[] signature : signatures) {

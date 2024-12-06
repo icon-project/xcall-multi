@@ -264,7 +264,6 @@ contract ClusterConnectionTest is Test {
             nidSource,
             1,
             RLPEncodeStruct.encodeCSMessage(message),
-            nidTarget,
             signatures
         );
         vm.stopPrank();
@@ -383,7 +382,6 @@ contract ClusterConnectionTest is Test {
             nidSource,
             1,
             RLPEncodeStruct.encodeCSMessage(message),
-            nidTarget,
             signatures
         );
         vm.stopPrank();

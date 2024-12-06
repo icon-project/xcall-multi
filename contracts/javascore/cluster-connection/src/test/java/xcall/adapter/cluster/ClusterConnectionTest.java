@@ -166,8 +166,11 @@ public class ClusterConnectionTest extends TestBase {
         byte[][] validators = new byte[][] {
                 wallet.getPublicKey().toByteArray(),
         };
+
         connection.invoke(owner, "updateValidators", validators, BigInteger.ONE);
-        connection.invoke(source_relayer, "recvMessageWithSignatures", nidSource, BigInteger.ONE, data, nidTarget,
+
+        when(callservice.mock.getNetworkId()).thenReturn(nidTarget);
+        connection.invoke(source_relayer, "recvMessageWithSignatures", nidSource, BigInteger.ONE, data,
                 byteArray);
         verify(callservice.mock).handleMessage(eq(nidSource), eq("test".getBytes()));
     }
@@ -186,7 +189,8 @@ public class ClusterConnectionTest extends TestBase {
                 wallet2.getPublicKey().toByteArray(),
         };
         connection.invoke(owner, "updateValidators", validators, BigInteger.TWO);
-        connection.invoke(source_relayer, "recvMessageWithSignatures", nidSource, BigInteger.ONE, data, nidTarget,
+        when(callservice.mock.getNetworkId()).thenReturn(nidTarget);
+        connection.invoke(source_relayer, "recvMessageWithSignatures", nidSource, BigInteger.ONE, data,
                 byteArray);
         verify(callservice.mock).handleMessage(eq(nidSource), eq("test".getBytes()));
     }
@@ -204,9 +208,9 @@ public class ClusterConnectionTest extends TestBase {
                 wallet2.getPublicKey().toByteArray(),
         };
         connection.invoke(owner, "updateValidators", validators, BigInteger.TWO);
+        when(callservice.mock.getNetworkId()).thenReturn(nidTarget);
         UserRevertedException e = assertThrows(UserRevertedException.class,
                 () -> connection.invoke(source_relayer, "recvMessageWithSignatures", nidSource, BigInteger.ONE, data,
-                        nidTarget,
                         byteArray));
         assertEquals("Reverted(0): Not enough signatures", e.getMessage());
         verifyNoInteractions(callservice.mock);
@@ -226,12 +230,12 @@ public class ClusterConnectionTest extends TestBase {
                 wallet2.getPublicKey().toByteArray(),
         };
         connection.invoke(owner, "updateValidators", validators, BigInteger.TWO);
+
+        when(callservice.mock.getNetworkId()).thenReturn(nidTarget);
         UserRevertedException e = assertThrows(UserRevertedException.class,
                 () -> connection.invoke(source_relayer, "recvMessageWithSignatures", nidSource, BigInteger.ONE, data,
-                        nidTarget,
                         byteArray));
         assertEquals("Reverted(0): Not enough valid signatures", e.getMessage());
-        verifyNoInteractions(callservice.mock);
     }
 
     public static byte[] getMessageHash(String srcNetwork, BigInteger _connSn, byte[] msg, String dstNetwork) {
