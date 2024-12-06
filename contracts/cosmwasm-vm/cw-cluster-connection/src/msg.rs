@@ -39,7 +39,6 @@ pub enum ExecuteMsg {
         src_network: NetId,
         conn_sn: u128,
         msg: String,
-        dst_network: NetId,
         signatures: Vec<Vec<u8>>,
     },
 }

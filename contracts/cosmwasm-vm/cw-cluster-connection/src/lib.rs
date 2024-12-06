@@ -67,17 +67,8 @@ pub fn execute(
             src_network,
             conn_sn,
             msg,
-            dst_network,
             signatures,
-        } => conn.recv_message(
-            deps,
-            info,
-            src_network,
-            conn_sn,
-            msg,
-            dst_network,
-            signatures,
-        ),
+        } => conn.recv_message(deps, info, src_network, conn_sn, msg, signatures),
     }
 }
 

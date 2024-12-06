@@ -153,7 +153,6 @@ impl<'a> ClusterConnection<'a> {
         src_network: NetId,
         conn_sn: u128,
         msg: String,
-        dst_network: NetId,
         signatures: Vec<Vec<u8>>,
     ) -> Result<Response, ContractError> {
         self.ensure_relayer(deps.storage, info.sender)?;
@@ -161,6 +160,8 @@ impl<'a> ClusterConnection<'a> {
         if self.get_receipt(deps.as_ref().storage, src_network.clone(), conn_sn) {
             return Err(ContractError::DuplicateMessage);
         }
+
+        let dst_network = self.get_network_id(deps.as_ref())?;
 
         let msg_vec: Vec<u8> = self.hex_decode(msg)?;
 

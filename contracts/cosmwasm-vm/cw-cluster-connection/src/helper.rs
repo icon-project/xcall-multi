@@ -1,7 +1,7 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, str::FromStr};
 
-use cosmwasm_std::{ensure_eq, Addr, BalanceResponse, BankQuery, Coin};
-use cw_xcall_lib::network_address::NetId;
+use cosmwasm_std::{ensure_eq, Addr, BalanceResponse, BankQuery, Coin, QueryRequest};
+use cw_xcall_lib::network_address::{NetId, NetworkAddress};
 use sha2::Digest;
 use sha3::Keccak256;
 
@@ -76,6 +76,26 @@ impl<'a> ClusterConnection<'a> {
         let hex_string_trimmed = val.trim_start_matches("0x");
         hex::decode(hex_string_trimmed)
             .map_err(|e| ContractError::InvalidHexData { msg: e.to_string() })
+    }
+
+    pub fn get_network_id(&self, deps: Deps) -> Result<String, ContractError> {
+        let xcall_host = self.get_xcall(deps.storage)?;
+
+        let query_msg = cw_xcall::msg::QueryMsg::GetNetworkAddress {};
+
+        let query_request = QueryRequest::Wasm(cosmwasm_std::WasmQuery::Smart {
+            contract_addr: xcall_host.to_string(),
+            msg: to_json_binary(&query_msg).map_err(ContractError::Std)?,
+        });
+
+        let network_address: String = deps
+            .querier
+            .query(&query_request)
+            .map_err(ContractError::Std)?;
+
+        Ok(NetworkAddress::from_str(network_address.as_str())?
+            .nid()
+            .to_string())
     }
 
     pub fn call_xcall_handle_message(

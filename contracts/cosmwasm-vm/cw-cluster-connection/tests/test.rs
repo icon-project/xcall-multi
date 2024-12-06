@@ -4,18 +4,14 @@ use cluster_connection::{
 };
 use cluster_connection::{keccak256, SignableMsg};
 use common::rlp;
-use cosmwasm_std::{testing::mock_env, Env};
+use cosmwasm_std::{testing::mock_env, ContractResult, Env};
 use cosmwasm_std::{
     testing::{mock_dependencies, mock_info, MockApi, MockQuerier},
     Addr, MemoryStorage, OwnedDeps, Uint128,
 };
-use cosmwasm_std::{Api, Coin, Event};
+use cosmwasm_std::{to_json_binary, Coin, ContractInfoResponse, Event, SystemResult, WasmQuery};
 use cw_xcall_lib::network_address::NetId;
-use k256::ecdsa::signature::SignerMut;
-use k256::elliptic_curve::sec1::ToEncodedPoint;
-use k256::{
-    ecdsa::Signature, ecdsa::SigningKey, ecdsa::VerifyingKey, elliptic_curve::rand_core::OsRng,
-};
+use k256::{ecdsa::SigningKey, ecdsa::VerifyingKey, elliptic_curve::rand_core::OsRng};
 use std::str::FromStr;
 
 const XCALL: &str = "xcall";
@@ -402,6 +398,17 @@ pub fn test_send_message_unauthorized() {
 pub fn test_recv_message() {
     let (mut deps, env, ctx) = instantiate(ADMIN);
 
+    deps.querier.update_wasm(|r: &WasmQuery| match r {
+        WasmQuery::Smart {
+            contract_addr: _,
+            msg: _,
+        } => SystemResult::Ok(ContractResult::Ok(to_json_binary("archway/xcall").unwrap())),
+        WasmQuery::ContractInfo { contract_addr: _ } => SystemResult::Ok(ContractResult::Ok(
+            to_json_binary(&ContractInfoResponse::default()).unwrap(),
+        )),
+        _ => todo!(),
+    });
+
     let src_network = NetId::from_str("0x2.icon").unwrap();
     let dst_network = NetId::from_str("archway").unwrap();
     let conn_sn: u128 = 456456;
@@ -446,7 +453,6 @@ pub fn test_recv_message() {
         src_network: src_network.clone(),
         conn_sn,
         msg: msg,
-        dst_network,
         signatures: signatures.clone(),
     };
     let res = execute(
@@ -475,6 +481,17 @@ pub fn test_recv_message() {
 #[test]
 pub fn test_recv_message_signatures_insufficient() {
     let (mut deps, env, ctx) = instantiate(ADMIN);
+
+    deps.querier.update_wasm(|r: &WasmQuery| match r {
+        WasmQuery::Smart {
+            contract_addr: _,
+            msg: _,
+        } => SystemResult::Ok(ContractResult::Ok(to_json_binary("archway/xcall").unwrap())),
+        WasmQuery::ContractInfo { contract_addr: _ } => SystemResult::Ok(ContractResult::Ok(
+            to_json_binary(&ContractInfoResponse::default()).unwrap(),
+        )),
+        _ => todo!(),
+    });
 
     let src_network = NetId::from_str("0x2.icon").unwrap();
     let dst_network = NetId::from_str("archway").unwrap();
@@ -520,7 +537,6 @@ pub fn test_recv_message_signatures_insufficient() {
         src_network: src_network.clone(),
         conn_sn,
         msg: msg,
-        dst_network,
         signatures: signatures.clone(),
     };
 

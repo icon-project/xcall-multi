@@ -36,6 +36,7 @@ serde = { workspace=true}
 thiserror = { workspace=true}
 common ={ workspace=true}
 cw-xcall-lib = { path="../cw-xcall-lib" }
+cw-xcall = { path="../cw-xcall" }
 hex = "0.4.3"
 serde-json-wasm = {workspace=true}
 sha2 = { version = "0.10.6", default-features = false }
