@@ -11,7 +11,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Build Javascore
         working-directory: contracts/javascore
@@ -21,7 +21,7 @@ jobs:
           ./gradlew zipOutputOptimizedJars
 
       - name: Archive artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: javascore-contracts
           path: ./contracts/javascore/build/javascore-contracts.zip
