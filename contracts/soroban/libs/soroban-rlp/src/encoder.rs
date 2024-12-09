@@ -45,13 +45,21 @@ pub fn encode_length(env: &Env, len: u64, offset: u8) -> Bytes {
         let len_u8 = len as u8;
         len_info.push_back(len_u8 + offset)
     } else {
-        let mut bytes_length = u64_to_bytes(&env, len);
+        let mut bytes_length = u64_to_bytes(&env, len, false);
         let rlp_bytes_len = bytes_length.len() as u8;
         len_info.push_back(rlp_bytes_len + offset + 55);
         len_info.append(&mut bytes_length);
     }
 
     len_info
+}
+
+pub fn encode_bool(env: &Env, value: bool) -> Bytes {
+    if value == true {
+        return bytes!(env, 0x01);
+    }
+
+    bytes!(env, 0x00)
 }
 
 pub fn encode_u8(env: &Env, num: u8) -> Bytes {
@@ -62,17 +70,17 @@ pub fn encode_u8(env: &Env, num: u8) -> Bytes {
 }
 
 pub fn encode_u32(env: &Env, num: u32) -> Bytes {
-    let bytes = u32_to_bytes(&env, num);
+    let bytes = u32_to_bytes(&env, num, true);
     encode(&env, bytes)
 }
 
 pub fn encode_u64(env: &Env, num: u64) -> Bytes {
-    let bytes = u64_to_bytes(&env, num);
+    let bytes = u64_to_bytes(&env, num, true);
     encode(&env, bytes)
 }
 
 pub fn encode_u128(env: &Env, num: u128) -> Bytes {
-    let bytes = u128_to_bytes(&env, num);
+    let bytes = u128_to_bytes(&env, num, true);
     encode(&env, bytes)
 }
 
