@@ -424,20 +424,28 @@ pub fn test_recv_message() {
     let message_digest = keccak256(&signed_msg);
 
     let signing_key = SigningKey::random(&mut OsRng);
-
     let verifying_key = VerifyingKey::from(&signing_key);
     let pubkey = verifying_key.to_encoded_point(false).as_bytes().to_vec();
+    let (signature, recovery_code) = signing_key
+        .sign_digest_recoverable(message_digest.clone())
+        .unwrap();
+    let mut sign_0 = signature.to_vec();
+    sign_0.push(recovery_code.to_byte());
 
-    let (signature, recovery_code) = signing_key.sign_digest_recoverable(message_digest).unwrap();
+    let signing_key_1 = SigningKey::random(&mut OsRng);
+    let verifying_key_1 = VerifyingKey::from(&signing_key_1);
+    let pubkey_1 = verifying_key_1.to_encoded_point(false).as_bytes().to_vec();
+    let (signature_1, recovery_code_1) = signing_key_1
+        .sign_digest_recoverable(message_digest.clone())
+        .unwrap();
+    let mut sign_1 = signature_1.to_vec();
+    sign_1.push(recovery_code_1.to_byte());
 
-    let mut sign_1 = signature.to_vec();
-    sign_1.push(recovery_code.to_byte());
-
-    let validators = vec![pubkey.clone()];
+    let validators = vec![pubkey.clone(), pubkey_1.clone()];
 
     let set_validators_msg = ExecuteMsg::SetValidators {
         validators: validators.clone(),
-        threshold: 1,
+        threshold: 2,
     };
     let _ = execute(
         deps.as_mut(),
@@ -446,7 +454,7 @@ pub fn test_recv_message() {
         set_validators_msg,
     );
 
-    let signatures = vec![sign_1];
+    let signatures = vec![sign_1, sign_0];
 
     // Test with non-relayer sender (should fail)
     let msg_with_signatures = ExecuteMsg::RecvMessage {
