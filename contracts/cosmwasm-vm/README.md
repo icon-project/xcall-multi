@@ -4,24 +4,24 @@ This Repo contains the smart contracts for ICON-IBC in rust.
 
 ### Standard Libraries
 
-| Crate          | Usage              | Download                |
-|----------------|--------------------|-------------------------|
-|cosmwasm-schema |Contract Development| [![cosmwasm-schema on crates.io](https://img.shields.io/crates/v/cosmwasm-schema.svg)](https://crates.io/crates/cosmwasm-schema) |
-|cosmwasm-std    |Contract Development| [![cosmwasm-std on crates.io](https://img.shields.io/crates/v/cosmwasm-std.svg)](https://crates.io/crates/cosmwasm-std)       |
-|cosmwasm-storage|Contract Development| [![cosmwasm-storage on crates.io](https://img.shields.io/crates/v/cosmwasm-storage.svg)](https://crates.io/crates/cosmwasm-storage)
+| Crate            | Usage                | Download                                                                                                                            |
+| ---------------- | -------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| cosmwasm-schema  | Contract Development | [![cosmwasm-schema on crates.io](https://img.shields.io/crates/v/cosmwasm-schema.svg)](https://crates.io/crates/cosmwasm-schema)    |
+| cosmwasm-std     | Contract Development | [![cosmwasm-std on crates.io](https://img.shields.io/crates/v/cosmwasm-std.svg)](https://crates.io/crates/cosmwasm-std)             |
+| cosmwasm-storage | Contract Development | [![cosmwasm-storage on crates.io](https://img.shields.io/crates/v/cosmwasm-storage.svg)](https://crates.io/crates/cosmwasm-storage) |
 
-| Specification      |  Crates.io                    | Coverage                   |
-|---------------     |-------------------------------|----------------------------|
-| cw-ibc-core        |[![ibc on crates.io](https://img.shields.io/crates/v/ibc.svg)](https://crates.io/crates/ibc)| [![codecov](https://codecov.io/gh/icon-project/IBC-Integration/branch/main/graph/badge.svg?token=8KX6y8aGom)](https://codecov.io/gh/icon-project/IBC-Integration)|
-|cw-icon-light-client|[![ibc on crates.io](https://img.shields.io/crates/v/ibc.svg)](https://crates.io/crates/ibc)| [![codecov](https://codecov.io/gh/icon-project/IBC-Integration/branch/main/graph/badge.svg?token=8KX6y8aGom)](https://codecov.io/gh/icon-project/IBC-Integration)|
-| cw-xcall           |[![ibc on crates.io](https://img.shields.io/crates/v/ibc.svg)](https://crates.io/crates/ibc)| [![codecov](https://codecov.io/gh/icon-project/IBC-Integration/branch/main/graph/badge.svg?token=8KX6y8aGom)](https://codecov.io/gh/icon-project/IBC-Integration)|
+| Specification        | Crates.io                                                                                    | Coverage                                                                                                                                                          |
+| -------------------- | -------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| cw-ibc-core          | [![ibc on crates.io](https://img.shields.io/crates/v/ibc.svg)](https://crates.io/crates/ibc) | [![codecov](https://codecov.io/gh/icon-project/IBC-Integration/branch/main/graph/badge.svg?token=8KX6y8aGom)](https://codecov.io/gh/icon-project/IBC-Integration) |
+| cw-icon-light-client | [![ibc on crates.io](https://img.shields.io/crates/v/ibc.svg)](https://crates.io/crates/ibc) | [![codecov](https://codecov.io/gh/icon-project/IBC-Integration/branch/main/graph/badge.svg?token=8KX6y8aGom)](https://codecov.io/gh/icon-project/IBC-Integration) |
+| cw-xcall             | [![ibc on crates.io](https://img.shields.io/crates/v/ibc.svg)](https://crates.io/crates/ibc) | [![codecov](https://codecov.io/gh/icon-project/IBC-Integration/branch/main/graph/badge.svg?token=8KX6y8aGom)](https://codecov.io/gh/icon-project/IBC-Integration) |
 
 ### Prerequiste
 
 - To install Rust in Linux/Mac,
 
 First, [install rustup](https://rustup.rs/). Once installed, make sure you have the wasm32 target:
-  
+
 ```shell
 rustup default stable
 cargo version
@@ -38,19 +38,19 @@ Download and run, [rustup-init.exe](https://static.rust-lang.org/rustup/dist/i68
 ### Build Contracts
 
 - Execute the following command to compile the contract
-  
+
   ```
   cargo wasm
   ```
 
 - Optimise using cargo, by giving the following command
-  
+
   ```
   RUSTFLAGS='-C link-arg=-s' cargo wasm
   ```
 
 - Deploy the contract on testnet
-  
+
   ```
   // add the wasm binary file path in <path>
 
@@ -58,7 +58,7 @@ Download and run, [rustup-init.exe](https://static.rust-lang.org/rustup/dist/i68
   ```
 
 - Getting CodeId from RES
-  
+
   ```
   CODE_ID=$(echo $RES | jq -r '.logs[0].events[-1].attributes[1].value')
   ```
@@ -110,7 +110,7 @@ The xCall contract in Inter-Blockchain Communication (IBC) protocol facilitate c
 IBC-Core is the reference implementation of the Inter-Blockchain Communication (IBC) protocol, which is a standardized protocol for enabling communication and interoperability between independent blockchain networks.
 
 - [ics02_client](./cw-ibc-core/src/ics02_client/) :
-  
+
   ICS02-Client is a module in the IBC-Core that provides a standard interface and protocol for verifying the state of a remote chain in the Inter-Blockchain Communication (IBC) protocol.
 
 - [ics03_connection](./cw-ibc-core/src/ics03_connection/) :
