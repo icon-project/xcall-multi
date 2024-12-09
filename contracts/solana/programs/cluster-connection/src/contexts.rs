@@ -59,39 +59,6 @@ pub struct SendMessage<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(src_network: String, conn_sn: u128)]
-pub struct RecvMessage<'info> {
-    #[account(mut)]
-    pub admin: Signer<'info>,
-
-    pub system_program: Program<'info, System>,
-
-    /// Config
-    #[account(
-        mut,
-        seeds = [Config::SEED_PREFIX.as_bytes()],
-        bump = config.bump,
-        has_one = admin @ ConnectionError::OnlyAdmin,
-    )]
-    pub config: Account<'info, Config>,
-
-    #[account(
-        init,
-        payer = admin,
-        seeds = [Receipt::SEED_PREFIX.as_bytes(), src_network.as_bytes(),  &conn_sn.to_be_bytes()],
-        space = Receipt::LEN,
-        bump
-    )]
-    pub receipt: Account<'info, Receipt>,
-
-    #[account(
-        seeds = [Authority::SEED_PREFIX.as_bytes()],
-        bump = authority.bump
-    )]
-    pub authority: Account<'info, Authority>,
-}
-
-#[derive(Accounts)]
 pub struct RevertMessage<'info> {
     #[account(mut)]
     pub admin: Signer<'info>,
@@ -115,7 +82,7 @@ pub struct RevertMessage<'info> {
 }
 
 #[derive(Accounts)]
-pub struct SetAdmin<'info> {
+pub struct SetConfigItem<'info> {
     /// Transaction signer
     #[account(mut)]
     pub admin: Signer<'info>,
@@ -175,63 +142,20 @@ pub struct GetFee<'info> {
 pub struct ClaimFees<'info> {
     /// Rent payer
     #[account(mut)]
-    pub admin: Signer<'info>,
+    pub relayer: Signer<'info>,
 
     /// Config
     #[account(
         mut,
         seeds = [Config::SEED_PREFIX.as_bytes()],
         bump = config.bump,
-        has_one = admin @ ConnectionError::OnlyAdmin,
+        has_one = relayer @ ConnectionError::OnlyRelayer,
     )]
     pub config: Account<'info, Config>,
 }
 
 #[derive(Accounts)]
-pub struct SetThreshold<'info> {
-    /// Transaction signer
-    #[account(mut)]
-    pub admin: Signer<'info>,
-
-    /// Config
-    #[account(
-        mut,
-        seeds = [Config::SEED_PREFIX.as_bytes()],
-        bump = config.bump,
-        has_one = admin @ ConnectionError::OnlyAdmin,
-    )]
-    pub config: Account<'info, Config>,
-}
-
-#[derive(Accounts)]
-pub struct GetThreshold<'info> {
-    /// Config
-    #[account(
-        seeds = [Config::SEED_PREFIX.as_bytes()],
-        bump = config.bump
-    )]
-    pub config: Account<'info, Config>,
-}
-
-#[derive(Accounts)]
-pub struct AddValidator<'info> {
-    /// Transaction signer
-    #[account(mut)]
-    pub admin: Signer<'info>,
-
-    /// Config
-    #[account(
-        mut,
-        seeds = [Config::SEED_PREFIX.as_bytes()],
-        bump = config.bump,
-        has_one = admin @ ConnectionError::OnlyAdmin,
-    )]
-    pub config: Account<'info, Config>,
-}
-
-
-#[derive(Accounts)]
-pub struct GetValidators<'info> {
+pub struct GetConfigItem<'info> {
     /// Config
     #[account(
         seeds = [Config::SEED_PREFIX.as_bytes()],

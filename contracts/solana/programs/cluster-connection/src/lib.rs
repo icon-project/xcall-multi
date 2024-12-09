@@ -22,10 +22,10 @@ declare_id!("8oxnXrSmqWJqkb2spZk2uz1cegzPsLy6nJp9XwFhkMD5");
 pub mod centralized_connection {
     use super::*;
 
-    pub fn initialize(ctx: Context<Initialize>, xcall: Pubkey, admin: Pubkey) -> Result<()> {
+    pub fn initialize(ctx: Context<Initialize>, xcall: Pubkey, relayer: Pubkey) -> Result<()> {
         ctx.accounts
             .config
-            .set_inner(Config::new(xcall, admin, ctx.bumps.config));
+            .set_inner(Config::new(xcall, ctx.accounts.signer.key(), relayer, ctx.bumps.config));
         ctx.accounts
             .authority
             .set_inner(Authority::new(ctx.bumps.authority));
@@ -74,7 +74,7 @@ pub mod centralized_connection {
         sequence_no: u128,
         signatures: Vec<[u8; 65]>,
     ) -> Result<()> {
-        helper::call_xcall_handle_message_with_signatures(ctx, src_network, msg, conn_sn, sequence_no,signatures)
+        helper::call_xcall_handle_message_with_signatures(ctx, src_network, msg, conn_sn, sequence_no, signatures)
     }
 
     pub fn revert_message<'info>(
@@ -84,9 +84,16 @@ pub mod centralized_connection {
         helper::call_xcall_handle_error(ctx, sequence_no)
     }
 
-    pub fn set_admin(ctx: Context<SetAdmin>, account: Pubkey) -> Result<()> {
+    pub fn set_admin(ctx: Context<SetConfigItem>, account: Pubkey) -> Result<()> {
         let config = ctx.accounts.config.deref_mut();
         config.admin = account;
+
+        Ok(())
+    }
+
+    pub fn set_relayer(ctx: Context<SetConfigItem>, address: Pubkey) -> Result<()> {
+        let config = ctx.accounts.config.deref_mut();
+        config.relayer = address;
 
         Ok(())
     }
@@ -107,32 +114,24 @@ pub mod centralized_connection {
         Ok(())
     }
 
-    pub fn set_threshold(ctx: Context<SetThreshold>, threshold: u8) -> Result<()> {
-        if ctx.accounts.config.get_validators().len() < threshold as usize {
+    pub fn set_threshold(ctx: Context<SetConfigItem>, threshold: u8) -> Result<()> {
+        if ctx.accounts.config.validators.len() < threshold as usize {
             return Err(error::ConnectionError::ValidatorsMustBeGreaterThanThreshold.into());
         }
-        ctx.accounts.config.set_threshold(threshold);
+        ctx.accounts.config.threshold = threshold;
         Ok(())
     }
 
-    pub fn update_validators(ctx: Context<AddValidator>, validators: Vec<Pubkey>, threshold: u8) -> Result<()> {
+    pub fn update_validators(ctx: Context<SetConfigItem>, validators: Vec<[u8; 65]>, threshold: u8) -> Result<()> {
         let mut unique_validators = validators.clone();
         unique_validators.sort();
         unique_validators.dedup();
         if unique_validators.len() < threshold as usize {
             return Err(error::ConnectionError::ValidatorsMustBeGreaterThanThreshold.into());
         }
-        ctx.accounts.config.set_threshold(threshold);
-        ctx.accounts.config.store_validators(unique_validators);
+        ctx.accounts.config.threshold = threshold;
+        ctx.accounts.config.validators = unique_validators;
         Ok(())
-    }
-
-    pub fn get_validators(ctx: Context<GetValidators>) -> Result<Vec<Pubkey>> {
-        Ok(ctx.accounts.config.get_validators())
-    }
-
-    pub fn get_threshold(ctx: Context<GetThreshold>) -> Result<u8> {
-        Ok(ctx.accounts.config.get_threshold())
     }
 
     #[allow(unused_variables)]
@@ -145,7 +144,7 @@ pub mod centralized_connection {
         let fee = ctx.accounts.config.get_claimable_fees(&config)?;
 
         **config.try_borrow_mut_lamports()? -= fee;
-        **ctx.accounts.admin.try_borrow_mut_lamports()? += fee;
+        **ctx.accounts.relayer.try_borrow_mut_lamports()? += fee;
 
         Ok(())
     }

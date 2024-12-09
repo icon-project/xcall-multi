@@ -9,7 +9,8 @@ use crate::{constants, error::*};
 pub struct Config {
     pub admin: Pubkey,
     pub xcall: Pubkey,
-    pub validators: Vec<Pubkey>,
+    pub relayer: Pubkey,
+    pub validators: Vec<[u8; 65]>,
     pub threshold: u8,
     pub sn: u128,
     pub bump: u8,
@@ -24,10 +25,11 @@ impl Config {
     pub const LEN: usize = constants::ACCOUNT_DISCRIMINATOR_SIZE + 32 + 32 + 16 + 1 + 1;
 
     /// Creates a new centralized connection `Config` state
-    pub fn new(xcall: Pubkey, admin: Pubkey, bump: u8) -> Self {
+    pub fn new(xcall: Pubkey, admin: Pubkey, relayer: Pubkey, bump: u8) -> Self {
         Self {
             xcall,
             admin,
+            relayer,
             validators: Vec::new(),
             threshold: 0,
             sn: 0,
@@ -63,30 +65,11 @@ impl Config {
         Ok(account.lamports() - rent_exempt_balance)
     }
 
-    pub fn get_threshold(&self) -> u8 {
-        self.threshold
-    }
-
-    pub fn set_threshold(&mut self, threshold: u8) {
-        self.threshold = threshold
-    }
-
-    pub fn add_validator(&mut self, validator: Pubkey) {
-        self.validators.push(validator);
-    }
-
-    pub fn store_validators(&mut self, validators: Vec<Pubkey>) {
-        self.validators = validators
-    }
-
-    pub fn is_validator(&self, address: &Pubkey) -> bool {
-        self.validators.contains(address)
-    }
-
-
-
-    pub fn get_validators(&self) -> Vec<Pubkey> {
-        self.validators.clone()
+    pub fn is_validator(&self, pub_key: &[u8; 64]) -> bool {
+        let mut pub_key_65: [u8; 65] = [0u8; 65];
+        pub_key_65[0] = 0x04; 
+        pub_key_65[1..].copy_from_slice(pub_key);
+        self.validators.contains(&pub_key_65)
     }
 }
 

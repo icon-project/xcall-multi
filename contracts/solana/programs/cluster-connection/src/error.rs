@@ -5,6 +5,9 @@ pub enum ConnectionError {
     #[msg("Only admin")]
     OnlyAdmin,
 
+    #[msg("Only relayer")]
+    OnlyRelayer,
+
     #[msg("Only xcall")]
     OnlyXcall,
 

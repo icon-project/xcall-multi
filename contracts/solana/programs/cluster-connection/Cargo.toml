@@ -20,4 +20,4 @@ idl-build = ["anchor-lang/idl-build"]
 anchor-lang = { workspace = true, features = ["init-if-needed"] }
 
 xcall-lib = { workspace = true }
-ed25519-dalek = { version = "1.0.1" }
+rlp = { workspace = true }
