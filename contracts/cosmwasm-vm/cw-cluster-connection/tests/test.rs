@@ -447,12 +447,13 @@ pub fn test_recv_message() {
         validators: validators.clone(),
         threshold: 2,
     };
-    let _ = execute(
+    let res = execute(
         deps.as_mut(),
         env.clone(),
         mock_info(ADMIN, &[]),
         set_validators_msg,
     );
+    assert!(res.is_ok());
 
     let signatures = vec![sign_1, sign_0];
 
@@ -532,12 +533,13 @@ pub fn test_recv_message_signatures_insufficient() {
         validators: validators.clone(),
         threshold: 2,
     };
-    let _ = execute(
+    let resp = execute(
         deps.as_mut(),
         env.clone(),
         mock_info(ADMIN, &[]),
         set_validators_msg,
     );
+    assert!(resp.is_ok());
 
     let signatures = vec![sign_1];
 
