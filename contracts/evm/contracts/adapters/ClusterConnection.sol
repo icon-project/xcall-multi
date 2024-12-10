@@ -10,11 +10,17 @@ import "@xcall/contracts/xcall/interfaces/IConnection.sol";
 import "@iconfoundation/xcall-solidity-library/interfaces/ICallService.sol";
 import "@iconfoundation/xcall-solidity-library/utils/RLPEncode.sol";
 import "@iconfoundation/xcall-solidity-library/utils/RLPEncode.sol";
+import "@iconfoundation/xcall-solidity-library/utils/Strings.sol";
+import "@iconfoundation/xcall-solidity-library/utils/Integers.sol";
 
+/// @custom:oz-upgrades-from contracts/adapters/ClusterConnectionV1.sol:ClusterConnectionV1
 contract ClusterConnection is Initializable, IConnection {
     using RLPEncode for bytes;
     using RLPEncode for string;
     using RLPEncode for uint256;
+
+    using Strings for bytes;
+    using Integers for uint256;
 
     mapping(string => uint256) private messageFees;
     mapping(string => uint256) private responseFees;
@@ -312,15 +318,14 @@ contract ClusterConnection is Initializable, IConnection {
         bytes calldata _msg,
         string memory dstNetwork
     ) internal pure returns (bytes32) {
-        bytes memory rlp = abi
+        bytes memory encoded = abi
             .encodePacked(
-                srcNetwork.encodeString(),
-                _connSn.encodeUint(),
-                _msg.encodeBytes(),
-                dstNetwork.encodeString()
-            )
-            .encodeList();
-        return keccak256(rlp);
+                srcNetwork,
+                _connSn.toString(),
+                _msg.bytesToHex(),
+                dstNetwork
+            );
+        return keccak256(encoded);
     }
 
     function publicKeyToAddress(

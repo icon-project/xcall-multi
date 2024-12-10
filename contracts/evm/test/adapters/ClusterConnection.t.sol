@@ -8,13 +8,17 @@ import "@xcall/contracts/xcall/CallService.sol";
 import "@xcall/contracts/mocks/multi-protocol-dapp/MultiProtocolSampleDapp.sol";
 import "@xcall/utils/Types.sol";
 import "@iconfoundation/xcall-solidity-library/utils/RLPEncode.sol";
-
+import "@iconfoundation/xcall-solidity-library/utils/Strings.sol";
+import "@iconfoundation/xcall-solidity-library/utils/Integers.sol";
 contract ClusterConnectionTest is Test {
     using RLPEncode for bytes;
     using RLPEncode for string;
     using RLPEncode for uint256;
     using RLPEncodeStruct for Types.CSMessage;
     using RLPEncodeStruct for Types.CSMessageRequestV2;
+
+    using Strings for bytes;
+    using Integers for uint256;
 
     event CallExecuted(uint256 indexed _reqId, int _code, string _msg);
 
@@ -393,14 +397,13 @@ contract ClusterConnectionTest is Test {
         bytes memory _msg,
         string memory dstNetwork
     ) internal pure returns (bytes32) {
-        bytes memory rlp = abi
+        bytes memory encoded = abi
             .encodePacked(
-                srcNetwork.encodeString(),
-                _connSn.encodeUint(),
-                _msg.encodeBytes(),
-                dstNetwork.encodeString()
-            )
-            .encodeList();
-        return keccak256(rlp);
+                srcNetwork,
+                _connSn.toString(),
+                _msg.bytesToHex(),
+                dstNetwork
+            );
+        return keccak256(encoded);
     }
 }
