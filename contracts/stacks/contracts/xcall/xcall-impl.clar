@@ -2,22 +2,22 @@
 (use-trait xcall-common-trait .xcall-common-trait.xcall-common-trait)
 (use-trait xcall-receiver-trait .xcall-receiver-trait.xcall-receiver-trait)
 
-(define-constant ERR_INVALID_NETWORK_ADDRESS (err u100))
-(define-constant ERR_INVALID_NETWORK_ID (err u101))
-(define-constant ERR_INVALID_ACCOUNT (err u102))
-(define-constant ERR_MESSAGE_NOT_FOUND (err u103))
-(define-constant ERR_NOT_ADMIN (err u104))
-(define-constant ERR_ALREADY_INITIALIZED (err u105))
-(define-constant ERR_NOT_INITIALIZED (err u106))
-(define-constant ERR_INVALID_MESSAGE_TYPE (err u107))
-(define-constant ERR_INVALID_RESPONSE (err u108))
-(define-constant ERR_NO_ROLLBACK_DATA (err u109))
-(define-constant ERR_INVALID_REPLY (err u110))
-(define-constant ERR_NO_DEFAULT_CONNECTION (err u111))
-(define-constant ERR_UNVERIFIED_PROTOCOL (err u112))
-(define-constant ERR_INVALID_MESSAGE (err u113))
-(define-constant ERR_INVALID_RECEIVER (err u114))
-(define-constant ERR_ADDRESS_TO_PRINCIPAL_FAILED (err u115))
+(define-constant ERR_INVALID_NETWORK_ADDRESS (err u200))
+(define-constant ERR_INVALID_NETWORK_ID (err u201))
+(define-constant ERR_INVALID_ACCOUNT (err u202))
+(define-constant ERR_MESSAGE_NOT_FOUND (err u203))
+(define-constant ERR_NOT_ADMIN (err u204))
+(define-constant ERR_ALREADY_INITIALIZED (err u205))
+(define-constant ERR_NOT_INITIALIZED (err u206))
+(define-constant ERR_INVALID_MESSAGE_TYPE (err u207))
+(define-constant ERR_INVALID_RESPONSE (err u208))
+(define-constant ERR_NO_ROLLBACK_DATA (err u209))
+(define-constant ERR_INVALID_REPLY (err u210))
+(define-constant ERR_NO_DEFAULT_CONNECTION (err u211))
+(define-constant ERR_UNVERIFIED_PROTOCOL (err u212))
+(define-constant ERR_INVALID_MESSAGE (err u213))
+(define-constant ERR_INVALID_RECEIVER (err u214))
+(define-constant ERR_ADDRESS_TO_PRINCIPAL_FAILED (err u215))
 
 (define-constant CS_MESSAGE_RESULT_FAILURE u0)
 (define-constant CS_MESSAGE_RESULT_SUCCESS u1)
@@ -280,9 +280,9 @@
   (contract-call? .rlp-encode encode-string protocol))
 
 (define-public (send-call-message 
-  (to (string-ascii 128)) 
-  (data (buff 2048)) 
-  (rollback (optional (buff 1024))) 
+  (to (string-ascii 128))
+  (data (buff 2048))
+  (rollback (optional (buff 1024)))
   (sources (optional (list 10 (string-ascii 128))))
   (destinations (optional (list 10 (string-ascii 128))))
 )
@@ -297,17 +297,17 @@
       (from-address (unwrap! (get-network-address) ERR_NOT_INITIALIZED))
 
       (source-contract (contract-call? .rlp-encode encode-string from-address))
-      (dest-address (contract-call? .rlp-encode encode-string to))
+      (dest-address (contract-call? .rlp-encode encode-string (get account parsed-address)))
       (sn (contract-call? .rlp-encode encode-uint next-sn))
       (msg-type (contract-call? .rlp-encode encode-uint CS_MESSAGE_TYPE_REQUEST))
       (message-data (contract-call? .rlp-encode encode-buff 
                       (unwrap! (as-max-len? data u1024) ERR_INVALID_MESSAGE)))
 
       (protocol-list-raw (map encode-protocol-string
-          (default-to (list) sources)))
+          (default-to (list) destinations)))
       (protocol-list (contract-call? .rlp-encode encode-arr protocol-list-raw))
 
-      (inner-message-raw (list 
+      (inner-message-raw (list
           source-contract
           dest-address 
           sn
@@ -325,15 +325,18 @@
     
     (emit-call-message-sent-event tx-sender to next-sn cs-message-request sources destinations)
     
-    (map-set outgoing-messages
-      { sn: next-sn }
-      {
-        to: to,
-        data: cs-message-request,
-        rollback: rollback,
-        sources: sources,
-        destinations: destinations
-      }
+    (if (is-some rollback)
+      (map-set outgoing-messages
+        { sn: next-sn }
+        {
+          to: to,
+          data: cs-message-request,
+          rollback: rollback,
+          sources: sources,
+          destinations: destinations
+        }
+      )
+      true
     )
     
     (if (and (is-reply dst-network-id sources) (is-none rollback))
@@ -510,14 +513,14 @@
 )
 
 (define-private (parse-protocol (protocol (buff 2048)))
-  (unwrap-panic (as-max-len? (contract-call? .rlp-decode decode-string protocol) u128))
+  (unwrap-panic (as-max-len? (unwrap-panic (contract-call? .rlp-decode decode-string protocol)) u128))
 )
 
-(define-private (parse-cs-message-request (data (buff 2048)))
+(define-public (parse-cs-message-request (data (buff 2048)))
   (let (
     (decoded (contract-call? .rlp-decode rlp-to-list data))
-    (from (unwrap-panic (as-max-len? (contract-call? .rlp-decode rlp-decode-string decoded u0) u128)))
-    (to (unwrap-panic (as-max-len? (contract-call? .rlp-decode rlp-decode-string decoded u1) u128)))
+    (from (unwrap-panic (as-max-len? (unwrap-panic (contract-call? .rlp-decode rlp-decode-string decoded u0)) u128)))
+    (to (unwrap-panic (as-max-len? (unwrap-panic (contract-call? .rlp-decode rlp-decode-string decoded u1)) u128)))
     (sn (contract-call? .rlp-decode rlp-decode-uint decoded u2))
     (type (contract-call? .rlp-decode rlp-decode-uint decoded u3))
     (msg-data (contract-call? .rlp-decode rlp-decode-buff decoded u4))
@@ -572,13 +575,23 @@
       (to-principal (unwrap! (contract-call? .util address-string-to-principal to-account) ERR_ADDRESS_TO_PRINCIPAL_FAILED))
       (receiver-principal (contract-of receiver))
     )
-      (asserts! (is-eq (keccak256 data) stored-data-hash) ERR_MESSAGE_NOT_FOUND)
-      (asserts! (is-eq to-principal receiver-principal) ERR_INVALID_RECEIVER)
-      (try! (contract-call? receiver handle-call-message from data protocols common))
-      (emit-call-executed-event req-id CS_MESSAGE_RESULT_SUCCESS "")
-      (map-delete incoming-messages { req-id: req-id })
-      (ok true)
-  )
+    (asserts! (is-eq (keccak256 data) stored-data-hash) ERR_MESSAGE_NOT_FOUND)
+    (asserts! (is-eq to-principal receiver-principal) ERR_INVALID_RECEIVER)
+    
+    (match (contract-call? receiver handle-call-message from data protocols common)
+      success-response (begin 
+        (emit-call-executed-event req-id CS_MESSAGE_RESULT_SUCCESS "")
+        (map-delete incoming-messages { req-id: req-id })
+        (ok true))
+      error-value (begin
+        (emit-call-executed-event req-id CS_MESSAGE_RESULT_FAILURE (int-to-ascii error-value))
+        (match (map-get? outgoing-messages { sn: sn })
+          msg (match (get rollback msg)
+                rb (begin 
+                    (emit-rollback-message-received-event sn)
+                    (err error-value))
+                (err error-value))
+          (err error-value)))))
 )
 
 (define-public (execute-rollback (sn uint) (receiver <xcall-receiver-trait>) (common <xcall-common-trait>))

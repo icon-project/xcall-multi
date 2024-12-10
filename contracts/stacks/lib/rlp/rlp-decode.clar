@@ -1,6 +1,6 @@
-(define-constant ERR_INVALID_INPUT (err u100))
-(define-constant ERR_INVALID_RLP (err u101))
-(define-constant ERR_INVALID_LENGTH (err u102))
+(define-constant ERR_INVALID_INPUT (err u400))
+(define-constant ERR_INVALID_RLP (err u401))
+(define-constant ERR_INVALID_LENGTH (err u402))
 (define-constant MAX_SIZE 512)
 
 (define-read-only (get-item (input (list 2 (buff 2048))))
@@ -25,7 +25,7 @@
         (data (concat sliced input))
         (res (concat 0x0d data))
     )
-    (unwrap-panic (from-consensus-buff? (string-ascii 2048) res))
+    (from-consensus-buff? (string-ascii 2048) res)
   )
 )
 
@@ -78,11 +78,18 @@
       (length (buff-to-uint-be first-byte))
       )
     (if (< length u128)
-      ;; If the first byte is less than 0x80 (128), it's a single byte item
-      (list 
-        (default-to 0x (slice? input u0 u1)) 
-        (default-to 0x  (slice? input u1 (len input)))
-      )
+      ;; Check if this is a string (first byte between 0x80 and 0xb7)
+      (if (and (>= length u128) (< length u184))
+        ;; For strings, keep the length prefix
+        (list 
+          input
+          (default-to 0x (slice? input u1 (len input)))
+        )
+        ;; For other types, strip the length prefix
+        (list 
+          (default-to 0x (slice? input u0 u1)) 
+          (default-to 0x (slice? input u1 (len input)))
+        ))
     (if (< length u184)
       (get-short-item u128 length input)
     (if (< length u192)

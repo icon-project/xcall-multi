@@ -4,11 +4,16 @@ description = ''
 authors = []
 telemetry = true
 cache_dir = './.cache'
-
+requirements = []
 [contracts.centralized-connection]
 path = 'contracts/connections/centralized-connection.clar'
 clarity_version = 2
 epoch = 2.5
+
+[contracts.debug]
+path = 'contracts/debug.clar'
+clarity_version = 3
+epoch = 3.0
 
 [contracts.mock-dapp]
 path = 'tests/mocks/mock-dapp.clar'

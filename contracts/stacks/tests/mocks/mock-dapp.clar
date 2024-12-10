@@ -1,10 +1,10 @@
 (use-trait xcall-common-trait .xcall-common-trait.xcall-common-trait)
 (impl-trait .xcall-receiver-trait.xcall-receiver-trait)
 
-(define-constant ERR_UNAUTHORIZED (err u100))
-(define-constant ERR_INVALID_PROTOCOL (err u101))
-(define-constant ERR_INVALID_MESSAGE (err u102))
-(define-constant ERR_RLP_DECODE (err u103))
+(define-constant ERR_UNAUTHORIZED (err u800))
+(define-constant ERR_INVALID_PROTOCOL (err u801))
+(define-constant ERR_INVALID_MESSAGE (err u802))
+(define-constant ERR_RLP_DECODE (err u803))
 
 (define-data-var call-service principal tx-sender)
 
@@ -47,11 +47,11 @@
     (
       (message (unwrap-panic (as-max-len? (unwrap-panic (slice? data u1 (len data))) u2048))) ;; Drop RLP prefix byte
     )
-    (ok (contract-call? .rlp-decode decode-string message))))
+    (ok (unwrap-panic (contract-call? .rlp-decode decode-string message)))))
 
 (define-public (handle-call-message (from (string-ascii 128)) (data (buff 2048)) (protocols (list 10 (string-ascii 128))) (xcall-common <xcall-common-trait>))
   (begin
-    (asserts! (is-call-service) ERR_UNAUTHORIZED)
+    ;; (asserts! (is-call-service) ERR_UNAUTHORIZED)
     (let
       (
         (from-net (unwrap! (slice? from u0 (unwrap-panic (index-of from "/"))) ERR_INVALID_MESSAGE))

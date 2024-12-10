@@ -5,329 +5,6 @@ const accounts = simnet.getAccounts();
 const address1 = accounts.get("wallet_1")!;
 
 describe("RLP Encoding Tests", () => {
-  // it("encodes u8", () => {
-  //   const testValues = [
-  //     { value: 100, expectedHex: "64" },
-  //     { value: 128, expectedHex: "8180" },
-  //     { value: 245, expectedHex: "81f5" },
-  //     { value: 255, expectedHex: "81ff" },
-  //   ];
-
-  //   testValues.forEach(({ value, expectedHex }) => {
-  //     const result = simnet.callReadOnlyFn(
-  //       "rlp-encode",
-  //       "encode-uint",
-  //       [Cl.uint(value)],
-  //       address1
-  //     );
-  
-  //     // @ts-ignore: Property 'buffer' does not exist on type 'ClarityValue'.
-  //     expect(result.result.buffer).toEqual(
-  //       Cl.bufferFromHex(expectedHex).buffer
-  //     );
-  //   });
-  // });
-
-  // it("encodes u16", () => {
-  //   const testValues = [
-  //     { value: 256, expectedHex: "820100" },
-  //     { value: 1024, expectedHex: "820400" },
-  //     { value: 65535, expectedHex: "82ffff" },
-  //     { value: 65536, expectedHex: "83010000" },
-  //     { value: 16777215, expectedHex: "83ffffff" }
-  //   ];
-  
-  //   testValues.forEach(({ value, expectedHex }) => {
-  //     const result = simnet.callReadOnlyFn(
-  //       "rlp-encode",
-  //       "encode-uint",
-  //       [Cl.uint(value)],
-  //       address1
-  //     );
-  
-  //     // @ts-ignore: Property 'buffer' does not exist on type 'ClarityValue'.
-  //     expect(result.result.buffer).toEqual(
-  //       Cl.bufferFromHex(expectedHex).buffer
-  //     );
-  //   });
-  // });
-
-  // it("encodes u32", () => {
-  //   const result = simnet.callReadOnlyFn(
-  //     "rlp-encode",
-  //     "encode-uint",
-  //     [Cl.uint(2000022458)],
-  //     address1
-  //   );
-  //   // @ts-ignore: Property 'buffer' does not exist on type 'ClarityValue'.
-  //   expect(result.result.buffer).toEqual(Cl.bufferFromHex("85007735EBBA").buffer);
-  // });
-
-  // it("encodes u64", () => {
-  //   let result = simnet.callReadOnlyFn(
-  //     "rlp-encode",
-  //     "encode-uint",
-  //     [Cl.uint(1999999999999999999n)],
-  //     address1
-  //   );
-  //   // @ts-ignore: Property 'buffer' does not exist on type 'ClarityValue'.
-  //   expect(result.result.buffer).toEqual(Cl.bufferFromHex("89001BC16D674EC7FFFF").buffer);
-
-  //   result = simnet.callReadOnlyFn(
-  //     "rlp-encode",
-  //     "encode-uint",
-  //     [Cl.uint(199999999)],
-  //     address1
-  //   );
-  //   // @ts-ignore: Property 'buffer' does not exist on type 'ClarityValue'.
-  //   expect(result.result.buffer).toEqual(Cl.bufferFromHex("85000BEBC1FF").buffer);
-  // });
-
-  // it("encodes u128", () => {
-  //   const result = simnet.callReadOnlyFn(
-  //     "rlp-encode",
-  //     "encode-uint", 
-  //     [Cl.uint(180593171625979951495805181356371083263n)],
-  //     address1
-  //   );
-  //   // @ts-ignore: Property 'buffer' does not exist on type 'ClarityValue'.
-  //   expect(result.result.buffer).toEqual(
-  //     Cl.bufferFromHex("910087dcfacd87982736cdefcdefff" + "ffffff").buffer
-  //   );
-  // });
-
-  // it("encodes string with smaller bytes length", () => {
-  //   const result = simnet.callReadOnlyFn(
-  //     "rlp-encode",
-  //     "encode-string",
-  //     [Cl.stringAscii("soroban-rlp")],
-  //     address1
-  //   );
-  //   // @ts-ignore: Property 'buffer' does not exist on type 'ClarityValue'.
-  //   expect(result.result.buffer).toEqual(
-  //     Cl.bufferFromHex("8b736f726f62616e2d726c70").buffer
-  //   );
-  // });
-
-  // it("encodes string with larger bytes length", () => {
-  //   const str = "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s";
-  //   const result = simnet.callReadOnlyFn(
-  //     "rlp-encode",
-  //     "encode-string",
-  //     [Cl.stringAscii(str)],
-  //     address1
-  //   );
-  //   // @ts-ignore: Property 'buffer' does not exist on type 'ClarityValue'.
-  //   expect(result.result.buffer).toEqual(
-  //     Cl.bufferFromHex("b90097" +
-  //       Buffer.from(str).toString('hex')).buffer
-  //   );
-  // });
-
-  // it("encodes empty list", () => {
-  //   const result = simnet.callReadOnlyFn(
-  //     "rlp-encode", 
-  //     "encode-arr",
-  //     [Cl.list([])],
-  //     address1
-  //   );
-  //   // @ts-ignore: Property 'buffer' does not exist on type 'ClarityValue'.
-  //   expect(result.result.buffer).toEqual(Cl.bufferFromHex("c0").buffer);
-  // });
-
-  // it("encodes strings", () => {
-  //   const result = simnet.callReadOnlyFn(
-  //     "rlp-encode",
-  //     "encode-arr",
-  //     [Cl.list([
-  //       Cl.buffer(simnet.callReadOnlyFn(
-  //         "rlp-encode",
-  //         "encode-string",
-  //         [Cl.stringAscii("alice")],
-  //         address1
-  //         // @ts-ignore: Property 'buffer' does not exist on type 'ClarityValue'.
-  //       ).result.buffer),
-  //       Cl.buffer(simnet.callReadOnlyFn(
-  //         "rlp-encode",
-  //         "encode-string",
-  //         [Cl.stringAscii("bob")],
-  //         address1
-  //         // @ts-ignore: Property 'buffer' does not exist on type 'ClarityValue'.
-  //       ).result.buffer)
-  //     ])],
-  //     address1
-  //   );
-  //   // @ts-ignore: Property 'buffer' does not exist on type 'ClarityValue'.
-  //   expect(result.result.buffer).toEqual(
-  //     Cl.bufferFromHex("ca85616c69636583626f62").buffer
-  //   );
-  //   // @ts-ignore: Property 'buffer' does not exist on type 'ClarityValue'.
-  //   expect(result.result.buffer.length).toEqual(11);
-  // });
-
-  // it("encodes strings with longer bytes", () => {
-  //   const strings = [
-  //     "It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout.",
-  //     "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
-  //     "Egestas maecenas pharetra convallis posuere morbi. Velit laoreet id donec ultrices tincidunt arcu non sodales neque."
-  //   ];
-
-  //   const encodedStrings = strings.map(str => 
-  //     simnet.callReadOnlyFn(
-  //       "rlp-encode",
-  //       "encode-string",
-  //       [Cl.stringAscii(str)],
-  //       address1
-  //     )
-  //   );
-
-  //   const result = simnet.callReadOnlyFn(
-  //     "rlp-encode",
-  //     "encode-arr",
-  //     // @ts-ignore: Property 'buffer' does not exist on type 'ClarityValue'.
-  //     [Cl.list(encodedStrings.map(e => Cl.buffer(e.result.buffer)))],
-  //     address1
-  //   );
-
-  //   // @ts-ignore: Property 'buffer' does not exist on type 'ClarityValue'.
-  //   expect(result.result.buffer).toEqual(
-  //     Cl.bufferFromHex("fa000174" + 
-  //       "b9007c" + Buffer.from(strings[0]).toString('hex') +
-  //       "b9007b" + Buffer.from(strings[1]).toString('hex') +
-  //       "b90074" + Buffer.from(strings[2]).toString('hex')
-  //     ).buffer
-  //   );
-  //   // @ts-ignore: Property 'buffer' does not exist on type 'ClarityValue'.
-  //   expect(result.result.buffer.length).toEqual(376);
-  // });
-
-  // it("encodes list with smaller bytes", () => {
-  //   const result = simnet.callReadOnlyFn(
-  //     "rlp-encode",
-  //     "encode-arr",
-  //     [Cl.list([
-  //       Cl.buffer(simnet.callReadOnlyFn(
-  //         "rlp-encode",
-  //         "encode-uint",
-  //         [Cl.uint(4294967295)],
-  //         address1
-  //         // @ts-ignore: Property 'buffer' does not exist on type 'ClarityValue'.
-  //       ).result.buffer),
-  //       Cl.buffer(simnet.callReadOnlyFn(
-  //         "rlp-encode",
-  //         "encode-string",
-  //         [Cl.stringAscii("soroban-rlp")],
-  //         address1
-  //         // @ts-ignore: Property 'buffer' does not exist on type 'ClarityValue'.
-  //       ).result.buffer)
-  //     ])],
-  //     address1
-  //   );
-
-  //   // @ts-ignore: Property 'buffer' does not exist on type 'ClarityValue'.
-  //   expect(result.result.buffer).toEqual(
-  //     Cl.bufferFromHex("d2" +
-  //       "8500ffffffff" +
-  //       "8b736f726f62616e2d726c70"
-  //     ).buffer
-  //   );
-  // });
-
-  // it("encodes list with longer bytes", () => {
-  //   const u8Value = simnet.callReadOnlyFn(
-  //     "rlp-encode",
-  //     "encode-uint",
-  //     [Cl.uint(245)],
-  //     address1
-  //   );
-  
-  //   const u32Value = simnet.callReadOnlyFn(
-  //     "rlp-encode",
-  //     "encode-uint",
-  //     [Cl.uint(24196199)],
-  //     address1
-  //   );
-  
-  //   const u64Value = simnet.callReadOnlyFn(
-  //     "rlp-encode",
-  //     "encode-uint",
-  //     [Cl.uint(103921887687475199n)],
-  //     address1
-  //   );
-  
-  //   const u128Value = simnet.callReadOnlyFn(
-  //     "rlp-encode",
-  //     "encode-uint",
-  //     [Cl.uint(180593171625979951495805181356371083263n)],
-  //     address1
-  //   );
-  
-  //   const strings = [
-  //     "Integer quis auctor elit sed vulputate mi sit.",
-  //     "Tincidunt nunc pulvinar sapien et ligula"
-  //   ];
-    
-  //   const encodedStrings = simnet.callReadOnlyFn(
-  //     "rlp-encode",
-  //     "encode-arr",
-  //     [Cl.list(strings.map(str => 
-  //       Cl.buffer(simnet.callReadOnlyFn(
-  //         "rlp-encode",
-  //         "encode-string",
-  //         [Cl.stringAscii(str)],
-  //         address1
-  //       // @ts-ignore: Property 'buffer' does not exist on type 'ClarityValue'.
-  //       ).result.buffer)
-  //     ))],
-  //     address1
-  //   );
-  
-  //   const lastString = simnet.callReadOnlyFn(
-  //     "rlp-encode",
-  //     "encode-string",
-  //     [Cl.stringAscii("Sed adipiscing diam donec adipiscing tristique")],
-  //     address1
-  //   );
-  
-  //   const result = simnet.callReadOnlyFn(
-  //     "rlp-encode",
-  //     "encode-arr",
-  //     [Cl.list([
-  //       // @ts-ignore: Property 'buffer' does not exist on type 'ClarityValue'.
-  //       Cl.buffer(u8Value.result.buffer),
-  //       // @ts-ignore: Property 'buffer' does not exist on type 'ClarityValue'.
-  //       Cl.buffer(u32Value.result.buffer),
-  //       // @ts-ignore: Property 'buffer' does not exist on type 'ClarityValue'.
-  //       Cl.buffer(u64Value.result.buffer),
-  //       // @ts-ignore: Property 'buffer' does not exist on type 'ClarityValue'.
-  //       Cl.buffer(u128Value.result.buffer),
-  //       // @ts-ignore: Property 'buffer' does not exist on type 'ClarityValue'.
-  //       Cl.buffer(encodedStrings.result.buffer),
-  //       // @ts-ignore: Property 'buffer' does not exist on type 'ClarityValue'.
-  //       Cl.buffer(lastString.result.buffer)
-  //     ])],
-  //     address1
-  //   );
-  
-  //   const expectedHex = 
-  //     "f900ae" +
-  //     "81f5" +
-  //     "850001713467" +
-  //     "89001713467ffff" + "ffff" +
-  //     "910087dcfacd87982736cdefcdefff" + "ffffff" +
-  //     "f90058" +
-  //     "ae" + Buffer.from(strings[0]).toString('hex') +
-  //     "a8" + Buffer.from(strings[1]).toString('hex') +
-  //     "ae" + Buffer.from("Sed adipiscing diam donec adipiscing tristique").toString('hex');
-  
-  //   // @ts-ignore: Property 'buffer' does not exist on type 'ClarityValue'.
-  //   expect(result.result.buffer).toEqual(
-  //     Cl.bufferFromHex(expectedHex).buffer
-  //   );
-  //   // @ts-ignore: Property 'buffer' does not exist on type 'ClarityValue'.
-  //   expect(result.result.buffer.length).toEqual(177);
-  // });
-
   it("encodes cross chain message", () => {
     const sourceContract = simnet.callReadOnlyFn(
       "rlp-encode",
@@ -421,4 +98,169 @@ describe("RLP Encoding Tests", () => {
       Cl.bufferFromHex("f8b301b8b0f8aeb33078312e69636f6e2f637863356434306664373439393562656434373365356431623235396462633630313532373366666335ae6172636877617931727638346e3879637a6375673472707778303238746b76776d356765726c757a73323875686e822d3c0080f844b84261726368776179316c766d783275366634376e3879723064673766616e677572326c37326e7778786b6c61737179616c3266687470797739757866716d7564656c38").buffer
     );
   });
+});
+
+it("decodes cross chain message", () => {
+  const encodedMessage = "f8b301b8b0f8aeb33078312e69636f6e2f637863356434306664373439393562656434373365356431623235396462633630313532373366666335ae6172636877617931727638346e3879637a6375673472707778303238746b76776d356765726c757a73323875686e822d3c0080f844b84261726368776179316c766d783275366634376e3879723064673766616e677572326c37326e7778786b6c61737179616c3266687470797739757866716d7564656c38";
+
+  console.log("Step 1: Initial encoded message");
+  console.log("Encoded message:", encodedMessage);
+
+  // First decode the outer array using rlp-to-list
+  const decoded = simnet.callReadOnlyFn(
+    "rlp-decode",
+    "rlp-to-list",
+    [Cl.bufferFromHex(encodedMessage)],
+    address1
+  );
+
+  console.log("\nStep 2: First level decoding");
+  console.log("Decoded result:", decoded.result);
+
+  // Assert first level decoding produced a list with expected elements
+  expect(decoded.result.type).toBe(11); // List type
+  expect(decoded.result.list.length).toBe(2); // Should have 2 elements
+  expect(decoded.result.list[0].type).toBe(2); // First element should be a buffer
+  expect(decoded.result.list[1].type).toBe(2); // Second element should be a buffer
+
+  // Extract and decode inner message
+  const innerDecoded = simnet.callReadOnlyFn(
+    "rlp-decode",
+    "rlp-to-list",
+    // @ts-ignore
+    [decoded.result.list[1]],
+    address1
+  );
+
+  console.log("\nStep 3: Inner message decoding");
+  console.log("Inner decoded result:", innerDecoded.result);
+
+  // Assert inner decoding produced expected structure
+  expect(innerDecoded.result.type).toBe(11); // List type
+  expect(innerDecoded.result.list.length).toBe(6); // Should have 6 elements
+
+  // Print and verify each element
+  console.log("\nStep 4: Decoding individual elements");
+
+  // Source Contract
+  console.log("4.1: Source Contract");
+  const sourceContract = simnet.callReadOnlyFn(
+    "rlp-decode",
+    "rlp-decode-string",
+    [
+      Cl.list([innerDecoded.result.list[0]]),
+      Cl.uint(0)
+    ],
+    address1
+  );
+  console.log("Source contract result:", sourceContract.result);
+  expect(sourceContract.result).toEqual(
+    Cl.some(Cl.stringAscii("0x1.icon/cxc5d40fd74995bed473e5d1b259dbc6015273ffc5"))
+  );
+  
+
+  // Destination Address
+  console.log("\n4.2: Destination Address");
+  const destAddress = simnet.callReadOnlyFn(
+    "rlp-decode",
+    "rlp-decode-string",
+    [
+      Cl.list([innerDecoded.result.list[1]]),
+      Cl.uint(0)
+    ],
+    address1
+  );
+  console.log("Destination address result:", destAddress.result);
+  expect(destAddress.result).toEqual(
+    Cl.some(Cl.stringAscii("archway1rv84n8yczcug4rpwx028tkvwm5gerluzs28uhn"))
+  );
+
+  // Sequence Number
+  console.log("\n4.3: Sequence Number");
+  const sn = simnet.callReadOnlyFn(
+    "rlp-decode",
+    "rlp-decode-uint",
+    [
+      Cl.list([innerDecoded.result.list[2]]),
+      Cl.uint(0)
+    ],
+    address1
+  );
+  console.log("Sequence number result:", sn.result);
+  expect(sn.result).toEqual(Cl.uint(11580));
+
+  // Message Type
+  console.log("\n4.4: Message Type");
+  const msgType = simnet.callReadOnlyFn(
+    "rlp-decode",
+    "rlp-decode-uint",
+    [
+      Cl.list([innerDecoded.result.list[3]]),
+      Cl.uint(0)
+    ],
+    address1
+  );
+  console.log("Message type result:", msgType.result);
+  expect(msgType.result).toEqual(Cl.uint(0));
+
+  // Empty Data
+  console.log("\n4.5: Empty Data");
+  const emptyData = simnet.callReadOnlyFn(
+    "rlp-decode",
+    "rlp-decode-string",
+    [
+      Cl.list([innerDecoded.result.list[4]]),
+      Cl.uint(0)
+    ],
+    address1
+  );
+  console.log("Empty data buffer:", Buffer.from(innerDecoded.result.list[4].buffer).toString('hex'));
+  console.log("Data result:", emptyData.result);
+  expect(emptyData.result).toEqual(Cl.some(Cl.stringAscii("")));
+
+
+  console.log("\n4.6: Destination List");
+// Print the raw buffer before decoding
+const destListBuffer = innerDecoded.result.list[5];
+console.log("Destination list raw buffer:", 
+    Buffer.from(destListBuffer.buffer).toString('hex')
+);
+
+const destListDecoded = simnet.callReadOnlyFn(
+  "rlp-decode",
+  "rlp-to-list",
+  [innerDecoded.result.list[5]],
+  address1
+);
+console.log("Destination list decoded:", destListDecoded.result);
+console.log("Destination list decoded result list:", destListDecoded.result.list)
+
+console.log("\nDebug events from decode-string:");
+console.log(destListDecoded.events.map(event => event.data).join('\n'));
+
+// Print the first item's buffer before string decoding
+const firstItem = destListDecoded.result.list[0];
+console.log("First destination buffer:", 
+    Buffer.from(firstItem.buffer).toString('hex')
+);
+
+const destAddress1 = simnet.callReadOnlyFn(
+  "rlp-decode",
+  "rlp-decode-string",
+  [
+    Cl.list([destListDecoded.result.list[0]]),
+    Cl.uint(0)
+  ],
+  address1
+);
+
+console.log("\nDebug events from string decoding:");
+console.log(destAddress1.events.map(event => event.data).join('\n'));
+
+  console.log("Destination address 1 result:", destAddress1.result);
+  expect(destAddress1.result).toEqual(
+    Cl.stringAscii("archway1lvmx2u6f47n8yr0dg7fangur2l72nwxxklasqyal2fhtpyw9uxfqmudel8")
+  );
+
+  console.log("\nStep 5: All elements decoded successfully");
 });

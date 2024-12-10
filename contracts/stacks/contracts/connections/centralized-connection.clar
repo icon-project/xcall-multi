@@ -1,9 +1,9 @@
 (use-trait xcall-impl-trait .xcall-impl-trait.xcall-impl-trait)
 
-(define-constant ERR_UNAUTHORIZED (err u100))
-(define-constant ERR_INVALID_FEE (err u101))
-(define-constant ERR_DUPLICATE_MESSAGE (err u102))
-(define-constant ERR_XCALL_NOT_SET (err u103))
+(define-constant ERR_UNAUTHORIZED (err u900))
+(define-constant ERR_INVALID_FEE (err u901))
+(define-constant ERR_DUPLICATE_MESSAGE (err u902))
+(define-constant ERR_XCALL_NOT_SET (err u903))
 
 (define-data-var xcall (optional principal) none)
 (define-data-var admin principal tx-sender)

@@ -3,7 +3,6 @@
 (define-constant ERR_INVALID_ADDRESS (err u1000))
 (define-constant ERR_INVALID_CONTRACT_NAME (err u1001))
 
-(define-data-var result-var (buff 400) 0x)
 (define-data-var addr-var (buff 400) 0x)
 
 (define-public (address-string-to-principal (address (string-ascii 128)))
