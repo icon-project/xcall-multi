@@ -359,14 +359,8 @@ public class ClusterConnection {
      * @return the hash of the message
      */
     private byte[] getMessageHash(String srcNetwork, BigInteger _connSn, byte[] msg, String dstNetwork) {
-        ByteArrayObjectWriter writer = Context.newByteArrayObjectWriter("RLPn");
-        writer.beginList(4);
-        writer.write(srcNetwork);
-        writer.write(_connSn);
-        writer.write(msg);
-        writer.write(dstNetwork);
-        writer.end();
-        return Context.hash("keccak-256", writer.toByteArray());
+        String message = srcNetwork + String.valueOf(_connSn) + bytesToHex(msg) + dstNetwork;
+        return Context.hash("keccak-256", message.getBytes());
     }
 
 }

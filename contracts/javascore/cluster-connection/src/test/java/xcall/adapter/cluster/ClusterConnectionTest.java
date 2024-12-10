@@ -238,15 +238,21 @@ public class ClusterConnectionTest extends TestBase {
         assertEquals("Reverted(0): Not enough valid signatures", e.getMessage());
     }
 
-    public static byte[] getMessageHash(String srcNetwork, BigInteger _connSn, byte[] msg, String dstNetwork) {
-        ByteArrayObjectWriter writer = Context.newByteArrayObjectWriter("RLPn");
-        writer.beginList(4);
-        writer.write(srcNetwork);
-        writer.write(_connSn);
-        writer.write(msg);
-        writer.write(dstNetwork);
-        writer.end();
-        return Context.hash("keccak-256", writer.toByteArray());
+    private byte[] getMessageHash(String srcNetwork, BigInteger _connSn, byte[] msg, String dstNetwork) {
+        String message = srcNetwork + String.valueOf(_connSn) + bytesToHex(msg) + dstNetwork;
+        return Context.hash("keccak-256", message.getBytes());
+    }
+
+    private String bytesToHex(byte[] bytes) {
+        StringBuilder hexString = new StringBuilder();
+        for (byte b : bytes) {
+            String hex = Integer.toHexString(0xff & b); // Mask with 0xff to handle negative values correctly
+            if (hex.length() == 1) {
+                hexString.append('0'); // Add a leading zero if hex length is 1
+            }
+            hexString.append(hex);
+        }
+        return hexString.toString();
     }
 
     @Test
@@ -261,5 +267,6 @@ public class ClusterConnectionTest extends TestBase {
         String[] signers = connection.call(String[].class, "listValidators");
         assertEquals(signers.length, 2);
     }
+
 
 }
