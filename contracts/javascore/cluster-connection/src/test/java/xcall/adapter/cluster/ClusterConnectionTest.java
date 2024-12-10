@@ -5,19 +5,15 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
-import java.nio.charset.StandardCharsets;
 import java.security.*;
 
 import java.math.BigInteger;
-import java.util.Arrays;
 
 import score.Context;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
 import foundation.icon.icx.KeyWallet;
-
-
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -30,11 +26,9 @@ import com.iconloop.score.test.ServiceManager;
 import com.iconloop.score.test.TestBase;
 
 import score.UserRevertedException;
-import score.Address;
 import score.ByteArrayObjectWriter;
 import foundation.icon.xcall.CallService;
 import foundation.icon.xcall.CallServiceScoreInterface;
-
 
 import xcall.icon.test.MockContract;
 
@@ -64,7 +58,6 @@ public class ClusterConnectionTest extends TestBase {
     public void setup() throws Exception {
         Security.addProvider(new BouncyCastleProvider());
         callservice = new MockContract<>(CallServiceScoreInterface.class, CallService.class, sm, owner);
-
 
         connection = sm.deploy(owner, ClusterConnection.class, source_relayer.getAddress(),
                 callservice.getAddress());
@@ -112,47 +105,51 @@ public class ClusterConnectionTest extends TestBase {
     }
 
     @Test
-    public void testRevertMessage_unauthorized(){
-        UserRevertedException e = assertThrows(UserRevertedException.class, ()->connection.invoke(user, "revertMessage", BigInteger.ONE));
-        assertEquals("Reverted(0): "+"Only relayer can call this function", e.getMessage());
-        
+    public void testRevertMessage_unauthorized() {
+        UserRevertedException e = assertThrows(UserRevertedException.class,
+                () -> connection.invoke(user, "revertMessage", BigInteger.ONE));
+        assertEquals("Reverted(0): " + "Only relayer can call this function", e.getMessage());
+
     }
 
     @Test
-    public void testSetFeesUnauthorized(){
-        UserRevertedException e = assertThrows(UserRevertedException.class,() -> connection.invoke(user, "setFee", "0xevm",
-        BigInteger.TEN, BigInteger.TEN));
-        assertEquals("Reverted(0): "+"Only relayer can call this function", e.getMessage());
+    public void testSetFeesUnauthorized() {
+        UserRevertedException e = assertThrows(UserRevertedException.class,
+                () -> connection.invoke(user, "setFee", "0xevm",
+                        BigInteger.TEN, BigInteger.TEN));
+        assertEquals("Reverted(0): " + "Only relayer can call this function", e.getMessage());
     }
 
     @Test
-    public void testClaimFees(){
+    public void testClaimFees() {
         setFee();
         connection.invoke(source_relayer, "claimFees");
         assertEquals(source_relayer.getBalance(), BigInteger.ZERO);
 
-        UserRevertedException e = assertThrows(UserRevertedException.class,() -> connection.invoke(callservice.account, "sendMessage", nidTarget,
-        "xcall", BigInteger.ONE, "null".getBytes()));
+        UserRevertedException e = assertThrows(UserRevertedException.class,
+                () -> connection.invoke(callservice.account, "sendMessage", nidTarget,
+                        "xcall", BigInteger.ONE, "null".getBytes()));
         assertEquals(e.getMessage(), "Reverted(0): Insufficient balance");
 
         try (MockedStatic<Context> contextMock = Mockito.mockStatic(Context.class, Mockito.CALLS_REAL_METHODS)) {
             contextMock.when(() -> Context.getValue()).thenReturn(BigInteger.valueOf(20));
-            connection.invoke(callservice.account, "sendMessage", nidTarget,"xcall", BigInteger.ONE, "null".getBytes());
+            connection.invoke(callservice.account, "sendMessage", nidTarget, "xcall", BigInteger.ONE,
+                    "null".getBytes());
         }
 
-        
         try (MockedStatic<Context> contextMock = Mockito.mockStatic(Context.class, Mockito.CALLS_REAL_METHODS)) {
             contextMock.when(() -> Context.getBalance(connection.getAddress())).thenReturn(BigInteger.valueOf(20));
-            contextMock.when(() -> Context.transfer(source_relayer.getAddress(),BigInteger.valueOf(20))).then(invocationOnMock -> null);
+            contextMock.when(() -> Context.transfer(source_relayer.getAddress(), BigInteger.valueOf(20)))
+                    .then(invocationOnMock -> null);
             connection.invoke(source_relayer, "claimFees");
         }
     }
 
     @Test
-    public void testClaimFees_unauthorized(){
+    public void testClaimFees_unauthorized() {
         setFee();
-        UserRevertedException e = assertThrows(UserRevertedException.class,() -> connection.invoke(user, "claimFees"));
-        assertEquals(e.getMessage(), "Reverted(0): "+"Only relayer can call this function");
+        UserRevertedException e = assertThrows(UserRevertedException.class, () -> connection.invoke(user, "claimFees"));
+        assertEquals(e.getMessage(), "Reverted(0): " + "Only relayer can call this function");
     }
 
     public MockedStatic.Verification value() {
@@ -160,25 +157,28 @@ public class ClusterConnectionTest extends TestBase {
     }
 
     @Test
-    public void testRecvMessageWithSignatures() throws Exception{
+    public void testRecvMessageWithSignatures() throws Exception {
         byte[] data = "test".getBytes();
-        byte[] messageHash = getMessageHash(nidSource, BigInteger.ONE, data);
+        byte[] messageHash = getMessageHash(nidSource, BigInteger.ONE, data, nidTarget);
         byte[][] byteArray = new byte[1][];
         KeyWallet wallet = KeyWallet.create();
         byteArray[0] = wallet.sign(messageHash);
         byte[][] validators = new byte[][] {
                 wallet.getPublicKey().toByteArray(),
         };
-        connection.invoke(owner, "updateValidators", validators, BigInteger.ONE);        
-        connection.invoke(source_relayer, "recvMessageWithSignatures", nidSource, BigInteger.ONE, data, byteArray);
+
+        connection.invoke(owner, "updateValidators", validators, BigInteger.ONE);
+
+        when(callservice.mock.getNetworkId()).thenReturn(nidTarget);
+        connection.invoke(source_relayer, "recvMessageWithSignatures", nidSource, BigInteger.ONE, data,
+                byteArray);
         verify(callservice.mock).handleMessage(eq(nidSource), eq("test".getBytes()));
     }
 
-
     @Test
-    public void testRecvMessageWithMultiSignatures() throws Exception{
+    public void testRecvMessageWithMultiSignatures() throws Exception {
         byte[] data = "test".getBytes();
-        byte[] messageHash = getMessageHash(nidSource, BigInteger.ONE, data);
+        byte[] messageHash = getMessageHash(nidSource, BigInteger.ONE, data, nidTarget);
         byte[][] byteArray = new byte[2][];
         KeyWallet wallet = KeyWallet.create();
         KeyWallet wallet2 = KeyWallet.create();
@@ -188,15 +188,17 @@ public class ClusterConnectionTest extends TestBase {
                 wallet.getPublicKey().toByteArray(),
                 wallet2.getPublicKey().toByteArray(),
         };
-        connection.invoke(owner, "updateValidators", validators, BigInteger.TWO);   
-        connection.invoke(source_relayer, "recvMessageWithSignatures", nidSource, BigInteger.ONE, data, byteArray);
+        connection.invoke(owner, "updateValidators", validators, BigInteger.TWO);
+        when(callservice.mock.getNetworkId()).thenReturn(nidTarget);
+        connection.invoke(source_relayer, "recvMessageWithSignatures", nidSource, BigInteger.ONE, data,
+                byteArray);
         verify(callservice.mock).handleMessage(eq(nidSource), eq("test".getBytes()));
     }
 
     @Test
-    public void testRecvMessageWithSignaturesNotEnoughSignatures() throws Exception{
+    public void testRecvMessageWithSignaturesNotEnoughSignatures() throws Exception {
         byte[] data = "test".getBytes();
-        byte[] messageHash = getMessageHash(nidSource, BigInteger.ONE, data);
+        byte[] messageHash = getMessageHash(nidSource, BigInteger.ONE, data, nidTarget);
         KeyWallet wallet = KeyWallet.create();
         KeyWallet wallet2 = KeyWallet.create();
         byte[][] byteArray = new byte[1][];
@@ -206,16 +208,18 @@ public class ClusterConnectionTest extends TestBase {
                 wallet2.getPublicKey().toByteArray(),
         };
         connection.invoke(owner, "updateValidators", validators, BigInteger.TWO);
+        when(callservice.mock.getNetworkId()).thenReturn(nidTarget);
         UserRevertedException e = assertThrows(UserRevertedException.class,
-                ()->connection.invoke(source_relayer, "recvMessageWithSignatures", nidSource, BigInteger.ONE, data, byteArray));
+                () -> connection.invoke(source_relayer, "recvMessageWithSignatures", nidSource, BigInteger.ONE, data,
+                        byteArray));
         assertEquals("Reverted(0): Not enough signatures", e.getMessage());
         verifyNoInteractions(callservice.mock);
     }
 
     @Test
-    public void testRecvMessageWithSignaturesNotEnoughValidSignatures() throws Exception{
+    public void testRecvMessageWithSignaturesNotEnoughValidSignatures() throws Exception {
         byte[] data = "test".getBytes();
-        byte[] messageHash = getMessageHash(nidSource, BigInteger.ONE, data);
+        byte[] messageHash = getMessageHash(nidSource, BigInteger.ONE, data, nidTarget);
         KeyWallet wallet = KeyWallet.create();
         KeyWallet wallet2 = KeyWallet.create();
         byte[][] byteArray = new byte[2][];
@@ -226,24 +230,16 @@ public class ClusterConnectionTest extends TestBase {
                 wallet2.getPublicKey().toByteArray(),
         };
         connection.invoke(owner, "updateValidators", validators, BigInteger.TWO);
+
+        when(callservice.mock.getNetworkId()).thenReturn(nidTarget);
         UserRevertedException e = assertThrows(UserRevertedException.class,
-                ()->connection.invoke(source_relayer, "recvMessageWithSignatures", nidSource, BigInteger.ONE, data, byteArray));
+                () -> connection.invoke(source_relayer, "recvMessageWithSignatures", nidSource, BigInteger.ONE, data,
+                        byteArray));
         assertEquals("Reverted(0): Not enough valid signatures", e.getMessage());
-        verifyNoInteractions(callservice.mock);
     }
 
-
-    public static byte[] getMessageHash(String srcNetwork, BigInteger _connSn, byte[] msg) {
-        ByteArrayObjectWriter writer = Context.newByteArrayObjectWriter("RLPn");
-        writer.beginList(3);
-        writer.write(srcNetwork);
-        writer.write(_connSn);
-        writer.write(msg);
-        writer.end();
-        return Context.hash("keccak-256", writer.toByteArray());
-    }
     @Test
-    public void testAddSigners() throws Exception{
+    public void testAddSigners() throws Exception {
         KeyWallet wallet = KeyWallet.create();
         KeyWallet wallet2 = KeyWallet.create();
         byte[][] validators = new byte[][] {
@@ -251,8 +247,28 @@ public class ClusterConnectionTest extends TestBase {
                 wallet2.getPublicKey().toByteArray(),
         };
         connection.invoke(owner, "updateValidators", validators, BigInteger.TWO);
-        String[] signers = connection.call(String[].class,"listValidators");
+        String[] signers = connection.call(String[].class, "listValidators");
         assertEquals(signers.length, 2);
     }
+
+    private byte[] getMessageHash(String srcNetwork, BigInteger _connSn, byte[] msg, String dstNetwork) {
+        byte[] result = concatBytes(srcNetwork.getBytes(), String.valueOf(_connSn).getBytes(), msg, dstNetwork.getBytes());
+        return Context.hash("keccak-256", result);
+    }
+
+    private static byte[] concatBytes(byte[]... arrays) {
+        int totalLength = 0;
+        for (byte[] array : arrays) {
+            totalLength += array.length;
+        }
+        byte[] result = new byte[totalLength];
+        int currentIndex = 0;
+        for (byte[] array : arrays) {
+            System.arraycopy(array, 0, result, currentIndex, array.length);
+            currentIndex += array.length;
+        }
+        return result;
+    }
+
 
 }

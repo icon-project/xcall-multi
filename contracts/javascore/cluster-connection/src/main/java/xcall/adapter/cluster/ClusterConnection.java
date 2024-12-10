@@ -31,10 +31,7 @@ import score.annotation.EventLog;
 import score.annotation.External;
 import score.annotation.Payable;
 
-import java.util.Arrays;
 import java.util.List;
-
-
 
 public class ClusterConnection {
     protected final VarDB<Address> xCall = Context.newVarDB("callService", Address.class);
@@ -42,12 +39,13 @@ public class ClusterConnection {
     protected final VarDB<Address> relayerAddress = Context.newVarDB("relayer", Address.class);
     protected final VarDB<BigInteger> validatorsThreshold = Context.newVarDB("reqValidatorCnt", BigInteger.class);
     private final VarDB<BigInteger> connSn = Context.newVarDB("connSn", BigInteger.class);
-    private final ArrayDB<String> validators =  Context.newArrayDB("signers", String.class);
+    private final ArrayDB<String> validators = Context.newArrayDB("signers", String.class);
 
     protected final DictDB<String, BigInteger> messageFees = Context.newDictDB("messageFees", BigInteger.class);
     protected final DictDB<String, BigInteger> responseFees = Context.newDictDB("responseFees", BigInteger.class);
     protected final BranchDB<String, DictDB<BigInteger, Boolean>> receipts = Context.newBranchDB("receipts",
             Boolean.class);
+
     public ClusterConnection(Address _relayer, Address _xCall) {
         if (xCall.get() == null) {
             xCall.set(_xCall);
@@ -57,7 +55,7 @@ public class ClusterConnection {
         }
     }
 
-      /**
+    /**
      * Retrieves the validators.
      *
      * @return The validators .
@@ -65,30 +63,31 @@ public class ClusterConnection {
     @External(readonly = true)
     public String[] listValidators() {
         String[] sgs = new String[validators.size()];
-        for(int i = 0; i < validators.size(); i++) {
+        for (int i = 0; i < validators.size(); i++) {
             sgs[i] = validators.get(i);
         }
         return sgs;
     }
 
-/**
- * Adds a list of validators and sets the validation threshold.
- *
- * Clears existing validators and adds the provided addresses as validators.
- * Ensures that the caller is an admin and that the number of validators
- * meets or exceeds the specified threshold.
- *
- * @param _validators an array of compressed publickey bytes to be added as validators
- * @param _threshold the minimum required number of validators
- * @throws Exception if the number of validators is less than the threshold
- */
+    /**
+     * Adds a list of validators and sets the validation threshold.
+     *
+     * Clears existing validators and adds the provided addresses as validators.
+     * Ensures that the caller is an admin and that the number of validators
+     * meets or exceeds the specified threshold.
+     *
+     * @param _validators an array of compressed publickey bytes to be added as
+     *                    validators
+     * @param _threshold  the minimum required number of validators
+     * @throws Exception if the number of validators is less than the threshold
+     */
     @External
     public void updateValidators(byte[][] _validators, BigInteger _threshold) {
         OnlyAdmin();
         clearValidators();
         for (byte[] validator : _validators) {
             String hexValidator = bytesToHex(validator);
-            if(!isValidator(hexValidator)) {
+            if (!isValidator(hexValidator)) {
                 validators.add(bytesToHex(validator));
             }
         }
@@ -103,20 +102,20 @@ public class ClusterConnection {
      * This is a private helper method called by addValidator.
      */
     private void clearValidators() {
-        for(int i = 0; i < validators.size(); i++) {
+        for (int i = 0; i < validators.size(); i++) {
             validators.set(i, null);
         }
     }
 
-/**
- * Checks if the provided compressed pubkey bytes is a validator.
- *
- * @param validator the compressed publickey bytes to check for validation
- * @return true if the compressed pubkey bytes is a validator, false otherwise
- */
+    /**
+     * Checks if the provided compressed pubkey bytes is a validator.
+     *
+     * @param validator the compressed publickey bytes to check for validation
+     * @return true if the compressed pubkey bytes is a validator, false otherwise
+     */
     private boolean isValidator(String validator) {
-        for(int i = 0; i < validators.size(); i++) {
-            if(validator.equals(validators.get(i))) {
+        for (int i = 0; i < validators.size(); i++) {
+            if (validator.equals(validators.get(i))) {
                 return true;
             }
         }
@@ -140,8 +139,8 @@ public class ClusterConnection {
     public void setRelayer(Address _relayer) {
         OnlyAdmin();
         relayerAddress.set(_relayer);
-    }  
-    
+    }
+
     /**
      * Sets the admin address.
      *
@@ -174,7 +173,7 @@ public class ClusterConnection {
         validatorsThreshold.set(_validatorCnt);
     }
 
-     /**
+    /**
      * Retrieves the required validator count.
      *
      * @return The required validator count.
@@ -248,26 +247,33 @@ public class ClusterConnection {
      * @param srcNetwork the source network id from which the message is received
      * @param _connSn    the serial number of the connection message
      * @param msg        serialized bytes of Service Message
+     * @param dstNetwork the destination network id
      * @param signatures array of signatures
      */
-     @External
-     public void recvMessageWithSignatures(String srcNetwork, BigInteger _connSn, byte[] msg,
-                                           byte[][] signatures) {
-         OnlyRelayer();
-         Context.require(signatures.length >= validatorsThreshold.get().intValue(), "Not enough signatures");
-         byte[] messageHash = getMessageHash(srcNetwork, _connSn, msg);
-         List<String> uniqueValidators = new ArrayList<>();
-         for (byte[] signature : signatures) {
-             byte[] validator = getValidator(messageHash, signature);
-             String hexValidator = bytesToHex(validator);
-             Context.require(isValidator(hexValidator), "Invalid signature provided");
-             if (!uniqueValidators.contains(hexValidator)) {
-                 uniqueValidators.add(hexValidator);
-             }
-         }
-         Context.require(uniqueValidators.size() >= validatorsThreshold.get().intValue(), "Not enough valid signatures");
-         recvMessage(srcNetwork, _connSn, msg);
-     }
+    @External
+    public void recvMessageWithSignatures(
+            String srcNetwork,
+            BigInteger _connSn,
+            byte[] msg,
+            byte[][] signatures) {
+        OnlyRelayer();
+        Context.require(signatures.length >= validatorsThreshold.get().intValue(), "Not enough signatures");
+
+        String dstNetwork = Context.call(String.class, xCall.get(), "getNetworkId");
+
+        byte[] messageHash = getMessageHash(srcNetwork, _connSn, msg, dstNetwork);
+        List<String> uniqueValidators = new ArrayList<>();
+        for (byte[] signature : signatures) {
+            byte[] validator = getValidator(messageHash, signature);
+            String hexValidator = bytesToHex(validator);
+            Context.require(isValidator(hexValidator), "Invalid signature provided");
+            if (!uniqueValidators.contains(hexValidator)) {
+                uniqueValidators.add(hexValidator);
+            }
+        }
+        Context.require(uniqueValidators.size() >= validatorsThreshold.get().intValue(), "Not enough valid signatures");
+        recvMessage(srcNetwork, _connSn, msg);
+    }
 
     private void recvMessage(String srcNetwork, BigInteger _connSn, byte[] msg) {
         Context.require(!receipts.at(srcNetwork).getOrDefault(_connSn, false), "Duplicate Message");
@@ -278,16 +284,16 @@ public class ClusterConnection {
     private String bytesToHex(byte[] bytes) {
         StringBuilder hexString = new StringBuilder();
         for (byte b : bytes) {
-            String hex = Integer.toHexString(0xff & b);  // Mask with 0xff to handle negative values correctly
+            String hex = Integer.toHexString(0xff & b); // Mask with 0xff to handle negative values correctly
             if (hex.length() == 1) {
-                hexString.append('0');  // Add a leading zero if hex length is 1
+                hexString.append('0'); // Add a leading zero if hex length is 1
             }
             hexString.append(hex);
         }
         return hexString.toString();
     }
 
-    private byte[] getValidator(byte[] msg, byte[] sig){
+    private byte[] getValidator(byte[] msg, byte[] sig) {
         return Context.recoverKey("ecdsa-secp256k1", msg, sig, false);
     }
 
@@ -349,16 +355,27 @@ public class ClusterConnection {
      * @param srcNetwork the source network id
      * @param _connSn    the serial number of connection message
      * @param msg        the message to hash
+     * @param dstNetwork the destination network id
      * @return the hash of the message
      */
-    private byte[] getMessageHash(String srcNetwork, BigInteger _connSn, byte[] msg) {
-        ByteArrayObjectWriter writer = Context.newByteArrayObjectWriter("RLPn");
-        writer.beginList(3);
-        writer.write(srcNetwork);
-        writer.write(_connSn);
-        writer.write(msg);
-        writer.end();
-        return Context.hash("keccak-256", writer.toByteArray());
+    private byte[] getMessageHash(String srcNetwork, BigInteger _connSn, byte[] msg, String dstNetwork) {
+        byte[] result = concatBytes(srcNetwork.getBytes(), String.valueOf(_connSn).getBytes(), msg, dstNetwork.getBytes());
+        return Context.hash("keccak-256", result);
     }
+
+    private static byte[] concatBytes(byte[]... arrays) {
+        int totalLength = 0;
+        for (byte[] array : arrays) {
+            totalLength += array.length;
+        }
+        byte[] result = new byte[totalLength];
+        int currentIndex = 0;
+        for (byte[] array : arrays) {
+            System.arraycopy(array, 0, result, currentIndex, array.length);
+            currentIndex += array.length;
+        }
+        return result;
+    }
+
 
 }
