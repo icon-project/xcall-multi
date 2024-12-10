@@ -242,8 +242,8 @@ module xcall::cluster_state_tests {
         let mut state = xcall::cluster_state::create_state();
 
         let validators = vector[
-            x"047799e5ded3a450ea95c27f078cdd2e1c41712a829122269e017387dbec0e182ac6a0e35a8788a9eb8db8087c9ba2e97cc419c3b21089a69f842663aac8b8b16e",
-            x"0448340c9781e54d414ffa829cb9dab75d3cf0aefe000af95b1122132341af1665470cbdf6f2622878e39f908905e27364057a87652a150651a0f276e86c2b5dd5",
+            x"04deca512d5cb87673b23ab10c3e3572e30a2b5dc78cd500bf84bf066275c0bb320cb6cd266aa179b41323b5a18ab4a170248ed89b436b5559bab38c816ce12209",
+            x"04f9379b2955d759a9532f8daa0c4a25da0ae706dd057de02af7754adb4b956ec9b8bf7a8a5a6686bc74dff736442a874c6bae5dcbcdb7113e24fbfa2337c63a01",
             x"041d7fa5b41fe40ae85130c4cc334f7852c25c19e7f326a916d49f6b9c3f35a1216bf53c805d177c28f7bedc2d2521cb0f13dc832ef689797965274d26df50cd0f",
             x"041d7fa5b41fe40ae85130c4cc334f7852c25c19e7f326a916d49f6b9c3f35a1216bf53c805d177c28f7bedc2d2521cb0f13dc832ef689797965274d26df50cd0f"
         ];
@@ -266,8 +266,8 @@ module xcall::cluster_state_tests {
         let mut state = xcall::cluster_state::create_state();
 
         let validators = vector[
-            x"047799e5ded3a450ea95c27f078cdd2e1c41712a829122269e017387dbec0e182ac6a0e35a8788a9eb8db8087c9ba2e97cc419c3b21089a69f842663aac8b8b16e",
-            x"0448340c9781e54d414ffa829cb9dab75d3cf0aefe000af95b1122132341af1665470cbdf6f2622878e39f908905e27364057a87652a150651a0f276e86c2b5dd5",
+            x"04deca512d5cb87673b23ab10c3e3572e30a2b5dc78cd500bf84bf066275c0bb320cb6cd266aa179b41323b5a18ab4a170248ed89b436b5559bab38c816ce12209",
+            x"04f9379b2955d759a9532f8daa0c4a25da0ae706dd057de02af7754adb4b956ec9b8bf7a8a5a6686bc74dff736442a874c6bae5dcbcdb7113e24fbfa2337c63a01",
             x"041d7fa5b41fe40ae85130c4cc334f7852c25c19e7f326a916d49f6b9c3f35a1216bf53c805d177c28f7bedc2d2521cb0f13dc832ef689797965274d26df50cd0f",
             x"041d7fa5b41fe40ae85130c4cc334f7852c25c19e7f326a916d49f6b9c3f35a1216bf53c805d177c28f7bedc2d2521cb0f13dc832ef689797965274d26df50cd0f"
         ];
@@ -345,7 +345,7 @@ module xcall::cluster_state_tests {
         let dst_net_id = b"archway".to_string();
         let conn_sn = 456456;
 
-        let signatures = vector[x"b70de18ff69cccdedbc2d6bbd9f4ffe4c789e047dc01ccf167191c965909bee01f23971d260635c0171fcf6ef8335430686a8aa9d8da9b14e90671852d9a0cec1b",
+        let signatures = vector[x"660d542b3f6de9cd08f238fd44133eeebfea290b21dae7322a63b516c57b8df12c4c0a340b60ed567c8da53578346c212b27b797eb42a75fb4b7076c567a6ff91c",
                                 ];
 
         xcall::cluster_state::verify_signatures(&state,src_net_id, conn_sn, msg, dst_net_id, signatures);
@@ -359,10 +359,10 @@ module xcall::cluster_state_tests {
         let msg: vector<u8> = x"68656c6c6f";
         let src_net_id = b"0x2.icon".to_string();
         let dst_net_id = b"archway".to_string();
-        let conn_sn = 456456;
+        let conn_sn = 128;
 
-        let signatures = vector[x"b70de18ff69cccdedbc2d6bbd9f4ffe4c789e047dc01ccf167191c965909bee01f23971d260635c0171fcf6ef8335430686a8aa9d8da9b14e90671852d9a0cec1b",
-                                x"b70de18ff69cccdedbc2d6bbd9f4ffe4c789e047dc01ccf167191c965909bee01f23971d260635c0171fcf6ef8335430686a8aa9d8da9b14e90671852d9a0cec1b",
+        let signatures = vector[x"660d542b3f6de9cd08f238fd44133eeebfea290b21dae7322a63b516c57b8df12c4c0a340b60ed567c8da53578346c212b27b797eb42a75fb4b7076c567a6ff91c",
+                                x"6a219f99495d3c093641648b96e0f4be4baba36e37f3054fb61ada7b82ed79c66a192af03314b8edfaecf6f541e1410d8b61f78649432f5b51b333f8b5ca40321b",
                                 ];
 
         xcall::cluster_state::verify_signatures(&state,src_net_id, conn_sn, msg, dst_net_id, signatures);
@@ -371,13 +371,14 @@ module xcall::cluster_state_tests {
 
     #[test]
     fun test_verify_signatures(): State {
-        let state = test_set_get_threshold();
+        let state = test_add_validator();
         let msg: vector<u8> = x"68656c6c6f";
         let src_net_id = b"0x2.icon".to_string();
         let dst_net_id = b"archway".to_string();
         let conn_sn = 128;
 
-        let signatures = vector[x"cfa2d3f896e5f71d7cbe6647d89c29a76b3754cf8661581756ddd29b004888450a863ccc941e2268ec036f6b91462d6500cc568776ace966717488390d4c13181b",
+        let signatures = vector[x"660d542b3f6de9cd08f238fd44133eeebfea290b21dae7322a63b516c57b8df12c4c0a340b60ed567c8da53578346c212b27b797eb42a75fb4b7076c567a6ff91c",
+                                x"8024de4c7b003df96bb699cfaa1bfb8a682787cd0853f555d48494c65c766f8104804848095890a9a6d15946da52dafb18e5c1d0dbe7f33fc7a5fa5cf8b1f6e21c"
                                 ];
 
         xcall::cluster_state::verify_signatures(&state,src_net_id, conn_sn, msg, dst_net_id, signatures);
