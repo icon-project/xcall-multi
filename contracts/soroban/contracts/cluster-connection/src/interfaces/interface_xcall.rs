@@ -12,4 +12,6 @@ pub trait IXcall {
     ) -> Result<(), ContractError>;
 
     fn handle_error(env: Env, sender: Address, sequence_no: u128) -> Result<(), ContractError>;
+
+    fn get_network_address(env: Env) -> Result<String, ContractError>;
 }
