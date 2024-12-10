@@ -1,5 +1,6 @@
 use std::{collections::HashMap, str::FromStr};
 
+use cosmwasm_schema::QueryResponses;
 use cosmwasm_std::{ensure_eq, Addr, BalanceResponse, BankQuery, Coin, QueryRequest};
 use cw_xcall_lib::network_address::{NetId, NetworkAddress};
 use sha2::Digest;
@@ -7,11 +8,18 @@ use sha3::Keccak256;
 
 use super::*;
 
+#[cw_serde]
+#[derive(QueryResponses)]
+pub enum XcallQueryMsg {
+    #[returns(String)]
+    GetNetworkAddress {},
+}
+
 pub fn keccak256(input: &[u8]) -> Keccak256 {
     use sha3::{Digest, Keccak256};
     let mut hasher = Keccak256::new();
     hasher.update(input);
-    return hasher;
+    hasher
 }
 
 pub fn to_truncated_le_bytes(n: u128) -> Vec<u8> {
@@ -81,7 +89,7 @@ impl<'a> ClusterConnection<'a> {
     pub fn get_network_id(&self, deps: Deps) -> Result<String, ContractError> {
         let xcall_host = self.get_xcall(deps.storage)?;
 
-        let query_msg = cw_xcall::msg::QueryMsg::GetNetworkAddress {};
+        let query_msg = XcallQueryMsg::GetNetworkAddress {};
 
         let query_request = QueryRequest::Wasm(cosmwasm_std::WasmQuery::Smart {
             contract_addr: xcall_host.to_string(),
@@ -139,7 +147,7 @@ impl<'a> ClusterConnection<'a> {
             }
             let mut recovery_code = signature[64];
             if recovery_code >= 27 {
-                recovery_code = recovery_code - 27;
+                recovery_code -= 27;
             }
             match deps
                 .api

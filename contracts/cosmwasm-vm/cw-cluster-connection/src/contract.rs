@@ -167,7 +167,7 @@ impl<'a> ClusterConnection<'a> {
 
         let signed_msg = SignableMsg {
             src_network: src_network.to_string(),
-            conn_sn: conn_sn,
+            conn_sn,
             data: msg_vec.clone(),
             dst_network: dst_network.to_string(),
         };

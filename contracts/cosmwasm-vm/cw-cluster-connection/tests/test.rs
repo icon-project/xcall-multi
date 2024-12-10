@@ -126,8 +126,8 @@ pub fn test_set_validators() {
     let threshold = 2;
 
     let msg = ExecuteMsg::SetValidators {
-        validators: validators,
-        threshold: threshold,
+        validators,
+        threshold,
     };
 
     let info = mock_info(ADMIN, &[]);
@@ -135,7 +135,7 @@ pub fn test_set_validators() {
     assert!(res.is_ok());
 
     let mut stored_validators = ctx.get_validators(deps.as_ref().storage).unwrap();
-    let mut set_validators = vec![val1.to_string(), val2.to_string(), val3.to_string()];
+    let mut set_validators = [val1.to_string(), val2.to_string(), val3.to_string()];
 
     assert_eq!(stored_validators.sort(), set_validators.sort());
 
@@ -160,7 +160,7 @@ pub fn test_set_validators_unauthorized() {
 
     let msg = ExecuteMsg::SetValidators {
         validators: validators.clone(),
-        threshold: threshold,
+        threshold,
     };
 
     let info = mock_info("UnauthorisedUser", &[]);
@@ -208,7 +208,7 @@ pub fn test_set_validators_empty() {
     let mut stored_validators = ctx.get_validators(deps.as_ref().storage).unwrap();
     let stored_threshold = ctx.get_signature_threshold(deps.as_ref().storage);
 
-    let mut set_validators = vec![val1.to_string(), val2.to_string(), val3.to_string()];
+    let mut set_validators = [val1.to_string(), val2.to_string(), val3.to_string()];
     assert_eq!(set_validators.sort(), stored_validators.sort());
 
     assert_eq!(stored_threshold, 2);
@@ -416,7 +416,7 @@ pub fn test_recv_message() {
 
     let signed_msg = SignableMsg {
         src_network: src_network.to_string(),
-        conn_sn: conn_sn,
+        conn_sn,
         data: hex::decode(msg.clone()).unwrap(),
         dst_network: dst_network.to_string(),
     };
@@ -461,7 +461,7 @@ pub fn test_recv_message() {
     let msg_with_signatures = ExecuteMsg::RecvMessage {
         src_network: src_network.clone(),
         conn_sn,
-        msg: msg,
+        msg,
         signatures: signatures.clone(),
     };
     let res = execute(
@@ -509,7 +509,7 @@ pub fn test_recv_message_signatures_insufficient() {
 
     let signed_msg = SignableMsg {
         src_network: src_network.to_string(),
-        conn_sn: conn_sn,
+        conn_sn,
         data: hex::decode(msg.clone()).unwrap(),
         dst_network: dst_network.to_string(),
     };
@@ -546,7 +546,7 @@ pub fn test_recv_message_signatures_insufficient() {
     let msg_with_signatures = ExecuteMsg::RecvMessage {
         src_network: src_network.clone(),
         conn_sn,
-        msg: msg,
+        msg,
         signatures: signatures.clone(),
     };
 
