@@ -59,13 +59,7 @@ impl SignableMsg {
 
         encoded_bytes.extend(self.conn_sn.to_string().as_bytes());
 
-        // Encode `data` as hex string without 0x prefix
-        let data_hex_string: String = self
-            .data
-            .iter()
-            .map(|byte| format!("{:02x}", byte))
-            .collect();
-        encoded_bytes.extend(data_hex_string.as_bytes());
+        encoded_bytes.extend(self.data.to_vec());
 
         encoded_bytes.extend(self.dst_network.as_bytes());
 
@@ -82,8 +76,7 @@ pub fn test_signable_msg_utf8_bytes() {
         dst_network: "archway".to_string(),
     };
 
-    let expected_encoded_hex_str =
-        "3078322e69636f6e3132383638363536633663366661726368776179".to_string();
+    let expected_encoded_hex_str = "3078322e69636f6e31323868656c6c6f61726368776179".to_string();
     let expected_encoded_bytes = hex::decode(expected_encoded_hex_str).unwrap();
 
     assert_eq!(
