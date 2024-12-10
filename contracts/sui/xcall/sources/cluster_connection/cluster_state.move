@@ -12,9 +12,9 @@ module xcall::cluster_state {
     use 0x2::ecdsa_k1::{secp256k1_ecrecover, decompress_pubkey};
     
     //ERRORS
-    const VerifiedSignaturesLessThanThreshold: u64 = 100;
     const NotEnoughSignatures: u64 = 101;
     const InvalidThreshold: u64 = 102;
+    const VerifiedSignaturesLessThanThreshold: u64 = 104;
     const ValidatorCountMustBeGreaterThanThreshold: u64 = 105;
     const InvalidAdminCap: u64 = 106;
 
@@ -139,9 +139,10 @@ module xcall::cluster_state {
     src_net_id: String,
     sn: u128,
     msg: vector<u8>,
+    dst_net_id: String,
     signatures: vector<vector<u8>>
     ) {
-        let message_hash = utils::get_message_hash(src_net_id, sn, msg);
+        let message_hash = utils::get_message_hash(src_net_id, sn, msg, dst_net_id);
         let threshold = self.get_validator_threshold();
         let validators = self.get_validators();
 
@@ -241,21 +242,37 @@ module xcall::cluster_state_tests {
         let mut state = xcall::cluster_state::create_state();
 
         let validators = vector[
-            x"045b419bdec0d2bbc16ce8ae144ff8e825123fd0cb3e36d0075b6d8de5aab53388ac8fb4c28a8a3843f3073cdaa40c943f74737fc0cea4a95f87778affac738190",
+            x"047799e5ded3a450ea95c27f078cdd2e1c41712a829122269e017387dbec0e182ac6a0e35a8788a9eb8db8087c9ba2e97cc419c3b21089a69f842663aac8b8b16e",
             x"04ae36a8bfd8cf6586f34c688528894835f5e7c19d36689bac5460656b613c5eabf1fa982212aa27caece23a2708eb3c8936e132b9fd82c5aee2aa4b06917b5713",
-            x"04f8c0afc6e4fa149e17fbb0f4d09647971bd016291e9ac66d0a708ec82fc8d5d2ac878d81b7d3f1d37f1013439fc3eb58a4df2f802f931c791c5d81b09034f337",
-            x"046bc928ee4932efd619ec4c00e0591e932cf2cfef13a59f6027da1c6cba36b35d91238b54aece19825025a9c7cb0bc58a60d5c49e7fc8e5b39fcc4c2193f5feb2"
+            x"041d7fa5b41fe40ae85130c4cc334f7852c25c19e7f326a916d49f6b9c3f35a1216bf53c805d177c28f7bedc2d2521cb0f13dc832ef689797965274d26df50cd0f",
+            x"041d7fa5b41fe40ae85130c4cc334f7852c25c19e7f326a916d49f6b9c3f35a1216bf53c805d177c28f7bedc2d2521cb0f13dc832ef689797965274d26df50cd0f"
         ];
 
-        set_validators(&mut state, validators, 2);
+        set_validators(&mut state, validators, 3);
 
         let validators = get_validators(&state);
-        assert!((validators.length() == 4));
+        assert!((validators.length() == 3));
 
 
-        set_validator_threshold(&mut state, 3);
-        assert!(get_validator_threshold(&state)==3);
+        set_validator_threshold(&mut state, 2);
+        assert!(get_validator_threshold(&state)==2);
 
+        state
+    }
+
+    #[test]
+    #[expected_failure(abort_code = 105)]
+    fun test_add_validator_less_than_threshold(): State {
+        let mut state = xcall::cluster_state::create_state();
+
+        let validators = vector[
+            x"047799e5ded3a450ea95c27f078cdd2e1c41712a829122269e017387dbec0e182ac6a0e35a8788a9eb8db8087c9ba2e97cc419c3b21089a69f842663aac8b8b16e",
+            x"04ae36a8bfd8cf6586f34c688528894835f5e7c19d36689bac5460656b613c5eabf1fa982212aa27caece23a2708eb3c8936e132b9fd82c5aee2aa4b06917b5713",
+            x"041d7fa5b41fe40ae85130c4cc334f7852c25c19e7f326a916d49f6b9c3f35a1216bf53c805d177c28f7bedc2d2521cb0f13dc832ef689797965274d26df50cd0f",
+            x"041d7fa5b41fe40ae85130c4cc334f7852c25c19e7f326a916d49f6b9c3f35a1216bf53c805d177c28f7bedc2d2521cb0f13dc832ef689797965274d26df50cd0f"
+        ];
+
+        set_validators(&mut state, validators, 4);
         state
     }
 
@@ -325,41 +342,46 @@ module xcall::cluster_state_tests {
         let state = test_add_validator();
         let msg: vector<u8> = x"68656c6c6f";
         let src_net_id = b"0x2.icon".to_string();
+        let dst_net_id = b"archway".to_string();
         let conn_sn = 456456;
 
-        let signatures = vector[x"23f731c7fb3553337394233055cbb9ec05abdd1df7cbbec3d0dacced58bf5b4b30576ca14bea93ea4186e920f99f2b9f56d30175b0a7356322f3a5d75de843b81b",
+        let signatures = vector[x"b70de18ff69cccdedbc2d6bbd9f4ffe4c789e047dc01ccf167191c965909bee01f23971d260635c0171fcf6ef8335430686a8aa9d8da9b14e90671852d9a0cec1b",
                                 ];
 
-        xcall::cluster_state::verify_signatures(&state,src_net_id, conn_sn, msg, signatures);
+        xcall::cluster_state::verify_signatures(&state,src_net_id, conn_sn, msg, dst_net_id, signatures);
         state
     }
 
     #[test]
-    #[expected_failure(abort_code = 100)]
+    #[expected_failure(abort_code = 104)]
     fun test_verify_signatures_invalid(): State {
-        let state = test_set_get_threshold();
+        let state = test_add_validator();
         let msg: vector<u8> = x"68656c6c6f";
         let src_net_id = b"0x2.icon".to_string();
+        let dst_net_id = b"archway".to_string();
         let conn_sn = 456456;
 
-        let signatures = vector[x"23f731c7fb3553337394233055cbb9ec05abdd1df7cbbec3d0dacced58bf5b4b30576ca14bea93ea4186e920f99f2b9f56d30175b0a7356322f3a5d75de843b81c",
+        let signatures = vector[x"b70de18ff69cccdedbc2d6bbd9f4ffe4c789e047dc01ccf167191c965909bee01f23971d260635c0171fcf6ef8335430686a8aa9d8da9b14e90671852d9a0cec1b",
+                                x"b70de18ff69cccdedbc2d6bbd9f4ffe4c789e047dc01ccf167191c965909bee01f23971d260635c0171fcf6ef8335430686a8aa9d8da9b14e90671852d9a0cec1b",
                                 ];
 
-        xcall::cluster_state::verify_signatures(&state,src_net_id, conn_sn, msg, signatures);
+        xcall::cluster_state::verify_signatures(&state,src_net_id, conn_sn, msg, dst_net_id, signatures);
         state
     }
 
     #[test]
     fun test_verify_signatures(): State {
-        let state = test_set_get_threshold();
+        let state = test_add_validator();
         let msg: vector<u8> = x"68656c6c6f";
         let src_net_id = b"0x2.icon".to_string();
+        let dst_net_id = b"archway".to_string();
         let conn_sn = 456456;
 
-        let signatures = vector[x"23f731c7fb3553337394233055cbb9ec05abdd1df7cbbec3d0dacced58bf5b4b30576ca14bea93ea4186e920f99f2b9f56d30175b0a7356322f3a5d75de843b81b",
+        let signatures = vector[x"b70de18ff69cccdedbc2d6bbd9f4ffe4c789e047dc01ccf167191c965909bee01f23971d260635c0171fcf6ef8335430686a8aa9d8da9b14e90671852d9a0cec1b",
+                                x"6800a26740ed36a3df8f660580cc3b2a5f7bc11ccc7868165953979072e864b52909a758d15a508e003953f007e5cdff696276078265445be10ebf242d2c551b1c",
                                 ];
 
-        xcall::cluster_state::verify_signatures(&state,src_net_id, conn_sn, msg, signatures);
+        xcall::cluster_state::verify_signatures(&state,src_net_id, conn_sn, msg, dst_net_id, signatures);
         state
     } 
 
