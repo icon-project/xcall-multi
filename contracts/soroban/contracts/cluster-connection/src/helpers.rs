@@ -1,6 +1,5 @@
-use soroban_sdk::{token, vec, Address, Bytes, BytesN, Env, Map, String, Vec};
+use soroban_sdk::{token, xdr::ToXdr, Address, Bytes, BytesN, Env, Map, String, Vec};
 use crate::{errors::ContractError, interfaces::interface_xcall::XcallClient, storage};
-use soroban_rlp::encoder;
 use soroban_xcall_lib::network_address::NetworkAddress;
 
 pub fn ensure_relayer(e: &Env) -> Result<Address, ContractError> {
@@ -100,14 +99,44 @@ pub fn verify_signatures(
 }
  
 
-pub fn get_encoded_message(e: &Env, src_network: &String, conn_sn: &u128, message: &Bytes, dst_network: &String) -> Bytes {
-    let mut list = vec![&e];
-    list.push_back(encoder::encode_string(&e, src_network.clone()));
-    list.push_back(encoder::encode_u128(&e, conn_sn.clone()));
-    list.push_back(encoder::encode(&e, message.clone()));
-    list.push_back(encoder::encode_string(&e, dst_network.clone()));
+pub fn string_to_bytes(env: &Env, value: String) -> Bytes {
+    let string_xdr = value.clone().to_xdr(&env);
+    let mut bytes = Bytes::new(&env);
+    for i in 8..(8 + value.len()) {
+        if let Some(byte) = string_xdr.get(i) {
+            bytes.push_back(byte);
+        }
+    }
+    bytes
+}
 
-    encoder::encode_list(&e, list, false)
+pub fn get_encoded_message(e: &Env, src_network: &String, conn_sn: &u128, message: &Bytes, dst_network: &String) -> Bytes {
+    let mut encoded = Bytes::new(e);
+    encoded.append(&string_to_bytes(e, src_network.clone()));
+    encoded.append(&u128_to_string(e, *conn_sn));
+    encoded.append(message);
+    encoded.append(&string_to_bytes(e, dst_network.clone()));
+    encoded
+}
+
+pub fn u128_to_string(env: &Env, value: u128) -> Bytes {
+    let mut num = value;    
+    let mut temp_bytes = Bytes::new(&env);
+    let mut bytes = Bytes::new(&env);
+
+    if value == 0 {
+        temp_bytes.push_back(b'0');
+        return temp_bytes;
+    }
+    while num > 0 {
+        let digit = (num % 10) as u8 + b'0';
+        temp_bytes.push_back(digit);
+        num /= 10;
+    }
+    for byte in temp_bytes.iter().rev() {
+        bytes.push_back(byte); 
+    }
+    bytes
 }
 
 #[cfg(not(test))]
@@ -146,4 +175,16 @@ pub fn call_xcall_handle_error(e: &Env, sn: u128) -> Result<(), ContractError> {
     client.handle_error(&e.current_contract_address(), &sn);
 
     Ok(())
+}
+
+#[test]
+fn verify_encoded_message() {
+    use soroban_sdk::bytes;
+    let env = Env::default();
+    let src_network = String::from_str(&env, "0x2.icon");
+    let conn_sn = 128;
+    let message = bytes!(&env, 0x68656c6c6f);
+    let dst_network = String::from_str(&env, "archway");
+    let encoded = get_encoded_message(&env, &src_network, &conn_sn, &message, &dst_network);
+    assert_eq!(encoded, bytes!(&env,0x3078322e69636f6e31323868656c6c6f61726368776179));
 }
