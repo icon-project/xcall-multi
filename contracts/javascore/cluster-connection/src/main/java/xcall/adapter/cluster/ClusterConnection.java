@@ -359,8 +359,23 @@ public class ClusterConnection {
      * @return the hash of the message
      */
     private byte[] getMessageHash(String srcNetwork, BigInteger _connSn, byte[] msg, String dstNetwork) {
-        String message = srcNetwork + String.valueOf(_connSn) + bytesToHex(msg) + dstNetwork;
-        return Context.hash("keccak-256", message.getBytes());
+        byte[] result = concatBytes(srcNetwork.getBytes(), String.valueOf(_connSn).getBytes(), msg, dstNetwork.getBytes());
+        return Context.hash("keccak-256", result);
     }
+
+    private static byte[] concatBytes(byte[]... arrays) {
+        int totalLength = 0;
+        for (byte[] array : arrays) {
+            totalLength += array.length;
+        }
+        byte[] result = new byte[totalLength];
+        int currentIndex = 0;
+        for (byte[] array : arrays) {
+            System.arraycopy(array, 0, result, currentIndex, array.length);
+            currentIndex += array.length;
+        }
+        return result;
+    }
+
 
 }

@@ -322,7 +322,7 @@ contract ClusterConnection is Initializable, IConnection {
             .encodePacked(
                 srcNetwork,
                 _connSn.toString(),
-                _msg.bytesToHex(),
+                _msg,
                 dstNetwork
             );
         return keccak256(encoded);

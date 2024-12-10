@@ -238,23 +238,6 @@ public class ClusterConnectionTest extends TestBase {
         assertEquals("Reverted(0): Not enough valid signatures", e.getMessage());
     }
 
-    private byte[] getMessageHash(String srcNetwork, BigInteger _connSn, byte[] msg, String dstNetwork) {
-        String message = srcNetwork + String.valueOf(_connSn) + bytesToHex(msg) + dstNetwork;
-        return Context.hash("keccak-256", message.getBytes());
-    }
-
-    private String bytesToHex(byte[] bytes) {
-        StringBuilder hexString = new StringBuilder();
-        for (byte b : bytes) {
-            String hex = Integer.toHexString(0xff & b); // Mask with 0xff to handle negative values correctly
-            if (hex.length() == 1) {
-                hexString.append('0'); // Add a leading zero if hex length is 1
-            }
-            hexString.append(hex);
-        }
-        return hexString.toString();
-    }
-
     @Test
     public void testAddSigners() throws Exception {
         KeyWallet wallet = KeyWallet.create();
@@ -266,6 +249,25 @@ public class ClusterConnectionTest extends TestBase {
         connection.invoke(owner, "updateValidators", validators, BigInteger.TWO);
         String[] signers = connection.call(String[].class, "listValidators");
         assertEquals(signers.length, 2);
+    }
+
+    private byte[] getMessageHash(String srcNetwork, BigInteger _connSn, byte[] msg, String dstNetwork) {
+        byte[] result = concatBytes(srcNetwork.getBytes(), String.valueOf(_connSn).getBytes(), msg, dstNetwork.getBytes());
+        return Context.hash("keccak-256", result);
+    }
+
+    private static byte[] concatBytes(byte[]... arrays) {
+        int totalLength = 0;
+        for (byte[] array : arrays) {
+            totalLength += array.length;
+        }
+        byte[] result = new byte[totalLength];
+        int currentIndex = 0;
+        for (byte[] array : arrays) {
+            System.arraycopy(array, 0, result, currentIndex, array.length);
+            currentIndex += array.length;
+        }
+        return result;
     }
 
 
