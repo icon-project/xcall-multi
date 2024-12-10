@@ -171,7 +171,7 @@ impl<'a> ClusterConnection<'a> {
             data: msg_vec.clone(),
             dst_network: dst_network.to_string(),
         };
-        let signed_msg = rlp::encode(&signed_msg).to_vec();
+        let signed_msg = signed_msg.encode_utf8_bytes().to_vec();
 
         let threshold = self.get_signature_threshold(deps.storage);
 

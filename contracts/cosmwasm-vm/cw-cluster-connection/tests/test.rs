@@ -420,7 +420,7 @@ pub fn test_recv_message() {
         data: hex::decode(msg.clone()).unwrap(),
         dst_network: dst_network.to_string(),
     };
-    let signed_msg = rlp::encode(&signed_msg).to_vec();
+    let signed_msg = signed_msg.encode_utf8_bytes().to_vec();
     let message_digest = keccak256(&signed_msg);
 
     let signing_key = SigningKey::random(&mut OsRng);
@@ -513,7 +513,7 @@ pub fn test_recv_message_signatures_insufficient() {
         data: hex::decode(msg.clone()).unwrap(),
         dst_network: dst_network.to_string(),
     };
-    let signed_msg = rlp::encode(&signed_msg).to_vec();
+    let signed_msg = signed_msg.encode_utf8_bytes().to_vec();
     let message_digest = keccak256(&signed_msg);
 
     let signing_key = SigningKey::random(&mut OsRng);

@@ -51,26 +51,44 @@ pub struct SignableMsg {
     pub data: Vec<u8>,
     pub dst_network: String,
 }
-impl Encodable for SignableMsg {
-    fn rlp_append(&self, stream: &mut rlp::RlpStream) {
-        stream.begin_list(4);
-        stream.append(&self.src_network);
-        stream.append(&self.conn_sn);
-        stream.append(&self.data);
-        stream.append(&self.dst_network);
+impl SignableMsg {
+    pub fn encode_utf8_bytes(&self) -> Vec<u8> {
+        let mut encoded_bytes = Vec::new();
+
+        encoded_bytes.extend(self.src_network.as_bytes());
+
+        encoded_bytes.extend(self.conn_sn.to_string().as_bytes());
+
+        // Encode `data` as hex string without 0x prefix
+        let data_hex_string: String = self
+            .data
+            .iter()
+            .map(|byte| format!("{:02x}", byte))
+            .collect();
+        encoded_bytes.extend(data_hex_string.as_bytes());
+
+        encoded_bytes.extend(self.dst_network.as_bytes());
+
+        encoded_bytes
     }
 }
 
 #[test]
-pub fn test_signable_msg_rlp() {
+pub fn test_signable_msg_utf8_bytes() {
     let signed_msg = SignableMsg {
         src_network: "0x2.icon".to_string(),
-        conn_sn: 456456,
+        conn_sn: 128,
         data: "hello".as_bytes().to_vec(),
         dst_network: "archway".to_string(),
     };
 
-    let signed_msg = rlp::encode(&signed_msg).to_vec();
+    let expected_encoded_hex_str =
+        "3078322e69636f6e3132383638363536633663366661726368776179".to_string();
+    let expected_encoded_bytes = hex::decode(expected_encoded_hex_str).unwrap();
 
-    println!("signed message: {:?}", signed_msg);
+    assert_eq!(
+        expected_encoded_bytes,
+        signed_msg.encode_utf8_bytes(),
+        "test failed"
+    );
 }
