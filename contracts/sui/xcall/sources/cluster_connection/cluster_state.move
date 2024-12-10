@@ -243,7 +243,7 @@ module xcall::cluster_state_tests {
 
         let validators = vector[
             x"047799e5ded3a450ea95c27f078cdd2e1c41712a829122269e017387dbec0e182ac6a0e35a8788a9eb8db8087c9ba2e97cc419c3b21089a69f842663aac8b8b16e",
-            x"04ae36a8bfd8cf6586f34c688528894835f5e7c19d36689bac5460656b613c5eabf1fa982212aa27caece23a2708eb3c8936e132b9fd82c5aee2aa4b06917b5713",
+            x"0448340c9781e54d414ffa829cb9dab75d3cf0aefe000af95b1122132341af1665470cbdf6f2622878e39f908905e27364057a87652a150651a0f276e86c2b5dd5",
             x"041d7fa5b41fe40ae85130c4cc334f7852c25c19e7f326a916d49f6b9c3f35a1216bf53c805d177c28f7bedc2d2521cb0f13dc832ef689797965274d26df50cd0f",
             x"041d7fa5b41fe40ae85130c4cc334f7852c25c19e7f326a916d49f6b9c3f35a1216bf53c805d177c28f7bedc2d2521cb0f13dc832ef689797965274d26df50cd0f"
         ];
@@ -267,7 +267,7 @@ module xcall::cluster_state_tests {
 
         let validators = vector[
             x"047799e5ded3a450ea95c27f078cdd2e1c41712a829122269e017387dbec0e182ac6a0e35a8788a9eb8db8087c9ba2e97cc419c3b21089a69f842663aac8b8b16e",
-            x"04ae36a8bfd8cf6586f34c688528894835f5e7c19d36689bac5460656b613c5eabf1fa982212aa27caece23a2708eb3c8936e132b9fd82c5aee2aa4b06917b5713",
+            x"0448340c9781e54d414ffa829cb9dab75d3cf0aefe000af95b1122132341af1665470cbdf6f2622878e39f908905e27364057a87652a150651a0f276e86c2b5dd5",
             x"041d7fa5b41fe40ae85130c4cc334f7852c25c19e7f326a916d49f6b9c3f35a1216bf53c805d177c28f7bedc2d2521cb0f13dc832ef689797965274d26df50cd0f",
             x"041d7fa5b41fe40ae85130c4cc334f7852c25c19e7f326a916d49f6b9c3f35a1216bf53c805d177c28f7bedc2d2521cb0f13dc832ef689797965274d26df50cd0f"
         ];
@@ -371,14 +371,13 @@ module xcall::cluster_state_tests {
 
     #[test]
     fun test_verify_signatures(): State {
-        let state = test_add_validator();
+        let state = test_set_get_threshold();
         let msg: vector<u8> = x"68656c6c6f";
         let src_net_id = b"0x2.icon".to_string();
         let dst_net_id = b"archway".to_string();
-        let conn_sn = 456456;
+        let conn_sn = 128;
 
-        let signatures = vector[x"b70de18ff69cccdedbc2d6bbd9f4ffe4c789e047dc01ccf167191c965909bee01f23971d260635c0171fcf6ef8335430686a8aa9d8da9b14e90671852d9a0cec1b",
-                                x"6800a26740ed36a3df8f660580cc3b2a5f7bc11ccc7868165953979072e864b52909a758d15a508e003953f007e5cdff696276078265445be10ebf242d2c551b1c",
+        let signatures = vector[x"cfa2d3f896e5f71d7cbe6647d89c29a76b3754cf8661581756ddd29b004888450a863ccc941e2268ec036f6b91462d6500cc568776ace966717488390d4c13181b",
                                 ];
 
         xcall::cluster_state::verify_signatures(&state,src_net_id, conn_sn, msg, dst_net_id, signatures);

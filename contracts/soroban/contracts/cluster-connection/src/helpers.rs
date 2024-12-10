@@ -1,6 +1,7 @@
 use soroban_sdk::{token, vec, Address, Bytes, BytesN, Env, Map, String, Vec};
 use crate::{errors::ContractError, interfaces::interface_xcall::XcallClient, storage};
 use soroban_rlp::encoder;
+use soroban_xcall_lib::network_address::NetworkAddress;
 
 pub fn ensure_relayer(e: &Env) -> Result<Address, ContractError> {
     let relayer = storage::relayer(&e)?;
@@ -63,13 +64,14 @@ pub fn verify_signatures(
     conn_sn: &u128,
     message: &Bytes,
 ) -> bool {
+    let dst_network = get_network_id(e);
     let validators = storage::get_validators(e).unwrap();
     let threshold = storage::get_validators_threshold(e).unwrap();
 
     if signatures.len() < threshold {
         return false
     }
-    let message_hash = e.crypto().keccak256(&get_encoded_message(e, src_network, conn_sn, message));
+    let message_hash = e.crypto().keccak256(&get_encoded_message(e, src_network, conn_sn, message, &dst_network));
      let mut unique_validators = Map::new(e);
      let mut count = 0;
      
@@ -98,13 +100,28 @@ pub fn verify_signatures(
 }
  
 
-pub fn get_encoded_message(e: &Env, src_network: &String, conn_sn: &u128, message: &Bytes) -> Bytes {
+pub fn get_encoded_message(e: &Env, src_network: &String, conn_sn: &u128, message: &Bytes, dst_network: &String) -> Bytes {
     let mut list = vec![&e];
     list.push_back(encoder::encode_string(&e, src_network.clone()));
     list.push_back(encoder::encode_u128(&e, conn_sn.clone()));
     list.push_back(encoder::encode(&e, message.clone()));
+    list.push_back(encoder::encode_string(&e, dst_network.clone()));
 
     encoder::encode_list(&e, list, false)
+}
+
+#[cfg(not(test))]
+pub fn get_network_id(e: &Env) -> String {
+    let xcall_addr = storage::get_xcall(&e).unwrap();
+    let client = XcallClient::new(&e, &xcall_addr);
+    let network_address = NetworkAddress::from_string(client.get_network_address());
+    network_address.nid(&e)
+}
+
+#[cfg(test)]
+pub fn get_network_id(e: &Env) -> String {
+    let network_address =  NetworkAddress::from_string(String::from_str(e, "archway/testnet"));
+    network_address.nid(&e)
 }
 
 #[cfg(not(test))]

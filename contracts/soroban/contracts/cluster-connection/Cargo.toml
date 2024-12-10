@@ -11,6 +11,7 @@ doctest = false
 [dependencies]
 soroban-sdk = { workspace = true, features = ["alloc"] }
 soroban-rlp = { path = "../../libs/soroban-rlp" }
+soroban-xcall-lib = { path = "../../libs/soroban-xcall-lib" }
 
 [dev-dependencies]
 soroban-sdk = { workspace = true, features = ["testutils"] }
