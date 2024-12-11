@@ -61,7 +61,7 @@ pub struct SendMessage<'info> {
 #[derive(Accounts)]
 pub struct RevertMessage<'info> {
     #[account(mut)]
-    pub admin: Signer<'info>,
+    pub relayer: Signer<'info>,
 
     pub system_program: Program<'info, System>,
 
@@ -70,7 +70,7 @@ pub struct RevertMessage<'info> {
         mut,
         seeds = [Config::SEED_PREFIX.as_bytes()],
         bump = config.bump,
-        has_one = admin @ ConnectionError::OnlyAdmin,
+        has_one = relayer @ ConnectionError::OnlyRelayer,
     )]
     pub config: Account<'info, Config>,
 
@@ -102,7 +102,7 @@ pub struct SetConfigItem<'info> {
 pub struct SetFee<'info> {
     /// Rent payer
     #[account(mut)]
-    pub admin: Signer<'info>,
+    pub relayer: Signer<'info>,
 
     /// System Program: Required to create program-derived address
     pub system_program: Program<'info, System>,
@@ -110,7 +110,7 @@ pub struct SetFee<'info> {
     /// Fee
     #[account(
         init_if_needed,
-        payer = admin,
+        payer = relayer,
         seeds = [NetworkFee::SEED_PREFIX.as_bytes(), network_id.as_bytes()],
         bump,
         space = NetworkFee::LEN
@@ -122,7 +122,7 @@ pub struct SetFee<'info> {
         mut,
         seeds = [Config::SEED_PREFIX.as_bytes()],
         bump = config.bump,
-        has_one = admin @ ConnectionError::OnlyAdmin,
+        has_one = relayer @ ConnectionError::OnlyRelayer,
     )]
     pub config: Account<'info, Config>,
 }
@@ -168,7 +168,7 @@ pub struct GetConfigItem<'info> {
 #[instruction(src_network: String, conn_sn: u128)]
 pub struct ReceiveMessageWithSignatures<'info> {
     #[account(mut)]
-    pub admin: Signer<'info>,
+    pub relayer: Signer<'info>,
 
     pub system_program: Program<'info, System>,
 
@@ -177,13 +177,13 @@ pub struct ReceiveMessageWithSignatures<'info> {
         mut,
         seeds = [Config::SEED_PREFIX.as_bytes()],
         bump = config.bump,
-        has_one = admin @ ConnectionError::OnlyAdmin,
+        has_one = relayer @ ConnectionError::OnlyRelayer,
     )]
     pub config: Account<'info, Config>,
 
     #[account(
         init,
-        payer = admin,
+        payer = relayer,
         seeds = [Receipt::SEED_PREFIX.as_bytes(), src_network.as_bytes(),  &conn_sn.to_be_bytes()],
         space = Receipt::LEN,
         bump

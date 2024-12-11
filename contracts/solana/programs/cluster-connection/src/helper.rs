@@ -1,7 +1,7 @@
 use anchor_lang::{
     prelude::*,
     solana_program::{
-        hash, instruction::{AccountMeta,Instruction}, keccak::hashv, program::{get_return_data, invoke, invoke_signed}, secp256k1_recover::{secp256k1_recover, Secp256k1Pubkey}, system_instruction
+        hash, instruction::{AccountMeta,Instruction}, keccak::hashv, program::{get_return_data, invoke, invoke_signed}, secp256k1_recover::secp256k1_recover, system_instruction
     },
 };
 
@@ -9,26 +9,9 @@ use crate::contexts::*;
 use crate::state::*;
 use crate::error::*;
 
-use xcall_lib::{network_address::{self, NetworkAddress}, xcall_type};
-use rlp::Encodable;
+use xcall_lib::{network_address:: NetworkAddress, xcall_type};
 
 pub const GET_NETWORK_ADDRESS: &str = "get_network_address";
-
-pub struct SignableMsg {
-    pub src_nid: String,
-    pub conn_sn: u128,
-    pub data: Vec<u8>,
-    pub dst_nid: String
-}
-impl Encodable for SignableMsg {
-    fn rlp_append(&self, stream: &mut rlp::RlpStream) {
-        stream.begin_list(4);
-        stream.append(&self.src_nid);
-        stream.append(&self.conn_sn);
-        stream.append(&self.data);
-        stream.append(&self.dst_nid);
-    }
-}
 
 pub fn transfer_lamports<'info>(
     from: &AccountInfo<'info>,
@@ -59,26 +42,23 @@ pub fn get_instruction_data(ix_name: &str, data: Vec<u8>) -> Vec<u8> {
 }
 
 pub fn get_message_hash(from_nid: &String, connection_sn: &u128, message: &Vec<u8>, dst_nid: &String) -> [u8; 32] {
-    let msg = SignableMsg {
-        src_nid: from_nid.to_string(),
-        conn_sn: *connection_sn,
-        data: message.to_vec(),
-        dst_nid: dst_nid.to_string(),
-    };
-    let result = rlp::encode(&msg).to_vec();
+    let mut encoded_bytes = Vec::new();
+    encoded_bytes.extend(from_nid.as_bytes());
+    encoded_bytes.extend(connection_sn.to_string().as_bytes());
+    encoded_bytes.extend(message);
+    encoded_bytes.extend(dst_nid.as_bytes());
 
-    let hash = hashv(&[&result]);
-    hash.0
+    let hash = hashv(&[&encoded_bytes]);
+
+    hash.to_bytes()
 }
 
 pub fn recover_pubkey(message: [u8; 32], sig: [u8; 65]) -> [u8; 64] {
-    let recovery_key = sig[64];
+    let recovery_id = sig[64] % 27;
     let signature = &sig[0..64];
-    let recovered_pubkey = secp256k1_recover(&message, recovery_key, signature).unwrap_or(
-        Secp256k1Pubkey::new(&[0u8; 64]),);
-
+    let recovered_pubkey = secp256k1_recover(&message, recovery_id, signature).unwrap();
     recovered_pubkey.to_bytes()
-}
+}   
 
 pub fn get_nid(xcall_config: &AccountInfo, config: &Config) -> String {
     let ix_data = get_instruction_data(GET_NETWORK_ADDRESS, vec![]);
@@ -133,7 +113,7 @@ pub fn call_xcall_handle_message_with_signatures<'info>(
         ix_data,
         &ctx.accounts.config,
         &ctx.accounts.authority,
-        &ctx.accounts.admin,
+        &ctx.accounts.relayer,
         &ctx.accounts.system_program,
         ctx.remaining_accounts,
     )
@@ -153,7 +133,7 @@ pub fn call_xcall_handle_error<'info>(
         ix_data,
         &ctx.accounts.config,
         &ctx.accounts.authority,
-        &ctx.accounts.admin,
+        &ctx.accounts.relayer,
         &ctx.accounts.system_program,
         &ctx.remaining_accounts,
     )
@@ -200,22 +180,19 @@ pub fn invoke_instruction<'info>(
     Ok(())
 }
 
-#[test]
-fn test_get_message_hash() {
-    let from_nid = "nid";
-    let connection_sn = 1;
-    let message = b"message";
-    let dst_nid = "nid";
-
-    let message_hash = get_message_hash(&from_nid.to_string(), &connection_sn, &message.to_vec(), &dst_nid.to_string());   
-
-    assert_eq!(message_hash, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
-}
 
 #[test]
 fn test_recover_pubkey() {
     // let message = b"message";
-    let signature = [0u8; 65];
-    let pubkey = recover_pubkey([0u8; 32], signature);
-    assert_eq!(pubkey, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+    let from_nid = "0x2.icon";
+    let connection_sn = 128;
+    let message = b"hello";
+    let dst_nid = "archway";
+
+    let message_hash = get_message_hash(&from_nid.to_string(), &connection_sn, &message.to_vec(), &dst_nid.to_string());   
+
+    let signature = [102,13,84,43,63,109,233,205,8,242,56,253,68,19,62,238,191,234,41,11,33,218,231,50,42,99,181,22,197,123,141,241,44,76,10,52,11,96,237,86,124,141,165,53,120,52,108,33,43,39,183,151,235,66,167,95,180,183,7,108,86,122,111,249,28];
+    let pubkey = recover_pubkey(message_hash, signature);
+    print!("pubkey: {:?}", pubkey);
+    assert_eq!(pubkey, [222,202,81,45,92,184,118,115,178,58,177,12,62,53,114,227,10,43,93,199,140,213,0,191,132,191,6,98,117,192,187,50,12,182,205,38,106,161,121,180,19,35,181,161,138,180,161,112,36,142,216,155,67,107,85,89,186,179,140,129,108,225,34,9] );
 }
