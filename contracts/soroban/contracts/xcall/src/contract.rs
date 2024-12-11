@@ -162,4 +162,9 @@ impl Xcall {
     pub fn version(env: Env) -> u32 {
         storage::get_contract_version(&env)
     }
+
+    pub fn extend_instance_storage(env: Env) -> Result<(), ContractError> {
+        storage::extend_instance(&env);
+        Ok(())
+    }
 }

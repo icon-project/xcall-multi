@@ -56,8 +56,9 @@ module xcall::cluster_entry{
   }
 
   entry fun recieve_message_with_signatures(xcall:&mut XCallState,cap:&ConnCap,src_net_id:String,sn:u128,msg:vector<u8>,signatures:vector<vector<u8>>,ctx: &mut TxContext){
+      let dst_net_id=xcall_state::get_net_id(xcall);
       let state=get_state_mut(xcall_state::get_connection_states_mut(xcall),cap.connection_id());
-      cluster_state::verify_signatures(state, src_net_id, sn, msg, signatures);
+      cluster_state::verify_signatures(state, src_net_id, sn, msg, dst_net_id, signatures);
       cluster_state::check_save_receipt(state, src_net_id, sn);
       xcall::handle_message(xcall, cap,src_net_id, msg,ctx);
   }

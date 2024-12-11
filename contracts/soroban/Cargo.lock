@@ -159,6 +159,7 @@ version = "0.0.0"
 dependencies = [
  "soroban-rlp",
  "soroban-sdk",
+ "soroban-xcall-lib",
 ]
 
 [[package]]
