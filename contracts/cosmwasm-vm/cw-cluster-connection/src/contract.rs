@@ -1,4 +1,3 @@
-use common::rlp;
 use cosmwasm_std::{coins, Addr, BankMsg, Event, Uint128};
 use cw_xcall_lib::network_address::NetId;
 

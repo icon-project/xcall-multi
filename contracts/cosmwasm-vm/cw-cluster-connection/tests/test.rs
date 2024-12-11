@@ -3,7 +3,6 @@ use cluster_connection::{
     execute, msg::ExecuteMsg, state::ClusterConnection, types::InstantiateMsg,
 };
 use cluster_connection::{keccak256, SignableMsg};
-use common::rlp;
 use cosmwasm_std::{testing::mock_env, ContractResult, Env};
 use cosmwasm_std::{
     testing::{mock_dependencies, mock_info, MockApi, MockQuerier},

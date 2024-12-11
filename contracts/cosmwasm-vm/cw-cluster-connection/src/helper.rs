@@ -22,17 +22,6 @@ pub fn keccak256(input: &[u8]) -> Keccak256 {
     hasher
 }
 
-pub fn to_truncated_le_bytes(n: u128) -> Vec<u8> {
-    let bytes = n.to_le_bytes();
-    let trimmed_bytes = bytes
-        .iter()
-        .rev()
-        .skip_while(|&&b| b == 0)
-        .copied()
-        .collect::<Vec<u8>>();
-    trimmed_bytes.into_iter().rev().collect()
-}
-
 impl<'a> ClusterConnection<'a> {
     pub fn ensure_admin(&self, store: &dyn Storage, address: Addr) -> Result<(), ContractError> {
         let admin = self.get_admin(store)?;

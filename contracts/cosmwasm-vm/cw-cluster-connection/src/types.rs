@@ -1,5 +1,4 @@
 use super::*;
-use common::rlp::{self, Encodable};
 
 #[cw_serde]
 pub struct InstantiateMsg {
