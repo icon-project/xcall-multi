@@ -81,13 +81,13 @@ pub fn call_xcall_handle_message_with_signatures<'info>(
     ctx: Context<'_, '_, '_, 'info, ReceiveMessageWithSignatures<'info>>,
     from_nid: String,
     message: Vec<u8>,
-    connection_sn: u128,
+    conn_sn: u128,
     sequence_no: u128,
     signatures: Vec<[u8; 65]>,
 ) -> Result<()> {
     let mut data = vec![];
     let dst_nid = get_nid(&ctx.remaining_accounts[1], &ctx.accounts.config);
-    let message_hash = get_message_hash(&from_nid, &connection_sn, &message, &dst_nid);
+    let message_hash = get_message_hash(&from_nid, &conn_sn, &message, &dst_nid);
     let mut unique_validators = Vec::new();
     for sig in signatures {
         let pubkey = recover_pubkey(message_hash, sig);
@@ -104,6 +104,7 @@ pub fn call_xcall_handle_message_with_signatures<'info>(
         from_nid,
         message,
         sequence_no,
+        conn_sn,
     };
     args.serialize(&mut data)?;
 
@@ -181,9 +182,9 @@ pub fn invoke_instruction<'info>(
 }
 
 
+
 #[test]
 fn test_recover_pubkey() {
-    // let message = b"message";
     let from_nid = "0x2.icon";
     let connection_sn = 128;
     let message = b"hello";

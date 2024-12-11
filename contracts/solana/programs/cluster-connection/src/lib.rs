@@ -66,7 +66,7 @@ pub mod centralized_connection {
 
 
     #[allow(unused_variables)]
-    pub fn receive_message<'info>(
+    pub fn recv_message<'info>(
         ctx: Context<'_, '_, '_, 'info, ReceiveMessageWithSignatures<'info>>,
         src_network: String,
         conn_sn: u128,
