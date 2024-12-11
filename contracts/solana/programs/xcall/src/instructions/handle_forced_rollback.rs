@@ -77,7 +77,7 @@ pub fn handle_forced_rollback<'info>(
 }
 
 #[derive(Accounts)]
-#[instruction(req_id: u128)]
+#[instruction(req_id: u128, from_nid: String, conn_sn: u128, connection: Pubkey)]
 pub struct HandleForcedRollbackCtx<'info> {
     /// The account that signs and pays for the transaction. This account is mutable because
     /// it will be debited for any fees or rent required during the transaction.
@@ -111,7 +111,7 @@ pub struct HandleForcedRollbackCtx<'info> {
     /// calls and is closed after use, with any remaining funds sent to the `admin`.
     #[account(
         mut,
-        seeds = [ProxyRequest::SEED_PREFIX.as_bytes(), &req_id.to_be_bytes()],
+        seeds = [ProxyRequest::SEED_PREFIX.as_bytes(), from_nid.as_bytes(), &conn_sn.to_be_bytes(), &connection.to_bytes()],
         bump = proxy_request.bump,
         close = admin
     )]

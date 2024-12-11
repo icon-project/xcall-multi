@@ -82,12 +82,27 @@ export class TestContext {
     await sleep(2);
   }
 
-  async getExecuteCallAccounts(reqId: number, data: Uint8Array) {
+  async getExecuteCallAccounts(
+    reqId: number,
+    fromNetwork: string,
+    connSn: number,
+    connection: PublicKey,
+    data: Uint8Array
+  ) {
     const res = await xcallProgram.methods
-      .queryExecuteCallAccounts(new anchor.BN(reqId), Buffer.from(data), 1, 30)
+      .queryExecuteCallAccounts(
+        new anchor.BN(reqId),
+        fromNetwork,
+        new anchor.BN(connSn),
+        connection,
+        Buffer.from(data),
+        1,
+        30
+      )
       .accountsStrict({
         config: XcallPDA.config().pda,
-        proxyRequest: XcallPDA.proxyRequest(reqId).pda,
+        proxyRequest: XcallPDA.proxyRequest(fromNetwork, connSn, connection)
+          .pda,
       })
       .remainingAccounts([
         {
@@ -145,9 +160,13 @@ export class TestContext {
     return await xcallProgram.account.config.fetch(pda);
   }
 
-  async getProxyRequest(requestId: number) {
+  async getProxyRequest(
+    fromNetwork: string,
+    connSn: number,
+    connection: PublicKey
+  ) {
     return await xcallProgram.account.proxyRequest.fetch(
-      XcallPDA.proxyRequest(requestId).pda,
+      XcallPDA.proxyRequest(fromNetwork, connSn, connection).pda,
       "confirmed"
     );
   }
@@ -192,9 +211,18 @@ export class XcallPDA {
     return { bump, pda };
   }
 
-  static proxyRequest(requestId: number) {
+  static proxyRequest(
+    fromNetwork: string,
+    connSn: number,
+    connection: PublicKey
+  ) {
     const [pda, bump] = PublicKey.findProgramAddressSync(
-      [Buffer.from("proxy"), uint128ToArray(requestId)],
+      [
+        Buffer.from("proxy"),
+        Buffer.from(fromNetwork),
+        uint128ToArray(connSn),
+        connection.toBuffer(),
+      ],
       xcallProgram.programId
     );
 

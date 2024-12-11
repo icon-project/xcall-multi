@@ -8,6 +8,7 @@ pub enum StorageKey {
     UpgradeAuthority,
     Xlm,
     ConnSn,
+    Version,
     NetworkFee(String),
     Receipts(String, u128),
 }
