@@ -31,7 +31,7 @@ jobs:
           echo "ORG_GRADLE_PROJECT_signingPassword=${{ secrets.SIGNING_PASSWORD }}" >> secrets.env
           echo "${{ secrets.DEVNET_SSH_KEY }}" | base64 -d > ssh_key
           chmod 600 ssh_key
-          scp -i ssh_key secrets.env ${{ secrets.DEVNET_SSH_USER }}@61.109.236.58:.
+          scp -i ssh_key -o StrictHostKeyChecking=no secrets.env ${{ secrets.DEVNET_SSH_USER }}@61.109.236.58:.
           rm -rf ssh_key secrets.env
 
       - name: Build jar
