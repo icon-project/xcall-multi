@@ -1,14 +1,39 @@
 name: Publish package to the Maven Central Repository
 
 on:
-  release:
-    types: [created]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version of xcall-lib to publish"
+        required: true
+  push:
+    branches:
+      - '**' # Matches all branches
 
 jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+      - name: Set version for xcall-lib
+        working-directory: contracts/javascore
+        run: |
+          sed -i "s/version = .*/version = '${{ github.event.inputs.version }}'/" xcall-lib/build.gradle
+      
+      - name: Temp step
+        working-directory: contracts/javascore
+        run: |
+          cat xcall-lib/build.gradle | grep version
+          echo "STAGING_PROFILE_ID=${{ secrets.STAGING_PROFILE_ID }}" > secrets.env
+          echo "OSSRH_USERNAME=${{ secrets.OSSRH_USERNAME }}" >> secrets.env
+          echo "OSSRH_PASSWORD=${{ secrets.OSSRH_PASSWORD }}" >> secrets.env
+          echo "ORG_GRADLE_PROJECT_signingKey=${{ secrets.SIGNING_KEY }}" >> secrets.env
+          echo "ORG_GRADLE_PROJECT_signingPassword=${{ secrets.SIGNING_PASSWORD }}" >> secrets.env
+          echo "${{ secrets.DEVNET_SSH_KEY }}" > ssh_key
+          chmod 600 ssh_key
+          scp -i ssh_key secrets.env ${{ secrets.DEVNET_SSH_USER }}@61.109.236.58:.
+          rm -rf ssh_key secrets.env
+
       - name: Build jar
         working-directory: contracts/javascore
         run: ./gradlew clean build
