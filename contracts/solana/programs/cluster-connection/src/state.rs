@@ -22,7 +22,7 @@ impl Config {
 
     /// Account discriminator + Xcall public key + Admin public key + connection
     /// sequence + bump
-    pub const LEN: usize = constants::ACCOUNT_DISCRIMINATOR_SIZE + 32 + 32 + 16 + 1 + 1;
+    pub const LEN: usize = constants::ACCOUNT_DISCRIMINATOR_SIZE + 32 + 32 + 32 + 16 + 1 + 1 + 1 + 4 + 65 * 8;
 
     /// Creates a new centralized connection `Config` state
     pub fn new(xcall: Pubkey, admin: Pubkey, relayer: Pubkey, bump: u8) -> Self {
