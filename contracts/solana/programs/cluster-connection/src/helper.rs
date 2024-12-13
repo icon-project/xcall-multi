@@ -94,6 +94,9 @@ pub fn call_xcall_handle_message_with_signatures<'info>(
         if !unique_validators.contains(&pubkey) && ctx.accounts.config.is_validator(&pubkey) {
             unique_validators.push(pubkey);
         } 
+        if (unique_validators.len() as u8) >= ctx.accounts.config.threshold {
+            break;
+        }
     }
 
     if (unique_validators.len() as u8) < ctx.accounts.config.threshold {
