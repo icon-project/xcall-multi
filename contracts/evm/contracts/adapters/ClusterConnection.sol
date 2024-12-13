@@ -2,7 +2,7 @@
 pragma solidity >=0.8.0;
 pragma abicoder v2;
 
-import {console2 } from "forge-std/Test.sol";
+import {console2} from "forge-std/Test.sol";
 
 import "openzeppelin-contracts-upgradeable/contracts/proxy/utils/Initializable.sol";
 import "@xcall/utils/Types.sol";
@@ -10,12 +10,17 @@ import "@xcall/contracts/xcall/interfaces/IConnection.sol";
 import "@iconfoundation/xcall-solidity-library/interfaces/ICallService.sol";
 import "@iconfoundation/xcall-solidity-library/utils/RLPEncode.sol";
 import "@iconfoundation/xcall-solidity-library/utils/RLPEncode.sol";
+import "@iconfoundation/xcall-solidity-library/utils/Strings.sol";
+import "@iconfoundation/xcall-solidity-library/utils/Integers.sol";
 
+/// @custom:oz-upgrades-from contracts/adapters/ClusterConnectionV1.sol:ClusterConnectionV1
 contract ClusterConnection is Initializable, IConnection {
-
     using RLPEncode for bytes;
     using RLPEncode for string;
     using RLPEncode for uint256;
+
+    using Strings for bytes;
+    using Integers for uint256;
 
     mapping(string => uint256) private messageFees;
     mapping(string => uint256) private responseFees;
@@ -51,12 +56,18 @@ contract ClusterConnection is Initializable, IConnection {
         return validators;
     }
 
-    function updateValidators(bytes[] memory _validators, uint8 _threshold) external onlyAdmin {
+    function updateValidators(
+        bytes[] memory _validators,
+        uint8 _threshold
+    ) external onlyAdmin {
         delete validators;
         for (uint i = 0; i < _validators.length; i++) {
             address validators_address = publicKeyToAddress(_validators[i]);
-            if(!isValidator(validators_address) && validators_address != address(0)) {
-                validators.push(validators_address);   
+            if (
+                !isValidator(validators_address) &&
+                validators_address != address(0)
+            ) {
+                validators.push(validators_address);
             }
         }
         require(validators.length >= _threshold, "Not enough validators");
@@ -143,40 +154,65 @@ contract ClusterConnection is Initializable, IConnection {
         bytes calldata _msg,
         bytes[] calldata _signedMessages
     ) public onlyRelayer {
-        require(_signedMessages.length >= validatorsThreshold, "Not enough signatures passed");
-        bytes32 messageHash = getMessageHash(srcNetwork, _connSn, _msg);
+        require(
+            _signedMessages.length >= validatorsThreshold,
+            "Not enough signatures passed"
+        );
+
+        string memory dstNetwork = ICallService(xCall).getNetworkId();
+
+        bytes32 messageHash = getMessageHash(
+            srcNetwork,
+            _connSn,
+            _msg,
+            dstNetwork
+        );
         uint signerCount = 0;
-        address[] memory collectedSigners = new address[](_signedMessages.length);
-        
+        address[] memory collectedSigners = new address[](
+            _signedMessages.length
+        );
+
         for (uint i = 0; i < _signedMessages.length; i++) {
             address signer = recoverSigner(messageHash, _signedMessages[i]);
             require(signer != address(0), "Invalid signature");
-            if (!isValidatorProcessed(collectedSigners, signer) && existsInValidators(signer)){
+            if (
+                !isValidatorProcessed(collectedSigners, signer) &&
+                existsInValidators(signer)
+            ) {
                 collectedSigners[signerCount] = signer;
                 signerCount++;
             }
         }
-        require(signerCount >= validatorsThreshold,"Not enough valid signatures passed");
-        recvMessage(srcNetwork,_connSn,_msg);
+        require(
+            signerCount >= validatorsThreshold,
+            "Not enough valid signatures passed"
+        );
+        recvMessage(srcNetwork, _connSn, _msg);
     }
 
     function existsInValidators(address signer) internal view returns (bool) {
-        for (uint i = 0; i < validators.length; i++){
+        for (uint i = 0; i < validators.length; i++) {
             if (validators[i] == signer) return true;
         }
         return false;
     }
 
-    function isValidatorProcessed(address[] memory processedSigners, address signer) public pure returns (bool) {
+    function isValidatorProcessed(
+        address[] memory processedSigners,
+        address signer
+    ) public pure returns (bool) {
         for (uint i = 0; i < processedSigners.length; i++) {
             if (processedSigners[i] == signer) {
                 return true;
             }
         }
         return false;
-    }    
+    }
 
-    function recoverSigner(bytes32 messageHash, bytes memory signature) public pure returns (address) {
+    function recoverSigner(
+        bytes32 messageHash,
+        bytes memory signature
+    ) public pure returns (address) {
         require(signature.length == 65, "Invalid signature length");
         bytes32 r;
         bytes32 s;
@@ -240,7 +276,7 @@ contract ClusterConnection is Initializable, IConnection {
         adminAddress = _address;
     }
 
-        /**
+    /**
         @notice Set the address of the relayer.
         @param _address The address of the relayer.
      */
@@ -268,7 +304,7 @@ contract ClusterConnection is Initializable, IConnection {
         @notice Set the required signature count for verification.
         @param _count The desired count.
      */
-    function setRequiredValidatorCount(uint8 _count) external onlyAdmin() {
+    function setRequiredValidatorCount(uint8 _count) external onlyAdmin {
         validatorsThreshold = _count;
     }
 
@@ -276,16 +312,25 @@ contract ClusterConnection is Initializable, IConnection {
         return validatorsThreshold;
     }
 
-    function getMessageHash(string memory srcNetwork, uint256 _connSn, bytes calldata _msg) internal pure returns (bytes32) {
-        bytes memory rlp = abi.encodePacked(
-            srcNetwork.encodeString(),
-            _connSn.encodeUint(),
-            _msg.encodeBytes()
-        ).encodeList();
-        return keccak256(rlp);
+    function getMessageHash(
+        string memory srcNetwork,
+        uint256 _connSn,
+        bytes calldata _msg,
+        string memory dstNetwork
+    ) internal pure returns (bytes32) {
+        bytes memory encoded = abi
+            .encodePacked(
+                srcNetwork,
+                _connSn.toString(),
+                _msg,
+                dstNetwork
+            );
+        return keccak256(encoded);
     }
 
-  function publicKeyToAddress(bytes memory publicKey) internal pure returns (address addr) {
+    function publicKeyToAddress(
+        bytes memory publicKey
+    ) internal pure returns (address addr) {
         require(publicKey.length == 65, "Invalid public key length");
 
         bytes32 hash;
@@ -298,5 +343,4 @@ contract ClusterConnection is Initializable, IConnection {
 
         addr = address(uint160(uint256(hash)));
     }
-    
 }
