@@ -2,6 +2,7 @@ package relay.aggregator;
 
 import java.math.BigInteger;
 
+import score.ByteArrayObjectWriter;
 import score.Context;
 import score.ObjectReader;
 import score.ObjectWriter;
@@ -66,8 +67,6 @@ public class Packet {
                 || srcHeight == null || dstNetwork == null || dstContractAddress == null || data == null;
         Context.require(!isIllegalArg,
                 "srcNetwork, contractAddress, srcSn, srcHeight, dstNetwork, and data cannot be null");
-        if (isIllegalArg) {
-        }
         this.srcNetwork = srcNetwork;
         this.srcContractAddress = srcContractAddress;
         this.srcSn = srcSn;
@@ -77,12 +76,8 @@ public class Packet {
         this.data = data;
     }
 
-    public String getId() {
-        return createId(this.srcNetwork, this.srcContractAddress, this.srcSn);
-    }
-
-    public static String createId(String srcNetwork, String contractAddress, BigInteger srcSn) {
-        return srcNetwork + "/" + contractAddress + "/" + srcSn.toString();
+    public byte[] getId() {
+        return Context.hash("sha-256", this.toBytes());
     }
 
     /**
@@ -172,5 +167,11 @@ public class Packet {
                 r.readNullable(byte[].class));
         r.end();
         return p;
+    }
+
+    public byte[] toBytes() {
+        ByteArrayObjectWriter writer = Context.newByteArrayObjectWriter("RLPn");
+        Packet.writeObject(writer, this);
+        return writer.toByteArray();
     }
 }
