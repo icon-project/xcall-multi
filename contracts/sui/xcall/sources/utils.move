@@ -26,12 +26,13 @@ module xcall::xcall_utils {
         }   
     }
 
-    public fun get_message_hash(src_net_id: String, sn: u128, msg: vector<u8>): vector<u8> {
-        let mut list=vector::empty<vector<u8>>();
-        vector::push_back(&mut list, encoder::encode_string(&src_net_id));
-        vector::push_back(&mut list, encoder::encode_u128(sn));
-        vector::push_back(&mut list, encoder::encode(&msg));
-        let encoded=encoder::encode_list(&list,false);
+    public fun get_message_hash(src_net_id: String, sn: u128, msg: vector<u8>, dst_net_id: String): vector<u8> {
+        
+        let mut encoded=vector::empty<u8>();
+        vector::append(&mut encoded, src_net_id.into_bytes());
+        vector::append(&mut encoded, (sn.to_string()).into_bytes());
+        vector::append(&mut encoded, msg);
+        vector::append(&mut encoded, dst_net_id.into_bytes());
         encoded
     }
 
