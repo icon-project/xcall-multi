@@ -47,7 +47,7 @@ library Strings {
             converted[i * 2 + 1] = _base[uint8(buffer[i]) & 0xf];
         }
 
-        return string(abi.encodePacked("0x", converted));
+        return string(converted);
     }
 
     /**

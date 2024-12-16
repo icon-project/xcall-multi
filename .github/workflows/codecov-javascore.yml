@@ -9,7 +9,6 @@ on:
       - main
     paths:
       - 'contracts/javascore/**'
-      - '.github/workflows/codecov-javascore.yml'
 env:
   CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 jobs:
@@ -17,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: true
       - name: Javascore contracts coverage

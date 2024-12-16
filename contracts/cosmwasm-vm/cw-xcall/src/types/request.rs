@@ -168,7 +168,7 @@ mod tests {
 
      */
 
-    use std::{io::Read, str::FromStr};
+    use std::str::FromStr;
 
     use common::rlp::{self, RlpStream};
     use cosmwasm_std::Addr;
