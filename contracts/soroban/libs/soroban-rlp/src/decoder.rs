@@ -116,6 +116,14 @@ pub fn decode_length(env: &Env, bytes: Bytes, offset: u8) -> u64 {
     len
 }
 
+pub fn decode_bool(bytes: Bytes) -> bool {
+    if bytes.len() > 0 && bytes.get(0).unwrap() == 1 {
+        return true;
+    }
+
+    false
+}
+
 pub fn decode_u8(env: &Env, bytes: Bytes) -> u8 {
     decode(&env, bytes).get(0).unwrap_or(0)
 }
@@ -131,6 +139,9 @@ pub fn decode_u64(env: &Env, bytes: Bytes) -> u64 {
 }
 
 pub fn decode_u128(env: &Env, bytes: Bytes) -> u128 {
+    if bytes.len() == 1 {
+        return bytes_to_u128(bytes);
+    }
     let decoded = decode(&env, bytes);
     bytes_to_u128(decoded)
 }

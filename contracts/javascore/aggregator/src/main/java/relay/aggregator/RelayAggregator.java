@@ -41,16 +41,16 @@ public class RelayAggregator {
     private final ArrayDB<Address> relayers = Context.newArrayDB("relayers", Address.class);
     private final DictDB<Address, Boolean> relayersLookup = Context.newDictDB("relayersLookup", Boolean.class);
 
-    private final DictDB<String, Packet> packets = Context.newDictDB("packets", Packet.class);
+    private final DictDB<byte[], Boolean> acknowledgedPackets = Context.newDictDB("acknowledgedPackets", Boolean.class);
+    private final DictDB<byte[], Packet> packets = Context.newDictDB("packets", Packet.class);
 
-    private final BranchDB<String, DictDB<Address, byte[]>> signatures = Context.newBranchDB("signatures",
+    private final BranchDB<byte[], DictDB<Address, byte[]>> signatures = Context.newBranchDB("signatures",
             byte[].class);
 
     public RelayAggregator(Address _admin) {
         if (admin.get() == null) {
             admin.set(_admin);
             signatureThreshold.set(DEFAULT_SIGNATURE_THRESHOLD);
-            addRelayer(_admin);
         }
     }
 
@@ -59,12 +59,6 @@ public class RelayAggregator {
         adminOnly();
 
         Context.require(admin.get() != _admin, "admin already set");
-
-        // add new admin as relayer
-        addRelayer(_admin);
-
-        // remove old admin from relayer list
-        removeRelayer(admin.get());
 
         admin.set(_admin);
     }
@@ -107,10 +101,9 @@ public class RelayAggregator {
                 addRelayer(newRelayer);
             }
 
-            Address adminAdrr = admin.get();
             for (int i = 0; i < relayers.size(); i++) {
                 Address oldRelayer = relayers.get(i);
-                if (!oldRelayer.equals(adminAdrr) && !newRelayersMap.containsKey(oldRelayer)) {
+                if (!newRelayersMap.containsKey(oldRelayer)) {
                     removeRelayer(oldRelayer);
                 }
             }
@@ -127,10 +120,29 @@ public class RelayAggregator {
             Address relayer,
             String srcNetwork,
             String srcContractAddress,
-            BigInteger srcSn) {
-        String pktID = Packet.createId(srcNetwork, srcContractAddress, srcSn);
+            BigInteger srcSn,
+            BigInteger srcHeight,
+            String dstNetwork,
+            String dstContractAddress,
+            byte[] data) {
+        Packet pkt = new Packet(srcNetwork, srcContractAddress, srcSn, srcHeight, dstNetwork, dstContractAddress, data);
+        byte[] pktID = pkt.getId();
         byte[] existingSign = signatures.at(pktID).get(relayer);
         return existingSign != null;
+    }
+
+    @External(readonly = true)
+    public boolean packetAcknowledged(
+            String srcNetwork,
+            String srcContractAddress,
+            BigInteger srcSn,
+            BigInteger srcHeight,
+            String dstNetwork,
+            String dstContractAddress,
+            byte[] data) {
+        Packet pkt = new Packet(srcNetwork, srcContractAddress, srcSn, srcHeight, dstNetwork, dstContractAddress, data);
+        byte[] pktID = pkt.getId();
+        return acknowledgedPackets.get(pktID) != null && acknowledgedPackets.get(pktID) == true;
     }
 
     @External
@@ -147,7 +159,11 @@ public class RelayAggregator {
         relayersOnly();
 
         Packet pkt = new Packet(srcNetwork, srcContractAddress, srcSn, srcHeight, dstNetwork, dstContractAddress, data);
-        String pktID = pkt.getId();
+        byte[] pktID = pkt.getId();
+
+        if (acknowledgedPackets.get(pktID) != null && acknowledgedPackets.get(pktID) == true) {
+            return;
+        }
 
         if (packets.get(pktID) == null) {
             packets.set(pktID, pkt);
@@ -170,7 +186,7 @@ public class RelayAggregator {
         setSignature(pktID, Context.getCaller(), signature);
 
         if (signatureThresholdReached(pktID)) {
-            byte[][] sigs = getSignatures(srcNetwork, srcContractAddress, srcSn);
+            byte[][] sigs = getSignatures(pktID);
             byte[] encodedSigs = serializeSignatures(sigs);
             PacketAcknowledged(
                     pkt.getSrcNetwork(),
@@ -181,12 +197,12 @@ public class RelayAggregator {
                     pkt.getDstContractAddress(),
                     pkt.getData(),
                     encodedSigs);
+            acknowledgedPackets.set(pktID, true);
             removePacket(pktID);
         }
     }
 
-    private byte[][] getSignatures(String srcNetwork, String srcContractAddress, BigInteger srcSn) {
-        String pktID = Packet.createId(srcNetwork, srcContractAddress, srcSn);
+    private byte[][] getSignatures(byte[] pktID) {
         DictDB<Address, byte[]> signDict = signatures.at(pktID);
         ArrayList<byte[]> signatureList = new ArrayList<byte[]>();
 
@@ -205,7 +221,7 @@ public class RelayAggregator {
         return sigs;
     }
 
-    protected void setSignature(String pktID, Address addr, byte[] sign) {
+    protected void setSignature(byte[] pktID, Address addr, byte[] sign) {
         signatures.at(pktID).set(addr, sign);
     }
 
@@ -241,7 +257,7 @@ public class RelayAggregator {
     }
 
     private void adminOnly() {
-        Context.require(Context.getCaller().equals(admin.get()), "Unauthorized: caller is not the leader relayer");
+        Context.require(Context.getCaller().equals(admin.get()), "Unauthorized: caller is not the admin");
     }
 
     private void relayersOnly() {
@@ -270,7 +286,7 @@ public class RelayAggregator {
         }
     }
 
-    private Boolean signatureThresholdReached(String pktID) {
+    private Boolean signatureThresholdReached(byte[] pktID) {
         int noOfSignatures = 0;
         for (int i = 0; i < relayers.size(); i++) {
             Address relayer = relayers.get(i);
@@ -282,7 +298,7 @@ public class RelayAggregator {
         return noOfSignatures >= signatureThreshold.get();
     }
 
-    private void removePacket(String pktID) {
+    private void removePacket(byte[] pktID) {
         packets.set(pktID, null);
         DictDB<Address, byte[]> signDict = signatures.at(pktID);
 
