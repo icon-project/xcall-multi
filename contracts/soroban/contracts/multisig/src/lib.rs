@@ -25,7 +25,11 @@ impl ProposalContract {
         Ok(())
     }
 
-    pub fn create_proposal(env: Env, proposal_data: String, wallet: Address) -> Result<(), ContractError> {
+    pub fn create_proposal(env: Env, sender : Address, proposal_data: String, wallet: Address) -> Result<(), ContractError> {
+        sender.require_auth();
+        if !is_signer(&env, &wallet, sender) {
+            return Err(ContractError::NotAValidSigner);
+        }
         let proposal_id = states::get_count(&env);
         let proposal = Proposal {
             proposal_id,
