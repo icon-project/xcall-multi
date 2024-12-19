@@ -16,6 +16,7 @@ impl ProposalContract {
         Ok(())
     }
 
+
     pub fn add_multisig_wallet(env: Env, wallet: Address, signers: Vec<Address>, threshold: u32) -> Result<(), ContractError> {
         let multisig = MultisigWallet {
             signers,
@@ -25,6 +26,9 @@ impl ProposalContract {
         Ok(())
     }
 
+    /// Create a proposal. This proposal is identified by a proposal_id that is increased with each proposal.
+    /// The proposal is associated with a wallet, which is used to verify signers.
+    /// The proposal is approved after a number of signatures equal to the threshold of the wallet is reached.
     pub fn create_proposal(env: Env, sender : Address, proposal_data: String, wallet: Address) -> Result<(), ContractError> {
         sender.require_auth();
         if !is_signer(&env, &wallet, sender) {
@@ -44,6 +48,9 @@ impl ProposalContract {
     }
 
     
+    /// Add a signature to a proposal. 
+    /// The proposal is approved after a number of signatures equal to the threshold of the wallet is reached.
+    /// The function returns an error if the proposal has expired, or if the sender is not a valid signer, or if the sender has already voted.
     pub fn add_approval_signature(env: Env, proposal_id: u32, sender: Address, signature: String) -> Result<(), ContractError> {   
         sender.require_auth(); 
         let key = states::get_proposal(&env, proposal_id);
@@ -72,6 +79,7 @@ impl ProposalContract {
         Ok(())
     }
 
+    /// Returns all active proposals. A proposal is active if it has not expired.
     pub fn get_active_proposals(env: Env) -> Vec<Proposal> {
         let count = states::get_count(&env);
         let mut proposals = Vec::new(&env);
