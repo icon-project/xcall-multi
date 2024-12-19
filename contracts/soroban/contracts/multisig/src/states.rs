@@ -24,6 +24,7 @@ pub struct MultisigWallet {
 #[contracttype]
 #[derive(Clone, Debug)]
 pub struct Proposal {
+    pub proposal_id: u32,
     pub proposal_data: String,
     pub approved: bool,
     pub signatures: Vec<Signature>,
@@ -39,6 +40,7 @@ pub enum ContractError {
     AlreadyVoted = 1,
     NotAValidSigner = 2,
     AlreadyInitialized = 3,
+    ProposalExpired = 4
 }
 
 const DAY_IN_LEDGERS: u32 = 17280; // assumes 5s a ledger
@@ -89,6 +91,11 @@ pub fn get_multisig_wallet(env: &Env, wallet: Address) -> MultisigWallet {
 pub fn get_threshold(env: &Env, wallet: Address) -> u32 {
     let multisig: MultisigWallet = env.storage().persistent().get(&StorageKey::MultisigWallet(wallet)).unwrap();
     multisig.threshold
+}
+
+pub fn is_proposal_expired(env: &Env, proposal_id: u32) -> bool {
+    let key = StorageKey::Proposals(proposal_id);
+    !env.storage().temporary().has(&key)
 }
 
 pub fn is_initialized(env: &Env) -> bool {
