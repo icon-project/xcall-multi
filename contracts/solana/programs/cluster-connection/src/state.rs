@@ -22,7 +22,7 @@ impl Config {
 
     /// Account discriminator + Xcall public key + Admin public key + connection
     /// sequence + bump
-    pub const LEN: usize = constants::ACCOUNT_DISCRIMINATOR_SIZE + 32 + 32 + 32 + 16 + 1 + 1 + 1 + 4 + 65 * 10;
+    pub const LEN: usize = constants::ACCOUNT_DISCRIMINATOR_SIZE + 32 + 32 + 32 + 16 + 1 + 1 + 1 + 4 + 65 * 8;
 
     /// Creates a new centralized connection `Config` state
     pub fn new(xcall: Pubkey, admin: Pubkey, relayer: Pubkey, bump: u8) -> Self {
@@ -127,4 +127,17 @@ impl Authority {
     pub fn new(bump: u8) -> Self {
         Self { bump }
     }
+}
+
+
+#[test]
+fn is_validator() {
+    let mut config = Config::new(
+        Pubkey::default(),
+        Pubkey::default(),
+        Pubkey::default(),
+        0,
+    );
+    config.validators.push([4,222,202,81,45,92,184,118,115,178,58,177,12,62,53,114,227,10,43,93,199,140,213,0,191,132,191,6,98,117,192,187,50,12,182,205,38,106,161,121,180,19,35,181,161,138,180,161,112,36,142,216,155,67,107,85,89,186,179,140,129,108,225,34,9]);
+    assert!(config.is_validator(&[222,202,81,45,92,184,118,115,178,58,177,12,62,53,114,227,10,43,93,199,140,213,0,191,132,191,6,98,117,192,187,50,12,182,205,38,106,161,121,180,19,35,181,161,138,180,161,112,36,142,216,155,67,107,85,89,186,179,140,129,108,225,34,9]));
 }
