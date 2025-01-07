@@ -1,4 +1,4 @@
-name: Build and Test Stellar contracts
+name: Build and Test Stellar Contracts
 on:
   push:
     branches:
