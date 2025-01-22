@@ -19,7 +19,7 @@ use xcall_lib::query_account_type::{QueryAccountsPaginateResponse, QueryAccounts
 declare_id!("8oxnXrSmqWJqkb2spZk2uz1cegzPsLy6nJp9XwFhkMD5");
 
 #[program]
-pub mod centralized_connection {
+pub mod cluster_connection {
     use super::*;
 
     pub fn initialize(ctx: Context<Initialize>, xcall: Pubkey, relayer: Pubkey) -> Result<()> {
