@@ -21,14 +21,11 @@ module sui_rlp::encoder {
             vector::append(&mut result,*bytes);
            result
         };
-        //std::debug::print(&encoded);
         encoded
         
     }
 
     public fun encode_list(list:&vector<vector<u8>>,raw:bool):vector<u8>{
-        //std::debug::print(&b"ENCODELIST".to_string());
-        //std::debug::print(list);
         let mut result=vector::empty();
         let mut encoded_list = vector::empty<u8>();
         let mut list=*list;
@@ -40,7 +37,6 @@ module sui_rlp::encoder {
               vector::append(&mut result,encode(&vector::pop_back(&mut list)));
             }else{
               vector::append(&mut result,vector::pop_back(&mut list));
-              //std::debug::print(&result);
             };
            
         };
@@ -48,32 +44,22 @@ module sui_rlp::encoder {
         let total_length = result.length();
         let len=vector::length(&result);
 
-        if( total_length<= 55){
-            encoded_list=encode_length(len,0xc0);
-            vector::append(&mut encoded_list,result);
+            if( total_length<= 55){
+                encoded_list=encode_length(len,0xc0);
+                vector::append(&mut encoded_list,result);
 
-        } else {
-           let length_bytes = utils::to_bytes_u64(len);
-           let prefix = (0xf7 + vector::length(&length_bytes)) as u8;
-            //std::debug::print(&b"PREFIX".to_string());
-            //std::debug::print(&prefix);
-           vector::push_back(&mut encoded_list, prefix);
-            //std::debug::print(&encoded_list);
-           vector::append(&mut encoded_list, length_bytes);
-                       //std::debug::print(&encoded_list);
-
-           vector::append(&mut encoded_list, result);
-                       //std::debug::print(&encoded_list);
-
-
-        }
+            } else {
+                let length_bytes = utils::to_bytes_u64_sign(len,false);
+                let prefix = (0xf7 + vector::length(&length_bytes)) as u8;
+                vector::push_back(&mut encoded_list, prefix);
+                vector::append(&mut encoded_list, length_bytes);
+                vector::append(&mut encoded_list, result);
+            }
 
         }else{
             vector::push_back(&mut encoded_list,0xc0);
 
         };
-        //std::debug::print(&b"FINAL_ENCODED_LIST".to_string());
-        //std::debug::print(&encoded_list);
         encoded_list   
     }
 
@@ -83,11 +69,11 @@ module sui_rlp::encoder {
             let len_u8=(len as u8);
             vector::push_back(&mut length_info,(offset+len_u8));
         }else {
-        let length_bytes=utils::to_bytes_u64(len);
-        let length_byte_len=vector::length(&length_bytes);
-        let length_byte_len=offset+(length_byte_len as u8);
-        vector::push_back(&mut length_info,length_byte_len);
-        vector::append(&mut length_info,length_bytes);
+            let length_bytes=utils::to_bytes_u64_sign(len,false);
+            let length_byte_len=vector::length(&length_bytes);
+            let length_byte_len=offset+(length_byte_len as u8);
+            vector::push_back(&mut length_info,length_byte_len);
+            vector::append(&mut length_info,length_bytes);
         };
         length_info  
     }
@@ -99,14 +85,20 @@ module sui_rlp::encoder {
 
     }
 
+     public fun encode_u32(num:u32):vector<u8>{
+        let vec= utils::to_bytes_u32_sign(num,true);
+        encode(&vec)
+
+    }
+
     public fun encode_u64(num:u64):vector<u8>{
-        let vec= utils::to_bytes_u64(num);
+        let vec= utils::to_bytes_u64_sign(num,true);
         encode(&vec)
         
     }
 
     public fun encode_u128(num:u128):vector<u8>{
-        let vec= utils::to_bytes_u128(num);
+        let vec= utils::to_bytes_u128_sign(num,true);
         encode(&vec)
     }
 
@@ -132,8 +124,32 @@ module sui_rlp::encoder {
         let vec= bcs::to_bytes(addr);
         encode(&vec)
     }
-}
-
-
-
     
+    public fun encode_bool(val:bool):vector<u8>{
+        if(val==true){
+            return vector<u8>[1]
+        };
+        vector<u8>[0]
+    }
+
+    #[test]
+    fun test_encode_zero_value(){
+        let num=0_u128;
+        let bytes=encode_u128(num);
+        assert!(bytes==x"00");
+
+         let num=0_u64;
+        let bytes=encode_u64(num);
+        assert!(bytes==x"00");
+
+        let num=0_u32;
+        let bytes=encode_u32(num);
+        assert!(bytes==x"00");
+
+        let num=0_u8;
+        let bytes=encode_u8(num);
+        assert!(bytes==x"00");
+    }
+
+   
+}

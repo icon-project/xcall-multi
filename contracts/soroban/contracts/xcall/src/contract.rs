@@ -153,7 +153,14 @@ impl Xcall {
         helpers::ensure_upgrade_authority(&env)?;
         env.deployer().update_current_contract_wasm(new_wasm_hash);
 
+        let current_version = storage::get_contract_version(&env);
+        storage::set_contract_version(&env, current_version + 1);
+
         Ok(())
+    }
+
+    pub fn version(env: Env) -> u32 {
+        storage::get_contract_version(&env)
     }
 
     pub fn extend_instance_storage(env: Env) -> Result<(), ContractError> {

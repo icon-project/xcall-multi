@@ -10,6 +10,8 @@ doctest = false
 
 [dependencies]
 soroban-sdk = { workspace = true, features = ["alloc"] }
+xcall = { path = "../xcall" }
+soroban-xcall-lib = { path = "../../libs/soroban-xcall-lib" }
 
 [dev-dependencies]
 soroban-sdk = { workspace = true, features = ["testutils"] }

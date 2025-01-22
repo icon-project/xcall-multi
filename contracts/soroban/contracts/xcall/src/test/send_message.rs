@@ -5,11 +5,11 @@ extern crate std;
 use soroban_sdk::{
     bytes, symbol_short,
     testutils::{Address as _, AuthorizedFunction, AuthorizedInvocation},
-    vec, Address, Bytes, IntoVal, String,
+    vec, Address, Bytes, IntoVal, String, Vec,
 };
 use soroban_xcall_lib::messages::{
-    call_message::CallMessage, call_message_rollback::CallMessageWithRollback, envelope::Envelope,
-    AnyMessage,
+    call_message::CallMessage, call_message_persisted::CallMessagePersisted,
+    call_message_rollback::CallMessageWithRollback, envelope::Envelope, AnyMessage,
 };
 
 use super::setup::*;
@@ -212,6 +212,30 @@ fn test_process_rollback_message_with_empty_rollback_data() {
 }
 
 #[test]
+fn test_process_persisted_message() {
+    let ctx = TestContext::default();
+    let client = XcallClient::new(&ctx.env, &ctx.contract);
+    ctx.init_context(&client);
+
+    let msg = CallMessagePersisted {
+        data: bytes!(&ctx.env, 0xab),
+    };
+    let message = AnyMessage::CallMessagePersisted(msg);
+    let envelope = &get_dummy_envelope_msg(&ctx.env, message);
+
+    ctx.env.as_contract(&client.address, || {
+        let res = send_message::process_message(
+            &ctx.env,
+            &ctx.network_address,
+            1,
+            &ctx.contract,
+            envelope,
+        );
+        assert!(res.is_ok())
+    });
+}
+
+#[test]
 fn test_process_rollback_message() {
     let ctx = TestContext::default();
     let client = XcallClient::new(&ctx.env, &ctx.contract);
@@ -302,6 +326,32 @@ fn test_call_connection_for_call_message() {
 
     assert_eq!(sender_balance, 0);
     assert_eq!(connection_balance, fee);
+}
+
+#[test]
+fn test_call_connection_with_empty_sources() {
+    let ctx = TestContext::default();
+    let client = XcallClient::new(&ctx.env, &ctx.contract);
+    ctx.init_context(&client);
+    ctx.env.mock_all_auths_allowing_non_root_auth();
+
+    let sender = Address::generate(&ctx.env);
+    let need_response = false;
+    let fee = ctx.get_centralized_connection_fee(need_response);
+    ctx.mint_native_token(&sender, fee);
+
+    ctx.env.as_contract(&ctx.contract, || {
+        send_message::call_connection(
+            &ctx.env,
+            &sender,
+            &ctx.nid,
+            1,
+            Vec::new(&ctx.env),
+            need_response,
+            Bytes::new(&ctx.env),
+        )
+        .unwrap();
+    })
 }
 
 #[test]
