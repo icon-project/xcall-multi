@@ -157,8 +157,8 @@ dependencies = [
 name = "cluster-connection"
 version = "0.0.0"
 dependencies = [
- "soroban-rlp",
  "soroban-sdk",
+ "soroban-xcall-lib",
 ]
 
 [[package]]
@@ -659,6 +659,13 @@ dependencies = [
  "soroban-sdk",
  "soroban-xcall-lib",
  "xcall",
+]
+
+[[package]]
+name = "multisig"
+version = "0.0.0"
+dependencies = [
+ "soroban-sdk",
 ]
 
 [[package]]

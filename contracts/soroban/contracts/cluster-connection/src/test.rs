@@ -13,7 +13,7 @@ use crate::{
     types::InitializeMsg,
 };
 use soroban_sdk::{
-    symbol_short, testutils::{Address as _, AuthorizedFunction, AuthorizedInvocation, Events}, token, vec, Address, Bytes, BytesN, Env, IntoVal, String, Symbol, Vec
+    bytesn, symbol_short, testutils::{Address as _, AuthorizedFunction, AuthorizedInvocation, Events}, token, vec, Address, Bytes, BytesN, Env, IntoVal, String, Symbol, Vec
 };
 
 pub struct TestContext {
@@ -356,14 +356,16 @@ fn test_add_validator() {
 
     ctx.init_context(&client);
 
-    let val1 = [4, 174, 54, 168, 191, 216, 207, 101, 134, 243, 76, 104, 133, 40, 137, 72, 53, 245, 231, 193, 157, 54, 104, 155, 172, 84, 96, 101, 107, 97, 60, 94, 171, 241, 250, 152, 34, 18, 170, 39, 202, 236, 226, 58, 39, 8, 235, 60, 137, 54, 225, 50, 185, 253, 130, 197, 174, 226, 170, 75, 6, 145, 123, 87, 19];
-    let val2 = [4, 91, 65, 155, 222, 192, 210, 187, 193, 108, 232, 174, 20, 79, 248, 232, 37, 18, 63, 208, 203, 62, 54, 208, 7, 91, 109, 141, 229, 170, 181, 51, 136, 172, 143, 180, 194, 138, 138, 56, 67, 243, 7, 60, 218, 164, 12, 148, 63, 116, 115, 127, 192, 206, 164, 169, 95, 135, 119, 138, 255, 172, 115, 129, 144];
-    let val3 = [4, 248, 192, 175, 198, 228, 250, 20, 158, 23, 251, 176, 244, 208, 150, 71, 151, 27, 208, 22, 41, 30, 154, 198, 109, 10, 112, 142, 200, 47, 200, 213, 210, 172, 135, 141, 129, 183, 211, 241, 211, 127, 16, 19, 67, 159, 195, 235, 88, 164, 223, 47, 128, 47, 147, 28, 121, 28, 93, 129, 176, 144, 52, 243, 55];
+    let val1 = bytesn!(&ctx.env, 0x04deca512d5cb87673b23ab10c3e3572e30a2b5dc78cd500bf84bf066275c0bb320cb6cd266aa179b41323b5a18ab4a170248ed89b436b5559bab38c816ce12209);
+    let val2 = bytesn!(&ctx.env, 0x04f9379b2955d759a9532f8daa0c4a25da0ae706dd057de02af7754adb4b956ec9b8bf7a8a5a6686bc74dff736442a874c6bae5dcbcdb7113e24fbfa2337c63a01);
+    let val3 = bytesn!(&ctx.env, 0x041d7fa5b41fe40ae85130c4cc334f7852c25c19e7f326a916d49f6b9c3f35a1216bf53c805d177c28f7bedc2d2521cb0f13dc832ef689797965274d26df50cd0f);
+    let val4 = bytesn!(&ctx.env, 0x041d7fa5b41fe40ae85130c4cc334f7852c25c19e7f326a916d49f6b9c3f35a1216bf53c805d177c28f7bedc2d2521cb0f13dc832ef689797965274d26df50cd0f);
 
     let mut validators = Vec::new(&ctx.env);
-    validators.push_back(BytesN::from_array(&ctx.env, &val1));
-    validators.push_back(BytesN::from_array(&ctx.env, &val2));
-    validators.push_back(BytesN::from_array(&ctx.env, &val3));
+    validators.push_back(val1);
+    validators.push_back(val2);
+    validators.push_back(val3);
+    validators.push_back(val4);
     client.update_validators(&validators, &3_u32);
 
     assert_eq!(
@@ -395,14 +397,16 @@ fn test_set_threshold() {
 
     ctx.init_context(&client);
 
-    let val1 = [4, 174, 54, 168, 191, 216, 207, 101, 134, 243, 76, 104, 133, 40, 137, 72, 53, 245, 231, 193, 157, 54, 104, 155, 172, 84, 96, 101, 107, 97, 60, 94, 171, 241, 250, 152, 34, 18, 170, 39, 202, 236, 226, 58, 39, 8, 235, 60, 137, 54, 225, 50, 185, 253, 130, 197, 174, 226, 170, 75, 6, 145, 123, 87, 19];
-    let val2 = [4, 91, 65, 155, 222, 192, 210, 187, 193, 108, 232, 174, 20, 79, 248, 232, 37, 18, 63, 208, 203, 62, 54, 208, 7, 91, 109, 141, 229, 170, 181, 51, 136, 172, 143, 180, 194, 138, 138, 56, 67, 243, 7, 60, 218, 164, 12, 148, 63, 116, 115, 127, 192, 206, 164, 169, 95, 135, 119, 138, 255, 172, 115, 129, 144];
-    let val3 = [4, 248, 192, 175, 198, 228, 250, 20, 158, 23, 251, 176, 244, 208, 150, 71, 151, 27, 208, 22, 41, 30, 154, 198, 109, 10, 112, 142, 200, 47, 200, 213, 210, 172, 135, 141, 129, 183, 211, 241, 211, 127, 16, 19, 67, 159, 195, 235, 88, 164, 223, 47, 128, 47, 147, 28, 121, 28, 93, 129, 176, 144, 52, 243, 55];
+    let val1 = bytesn!(&ctx.env, 0x04deca512d5cb87673b23ab10c3e3572e30a2b5dc78cd500bf84bf066275c0bb320cb6cd266aa179b41323b5a18ab4a170248ed89b436b5559bab38c816ce12209);
+    let val2 = bytesn!(&ctx.env, 0x04f9379b2955d759a9532f8daa0c4a25da0ae706dd057de02af7754adb4b956ec9b8bf7a8a5a6686bc74dff736442a874c6bae5dcbcdb7113e24fbfa2337c63a01);
+    let val3 = bytesn!(&ctx.env, 0x041d7fa5b41fe40ae85130c4cc334f7852c25c19e7f326a916d49f6b9c3f35a1216bf53c805d177c28f7bedc2d2521cb0f13dc832ef689797965274d26df50cd0f);
+    let val4 = bytesn!(&ctx.env, 0x041d7fa5b41fe40ae85130c4cc334f7852c25c19e7f326a916d49f6b9c3f35a1216bf53c805d177c28f7bedc2d2521cb0f13dc832ef689797965274d26df50cd0f);
 
     let mut validators = Vec::new(&ctx.env);
-    validators.push_back(BytesN::from_array(&ctx.env, &val1));
-    validators.push_back(BytesN::from_array(&ctx.env, &val2));
-    validators.push_back(BytesN::from_array(&ctx.env, &val3));
+    validators.push_back(val1);
+    validators.push_back(val2);
+    validators.push_back(val3);
+    validators.push_back(val4);
     client.update_validators(&validators, &3_u32);
 
     let threshold: u32 = 2_u32;
@@ -437,22 +441,25 @@ fn test_receive_message() {
 
     ctx.init_context(&client);
 
-    let val1 = [4, 174, 54, 168, 191, 216, 207, 101, 134, 243, 76, 104, 133, 40, 137, 72, 53, 245, 231, 193, 157, 54, 104, 155, 172, 84, 96, 101, 107, 97, 60, 94, 171, 241, 250, 152, 34, 18, 170, 39, 202, 236, 226, 58, 39, 8, 235, 60, 137, 54, 225, 50, 185, 253, 130, 197, 174, 226, 170, 75, 6, 145, 123, 87, 19];
-    let val2 = [4, 91, 65, 155, 222, 192, 210, 187, 193, 108, 232, 174, 20, 79, 248, 232, 37, 18, 63, 208, 203, 62, 54, 208, 7, 91, 109, 141, 229, 170, 181, 51, 136, 172, 143, 180, 194, 138, 138, 56, 67, 243, 7, 60, 218, 164, 12, 148, 63, 116, 115, 127, 192, 206, 164, 169, 95, 135, 119, 138, 255, 172, 115, 129, 144];
-    let val3 = [4, 248, 192, 175, 198, 228, 250, 20, 158, 23, 251, 176, 244, 208, 150, 71, 151, 27, 208, 22, 41, 30, 154, 198, 109, 10, 112, 142, 200, 47, 200, 213, 210, 172, 135, 141, 129, 183, 211, 241, 211, 127, 16, 19, 67, 159, 195, 235, 88, 164, 223, 47, 128, 47, 147, 28, 121, 28, 93, 129, 176, 144, 52, 243, 55];
+    let val1 = bytesn!(&ctx.env, 0x04deca512d5cb87673b23ab10c3e3572e30a2b5dc78cd500bf84bf066275c0bb320cb6cd266aa179b41323b5a18ab4a170248ed89b436b5559bab38c816ce12209);
+    let val2 = bytesn!(&ctx.env, 0x04f9379b2955d759a9532f8daa0c4a25da0ae706dd057de02af7754adb4b956ec9b8bf7a8a5a6686bc74dff736442a874c6bae5dcbcdb7113e24fbfa2337c63a01);
+    let val3 = bytesn!(&ctx.env, 0x041d7fa5b41fe40ae85130c4cc334f7852c25c19e7f326a916d49f6b9c3f35a1216bf53c805d177c28f7bedc2d2521cb0f13dc832ef689797965274d26df50cd0f);
+    let val4 = bytesn!(&ctx.env, 0x041d7fa5b41fe40ae85130c4cc334f7852c25c19e7f326a916d49f6b9c3f35a1216bf53c805d177c28f7bedc2d2521cb0f13dc832ef689797965274d26df50cd0f);
 
     let mut validators = Vec::new(&ctx.env);
-    validators.push_back(BytesN::from_array(&ctx.env, &val1));
-    validators.push_back(BytesN::from_array(&ctx.env, &val2));
-    validators.push_back(BytesN::from_array(&ctx.env, &val3));
-    client.update_validators(&validators, &1_u32);
+    validators.push_back(val1);
+    validators.push_back(val2);
+    validators.push_back(val3);
+    validators.push_back(val4);
+    client.update_validators(&validators, &2_u32);
 
-    let conn_sn = 456456_u128;
+    let conn_sn = 128_u128;
     let msg = Bytes::from_array(&ctx.env,&[104, 101, 108, 108, 111]);
     let src_network = String::from_str(&ctx.env, "0x2.icon");
 
     let mut signatures = Vec::new(&ctx.env);
-    signatures.push_back(BytesN::from_array(&ctx.env, &[35, 247, 49, 199, 251, 53, 83, 51, 115, 148, 35, 48, 85, 203, 185, 236, 5, 171, 221, 29, 247, 203, 190, 195, 208, 218, 204, 237, 88, 191, 91, 75, 48, 87, 108, 161, 75, 234, 147, 234, 65, 134, 233, 32, 249, 159, 43, 159, 86, 211, 1, 117, 176, 167, 53, 99, 34, 243, 165, 215, 93, 232, 67, 184, 27]));
+    signatures.push_back(bytesn!(&ctx.env, 0x660d542b3f6de9cd08f238fd44133eeebfea290b21dae7322a63b516c57b8df12c4c0a340b60ed567c8da53578346c212b27b797eb42a75fb4b7076c567a6ff91c));
+    signatures.push_back(bytesn!(&ctx.env, 0x8024de4c7b003df96bb699cfaa1bfb8a682787cd0853f555d48494c65c766f8104804848095890a9a6d15946da52dafb18e5c1d0dbe7f33fc7a5fa5cf8b1f6e21c));
 
     client.recv_message_with_signatures(&src_network, &conn_sn, &msg, &signatures);
 }
@@ -465,22 +472,24 @@ fn test_receive_message_less_signatures() {
 
     ctx.init_context(&client);
 
-    let val1 = [4, 174, 54, 168, 191, 216, 207, 101, 134, 243, 76, 104, 133, 40, 137, 72, 53, 245, 231, 193, 157, 54, 104, 155, 172, 84, 96, 101, 107, 97, 60, 94, 171, 241, 250, 152, 34, 18, 170, 39, 202, 236, 226, 58, 39, 8, 235, 60, 137, 54, 225, 50, 185, 253, 130, 197, 174, 226, 170, 75, 6, 145, 123, 87, 19];
-    let val2 = [4, 91, 65, 155, 222, 192, 210, 187, 193, 108, 232, 174, 20, 79, 248, 232, 37, 18, 63, 208, 203, 62, 54, 208, 7, 91, 109, 141, 229, 170, 181, 51, 136, 172, 143, 180, 194, 138, 138, 56, 67, 243, 7, 60, 218, 164, 12, 148, 63, 116, 115, 127, 192, 206, 164, 169, 95, 135, 119, 138, 255, 172, 115, 129, 144];
-    let val3 = [4, 248, 192, 175, 198, 228, 250, 20, 158, 23, 251, 176, 244, 208, 150, 71, 151, 27, 208, 22, 41, 30, 154, 198, 109, 10, 112, 142, 200, 47, 200, 213, 210, 172, 135, 141, 129, 183, 211, 241, 211, 127, 16, 19, 67, 159, 195, 235, 88, 164, 223, 47, 128, 47, 147, 28, 121, 28, 93, 129, 176, 144, 52, 243, 55];
+    let val1 = bytesn!(&ctx.env, 0x04deca512d5cb87673b23ab10c3e3572e30a2b5dc78cd500bf84bf066275c0bb320cb6cd266aa179b41323b5a18ab4a170248ed89b436b5559bab38c816ce12209);
+    let val2 = bytesn!(&ctx.env, 0x04f9379b2955d759a9532f8daa0c4a25da0ae706dd057de02af7754adb4b956ec9b8bf7a8a5a6686bc74dff736442a874c6bae5dcbcdb7113e24fbfa2337c63a01);
+    let val3 = bytesn!(&ctx.env, 0x041d7fa5b41fe40ae85130c4cc334f7852c25c19e7f326a916d49f6b9c3f35a1216bf53c805d177c28f7bedc2d2521cb0f13dc832ef689797965274d26df50cd0f);
+    let val4 = bytesn!(&ctx.env, 0x041d7fa5b41fe40ae85130c4cc334f7852c25c19e7f326a916d49f6b9c3f35a1216bf53c805d177c28f7bedc2d2521cb0f13dc832ef689797965274d26df50cd0f);
 
     let mut validators = Vec::new(&ctx.env);
-    validators.push_back(BytesN::from_array(&ctx.env, &val1));
-    validators.push_back(BytesN::from_array(&ctx.env, &val2));
-    validators.push_back(BytesN::from_array(&ctx.env, &val3));
+    validators.push_back(val1);
+    validators.push_back(val2);
+    validators.push_back(val3);
+    validators.push_back(val4);
     client.update_validators(&validators, &2_u32);
 
-    let conn_sn = 456456_u128;
+    let conn_sn = 128_u128;
     let msg = Bytes::from_array(&ctx.env,&[104, 101, 108, 108, 111]);
     let src_network = String::from_str(&ctx.env, "0x2.icon");
 
     let mut signatures = Vec::new(&ctx.env);
-    signatures.push_back(BytesN::from_array(&ctx.env, &[35, 247, 49, 199, 251, 53, 83, 51, 115, 148, 35, 48, 85, 203, 185, 236, 5, 171, 221, 29, 247, 203, 190, 195, 208, 218, 204, 237, 88, 191, 91, 75, 48, 87, 108, 161, 75, 234, 147, 234, 65, 134, 233, 32, 249, 159, 43, 159, 86, 211, 1, 117, 176, 167, 53, 99, 34, 243, 165, 215, 93, 232, 67, 184, 27]));
+    signatures.push_back(bytesn!(&ctx.env, 0x660d542b3f6de9cd08f238fd44133eeebfea290b21dae7322a63b516c57b8df12c4c0a340b60ed567c8da53578346c212b27b797eb42a75fb4b7076c567a6ff91c));
 
     client.recv_message_with_signatures(&src_network, &conn_sn, &msg, &signatures);
 }
@@ -493,22 +502,25 @@ fn test_receive_message_with_invalid_signature() {
 
     ctx.init_context(&client);
 
-    let val1 = [4, 174, 54, 168, 191, 216, 207, 101, 134, 243, 76, 104, 133, 40, 137, 72, 53, 245, 231, 193, 157, 54, 104, 155, 172, 84, 96, 101, 107, 97, 60, 94, 171, 241, 250, 152, 34, 18, 170, 39, 202, 236, 226, 58, 39, 8, 235, 60, 137, 54, 225, 50, 185, 253, 130, 197, 174, 226, 170, 75, 6, 145, 123, 87, 19];
-    let val2 = [4, 91, 65, 155, 222, 192, 210, 187, 193, 108, 232, 174, 20, 79, 248, 232, 37, 18, 63, 208, 203, 62, 54, 208, 7, 91, 109, 141, 229, 170, 181, 51, 136, 172, 143, 180, 194, 138, 138, 56, 67, 243, 7, 60, 218, 164, 12, 148, 63, 116, 115, 127, 192, 206, 164, 169, 95, 135, 119, 138, 255, 172, 115, 129, 144];
-    let val3 = [4, 248, 192, 175, 198, 228, 250, 20, 158, 23, 251, 176, 244, 208, 150, 71, 151, 27, 208, 22, 41, 30, 154, 198, 109, 10, 112, 142, 200, 47, 200, 213, 210, 172, 135, 141, 129, 183, 211, 241, 211, 127, 16, 19, 67, 159, 195, 235, 88, 164, 223, 47, 128, 47, 147, 28, 121, 28, 93, 129, 176, 144, 52, 243, 55];
+    let val1 = bytesn!(&ctx.env, 0x04deca512d5cb87673b23ab10c3e3572e30a2b5dc78cd500bf84bf066275c0bb320cb6cd266aa179b41323b5a18ab4a170248ed89b436b5559bab38c816ce12209);
+    let val2 = bytesn!(&ctx.env, 0x04f9379b2955d759a9532f8daa0c4a25da0ae706dd057de02af7754adb4b956ec9b8bf7a8a5a6686bc74dff736442a874c6bae5dcbcdb7113e24fbfa2337c63a01);
+    let val3 = bytesn!(&ctx.env, 0x041d7fa5b41fe40ae85130c4cc334f7852c25c19e7f326a916d49f6b9c3f35a1216bf53c805d177c28f7bedc2d2521cb0f13dc832ef689797965274d26df50cd0f);
+    let val4 = bytesn!(&ctx.env, 0x041d7fa5b41fe40ae85130c4cc334f7852c25c19e7f326a916d49f6b9c3f35a1216bf53c805d177c28f7bedc2d2521cb0f13dc832ef689797965274d26df50cd0f);
 
     let mut validators = Vec::new(&ctx.env);
-    validators.push_back(BytesN::from_array(&ctx.env, &val1));
-    validators.push_back(BytesN::from_array(&ctx.env, &val2));
-    validators.push_back(BytesN::from_array(&ctx.env, &val3));
-    client.update_validators(&validators, &1_u32);
+    validators.push_back(val1);
+    validators.push_back(val2);
+    validators.push_back(val3);
+    validators.push_back(val4);
+    client.update_validators(&validators, &2_u32);
 
     let conn_sn = 456456_u128;
     let msg = Bytes::from_array(&ctx.env,&[104, 100, 108, 108, 111]);
     let src_network = String::from_str(&ctx.env, "0x2.icon");
 
     let mut signatures = Vec::new(&ctx.env);
-    signatures.push_back(BytesN::from_array(&ctx.env, &[35, 247, 49, 199, 251, 53, 83, 51, 115, 148, 35, 48, 85, 203, 185, 236, 5, 171, 221, 29, 247, 203, 190, 195, 208, 218, 204, 237, 88, 191, 91, 75, 48, 87, 108, 161, 75, 234, 147, 234, 65, 134, 233, 32, 249, 159, 43, 159, 86, 211, 1, 117, 176, 167, 53, 99, 34, 243, 165, 215, 93, 232, 67, 184, 27]));
+    signatures.push_back(bytesn!(&ctx.env, 0x660d542b3f6de9cd08f238fd44133eeebfea290b21dae7322a63b516c57b8df12c4c0a340b60ed567c8da53578346c212b27b797eb42a75fb4b7076c567a6ff91c));
+    signatures.push_back(bytesn!(&ctx.env, 0x660d542b3f6de9cd08f238fd44133eeebfea290b21dae7322a63b516c57b8df12c4c0a340b60ed567c8da53578346c212b27b797eb42a75fb4b7076c567a6ff91c));
 
     client.recv_message_with_signatures(&src_network, &conn_sn, &msg, &signatures);
 }
