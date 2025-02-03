@@ -1,15 +1,20 @@
 use anchor_lang::{
     prelude::*,
     solana_program::{
-        hash, instruction::{AccountMeta,Instruction}, keccak::hashv, program::{get_return_data, invoke, invoke_signed}, secp256k1_recover::secp256k1_recover, system_instruction
+        hash,
+        instruction::{AccountMeta, Instruction},
+        keccak::hashv,
+        program::{get_return_data, invoke, invoke_signed},
+        secp256k1_recover::secp256k1_recover,
+        system_instruction,
     },
 };
 
 use crate::contexts::*;
-use crate::state::*;
 use crate::error::*;
+use crate::state::*;
 
-use xcall_lib::{network_address:: NetworkAddress, xcall_type};
+use xcall_lib::{network_address::NetworkAddress, xcall_type};
 
 pub const GET_NETWORK_ADDRESS: &str = "get_network_address";
 
@@ -41,7 +46,12 @@ pub fn get_instruction_data(ix_name: &str, data: Vec<u8>) -> Vec<u8> {
     ix_data
 }
 
-pub fn get_message_hash(from_nid: &String, connection_sn: &u128, message: &Vec<u8>, dst_nid: &String) -> [u8; 32] {
+pub fn get_message_hash(
+    from_nid: &String,
+    connection_sn: &u128,
+    message: &Vec<u8>,
+    dst_nid: &String,
+) -> [u8; 32] {
     let mut encoded_bytes = Vec::new();
     encoded_bytes.extend(from_nid.as_bytes());
     encoded_bytes.extend(connection_sn.to_string().as_bytes());
@@ -53,20 +63,26 @@ pub fn get_message_hash(from_nid: &String, connection_sn: &u128, message: &Vec<u
     hash.to_bytes()
 }
 
-pub fn recover_pubkey(message: [u8; 32], sig: [u8; 65]) -> [u8; 64] {
+fn recover_pubkey(message: [u8; 32], sig: [u8; 65]) -> [u8; 64] {
     let recovery_id = sig[64] % 27;
     let signature = &sig[0..64];
     let recovered_pubkey = secp256k1_recover(&message, recovery_id, signature).unwrap();
     recovered_pubkey.to_bytes()
-}   
+}
 
-pub fn get_nid(xcall_config: &AccountInfo, config: &Config) -> String {
+fn get_nid<'info>(ctx: &Context<'_, '_, '_, 'info, ReceiveMessageWithSignatures<'info>>) -> String {
     let ix_data = get_instruction_data(GET_NETWORK_ADDRESS, vec![]);
-    let account_metas = vec![AccountMeta::new(xcall_config.key(), false)];
-    let account_infos = vec![xcall_config.to_account_info()];
+    let account_metas = vec![AccountMeta::new_readonly(
+        ctx.remaining_accounts[1].key(),
+        false,
+    )];
+    let mut account_infos = vec![];
+    for i in ctx.remaining_accounts {
+        account_infos.push(i.to_account_info());
+    }
 
     let ix = Instruction {
-        program_id: config.xcall,
+        program_id: ctx.accounts.config.xcall,
         accounts: account_metas,
         data: ix_data,
     };
@@ -75,6 +91,30 @@ pub fn get_nid(xcall_config: &AccountInfo, config: &Config) -> String {
 
     let network_address = NetworkAddress::try_from_slice(&get_return_data().unwrap().1).unwrap();
     return network_address.nid().to_string();  
+}
+
+fn verify_signatures(
+    from_nid: String,
+    conn_sn: u128,
+    message: Vec<u8>,
+    dst_nid: String,
+    signatures: Vec<[u8; 65]>,
+    config: &Config,
+) -> bool {
+    let message_hash = get_message_hash(&from_nid, &conn_sn, &message, &dst_nid);
+    let mut unique_validators = Vec::new();
+    for sig in signatures {
+        let pubkey = recover_pubkey(message_hash, sig);
+        if !unique_validators.contains(&pubkey) && config.is_validator(&pubkey) {
+            unique_validators.push(pubkey);
+        }
+    }
+
+    if (unique_validators.len() as u8) < config.threshold {
+        return false;
+    }
+
+    return true;
 }
 
 pub fn call_xcall_handle_message_with_signatures<'info>(
@@ -86,20 +126,16 @@ pub fn call_xcall_handle_message_with_signatures<'info>(
     signatures: Vec<[u8; 65]>,
 ) -> Result<()> {
     let mut data = vec![];
-    let dst_nid = get_nid(&ctx.remaining_accounts[1], &ctx.accounts.config);
-    let message_hash = get_message_hash(&from_nid, &conn_sn, &message, &dst_nid);
-    let mut unique_validators = Vec::new();
-    for sig in signatures {
-        let pubkey = recover_pubkey(message_hash, sig);
-        if !unique_validators.contains(&pubkey) && ctx.accounts.config.is_validator(&pubkey) {
-            unique_validators.push(pubkey);
-        } 
-        if (unique_validators.len() as u8) >= ctx.accounts.config.threshold {
-            break;
-        }
-    }
+    let dst_nid = get_nid(&ctx);
 
-    if (unique_validators.len() as u8) < ctx.accounts.config.threshold {
+    if !verify_signatures(
+        from_nid.clone(),
+        conn_sn.clone(),
+        message.clone(),
+        dst_nid,
+        signatures,
+        &ctx.accounts.config,
+    ) {
         return Err(ConnectionError::ValidatorsMustBeGreaterThanThreshold.into());
     }
 
@@ -184,19 +220,86 @@ pub fn invoke_instruction<'info>(
     Ok(())
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
 
+    fn hex_decode<const N: usize>(s: &str) -> (Vec<u8>, [u8; N]) {
+        let mut bytes = Vec::new();
+        let mut i = 0;
+        while i < s.len() {
+            bytes.push(u8::from_str_radix(&s[i..i + 2], 16).unwrap());
+            i += 2;
+        }
+        (bytes.clone(), bytes.try_into().unwrap_or_else(|_| [0; N]))
+    }
 
-#[test]
-fn test_recover_pubkey() {
-    let from_nid = "0x2.icon";
-    let connection_sn = 128;
-    let message = b"hello";
-    let dst_nid = "archway";
+    fn config() -> Config {
+        Config::new(Pubkey::default(), Pubkey::default(), Pubkey::default(), 0)
+    }
 
-    let message_hash = get_message_hash(&from_nid.to_string(), &connection_sn, &message.to_vec(), &dst_nid.to_string());   
+    #[test]
+    fn test_recover_pubkey() {
+        let from_nid = "0x2.icon";
+        let connection_sn = 128;
+        let message = b"hello";
+        let dst_nid = "archway";
 
-    let signature = [102,13,84,43,63,109,233,205,8,242,56,253,68,19,62,238,191,234,41,11,33,218,231,50,42,99,181,22,197,123,141,241,44,76,10,52,11,96,237,86,124,141,165,53,120,52,108,33,43,39,183,151,235,66,167,95,180,183,7,108,86,122,111,249,28];
-    let pubkey = recover_pubkey(message_hash, signature);
-    print!("pubkey: {:?}", pubkey);
-    assert_eq!(pubkey, [222,202,81,45,92,184,118,115,178,58,177,12,62,53,114,227,10,43,93,199,140,213,0,191,132,191,6,98,117,192,187,50,12,182,205,38,106,161,121,180,19,35,181,161,138,180,161,112,36,142,216,155,67,107,85,89,186,179,140,129,108,225,34,9] );
+        let message_hash = get_message_hash(
+            &from_nid.to_string(),
+            &connection_sn,
+            &message.to_vec(),
+            &dst_nid.to_string(),
+        );
+
+        let signature = hex_decode::<65>("660d542b3f6de9cd08f238fd44133eeebfea290b21dae7322a63b516c57b8df12c4c0a340b60ed567c8da53578346c212b27b797eb42a75fb4b7076c567a6ff91c").1;
+        let pubkey = recover_pubkey(message_hash, signature);
+        assert_eq!(
+            pubkey,
+            hex_decode::<64>("deca512d5cb87673b23ab10c3e3572e30a2b5dc78cd500bf84bf066275c0bb320cb6cd266aa179b41323b5a18ab4a170248ed89b436b5559bab38c816ce12209").1
+        );
+    }
+
+    #[test]
+    fn test_verify_signatures() {
+        let from_nid = "0x2.icon".to_string();
+        let conn_sn = 51;
+        let message = hex_decode::<0>("c90287c682013101f800").0;
+        let dst_nid = "solana-test".to_string();
+
+        let val1: [u8; 65] = hex_decode::<65>("046bc928ee4932efd619ec4c00e0591e932cf2cfef13a59f6027da1c6cba36b35d91238b54aece19825025a9c7cb0bc58a60d5c49e7fc8e5b39fcc4c2193f5feb2").1;
+        let signature: [u8; 65] = hex_decode::<65>("d28833bb4d03232378db9f3f9df8f53f11cb65a6b534aeb1a8792b4a01955ad17befde34e5195fae99a9b4c1ac76eb7ba95178af466ab357930603c0fc96a04e00").1;
+        let signatures = vec![signature];
+        let threshold = 1;
+
+        let mut config = config();
+        config.validators.push(val1);
+        config.threshold = threshold;
+
+        assert!(verify_signatures(
+            from_nid, conn_sn, message, dst_nid, signatures, &config
+        ));
+    }
+
+    #[test]
+    fn test_verify_signatures_fail() {
+        let from_nid = "0x2.icon".to_string();
+        let conn_sn = 51;
+        let message = hex_decode::<0>("c90287c682013101f800").0;
+        let dst_nid = "solana-test".to_string();
+
+        let val1: [u8; 65] = hex_decode::<65>("04deca512d5cb87673b23ab10c3e3572e30a2b5dc78cd500bf84bf066275c0bb320cb6cd266aa179b41323b5a18ab4a170248ed89b436b5559bab38c816ce12209").1;
+        let val2: [u8; 65] = hex_decode::<65>("04f9379b2955d759a9532f8daa0c4a25da0ae706dd057de02af7754adb4b956ec9b8bf7a8a5a6686bc74dff736442a874c6bae5dcbcdb7113e24fbfa2337c63a01").1;
+
+        let signatures  = vec![hex_decode::<65>("d28833bb4d03232378db9f3f9df8f53f11cb65a6b534aeb1a8792b4a01955ad17befde34e5195fae99a9b4c1ac76eb7ba95178af466ab357930603c0fc96a04e00").1, 
+        hex_decode::<65>("d28833bb4d03232378db9f3f9df8f53f11cb65a6b534aeb1a8792b4a01955ad17befde34e5195fae99a9b4c1ac76eb7ba95178af466ab357930603c0fc96a04e00").1];
+
+        let mut config = config();
+        config.validators = vec![val1, val2];
+        config.threshold = 1;
+
+        assert!(!verify_signatures(
+            from_nid, conn_sn, message, dst_nid, signatures, &config
+        ));
+    }
 }
