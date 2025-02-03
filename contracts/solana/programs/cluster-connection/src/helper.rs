@@ -90,7 +90,7 @@ fn get_nid<'info>(ctx: &Context<'_, '_, '_, 'info, ReceiveMessageWithSignatures<
     invoke(&ix, &account_infos).unwrap();
 
     let network_address = NetworkAddress::try_from_slice(&get_return_data().unwrap().1).unwrap();
-    return network_address.nid().to_string();
+    return network_address.nid().to_string();  
 }
 
 fn verify_signatures(
