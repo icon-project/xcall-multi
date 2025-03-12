@@ -54,7 +54,7 @@ module xcall::main {
     const EInvalidConnectionId:u64 =15;
 
     const MAX_DATA_SIZE: u64 = 2048;
-    const CURRENT_VERSION: u64 = 3;
+    const CURRENT_VERSION: u64 = 4;
 
     /*************Events*****************/
 
@@ -568,6 +568,11 @@ module xcall::main {
     entry fun verify_success(self:&mut Storage,sn:u128,ctx: &mut TxContext){
         self.enforce_version(CURRENT_VERSION);
         xcall_state::get_successful_responses(self, sn);
+    }
+
+    entry fun reset_successful_responses(self:&mut Storage, admin: &UpgradeCap){
+        self.enforce_version(CURRENT_VERSION);
+        xcall_state::reset_successful_responses(self);
     }
 
     entry fun migrate(self: &mut Storage, owner:&UpgradeCap) {
