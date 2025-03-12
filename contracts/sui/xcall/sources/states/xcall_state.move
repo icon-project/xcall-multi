@@ -350,6 +350,10 @@ module xcall::xcall_state {
         vec_map::contains(&self.successful_responses, &sequence_no)
     }
 
+    public(package) fun reset_successful_responses(self: &mut Storage) {
+        self.successful_responses = vec_map::empty<u128, bool>();
+    }
+
     public(package) fun get_next_request_id(self: &mut Storage): u128 {
         let id = self.request_id + 1;
         self.request_id = id;
