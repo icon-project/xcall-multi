@@ -6,12 +6,11 @@ module xcall::cluster_entry{
   use xcall::xcall_utils::{Self as utils};
   use std::string::{String};
 
-  entry public fun receive_message(xcall:&mut XCallState,cap:&ConnCap,src_net_id:String,sn:u128,msg:vector<u8>,ctx: &mut TxContext){
-      let state=get_state_mut(xcall_state::get_connection_states_mut(xcall),cap.connection_id());
-      cluster_state::check_save_receipt(state, src_net_id, sn);
-      xcall::handle_message(xcall, cap,src_net_id, msg,ctx);
-  }
+  const MethodNotSupportedAnymore: u64 = 404;
 
+  entry public fun receive_message(xcall:&mut XCallState,cap:&ConnCap,src_net_id:String,sn:u128,msg:vector<u8>,ctx: &mut TxContext){
+      assert(false, MethodNotSupportedAnymore);
+  }
 
   entry fun claim_fees(xcall:&mut XCallState,cap:&ConnCap,ctx: &mut TxContext){
       let state=get_state_mut(xcall_state::get_connection_states_mut(xcall),cap.connection_id());
