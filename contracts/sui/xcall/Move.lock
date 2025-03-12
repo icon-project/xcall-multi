@@ -2,7 +2,7 @@
 
 [move]
 version = 0
-manifest_digest = "48E6880C67A3F4AF9998BC3E044DD46426D7456B73805C0D8C3B3B35A3954F3B"
+manifest_digest = "7C0EE476C0A026BB4A0AD47A3A7047E6F339DEFB27B6FEC6D4F690FF71F5AD71"
 deps_digest = "3C4103934B1E040BB6B23F1D610B4EF9F2F1166A50A104EADCF77467C004C600"
 
 dependencies = [
@@ -46,5 +46,5 @@ published-version = "1"
 [env.mainnet]
 chain-id = "35834a8a"
 original-published-id = "0x1c53e2304b957a2dc6facccc53d2dd3c2e08066614ea05a5c0af14d72ac496e3"
-latest-published-id = "0x62dfbb0b3ce73d3842d3a39296759247281328be54746db9fd86306086cddc2f"
-published-version = "4"
+latest-published-id = "0x2a815e1bb7e88902ae74b95d7a98a5b04d55a7cb282fcf104f9ff2c0465f6976"
+published-version = "5"
