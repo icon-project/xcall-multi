@@ -1,5 +1,6 @@
 module xcall::centralized_entry{
 
+  use sui::package::UpgradeCap;
   use xcall::main::{Self as xcall};
   use xcall::xcall_state::{Self,Storage as XCallState,ConnCap};
   use xcall::centralized_state::{Self,get_state,get_state_mut};
@@ -20,6 +21,12 @@ module xcall::centralized_entry{
   entry fun set_fee(xcall:&mut XCallState,cap:&ConnCap,net_id:String,message_fee:u64,response_fee:u64, ctx: &TxContext){
       let state=get_state_mut(xcall_state::get_connection_states_mut(xcall),cap.connection_id());
       centralized_state::set_fee(state,net_id,message_fee,response_fee,ctx.sender());
+  }
+
+  entry fun reset_receipts(xcall:&mut XCallState,upgrade_cap:&UpgradeCap,connection_id:String,ctx: &mut TxContext){
+      let states=xcall_state::get_connection_states_mut(xcall);
+      let state = get_state_mut(states,connection_id);
+      centralized_state::reset_receipt(state);
   }
 
   entry fun get_receipt(states: &XCallState,connection_id:String,net_id:String,sn:u128,_ctx: &TxContext):bool{
