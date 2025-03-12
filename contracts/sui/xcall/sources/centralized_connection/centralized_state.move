@@ -74,6 +74,7 @@ module xcall::centralized_state {
     public(package) fun check_save_receipt(self: &mut State, net_id: String, sn: u128) {
         let receipt_key = ReceiptKey { nid: net_id, conn_sn: sn };
         let (oldest_key, value) = self.receipts.get_entry_by_idx(0);
+        //this prevents icon older packages only, other chains will proceed without this check
         assert!(net_id!=oldest_key.nid || sn>oldest_key.conn_sn,90);
         assert!(!vec_map::contains(&self.receipts, &receipt_key), 100);
         vec_map::insert(&mut self.receipts, receipt_key, true);
