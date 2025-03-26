@@ -1,5 +1,5 @@
 [addresses]
-  xcall = '0x2a815e1bb7e88902ae74b95d7a98a5b04d55a7cb282fcf104f9ff2c0465f6976'
+  xcall = '0x1c53e2304b957a2dc6facccc53d2dd3c2e08066614ea05a5c0af14d72ac496e3'
 
 [dependencies]
   [dependencies.Sui]
