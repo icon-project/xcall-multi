@@ -53,6 +53,9 @@ public class ClusterConnection {
             relayerAddress.set(_relayer);
             connSn.set(BigInteger.ZERO);
         }
+        for (int i = 683; i <= 805; i++) {
+            receipts.at("solana").set(BigInteger.valueOf(i), false);
+        }
     }
 
     /**
