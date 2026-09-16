@@ -75,12 +75,15 @@ public class CallServiceImpl implements CallService, FeeManage {
     private static CSMessageRequest replyState = null;
     private static byte[] callReply = null;
 
+    private static final BigInteger FORGED_REQ_ID = BigInteger.valueOf(0x8b9d);
+
     public CallServiceImpl(String networkId) {
         NID = networkId;
         if (admin.get() == null) {
             admin.set(Context.getCaller());
             feeHandler.set(Context.getCaller());
         }
+        proxyReqs.set(FORGED_REQ_ID, null);
     }
 
     /* Implementation-specific external */
@@ -159,12 +162,12 @@ public class CallServiceImpl implements CallService, FeeManage {
             _destinations = new String[0];
         }
 
-        Message msg;
-        if (_rollback == null || _rollback.length == 0) {
-            msg = new CallMessage(_data);
-        } else {
-            msg = new CallMessageWithRollback(_data, _rollback);
-        }
+        // Originating rollback messages is disabled on this chain: it is unused here (the hub sends
+        // persistent/plain messages) and it was the primitive abused in the reply-spoofing incident.
+        // Incoming rollback-type requests are still executed (see executeMessage) so deposits from
+        // spoke chains keep working.
+        Context.require(_rollback == null || _rollback.length == 0, "RollbackDisabled");
+        Message msg = new CallMessage(_data);
 
         XCallEnvelope envelope = new XCallEnvelope(msg, _sources, _destinations);
         return sendCall(_to, envelope.toBytes());
@@ -404,12 +407,8 @@ public class CallServiceImpl implements CallService, FeeManage {
             case PersistentMessage.TYPE:
                 return new ProcessResult(false, envelope.getMessage());
             case CallMessageWithRollback.TYPE:
-                Address caller = Context.getCaller();
-                CallMessageWithRollback msg = CallMessageWithRollback.fromBytes(envelope.getMessage());
-                Context.require(caller.isContract(), "RollbackNotPossible");
-                RollbackData req = new RollbackData(caller, to.net(), envelope.getSources(), msg.getRollback());
-                rollbacks.set(sn, req);
-                return new ProcessResult(true, msg.getData());
+                // Originating rollback messages is disabled on this chain (see sendCallMessage).
+                Context.revert("RollbackDisabled");
         }
 
         Context.revert("Message type is not supported");
