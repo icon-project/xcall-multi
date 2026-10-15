@@ -51,6 +51,7 @@ public class CallServiceImpl implements CallService, FeeManage {
     public static final String ADMIN = "admin";
     public static final String PROTOCOL_FEE = "protocolFee";
     public static final String FEE_HANDLER = "feeHandler";
+    public static final String RECEIVE_ENABLED = "receiveEnabled";
 
     private final VarDB<BigInteger> sn = Context.newVarDB(SN, BigInteger.class);
     private final VarDB<BigInteger> reqId = Context.newVarDB(REQUEST_ID, BigInteger.class);
@@ -71,6 +72,9 @@ public class CallServiceImpl implements CallService, FeeManage {
     private final VarDB<Address> admin = Context.newVarDB(ADMIN, Address.class);
     private final VarDB<BigInteger> protocolFee = Context.newVarDB(PROTOCOL_FEE, BigInteger.class);
     private final VarDB<Address> feeHandler = Context.newVarDB(FEE_HANDLER, Address.class);
+    // Per-source-network inbound switch. Receiving is DISABLED by default for every network;
+    // the admin must explicitly enable a source network before its messages are accepted.
+    private final DictDB<String, Boolean> receiveEnabled = Context.newDictDB(RECEIVE_ENABLED, Boolean.class);
 
     private static CSMessageRequest replyState = null;
     private static byte[] callReply = null;
@@ -224,6 +228,8 @@ public class CallServiceImpl implements CallService, FeeManage {
     public void handleMessage(String _fromNid, byte[] _msg) {
         CSMessage msg = CSMessage.fromBytes(_msg);
         Context.require(!_fromNid.equals(NID), "Invalid network ID");
+        // Inbound (requests and results) is rejected unless the admin has enabled this source network.
+        Context.require(receiveEnabled.getOrDefault(_fromNid, false), "ReceiveDisabled");
         switch (msg.getType()) {
             case CSMessage.REQUEST:
                 handleRequest(_fromNid, msg.getData());
@@ -252,6 +258,17 @@ public class CallServiceImpl implements CallService, FeeManage {
     public void setAdmin(Address _address) {
         checkCallerOrThrow(admin(), "OnlyAdmin");
         admin.set(_address);
+    }
+
+    @External
+    public void setReceiveEnabled(String _nid, boolean _enabled) {
+        checkCallerOrThrow(admin(), "OnlyAdmin");
+        receiveEnabled.set(_nid, _enabled);
+    }
+
+    @External(readonly = true)
+    public boolean isReceiveEnabled(String _nid) {
+        return receiveEnabled.getOrDefault(_nid, false);
     }
 
     @External

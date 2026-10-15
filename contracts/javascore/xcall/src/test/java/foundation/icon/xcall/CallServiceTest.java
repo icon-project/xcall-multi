@@ -81,6 +81,9 @@ public class CallServiceTest extends TestBase {
         xcall.setInstance(xcallSpy);
         responseContract = sm.deploy(owner, ResponseContract.class);
 
+        // Receiving is disabled by default per source network; enable the test source network
+        // so the inbound-message tests below exercise normal delivery.
+        xcall.invoke(owner, "setReceiveEnabled", ethNid, true);
     }
 
     @Test
@@ -252,6 +255,50 @@ public class CallServiceTest extends TestBase {
         CSMessage res = new CSMessage(CSMessage.RESULT, result.toBytes());
         verify(baseConnection.mock).sendMessage(eq(ethNid), eq(CallService.NAME), eq(BigInteger.ONE.negate()), aryEq(res.toBytes()));
         verify(xcallSpy, times(0)).CallMessageSent(eq(responseContract.getAddress()), anyString(), any(BigInteger.class));
+    }
+
+    @Test
+    public void setReceiveEnabled_onlyAdmin() {
+        UserRevertedException e = assertThrows(UserRevertedException.class,
+                () -> xcall.invoke(user, "setReceiveEnabled", ethNid, false));
+        assertEquals("Reverted(0): OnlyAdmin", e.getMessage());
+    }
+
+    @Test
+    public void receiveDisabledByDefault() {
+        // A source network that was never enabled is disabled by default, and inbound from it reverts.
+        byte[] data = "test".getBytes();
+        CSMessageRequest request = new CSMessageRequest("0x1.bsc/0xabc", dapp.getAddress().toString(), BigInteger.ONE, 1, data, baseSource);
+        CSMessage msg = new CSMessage(CSMessage.REQUEST, request.toBytes());
+
+        assertTrue(!xcall.call(Boolean.class, "isReceiveEnabled", "0x1.bsc"));
+        UserRevertedException e = assertThrows(UserRevertedException.class,
+                () -> xcall.invoke(baseConnection.account, "handleBTPMessage", "0x1.bsc", CallService.NAME, BigInteger.ZERO, msg.toBytes()));
+        assertEquals("Reverted(0): ReceiveDisabled", e.getMessage());
+        verify(xcallSpy, times(0)).CallMessage(anyString(), anyString(), any(BigInteger.class), any(BigInteger.class), any(byte[].class));
+    }
+
+    @Test
+    public void receiveToggle_perChain() {
+        // ethNid is enabled in setUp -> inbound works; disabling it blocks; re-enabling restores.
+        byte[] data = "test".getBytes();
+        CSMessageRequest request = new CSMessageRequest(ethDapp.toString(), dapp.getAddress().toString(), BigInteger.ONE, 1, data, baseSource);
+        CSMessage msg = new CSMessage(CSMessage.REQUEST, request.toBytes());
+
+        assertTrue(xcall.call(Boolean.class, "isReceiveEnabled", ethNid));
+        xcall.invoke(baseConnection.account, "handleBTPMessage", ethNid, CallService.NAME, BigInteger.ZERO, msg.toBytes());
+        verify(xcallSpy).CallMessage(ethDapp.toString(), dapp.getAddress().toString(), BigInteger.ONE, BigInteger.ONE, data);
+
+        // Disable ethNid -> inbound reverts
+        xcall.invoke(owner, "setReceiveEnabled", ethNid, false);
+        assertTrue(!xcall.call(Boolean.class, "isReceiveEnabled", ethNid));
+        UserRevertedException e = assertThrows(UserRevertedException.class,
+                () -> xcall.invoke(baseConnection.account, "handleBTPMessage", ethNid, CallService.NAME, BigInteger.ONE, msg.toBytes()));
+        assertEquals("Reverted(0): ReceiveDisabled", e.getMessage());
+
+        // Re-enable
+        xcall.invoke(owner, "setReceiveEnabled", ethNid, true);
+        assertTrue(xcall.call(Boolean.class, "isReceiveEnabled", ethNid));
     }
 
     @Test
