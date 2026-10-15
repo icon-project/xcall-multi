@@ -27,6 +27,7 @@ import com.iconloop.score.test.ServiceManager;
 import com.iconloop.score.test.TestBase;
 
 import score.Address;
+import foundation.icon.xcall.messages.CallMessage;
 import foundation.icon.xcall.messages.CallMessageWithRollback;
 import foundation.icon.xcall.messages.Message;
 import foundation.icon.xcall.messages.PersistentMessage;
@@ -227,6 +228,8 @@ public class CallServiceTest extends TestBase {
 
     @Test
     public void sendMessage_response_twoWayMessage() {
+        // Rollback origination is disabled, so a dapp can no longer reply with a rollback message during
+        // execution. The reply attempt reverts, the call is marked failed, and a FAILURE result is returned.
         // Arrange
         xcall.invoke(owner, "setDefaultConnection", ethDapp.net(), baseConnection.getAddress());
 
@@ -238,21 +241,17 @@ public class CallServiceTest extends TestBase {
         CSMessage msg = new CSMessage(CSMessage.REQUEST, request.toBytes());
         xcall.invoke(baseConnection.account, "handleMessage", ethNid, msg.toBytes());
 
-        CSMessageRequest expectedRequest = new CSMessageRequest(new NetworkAddress(nid, responseContract.getAddress()).toString(),  ethDapp.account, BigInteger.ONE, CallMessageWithRollback.TYPE, data2, baseDestination);
-
         ResponseContract.to = ethDapp.toString();
         ResponseContract.data = envelope.toBytes();
 
         // Act
         xcall.invoke(user, "executeCall", BigInteger.ONE, data1);
 
-        // Assert
-        CSMessageResult result = new CSMessageResult(BigInteger.ONE, CSMessageResult.SUCCESS, null);
+        // Assert: reply-with-rollback rejected -> FAILURE result, no outgoing request, no CallMessageSent
+        CSMessageResult result = new CSMessageResult(BigInteger.ONE, CSMessageResult.FAILURE, null);
         CSMessage res = new CSMessage(CSMessage.RESULT, result.toBytes());
-        CSMessage req = new CSMessage(CSMessage.REQUEST, expectedRequest.toBytes());
         verify(baseConnection.mock).sendMessage(eq(ethNid), eq(CallService.NAME), eq(BigInteger.ONE.negate()), aryEq(res.toBytes()));
-        verify(baseConnection.mock).sendMessage(eq(ethNid), eq(CallService.NAME), eq(BigInteger.ONE), aryEq(req.toBytes()));
-        verify(xcallSpy).CallMessageSent(responseContract.getAddress(), ResponseContract.to, BigInteger.ONE);
+        verify(xcallSpy, times(0)).CallMessageSent(eq(responseContract.getAddress()), anyString(), any(BigInteger.class));
     }
 
     @Test
@@ -351,7 +350,7 @@ public class CallServiceTest extends TestBase {
     }
 
     @Test
-    public void handleResult_evmEncoding() {
+    public void handleResult_evmEncoding() throws Exception {
         // Arrange
         xcall.invoke(owner, "setDefaultConnection", ethDapp.net(), baseConnection.getAddress());
 
@@ -359,7 +358,7 @@ public class CallServiceTest extends TestBase {
         CSMessageResult result = new CSMessageResult(BigInteger.ONE, CSMessageResult.SUCCESS, new byte[0]);
         CSMessage msg = new CSMessage(CSMessage.RESULT, result.toBytes());
 
-        xcall.invoke(dapp.account, "sendCallMessage", ethDapp.toString(), data, data, baseSource, baseDestination);
+        seedRollback(BigInteger.ONE, dapp.getAddress(), baseSource, data);
 
         // Act
         xcall.invoke(baseConnection.account, "handleMessage", ethNid, msg.toBytes());
@@ -369,7 +368,7 @@ public class CallServiceTest extends TestBase {
     }
 
     @Test
-    public void handleReply() {
+    public void handleReply() throws Exception {
         // Arrange
         xcall.invoke(owner, "setDefaultConnection", ethDapp.net(), baseConnection.getAddress());
 
@@ -378,7 +377,7 @@ public class CallServiceTest extends TestBase {
         CSMessageResult result = new CSMessageResult(BigInteger.ONE, CSMessageResult.SUCCESS, request.toBytes());
         CSMessage msg = new CSMessage(CSMessage.RESULT, result.toBytes());
 
-        xcall.invoke(dapp.account, "sendCallMessage", ethDapp.toString(), data, data, baseSource, baseDestination);
+        seedRollback(BigInteger.ONE, dapp.getAddress(), baseSource, data);
 
         // Act
         xcall.invoke(baseConnection.account, "handleMessage", ethNid, msg.toBytes());
@@ -389,7 +388,7 @@ public class CallServiceTest extends TestBase {
     }
 
     @Test
-    public void handleReply_invalidTo() {
+    public void handleReply_invalidTo() throws Exception {
         // Arrange
         xcall.invoke(owner, "setDefaultConnection", ethDapp.net(), baseConnection.getAddress());
 
@@ -398,7 +397,7 @@ public class CallServiceTest extends TestBase {
         CSMessageResult result = new CSMessageResult(BigInteger.ONE, CSMessageResult.SUCCESS, request.toBytes());
         CSMessage msg = new CSMessage(CSMessage.RESULT, result.toBytes());
 
-        xcall.invoke(dapp.account, "sendCallMessage", ethDapp.toString(), data, data, baseSource, baseDestination);
+        seedRollback(BigInteger.ONE, dapp.getAddress(), baseSource, data);
 
         // Act
         Executable handleMessage = () -> xcall.invoke(baseConnection.account, "handleMessage", ethNid, msg.toBytes());
@@ -406,6 +405,49 @@ public class CallServiceTest extends TestBase {
         // Assert
         Exception e = assertThrows(Exception.class, handleMessage);
         assertEquals("Reverted(0): Invalid Reply", e.getMessage());
+    }
+
+    @Test
+    public void sendCallMessage_rollbackDisabled() {
+        // Originating rollback messages is disabled on this chain.
+        byte[] data = "test".getBytes();
+        byte[] rollback = "rollback".getBytes();
+        UserRevertedException e = assertThrows(UserRevertedException.class,
+                () -> xcall.invoke(dapp.account, "sendCallMessage", ethDapp.toString(), data, rollback, baseSource, baseDestination));
+        assertEquals("Reverted(0): RollbackDisabled", e.getMessage());
+    }
+
+    @Test
+    public void sendCall_rollbackEnvelopeDisabled() {
+        // A rollback envelope passed directly to sendCall is rejected in preProcessMessage.
+        byte[] data = "test".getBytes();
+        Message message = new CallMessageWithRollback(data, data);
+        XCallEnvelope envelope = new XCallEnvelope(message, baseSource, baseDestination);
+        UserRevertedException e = assertThrows(UserRevertedException.class,
+                () -> xcall.invoke(dapp.account, "sendCall", ethDapp.toString(), envelope.toBytes()));
+        assertEquals("Reverted(0): RollbackDisabled", e.getMessage());
+    }
+
+    // Rollback origination is disabled on javascore, so rollback state can no longer be created via
+    // sendCallMessage. Tests that exercise the retained receive-side handling (handleResult / handleReply /
+    // executeRollback) seed the rollback entry directly, replicating what preProcessMessage used to store.
+    private void seedRollback(BigInteger sn, Address from, String[] protocols, byte[] rollback) throws Exception {
+        RollbackData rb = new RollbackData(from, ethDapp.net(), protocols, rollback);
+        writeStorage("rollbacks", sn, rb);
+    }
+
+    // Writes directly to contract storage to simulate state left behind before the fix.
+    // Storage can only be written inside a contract call, so piggyback on an admin call.
+    @SuppressWarnings("unchecked")
+    private <V> void writeStorage(String field, BigInteger key, V value) throws Exception {
+        java.lang.reflect.Field f = CallServiceImpl.class.getDeclaredField(field);
+        f.setAccessible(true);
+        score.DictDB<BigInteger, V> db = (score.DictDB<BigInteger, V>) f.get(xcallSpy);
+        org.mockito.Mockito.doAnswer(invocation -> {
+            db.set(key, value);
+            return null;
+        }).when(xcallSpy).setProtocolFeeHandler(any());
+        xcall.invoke(owner, "setProtocolFeeHandler", owner.getAddress());
     }
 
     @Test
@@ -575,7 +617,7 @@ public class CallServiceTest extends TestBase {
         CSMessageResult result = new CSMessageResult(BigInteger.ONE, CSMessageResult.SUCCESS, request.toBytes());
         CSMessage msg = new CSMessage(CSMessage.RESULT, result.toBytes());
 
-        xcall.invoke(dapp.account, "sendCallMessage", ethDapp.toString(), data, data, baseSource, baseDestination);
+        seedRollback(BigInteger.ONE, defaultDapp.getAddress(), baseSource, data);
         xcall.invoke(baseConnection.account, "handleMessage", ethNid, msg.toBytes());
 
         // Act
@@ -589,11 +631,11 @@ public class CallServiceTest extends TestBase {
     }
 
     @Test
-    public void rollback_singleProtocol() {
+    public void rollback_singleProtocol() throws Exception {
         // Arrange
         byte[] data = "test".getBytes();
         byte[] rollback = "rollback".getBytes();
-        xcall.invoke(dapp.account, "sendCallMessage", ethDapp.toString(), data, rollback, baseSource, baseDestination);
+        seedRollback(BigInteger.ONE, dapp.getAddress(), baseSource, rollback);
 
         // Act
         CSMessageResult msgRes = new CSMessageResult(BigInteger.ONE, CSMessageResult.FAILURE, null);
@@ -607,12 +649,12 @@ public class CallServiceTest extends TestBase {
     }
 
     @Test
-    public void rollback_defaultProtocol() {
+    public void rollback_defaultProtocol() throws Exception {
         // Arrange
         byte[] data = "test".getBytes();
         byte[] rollback = "rollback".getBytes();
         xcall.invoke(owner, "setDefaultConnection", ethDapp.net(), baseConnection.getAddress());
-        xcall.invoke(dapp.account, "sendCallMessage", ethDapp.toString(), data, rollback);
+        seedRollback(BigInteger.ONE, dapp.getAddress(), new String[0], rollback);
 
         // Act
         CSMessageResult msgRes = new CSMessageResult(BigInteger.ONE, CSMessageResult.FAILURE, null);
@@ -626,12 +668,12 @@ public class CallServiceTest extends TestBase {
     }
 
     @Test
-    public void rollback_defaultProtocol_invalidSender() {
+    public void rollback_defaultProtocol_invalidSender() throws Exception {
         // Arrange
         byte[] data = "test".getBytes();
         byte[] rollback = "rollback".getBytes();
         xcall.invoke(owner, "setDefaultConnection", ethDapp.net(), baseConnection.getAddress());
-        xcall.invoke(dapp.account, "sendCallMessage", ethDapp.toString(), data, rollback);
+        seedRollback(BigInteger.ONE, dapp.getAddress(), new String[0], rollback);
         Account invalidConnection  = sm.createAccount();
 
         // Act
@@ -658,7 +700,7 @@ public class CallServiceTest extends TestBase {
         String[] destinations = {"0x1eth", "0x2eth"};
         String[] sources = {connection1.getAddress().toString(), connection2.getAddress().toString()};
 
-        xcall.invoke(dapp.account, "sendCallMessage", ethDapp.toString(), data, rollback, sources, destinations);
+        seedRollback(BigInteger.ONE, dapp.getAddress(), sources, rollback);
 
         // Act
         CSMessageResult msgRes = new CSMessageResult(BigInteger.ONE, CSMessageResult.FAILURE, null);
@@ -678,7 +720,7 @@ public class CallServiceTest extends TestBase {
         // Arrange
         byte[] data = "test".getBytes();
         byte[] rollback = "rollback".getBytes();
-        xcall.invoke(dapp.account, "sendCallMessage", ethDapp.toString(), data, rollback, baseSource, baseDestination);
+        seedRollback(BigInteger.ONE, dapp.getAddress(), baseSource, rollback);
 
         // Act
         CSMessageResult msgRes = new CSMessageResult(BigInteger.ONE, CSMessageResult.SUCCESS, null);
@@ -693,13 +735,12 @@ public class CallServiceTest extends TestBase {
     }
 
     @Test
-    public void executeRollback_singleProtocol() {
+    public void executeRollback_singleProtocol() throws Exception {
         // Arrange
-        byte[] data = "test".getBytes();
         byte[] rollback = "rollback".getBytes();
         NetworkAddress xcallAddr = new NetworkAddress(nid, xcall.getAddress());
 
-        xcall.invoke(dapp.account, "sendCallMessage", ethDapp.toString(), data, rollback, baseSource, baseDestination);
+        seedRollback(BigInteger.ONE, dapp.getAddress(), baseSource, rollback);
 
         CSMessageResult msgRes = new CSMessageResult(BigInteger.ONE, CSMessageResult.FAILURE, null);
         CSMessage msg = new CSMessage(CSMessage.RESULT, msgRes.toBytes());
@@ -723,7 +764,7 @@ public class CallServiceTest extends TestBase {
         NetworkAddress xcallAddr = new NetworkAddress(nid, xcall.getAddress());
 
         xcall.invoke(owner, "setDefaultConnection", ethDapp.net(), baseConnection.getAddress());
-        xcall.invoke(defaultDapp.account, "sendCallMessage", ethDapp.toString(), data, rollback);
+        seedRollback(BigInteger.ONE, defaultDapp.getAddress(), new String[0], rollback);
 
         CSMessageResult msgRes = new CSMessageResult(BigInteger.ONE, CSMessageResult.FAILURE, null);
         CSMessage msg = new CSMessage(CSMessage.RESULT, msgRes.toBytes());
@@ -750,10 +791,9 @@ public class CallServiceTest extends TestBase {
         when(connection1.mock.getFee(anyString(), anyBoolean())).thenReturn(BigInteger.ZERO);
         when(connection2.mock.getFee(anyString(), anyBoolean())).thenReturn(BigInteger.ZERO);
 
-        String[] destinations = {"0x1eth", "0x2eth"};
         String[] sources = {connection1.getAddress().toString(), connection2.getAddress().toString()};
 
-        xcall.invoke(dapp.account, "sendCallMessage", ethDapp.toString(), data, rollback, sources, destinations);
+        seedRollback(BigInteger.ONE, dapp.getAddress(), sources, rollback);
         CSMessageResult msgRes = new CSMessageResult(BigInteger.ONE, CSMessageResult.FAILURE, null);
         CSMessage msg = new CSMessage(CSMessage.RESULT, msgRes.toBytes());
         xcall.invoke(connection1.account, "handleBTPMessage", ethNid, CallService.NAME, BigInteger.ONE, msg.toBytes());
